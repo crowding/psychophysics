@@ -1,0 +1,1 @@
+function selfrecompile(n)try	disp(n);	disp(strfind('this is a test', 'is'));catch	disp(lasterr);endif (n == 0)	addpath('Phi-X174:eyetracking:library:matlab5_compensation:');	clear('selfrecompile');	evalin('base','clear selfrecompile; selfrecompile(1)');else	rmpath('Phi-X174:eyetracking:library:matlab5_compensation:');end

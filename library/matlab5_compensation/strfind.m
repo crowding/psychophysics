@@ -1,0 +1,1 @@
+function k = strfind(text, pattern)%function k = strfind(text, pattern)%replacement for the strfind command in more recent versions of matlab.%needed since the length-depndent behavior of findstr can only produce%bugs in almost all applications.if (length(pattern) <= length(text))	k = findstr(text, pattern);else	k = [];end

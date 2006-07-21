@@ -1,0 +1,1 @@
+function k = thingyk = strfind('this is a test', 'is');
