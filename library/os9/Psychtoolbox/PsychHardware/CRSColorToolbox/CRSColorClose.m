@@ -1,1 +1,0 @@
-function CRSColorClose% CRSColorClose%% Close the serial port for the rotating stage%% 2/2/03  dhb  Wrote it.global crsColorInfoif (~isempty(crsColorInfo))   PSYCHSERIAL('Close',crsColorInfo);   crsColorInfo = [];end

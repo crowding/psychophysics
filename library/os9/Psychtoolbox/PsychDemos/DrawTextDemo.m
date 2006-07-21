@@ -1,1 +1,0 @@
-w=screen(0,'openwindow');screen(w,'TextFont','Bookman');screen(w,'TextSize',24);mag=24;for theta=-pi/4:pi/4:pi/4	m=[mag*cos(theta),-mag*sin(theta),-mag*sin(theta),-mag*cos(theta),0,0];	screen(w,'DrawText','Hello world! Hit any key to continue.',100,400,[],m);endgetchar;screen(w,'Close');

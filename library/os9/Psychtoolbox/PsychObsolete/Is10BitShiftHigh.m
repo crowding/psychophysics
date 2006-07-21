@@ -1,1 +1,0 @@
-function shiftHigh = Is10BitShiftHigh(windowPtr)% shiftHigh = Is10BitShiftHigh(windowPtr)%% Obsolete. Use IsHigh10Bits instead.shiftHigh = IsHigh10Bits(windowPtr);

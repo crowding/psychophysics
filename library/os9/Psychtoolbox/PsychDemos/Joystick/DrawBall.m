@@ -1,1 +1,0 @@
-function DrawBall(windowPntr, rectPlace, ballX, ballY, ballNumber)screen(windowPntr,'FrameRect', BlackIndex(0),rectPlace);
