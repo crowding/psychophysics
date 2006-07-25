@@ -1,0 +1,16 @@
+Title EyeLink Display API 
+Version 1.3
+Description 
+DefaultLocation /
+DeleteWarning 
+
+### Package Flags
+
+NeedsAuthorization NO
+Required NO
+Relocatable YES
+RequiresReboot NO
+UseUserMask YES
+OverwritePermissions NO
+InstallFat NO
+RootVolumeOnly NO

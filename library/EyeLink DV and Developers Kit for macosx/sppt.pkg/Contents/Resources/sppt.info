@@ -1,0 +1,20 @@
+Title Eyelink Core Graphics support libraries
+Version 
+Description Some support libraries that are used by eyelink_core_graphics library. The only nessary library is gd. However some sdl libraries are given for compatibility reasons. In the upcoming releases this will be removed. 
+
+You will be able to get gd from http://www.boutell.com/gd/ and SDL from http://www.libsdl.org/index.php
+
+
+DefaultLocation /
+DeleteWarning 
+
+### Package Flags
+
+NeedsAuthorization YES
+Required YES
+Relocatable NO
+RequiresReboot NO
+UseUserMask YES
+OverwritePermissions NO
+InstallFat NO
+RootVolumeOnly YES

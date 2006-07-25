@@ -1,0 +1,16 @@
+Title Eyelink API
+Version 1.3
+Description The Macintosh OSX Software Package includes the EyeLink C API for Macintosh OSX, including a version of the sample programs that use SDL as the graphics environment
+DefaultLocation (null)
+DeleteWarning 
+
+### Package Flags
+
+NeedsAuthorization NO
+Required NO
+Relocatable NO
+RequiresReboot NO
+UseUserMask YES
+OverwritePermissions NO
+InstallFat NO
+RootVolumeOnly NO

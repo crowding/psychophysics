@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IFPkgDescriptionDeleteWarning</key>
+	<string></string>
+	<key>IFPkgDescriptionDescription</key>
+	<string>Some support libraries that are used by eyelink_core_graphics library. The only nessary library is gd. However some sdl libraries are given for compatibility reasons. In the upcoming releases this will be removed. 
+
+You will be able to get gd from http://www.boutell.com/gd/ and SDL from http://www.libsdl.org/index.php
+
+</string>
+	<key>IFPkgDescriptionTitle</key>
+	<string>Eyelink Core Graphics support libraries</string>
+	<key>IFPkgDescriptionVersion</key>
+	<string></string>
+</dict>
+</plist>
