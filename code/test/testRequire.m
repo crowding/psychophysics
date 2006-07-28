@@ -11,7 +11,6 @@ this = public(...
     @testRequiresTwoArguments,...
     @testNeedsInitFunctionHandle,...
     @testNeedsReleaseFunctionHandle,...
-    @testSafeTypoCatching,...
     @testFailedInit,...
     @testFailedBody,...
     @testFailedRelease,...
@@ -22,7 +21,8 @@ this = public(...
     @testFailedChainBody,...
     @testFailedChainBodyRelease,...
     @testOutputCollection,...
-    @testMultipleOutputCollection );
+    @testMultipleOutputCollection,...
+    @testVarargoutNotSupported);
 
 %private instance variables
 
@@ -32,7 +32,7 @@ return
     function testRequiresTwoArguments
         %require takes at least two arguments
         try
-            require(@noop)
+            require(@noop);
             fail('should have error')
         catch
             assertLastError('require:');
@@ -67,29 +67,16 @@ return
         end
     end
 
-    function testSafeTypoCatching
-        %as a consequence of the above, forgetting to get a handle to the
-        %initializer happens to release the resource before doing anything
-        %else.
-        initflag = 0;
-        releaseflag = 0;
+    function testNeedsOutputArg
+        %require expects a function handle from executing the initializer
         try
-            %accidentally execute init instead of making a handle
-            require(init, @noop);
+            require(@init, @noop);
             fail('expected error');
         catch
             assertLastError('require:');
-            assert(initflag);
-            assert(releaseflag);
         end
-
-        function r = init
-            initflag = 1;
-            r = @release;
-        end
-
-        function release
-            releaseflag = 1;
+        
+        function init
         end
     end
 
@@ -106,7 +93,7 @@ return
         end
         
         function r = init
-            error('testRequire:test');
+            error('testRequire:test', 'test');
         end
         
         function body
@@ -136,7 +123,7 @@ return
         end
         
         function body
-            error('testRequire:test');
+            error('testRequire:test', 'test');
         end
     end
 
@@ -150,7 +137,7 @@ return
         end
 
         function r = init
-            r = @()error('testRequire:test')
+            r = @()error('testRequire:test', 'test');
         end
     end
 
@@ -171,13 +158,13 @@ return
             r = @release;
             
             function release
-                error('testRequire:expectedError');
+                error('testRequire:expectedError', 'test');
             end
         end
 
         function body
             bflag = 1;
-            error('testRequire:unexpectedError');
+            error('testRequire:unexpectedError', 'test');
         end
     end
 
@@ -195,14 +182,14 @@ return
             r = @release1;
 
             function release1
-                assertEquals([1 1 1 0],[iflag1 iflag2 rflag1 rflag2]);
+                assertEquals([1 1 0 1],[iflag1 iflag2 rflag1 rflag2]);
                 rflag1 = 1;
             end
         end
 
         function r = init2
             assertEquals([1 0 0 0],[iflag1 iflag2 rflag1 rflag2]);
-            initflag2 = 1;
+            iflag2 = 1;
             r = @release2;
             
             function release2
@@ -225,15 +212,15 @@ return
         end
         
         function r = init1
-            r = @release1
+            r = @release1;
             
             function release1
-                rflag = l; 
+                rflag = 1; 
             end
         end
         
         function r = init2
-            r = @()error('testRequire:test');
+            r = @()error('testRequire:test', 'test');
         end
     end
 
@@ -251,15 +238,15 @@ return
         end
         
         function r = init1
-            r = @release1
+            r = @release1;
             
             function release1
-                rflag = l; 
+                rflag = 1; 
             end
         end
         
         function r = init2
-            r = @()error('testRequire:test');
+            r = @()error('testRequire:test', 'test');
         end
     end
 
@@ -267,7 +254,7 @@ return
         %when a body fails with chained resources, all the resources are
         %released and the exception is propagated.
         try
-            require(@init1, @init2, @noop);
+            require(@init1, @init2, @body);
             fail('expected an error');
         catch
             assertLastError('testRequire:expected');
@@ -277,7 +264,7 @@ return
             r = @release;
             
             function release
-                rflag1 = l; 
+                rflag1 = 1; 
             end
         end
         
@@ -285,19 +272,20 @@ return
             r = @release;
             
             function release
-                rflag2 = l; 
+                rflag2 = 1; 
             end
         end
         
         function body
-            error('testRequire:expected');
+            error('testRequire:expected', 'test');
         end
     end
 
     function testFailedChainBodyRelease
         %when a body fails, AND THEN a release fails, preceding resources
-        %are released, and the ORIGINAL exception is propagatd (with some
-        %additional information.)
+        %are released, and the releaser's exception is propagated.
+        %unfortunately, I don't have a way to chain exceptions with their
+        %antecedent causes. 
         rflag1 = 0;
         rflag2 = 0;
         
@@ -314,7 +302,7 @@ return
             r = @release;
             
             function release
-                rflag1 = l; 
+                rflag1 = 1; 
             end
         end
         
@@ -323,12 +311,12 @@ return
             
             function release
                 rflag2 = 1;
-                error('testRequire:unexpected');
+                error('testRequire:expected', 'test');
             end
         end
         
         function body
-            error('testRequire:expected');
+            error('testRequire:unexpected', 'test');
         end
     end
 
@@ -351,21 +339,16 @@ return
     end
 
     function testMultipleOutputCollection
-        %multiple initializer's return values and outputs are collected.
-        %But only the first two output values of an initializer funtion
-        %are paid any attention to.
-        %
-        %This behavior is the least of several evils around matlab's
-        %varargout handling - it is standard matlab practice to add output
-        %variables to a function and not expect calling functions to
-        %change behavior. So, adding a third output to an initializer
-        %should have no effect.
+        %multiple initializer's return values and outputs are collected,
+        %and passed to the body. Multiple outputs of an initiaizer are
+        %collected.
+
         bflag = 0;
         require(@init1, @init2, @body);
         assert(bflag);
         
         function body(i, j, k)
-            assertEquals(2, nargin); 
+            assertEquals(3, nargin); 
             assertEquals([i j k], [1 2 3]);
             bflag = 1;
         end
@@ -386,8 +369,12 @@ return
     function testVarargoutNotSupported
         %initializers declaring varargout are not supported. The
         %initializer is not called.
+        %
+        %This behavior is a lesser of several evils around matlab's
+        %varargout handling - I simply can't capture all the outputs of a
+        %varargout function, so I choose to outlaw varargout here entirely.
         try
-            require(@init1, @noop);
+            require(@init, @noop);
             fail('expected an error');
         catch
             assertLastError('require:')

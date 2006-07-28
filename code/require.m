@@ -20,23 +20,73 @@ function require(varargin)
 %
 %REQUIRE
 %
-%Simple example usage, uses RESOURCE to generate the function handles
 %
-%   require(resource(@fopen, @fclose, 'out.txt', 'W'), @write);
-%   function write(fid)
-%       fprintf(fid, 'Hello world!\n');
-%   end
-%
-%Here is an example of usage without 'resource'. 
+%Here is an example of usage without 'resource'. The function 'opener'
+%bundles corresponding 'open' and 'close' operations together. Note how
+%the 'fid' value is passed from 'opener' to 'write.'
 %
 %   require(@opener, @write);
 %   function write(fid)
 %       fprintf(fid, 'Hello world!\n');
 %   end
 %
-%   function r = opener
-%       num = fopen(filename)
+%   function [r, fid] = opener
+%      fid = fopen(filename)
 %      if fid < -1
 %           error('could not open file');
-%     r = @()close(fn);
+%      end
+%      r = @()close(fn);
 %   end
+%
+%
+%Here is a more compact example using RESOURCE to make the function
+%handles. 
+%
+%   require(resource(@fopen, @fclose, 'out.txt', 'W'), @write);
+%   function write(fid)
+%       fprintf(fid, 'Hello world!\n');
+%   end
+%
+
+if (nargin < 2)
+    error('require:illegalArgument', 'require needs at least 2 arguments');
+end
+
+initializer = varargin{1};
+
+if ~isa(initializer, 'function_handle')
+    error('require:illegalArgument', 'require takes function handles as arguments');
+end
+
+%run the initializer, collecting from it a release function handle and an
+%optional set of outputs.
+initializer_outputs = nargout(initializer);
+if initializer_outputs < 1
+    error('require:badInitializerNargout', 'initializers need to produce a releaser');
+else
+    [release, output{1:initializer_outputs-1}] = initializer();
+end
+
+if ~isa(release, 'function_handle')
+    error('require:missingReleaser', 'initializer did not produce a releaser');
+end
+
+%now run the body, or the next initializer
+try
+    body = varargin{end};
+    if (nargin > 2)
+        %we have more initilizers --
+        %recurse onto the next initializer, currying the initializer's
+        %output with the body function.
+        newbody = @(varargin) body(output{:}, varargin{:});
+        require(varargin{2:end-1}, newbody);
+    else
+        %we have initialized everything - run the body
+        body(output{:}); %run the curried, protected body
+    end
+catch
+    err = lasterror;
+    release();
+    rethrow(err);
+end
+release();
