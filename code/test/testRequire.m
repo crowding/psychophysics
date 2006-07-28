@@ -268,8 +268,9 @@ return
         %released and the exception is propagated.
         try
             require(@init1, @init2, @noop);
+            fail('expected an error');
         catch
-            fail(@init1, @init2, @noop);
+            assertLastError('testRequire:expected');
         end
         
         function r = init1
@@ -287,6 +288,10 @@ return
                 rflag2 = l; 
             end
         end
+        
+        function body
+            error('testRequire:expected');
+        end
     end
 
     function testFailedChainBodyRelease
@@ -298,6 +303,7 @@ return
         
         try
             require(@init1, @init2, @body);
+            fail('expected an error');
         catch
             assertLastError('testRequire:expected');
             assert(rflag1);
@@ -327,15 +333,73 @@ return
     end
 
     function testOutputCollection
-        fail('not written');
+        %An initializer function can have two outputs, in which
+        %case the second output is collected and passed to the body.
+        bflag = 0;
+        require(@init, @body);
+        assert(bflag);
+        
+        function [r, o] = init
+            o = 4;
+            r = @noop;
+        end
+        
+        function body(o)
+            assertEquals(o, 4);
+            bflag = 1;
+        end
     end
 
     function testMultipleOutputCollection
-        fail('not written');
+        %multiple initializer's return values and outputs are collected.
+        %But only the first two output values of an initializer funtion
+        %are paid any attention to.
+        %
+        %This behavior is the least of several evils around matlab's
+        %varargout handling - it is standard matlab practice to add output
+        %variables to a function and not expect calling functions to
+        %change behavior. So, adding a third output to an initializer
+        %should have no effect.
+        bflag = 0;
+        require(@init1, @init2, @body);
+        assert(bflag);
+        
+        function body(i, j, k)
+            assertEquals(2, nargin); 
+            assertEquals([i j k], [1 2 3]);
+            bflag = 1;
+        end
+        
+        function [r, ii] = init1
+            r = @noop;
+            ii = 1;
+        end
+            
+        function [r, jj, kk] = init2
+            %has 3 outputs, only 2 will be used
+            r = @noop;
+            jj = 2;
+            kk = 3;
+        end
+    end
+
+    function testVarargoutNotSupported
+        %initializers declaring varargout are not supported. The
+        %initializer is not called.
+        try
+            require(@init1, @noop);
+            fail('expected an error');
+        catch
+            assertLastError('require:')
+        end
+        
+        function [r, varargout] = init
+            r = @noop
+            varargout = {1};
+        end
     end
     
     function noop
     end
 
-new = methods;
 end
