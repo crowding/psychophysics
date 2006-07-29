@@ -1,6 +1,6 @@
-function require(varargin)
-%
-%function require(resource, ..., protected)
+function varargout = require(varargin)
+
+%function varargout = require(resource, ..., protected)
 %
 %REQUIRE acquires access to a limited resource before running a protected
 %function; guaranteed to release the resource after running the protected
@@ -9,17 +9,18 @@ function require(varargin)
 %REQUIRE takes multiple resource arguments.
 %Each resource argument shoud be a function handle. When called, the 
 %resource function should acquire a resource (e.g. open a file , connect to
-%a device, open a window on screen, etc.) and optionally return parameters
-%describing the resource (e.g. filehandle, screen/window number, 
-%calibration information, etc. The last argument returned by the resource
-%function should be a releaser, another function handle, taking no
+%a device, open a window on screen, etc.) The first argument returned by
+%the resource function should be a releaser, another function handle, taking no
 %arguments, that releases the resource in question.
+%
+%The initializer can optionally return a second parameter, which can 
+%describe the resource acquired (e.g. filehandle, screen/window number, 
+%calibration information, etc.) 
 %
 %Another function RESOURCE exists that may help in procuring the
 %appropriate function handles. 
 %
 %REQUIRE
-%
 %
 %Here is an example of usage without 'resource'. The function 'opener'
 %bundles corresponding 'open' and 'close' operations together. Note how
@@ -47,35 +48,38 @@ function require(varargin)
 %       fprintf(fid, 'Hello world!\n');
 %   end
 %
+% REQUIRE can take multiple releaser arguments, in which case the optional 
+% outputs of the releaser are gathered into a cell array to be passed to
+% the body.
 
 if (nargin < 2)
-    error('require:illegalArgument', 'require needs at least 2 arguments');
-end
-
-initializer = varargin{1};
-
-if ~isa(initializer, 'function_handle')
-    error('require:illegalArgument', 'require takes function handles as arguments');
+    error('require:illegalArgument', 'require needs at least 1 argument');
 end
 
 %run the initializer, collecting from it a release function handle and an
-%optional set of outputs.
-initializer_outputs = nargout(initializer);
-if initializer_outputs < 1
-    error('require:badInitializerNargout', 'initializers need to produce a releaser');
-else
-    [release, output{1:initializer_outputs-1}] = initializer();
-end
+%optional output.
+initializer = varargin{1};
 
-if ~isa(release, 'function_handle')
+if ~isa(initializer, 'function_handle')
     error('require:missingReleaser', 'initializer did not produce a releaser');
 end
 
-%now run the body, or the next initializer
+initializer_outputs = nargout(initializer);
+if initializer_outputs < 1
+    error('require:illegalArgument', 'initializers need to produce a releaser');
+else
+    [releaser, output{1:initializer_outputs - 1}] = initializer();
+end
+
+if ~isa(releaser, 'function_handle')
+    error('require:missingChainOutputCollection', 'initializer did not produce a releaser');
+end
+
+%now either run the body, or recurse onto the next initializer
 try
     body = varargin{end};
     if (nargin > 2)
-        %we have more initilizers --
+        %we have more initializers --
         %recurse onto the next initializer, currying the initializer's
         %output with the body function.
         newbody = @(varargin) body(output{:}, varargin{:});
@@ -85,8 +89,11 @@ try
         body(output{:}); %run the curried, protected body
     end
 catch
+    %if there is a problem, rethrow the last error.
     err = lasterror;
-    release();
+    releaser();
     rethrow(err);
 end
-release();
+
+%finally, release the resource.
+releaser();
