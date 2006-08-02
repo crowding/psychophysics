@@ -10,12 +10,16 @@ this = public(...
     @testRequiresTwoArguments,...
     @testNeedsInitFunctionHandle,...
     @testNeedsReleaseFunctionHandle,...
+    ...%@testRobustToTypos,... %these are not specified behavior right now
+    ...%@testRobustToMultipleTypos,...
+    @testNeedsOutputArg,...
     @testFailedInit,...
     @testFailedBody,...
     @testFailedRelease,...
     @testFailedReleaseAfterFailedBody,...
     @testOutputCollection,...
     @testVarargoutNotSupported,...
+    @testBodyOutput,...
     ...
     @testSuccessfulChain,...
     @testFailedChainInit,...
@@ -69,6 +73,37 @@ this = public(...
         function release = init
             release = 5678;
         end
+    end
+
+    function testRobustToTypos
+        %if you miss an @sign, you might call initialization before getting
+        %into require, but require will then call the release function
+        %handle that its gets instead. This won't work so well for
+        %multiple-argument invocations, however. Maybe it should?
+        %
+        %this behavior is intended as a development convenience.
+        rflag = 0;
+        try
+            require(init, @noop)
+            fail('expected error');
+        catch
+            assertLastError('testrequire:');
+        end
+        assert(rflag);
+        
+        function r = init
+            r = @release;
+            function release
+                rflag = 1;
+            end
+        end
+    end
+
+    function testRobustToMultipleTypos
+        %not sur whether I should make it pass this test, since it's a
+        %modification of otherwise reasonable behavior. If not havign
+        %it is a problem, we'll see.
+        fail('test not written')
     end
 
     function testNeedsOutputArg
@@ -217,7 +252,7 @@ this = public(...
         assertEquals([1 2], [a b]);
         
         function r = init
-            r = noop;
+            r = @noop;
         end
         
         function [a, b] = body

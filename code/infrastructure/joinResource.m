@@ -53,7 +53,9 @@ function f = joinResource(first, varargin)
         try
             [release2, varargout{1:nrest-1}] = rest(pass{:});
         catch
-            release1();
+            e = lasterror; %FIXME - this path not exercised by unit tests?
+            release1(); %FIXME - may need chaining
+            rethrow(e);
         end
         
         %return the releaser
@@ -64,7 +66,7 @@ function f = joinResource(first, varargin)
                 release2();
             catch
                 err = lasterror;
-                release1();
+                release1(); %may need chaining
                 rethrow(err);
             end
             release1();

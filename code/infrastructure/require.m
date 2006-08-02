@@ -51,6 +51,12 @@ function varargout = require(varargin)
 % REQUIRE can take multiple releaser arguments, in which case the optional 
 % outputs of the releaser are gathered into a cell array to be passed to
 % the body.
+%
+% WHY THIS EXISTS: MATLAB's silly lack of a 'finally' clause or anything
+% equivalent (e.g. the RAII idiom in C++) combined with a lot of
+% boilerplate device-and-file-and-window-opening code in psychtoolbox
+% scripts -- which is generally not written robustly, and should be
+% collapsible down to a single file.
 
 if (nargin < 2)
     error('require:illegalArgument', 'require needs at least 1 argument');
@@ -86,7 +92,7 @@ try
         require(varargin{2:end-1}, newbody);
     else
         %we have initialized everything - run the body
-        body(output{:}); %run the curried, protected body
+        [varargout{1:nargout}] = body(output{:}); %run the curried, protected body
     end
 catch
     %if there is a problem, rethrow the last error.
