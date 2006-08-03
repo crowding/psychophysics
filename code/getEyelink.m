@@ -7,6 +7,7 @@ function [release, details] = getEyelink(details)
 %
 %Input structure fields:
 %   window - the PTB window number
+%   rect - the window rect
 %
 %Output structure fields:
 %   el - the eyelink info structure
@@ -14,7 +15,7 @@ function [release, details] = getEyelink(details)
 %   localname - full path to where the EDF file is downloaded locally
 %   dummy - whether the eyelink was opened in dummy mode
 
-%   FIXME - need to configure eyelink sample data (link_sample_data)
+%   FIXME: - need to configure eyelink sample data (link_sample_data)
     
     initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
     [release, details] = initializer(details);
@@ -60,8 +61,14 @@ function [release, details] = getEyelink(details)
     end
 
 
-    %do the tracker setup. Requires the 'el' field from initDefaults.
+    %do the tracker setup. Requires the 'el' field from initDefaults as
+    %well as the 'rect' field from getScreen.
     function [release, details] = doSetup(details)
+        
+        %set and recurd as many settings as possible
+        eyelinkSettings = setupEyelink(details.rect);
+        details.eyelinkSettings = eyelinkSettings;
+        
         disp('Do tracker setup now');
         status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
         if status < 0
@@ -115,12 +122,14 @@ function [release, details] = getEyelink(details)
         function downloadFile
             %try both in any case
             status = Eyelink('CloseFile');
-            fsize = Eyelink('ReceiveFile', edfname, localname);
-            
-            if (fsize < 1 || status < 0)
-                error('getEyeink:fileTransferError', ...
-                    'File %s empty or not transferred (close status: %d, receive: %d)',...
-                    edfname, status, fsize);
+            if Eyelink('IsConnected') ~= details.el.dummyconnected
+                fsize = Eyelink('ReceiveFile', edfname, localname);
+
+                if (fsize < 1 || status < 0)
+                    error('getEyeink:fileTransferError', ...
+                        'File %s empty or not transferred (close status: %d, receive: %d)',...
+                        edfname, status, fsize);
+                end
             end
         end
     end
