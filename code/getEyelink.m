@@ -13,6 +13,8 @@ function [release, details] = getEyelink(details)
 %   edfname - the EDF file name
 %   localname - full path to where the EDF file is downloaded locally
 %   dummy - whether the eyelink was opened in dummy mode
+
+%   FIXME - need to configure eyelink sample data (link_sample_data)
     
     initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
     [release, details] = initializer(details);

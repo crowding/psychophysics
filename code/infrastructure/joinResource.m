@@ -23,6 +23,7 @@ function f = joinResource(first, varargin)
 %   close = close(fid);
 %end
 
+    %Recursively define a joined initializer out of the 2-initializer join
     if (nargin == 1)
         %one resource does not need to be joined
         f = first;
@@ -44,10 +45,22 @@ function f = joinResource(first, varargin)
         %return a function closing over the initializers, taking the output
         %from the rest of the arguments
         f = setnargout(nargout(rest), @joinedInitializer);
-
     end
     
+    
+    %The 2-initializer join: This is chained together to make N-initializer
+    %joins.
+    %
+    %The function executes the first initializer, pass its result to the
+    %second, executes the second, and return the result of the second.
+    %
+    %It returns a releaser which releases hte second initializer before the
+    %first.
+    %
+    
     function [r, varargout] = joinedInitializer(varargin)
+        %This function over variables 'nfirst' and 'nrest' so that it knows
+        %how many arguments to expect in output. 
         %a handle to this function is the combined initializer.
         [release1, pass{1:nfirst-1}] = first(varargin{:});
         try
