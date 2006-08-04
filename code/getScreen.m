@@ -28,7 +28,8 @@ function [release, details] = getScreen(details)
     initializer = joinResource(@checkOpenGL, @setGamma, @openScreen, @blankScreen);
     [release, details] = initializer(details);
     
-    %Now we define the sub-initializers.
+    %Now we define the sub-initializers. Each one is set up and torn down
+    %in turn by the initializer defined by joinResource.
     
     %Step 0: run some assertions.
     function [release, details] = checkOpenGL(details)

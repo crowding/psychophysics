@@ -27,11 +27,9 @@ function [release, details] = getEyelink(details)
         %connect to the eyelink machine.
         try
             status = Eyelink('Initialize');
-            details.dummy = 0;
         catch
             warning('Using eyelink in dummy mode')
             status = Eyelink('InitializeDummy');
-            details.dummy = 1;
         end
         
         if status < 0
@@ -48,9 +46,21 @@ function [release, details] = getEyelink(details)
 
 
     %initialize eyelink defaults. Requires the 'window' field from getScreen.
+    %output fields - 'dummy' if we are in dummy mode
     function [release, details] = initDefaults(details)
         el = EyelinkInitDefaults(details.window);
         details.el = el;
+        
+        conn = Eyelink('IsConnected');
+        switch conn
+            case el.connected
+                details.dummy = 0;
+            case el.dummyconnected
+                details.dummy = 1;
+            otherwise
+                error('getEyelink:notConnected', 'not connected (%d)', conn);
+        end
+        
         [release, details] = deal(@noop, details);
         
         function noop
@@ -65,14 +75,16 @@ function [release, details] = getEyelink(details)
     %well as the 'rect' field from getScreen.
     function [release, details] = doSetup(details)
         
-        %set and recurd as many settings as possible
+        %set and record as many settings as possible
         eyelinkSettings = setupEyelink(details.rect);
         details.eyelinkSettings = eyelinkSettings;
         
-        disp('Do tracker setup now');
-        status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
-        if status < 0
-            error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
+        if ~details.dummy
+            disp('Do tracker setup now');
+            status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
+            if status < 0
+                error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
+            end
         end
         
         [release, details] = deal(@noop, details);
