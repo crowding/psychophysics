@@ -1,24 +1,11 @@
-function this = OutsideTrigger(rect, fn)
-%Produces an object that fires a trigger when x and y are inside a rect.
+function this = OutsideTrigger(obj_, fn_)
+%Produces an object that fires a trigger when [x, y] is outside an object.
 
-this = public(...
-    @check,...
-    @id...
-    );
+this = inherit(Identifiable(), public(@check));
 
-%private members
-    fn_ = fn;
-    rect_ = rect;
-    id_ = serialnumber();
-    
-    %methods
     function check(x, y, t)
-        if ~inrect(rect_, x, y)
-            fn_(); %call function when eye is outside
+        if ~inrect(obj_.bounds(), x, y)
+            fn_(x, y, t); %call function when eye is inside
         end
-    end
-
-    function i = id
-        i = id_;
     end
 end

@@ -1,4 +1,4 @@
-function this = eyeEvents(el)
+function this = eyeEvents(el, calibration)
 %function this = eyeEvents(el)
 %
 % Makes an object for tracking eye movements, and
@@ -13,10 +13,9 @@ function this = eyeEvents(el)
 %----public interface----
 this = public(...
     @update,...
-    @last,...
-    @addTrigger,...
-    @removeTrigger,...
-    @clearTriggers...
+    @add,...
+    @remove,...
+    @clear...
     );
 
 %-----private data-----
@@ -31,7 +30,7 @@ lasttime_ = [];
 %Array of trigger-interface objects. An advantage of closure-structs over
 %matlab objects is that you can have an array containing diferent
 %implementations of one interface.
-triggers_ = emptyOf(Trigger());
+triggers_ = cell(0);
 
 %----- method definitions -----
 
@@ -41,28 +40,23 @@ triggers_ = emptyOf(Trigger());
         
         %send the sample to each trigger and the triggers will fire if they
         %match
-        arrayfun(@(i) i.check(eyeX, eyeY, time), triggers_);
+        cellfun(@(i) i.check(eyeX, eyeY, time), triggers_);
     end
 
-    function [x, y, time] = last
-        %returns the last sample receiver
-        [x, y, time] = deal(x_, y_, time_);
-    end
-
-    function addTrigger(trigger)
+    function add(trigger)
         %adds a trigger obeject.
-        triggers_(end + 1) = trigger;
+        triggers_{end + 1} = trigger;
     end
 
-    function removeTrigger(trigger)
+    function remove(trigger)
         %Removes a trigger object.
         searchid = trigger.id();
-        found = find(arrayfun(@(x)x.id() == searchid, triggers_));
-        triggers_(found(1)) = [];
+        found = find(cellfun(@(x)x.id() == searchid, triggers_), 'UniformOutput', 0);
+        triggers_{found(1)} = [];
     end
 
-    function clearTriggers
-        triggers(1:end) = [];
+    function clear
+        triggers{1:end} = [];
     end
 
     function [eyeX, eyeY, time] = eyeSample
@@ -110,7 +104,7 @@ triggers_ = emptyOf(Trigger());
                 %code worked on OSX.
                 [eyeX, eyeY] = GetMouse();
                 time = GetSecs();
-                [lastx_, lasty_, lasttime_] = deal(eyeX, eyeY, time);
+
             otherwise
                 error('eyeEvents:not_connected', 'eyelink not connected');
         end

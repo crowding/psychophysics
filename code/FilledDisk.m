@@ -1,36 +1,21 @@
-function this = FilledRect(x, y, size, initColor)
+function this = FilledRect(x_, y_, size_, color_)
 
 %A filled rectangle object that is part of displays.
 
 %----- public interface -----
-this = public(...
-     @drawer... %the drawer interface
-    ,@loc...
-    ,@setLoc... %the rectangle interface
-    ,@color...
-    ,@setColor...
+this = inherit(...
+    Drawer(),...
+    public(@loc, @setLoc, @color, @setColor, @size, @setSize, @draw, @bounds)...
     );
-
-%----- instance variables -----
-[x_, y_] = deal(x, y);
-color_ = initColor;
-drawer_ = DiskDrawer();
 
 %----- methods -----
 
-%FIXME: this simple kind of accessor creation is why public() needs to
-%make a class supporting subsref() and subsasgn() and provide public
-%properties - a 'properties'
-%struct-generating function as the argument to public() would do the trick
-%for a calling convention.
-%Inheritance/mixins wouldn't hurt either.
-
-    function r = rect
-        r = rect_;
+    function [x, y] = loc
+        [x, y] = deal(x_, y_);
     end
 
-    function setRect(newrect)
-        rect_ = newrect
+    function setLoc(x, y)
+        [x_, y_] = deal(x, y);
     end
 
     function c = color
@@ -41,56 +26,21 @@ drawer_ = DiskDrawer();
         color_ = newcolor;
     end
 
-    function d = drawer
-        %The Drawer interface
-        %FIXME: members to expose interface might not be as good as duck
-        %typing.
-        d = drawer_;
+    function s = size
+        s = size_;
     end
 
-%----- inner class -----
-    function this = DiskDrawer
-        %The implementation of the drawer interface for FilledRect.
-        this = public(...
-             @prepare...
-            ,@release...
-            ,@setVisible...
-            ,@draw...
-            ,@bounds...
-            ,@id...
-        );
-        
-        visible_ = 0;
-        id_ = serialnumber();
-        
-        function prepare(window, calibration)
-            %no textures to prepare for a rectangle
-        end
-        
-        function release
-            %nothing to release
-        end
-        
-        function setVisible(v)
-            visible_ = v;
-        end
-        
-        function v = visible
-            v = visible_;
-        end
-        
-        function draw(window)
-            if visible_
-                Screen('FillRect', window, color_, rect_);
-            end
-        end
+    function setSize(s)
+        size_ = s;
+    end
 
-        function b = bounds
-            b = rect_;
+    function draw(window)
+        if this.visible()
+            Screen('gluDisk', window, color_, x_, y_, size_);
         end
-        
-        function i = id
-            i = id_;
-        end
+    end
+
+    function b = bounds
+        b = rect_;
     end
 end

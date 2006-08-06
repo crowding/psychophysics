@@ -81,7 +81,7 @@ function settings = setupEyelink(screenRect, arg)
     end
 
     message = sprintf('DISPLAY_COORDS %s', rectString);
-    status = eyelink('Message', message);
+    status = Eyelink('Message', message);
     if (status < 0)
         error('setupEyelink:badStatus', 'Status %d sending message "%s"',...
             status, message);

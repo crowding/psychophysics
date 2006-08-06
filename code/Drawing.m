@@ -1,4 +1,4 @@
-function this = Drawing(window, calibration)
+function this = Drawing(window_, calibration_)
 %Drawing is a holder for graphics drawing objects.
 %Drawing tries to coordinate the allocation of resources (textures etc.)
 %for graphics objects; therefore it needs to have cleanup code. Therefore
@@ -6,24 +6,17 @@ function this = Drawing(window, calibration)
 %use with REQUIRE.
 
 % ----- public interface -----
-this = public(...
-    @add...
-    ,@remove...
-    ,@clear...
-    ,@draw...
-);
+this = public(@add, @remove, @clear, @draw);
 % ----- instance variables -----
 
-components_ = emptyOf(Drawer());
-window_ = window;
-calibration_ = calibration;
+components_ = cell(0);
 
 % ----- methods -----
     function add(drawer)
         %add a single component to the drawing and prepare it to be drawn.
         drawer.prepare(window_, calibration_); %do this first, since it
                                                %could error
-        components_(end+1) = drawer;
+        components_{end+1} = drawer;
     end
 
     function remove(drawer)
@@ -31,7 +24,7 @@ calibration_ = calibration;
         id = drawer.id();
         errors = emptyOf(lasterror);
         
-        found = find(arrayfun(@(x) x.id() == id, drawer));
+        found = find(cellfun(@(x) x.id() == id, drawer));
         if ~isempty(found)
             removeAt(found(1));
         end
@@ -56,14 +49,15 @@ calibration_ = calibration;
 
     function draw
         %draw all the objects on the screen.
-        arrayfun(@(x)x.draw(window_), components_);
+        cellfun(@(x)x.draw(window_), components_);
     end
     
     function removeAt(index)
         %private function.
         %remove a component, THEN deallocates it
-        it = components_(index);
-        components_(found(1)).release();
+        it = components_{index};
+        components_{index} = {};
+        it.release();
         
         %hooray for my closure-reference objects --
         %this order of operations be impossible with matlab's dumb

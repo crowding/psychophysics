@@ -1,21 +1,9 @@
-function this = UpdateTrigger(fn)
+function this = UpdateTrigger(fn_)
 %A trigger that fires on every update.
+this = inherit(Identifiable(), public(@check));
 
-this = public(...
-    @check,...
-    @id...
-    );
-
-%private members
-    fn_ = fn;
-    id_ = serialnumber();
-    
     %methods
     function check(x, y, t)
-        fn_(); %call function when eye is inside
-    end
-
-    function i = id
-        i = id_;
+        fn_(x, y, t); %call function when eye is inside
     end
 end

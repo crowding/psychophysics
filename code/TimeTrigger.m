@@ -1,26 +1,14 @@
-function this = TimeTrigger(time, fn)
+function this = TimeTrigger(time_, fn_)
 %Produces an object fires a trigger when a certain time has passed.
 %The object has a unique serial number.
 
 %----- public interface -----
-this = public(...
-    @check,...
-    @id...
-    );
-
-%----- private members -----
-fn_ = fn;
-time_ = time;
-id_ = serialnumber();
+this = inherit(Identifiable(), public(@check));
 
 %----- methods -----
     function check(x, y, t)
         if (t >= time_)
-            fn_();
+            fn_(x, y, t);
         end
-    end
-
-    function i = id
-        i = id_;
     end
 end
