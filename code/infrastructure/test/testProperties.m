@@ -8,6 +8,7 @@ this = public(...
     ,@testReferenceBehavior...
 );
 
+
     function testPropertyGetting
         p = properties('a', 1, 'b', 'foo', 'c', {3});
         
@@ -15,6 +16,7 @@ this = public(...
         assertEquals('foo', p.b());
         assertEquals({3},   p.c());
     end
+
 
     function testPropertySetting
         p = properties('a', 1, 'b', 'foo', 'c', {3});
@@ -26,6 +28,7 @@ this = public(...
         assertEquals({'baz' 'qux'},   p.b());
         assertEquals([12 32],       p.c());
     end
+
 
     function testPropertyInheritance
         function this = TestObject
@@ -45,6 +48,7 @@ this = public(...
         assertEquals(a.value(), 3);
     end
 
+
     function testPropertyOverride
         %Shows how to override the property accessors made by
         %properties().
@@ -56,16 +60,16 @@ this = public(...
                 public(@b, @sum)...
             );
         
-            function r = b(val)
+            function val = b(val)
                 %override the property accessor so that
                 %b gets rounded to integers
                 
                 %note i find checking nargin to be distateful, and would
                 %like a better convention for getting/setting.
                 if nargin > 0
-                    p_.b(round(b));
+                    p_.b(round(val));
                 else
-                    r = p_.b(); %_0 suffix accesses the non-overridden
+                    val = p_.b(); %_0 suffix accesses the non-overridden
                     %method.
                 end
             end
@@ -84,21 +88,24 @@ this = public(...
         o.a(2.25);
         o.b(3.75);
         
-        assertEquals(o.a(), 2.25);
-        assertEquals(o.b(), 4);
+        assertEquals(2.25, o.a());
+        assertEquals(4, o.b());
         assertEquals(o.sum(), 6.25);
     end
+
 
     function testReferenceBehavior
         p = properties('a', 1, 'b', 2);
         
         assertEquals(1, p.a());
         assertEquals(2, p.b());
-        alter(p);
+        increment_b(p);
         assertEquals(3, p.b());
     end
 
-    function alter(props)
+
+    function increment_b(props)
         props.b(props.b() + 1);
     end
+
 end

@@ -1,4 +1,4 @@
-function this = inherit(varargin)
+function [this, varargout] = inherit(varargin)
 %Muddles the methods of all the given objects together, to form a new
 %object that inherits all their methods. Performs special magic so that
 %the muddled objects can call each other's methods through each's respective
@@ -21,6 +21,20 @@ function this = inherit(varargin)
 %ancestor to two different ancestors, also leads to loops. But in that
 %case, I don't have an easy way to get around it, because I don't yet have
 %a way to uniquely identify objects. So, avoid inbreeding your objects.
+
+%If requested, save a reference copy of the methods from each ancestor.
+%This is so you can still call a method you override through inheritance.
+if (nargout > 1)
+    varargout = cellfun(@parent_backup, varargin(1:nargout-1), 'UniformOutput', 0);
+end
+    function backup = parent_backup(parent)
+        %back up all methods except for method__ itself
+        parentmethodnames = fieldnames(parent);
+        which = strmatch('method__', parentmethodnames);
+        parentmethodnames(which) = [];
+        backup = cellfun(parent.method__, parentmethodnames, 'UniformOutput', 0);
+        backup = cell2struct(backup, parentmethodnames, 1);
+    end
 
 %the names and methods of each direct ancestor (one cell per ancestor)
 names = cellfun(@fieldnames, varargin, 'UniformOutput', 0);
@@ -57,9 +71,9 @@ cellfun(@assignmethods, names, methods, others);
         cellfun(@assignmethod, names, methods);
         function assignmethod(name, method)
             
-            %putmethod__ is our handle into the original object and will
+            %method__ is our handle into the original object and will
             %not be overridden
-            if strcmp('putmethod__', name)
+            if strcmp('method__', name)
                 return
             end
             %store the method
@@ -68,15 +82,20 @@ cellfun(@assignmethods, names, methods, others);
             %Now tell the other ancestors about the new method
             cellfun(@putmethod, others);
             function putmethod(other)
-                other.putmethod__(name, method);
+                other.method__(name, method);
             end
         end
     end
 
 %Now, the "putmethod__' operation needs to be defined for the inherited
 %object.
-this.putmethod__ = @putparentmethods;
-    function putparentmethods(name, fn)
-        cellfun(@(parent) parent.putmethod__(name, fn), varargin);
+this.method__ = @putparentmethods;
+    function fn = putparentmethods(name, fn)
+        %when just getting a method, just the first method should be OK.
+        if (nargin < 2)
+            fn = varargin{1}.method__(name);
+        else
+            cellfun(@(parent) parent.method__(name, fn), varargin, 'UniformOutput', 0);
+        end
     end
 end

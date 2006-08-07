@@ -18,11 +18,17 @@ this = cellfun(@wrap, fieldnames(core), 'UniformOutput', 0);
 this = cell2struct(this, fieldnames(core), 1);
 
 %Now, a call to this.methodName will look up whatever function is held in
-%core.methodName and pass the call there. We also add a special function,
-%putmethod__, so that we can modify what's in the core struct
-this.putmethod__ = @putmethod;
-    function putmethod(name, fn)
-        core.(name) = fn;
+%core.methodName and pass the call there.
+
+%We also add a special function,
+%method__, so that we can access or modify what's in the core struct:
+this.method__ = @method;
+    function fn = method(name, fn)
+        if (nargin < 2)
+            fn = core.(name);
+        else
+            core.(name) = fn;
+        end
     end
 
 %Now we can re-assign things to the core later on using putmethod__, and
