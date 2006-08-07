@@ -19,7 +19,7 @@ this = public(...
             ,@quux...
             ,@boffo...
             ,@yip...
-            ,@gravorsh...
+            ,@gravorsh... %note declaration (used in yip), but definition not necessary
             );
 
         function r = foo
@@ -40,13 +40,6 @@ this = public(...
         
         function r = yip
             r = this.gravorsh();
-        end
-        
-        %FIXME - Unfortunately, you have to (for now) define functions you
-        %call on yourself, evven if they are alwasy implemented by chlidren
-        % - no abstract classes
-        function r = gravorsh
-            r = 'Parent';
         end
     end
 
@@ -75,7 +68,8 @@ this = public(...
         end
         
         function r = boffo
-            r = parent_.boffo()
+            %how to delegate to a parent - the _0 suffix
+            r = [this.boffo_0() ' + Child'];
         end
         
     end
@@ -125,19 +119,10 @@ this = public(...
     end
 
     function testOverrideDelegates
-        %You unfortunately can't call back to the parent method if you've
-        %overridden it. It will overflow the stack because inheritance
-        %(muddling) directly modifies the Use delegates instead. (God help you if you want to
-        %both delegate and have your parent call back to you. Your objects
-        %are too complicated.)
-        try
-            c = Child();
-            %if I do manage to make it work...
-            assertEquals('Child', c.boffo()); %what I would like it to do
-            fail('should have crashed');
-        catch
-            assertLastError('MATLAB:recursionLimit');
-        end
+        %when you override a method in your ancestor, the old method gets
+        %renamed as methodname_0 and remains accessible to you that way.
+        c = Child();
+        assertEquals('Parent + Child', c.boffo());
     end
 
     function testDelegateToGrandparent

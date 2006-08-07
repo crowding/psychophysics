@@ -23,8 +23,9 @@
             end
         end
         
-        function errorHandler(err)
+        function errorHandler(err, varargin)
             err.message = strvcat(err.message, sprintf('At index %d of traversal', err.index));
+            disp(err.message);
             rethrow(err);
         end
     end
