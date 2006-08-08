@@ -47,11 +47,15 @@ components_ = cell(0);
         end
     end
 
+%{
+Drawing>draw (115 calls, 1.990 sec)
+%}
     function draw
-        %draw all the objects on the screen.
-        cellfun(@(x)x.draw(window_), components_);
+        for c = components_ %auto-expansion creates a row
+            c{:}.draw(window_);
+        end
     end
-    
+
     function removeAt(index)
         %private function.
         %remove a component, THEN deallocates it
