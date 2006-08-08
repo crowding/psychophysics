@@ -8,7 +8,7 @@ function [release, details] = getScreen(details)
 %information, which is returned in a structure.
 %
 %input structure fields:
-%   [none] (input structure optional
+%   [none] (input structure optional)
 %
 %output structure fields:
 %   screenNumber - the screen number of the display

@@ -10,9 +10,9 @@ require(@setupEyelinkExperiment, @runDemo);
         rect = FilledRect([100 100 200 200], screenDetails.black);
         disk = FilledDisk([500 500], 25, screenDetails.white);
                 
-        back.setVisible(1);
-        rect.setVisible(1);
-        disk.setVisible(1);
+        back.visible(1);
+        rect.visible(1);
+        disk.visible(1);
         
         canvas.add(back);
         canvas.add(rect);
@@ -25,12 +25,15 @@ require(@setupEyelinkExperiment, @runDemo);
         events.add(UpdateTrigger(@followDisk));
         events.add(TimeTrigger(GetSecs() + 30, @stop));
 
-        % ----- the main loop, now reduced to 3 lines -----
-        
-        while(go)
-            events.update();
-            canvas.draw();
-            Screen('Flip', screenDetails.window);
+        % ----- the main loop, now compact -----
+        require(highPriority(screenDetails.window), @mainloop)
+        function mainloop
+            events.add(TimeTrigger(GetSecs() + 30, @stop));
+            while(go)
+                events.update();
+                canvas.draw();
+                Screen('Flip', screenDetails.window);
+            end
         end
 
         %----- thet event reaction functions -----
@@ -41,12 +44,12 @@ require(@setupEyelinkExperiment, @runDemo);
 
         function r = moveRect(x, y, t)
             %set the rectangle to a random color and shape
-            rect.setRect(randomRect(screenDetails.rect));
+            rect.rect(randomRect(screenDetails.rect));
         end
         
         function r = followDisk(x, y, t)
             %make the disk follow the eye
-            disk.setLoc([x y]);
+            disk.loc([x y]);
         end
         
         function r = randomRect(bounds)

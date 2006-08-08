@@ -1,42 +1,24 @@
-function this = FilledRect(initRect, initColor)
+function this = FilledRect(rect__, color__)
 
 %A filled rectangle object that is part of displays.
 
 %----- public interface -----
 this = inherit(...
     Drawer(),...
-    public(@rect, @setRect, @color, @setColor, @draw, @bounds)...
+    properties('rect', rect__, 'color', color__),...
+    public(@draw, @bounds)...
     );
 
-%----- instance variables -----
-rect_ = initRect;
-color_ = initColor;
-
 %----- methods -----
-    function r = rect
-        r = rect_;
-    end
-
-    function setRect(newrect)
-        rect_ = newrect;
-    end
-
-    function c = color
-        c = color
-    end
-
-    function setColor(newcolor)
-        color_ = newcolor;
-    end
 
     function draw(window)
         if this.visible()
-            Screen('FillRect', window, color_, rect_);
+            Screen('FillRect', window, this.color(), this.rect());
         end
     end
 
     function b = bounds
-        b = rect_;
+        b = this.rect();
     end
 
 end

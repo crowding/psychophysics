@@ -1,11 +1,12 @@
-function this = Background(color_)
+function this = Background(color__)
 
 %The background rectangle.
 
 %----- public interface -----
 this = inherit(...
     Drawer(),...
-    public(@color, @setColor, @draw)...
+    properties('color', color__),...
+    public(@draw)...
     );
 
 %----- methods -----
@@ -17,17 +18,9 @@ this = inherit(...
 %for a calling convention.
 %Inheritance/mixins wouldn't hurt either.
 
-    function c = color
-        c = color
-    end
-
-    function setColor(newcolor)
-        color_ = newcolor;
-    end
-
     function draw(window)
         if this.visible()
-            Screen('FillRect', window, color_);
+            Screen('FillRect', window, this.color());
         end
     end
 end

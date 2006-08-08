@@ -1,35 +1,37 @@
 function this = properties(varargin)
-    %creates a properties object. The initializations arguments are as in 
-    %STRUCT, with the exception that cell arguments are not split across
-    %several structures. (matlab certainly does not follow the Princlple
-    %of Least Astonishment
-    
-    %wrap cells in singleton cells - to undo the 'astonishing' behavior of
-    %matlab's STRUCT
-    whichcells = cellfun(@iscell, varargin);
-    varargin(whichcells) = cellfun(@(x) {x}, varargin(whichcells), 'UniformOutput', 0);
-    
-    %make the core structure
-    core = struct(varargin{:});
-    names = fieldnames(core);
+%creates a properties object. the inheritability is done directly instead
+%of via publicize()
 
-    %make accessors
-    accessors = cellfun(@make_accessor, names, 'UniformOutput', 0);
-    function fn = make_accessor(name)
+%wrap cells in singleton cells - to undo the 'astonishing' behavior of
+%matlab's STRUCT
+whichcells = cellfun(@iscell, varargin);
+varargin(whichcells) = cellfun(@(x) {x}, varargin(whichcells), 'UniformOutput', 0);
+
+%make the core structure
+this = struct(varargin{:});
+this = structfun(@newAccessor, this, 'UniformOutput', 0);
+
+%this is a behind the scenes object so I will use the ugly boilerplate for
+%speed
+this.method__ = @method__;
+    function val = method__(name, val);
+        if nargin > 1
+            this.(name) = val;
+        else
+            val = this.(name);
+        end
+    end
+%that boilerplate did the same job as 'this = publicize(this)' but directly,
+%so it is faster.
+
+    function fn = newAccessor(value)
         fn = @accessor;
-        function val = accessor(val)
-            if (nargin == 0)
-                %switching on nargin is ugly, but saves on
-                %accessor namespace
-                val = core.(name);
+        function v = accessor(v)
+            if (nargin > 0)
+                value = v;
             else
-                core.(name) = val;
+                v = value;
             end
         end
     end
-    accessors = cell2struct(accessors, names, 1);
-
-    this = publicize(accessors); 
-    %the structure winds up being a little more indirected than with
-    %writing the accessors directly.
 end

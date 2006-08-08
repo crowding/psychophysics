@@ -20,8 +20,8 @@ function this = public(varargin)
 
 %Start with a 'final' object. But we keep it in this closure, and will
 %instead return an indirection pointing to the core.
-core = final(varargin{:});
-this = publicize(core);
+this = final(varargin{:});
+this = publicize(this);
 
     %implementation note: if we instead of a struct of wrappers used a
     %MATLAB object with overridden subsref(), the parent could call down

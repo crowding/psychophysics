@@ -1,46 +1,24 @@
-function this = FilledRect(loc_, size_, color_)
+function this = FilledRect(loc__, size__, color__)
 
 %A filled rectangle object that is part of displays.
 
 %----- public interface -----
 this = inherit(...
     Drawer(),...
-    public(@loc, @setLoc, @color, @setColor, @size, @setSize, @draw, @bounds)...
+    properties('loc', loc__, 'size', size__, 'color', color__),...
+    public(@draw, @bounds)...
     );
 
 %----- methods -----
 
-    function l = loc
-        l = loc_;
-    end
-
-    function setLoc(l)
-        loc_ = l;
-    end
-
-    function c = color
-        c = color
-    end
-
-    function setColor(newcolor)
-        color_ = newcolor;
-    end
-
-    function s = size
-        s = size_;
-    end
-
-    function setSize(s)
-        size_ = s;
-    end
-
     function draw(window)
         if this.visible()
-            Screen('gluDisk', window, color_, loc_(1), loc_(2), size_);
+            center = this.loc();
+            Screen('gluDisk', window, this.color(), center(1), center(2), this.size());
         end
     end
 
     function b = bounds
-        b = rect_;
+        b = this.rect_;
     end
 end
