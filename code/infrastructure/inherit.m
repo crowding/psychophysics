@@ -5,12 +5,12 @@ function [this, varargout] = inherit(varargin)
 %'this' structure (assuming each was created with PUBLIC).
 
 %Basically we have to create a struct that has all the right methods. Less
-%besically, we have to make sure that ancestors can call the child methods 
+%besically, we have to make sure that ancestors can call the child methods
 %(or the spouse methods, in the case of multiple inheritance.)
 %
-%Now, when A inherits from B, we have to tell B to use A's methods, and 
-%vice versa, which is accomplished using the putmethod__ method on each. 
-%So we have to take the aggregate method listing and putmethod__ it into 
+%Now, when A inherits from B, we have to tell B to use A's methods, and
+%vice versa, which is accomplished using the putmethod__ method on each.
+%So we have to take the aggregate method listing and putmethod__ it into
 %each of the ancestors.
 %
 %But if we tell B to use B's methods, we get an infinite loop. B calls a
@@ -38,9 +38,8 @@ end
 
 %the names and methods of each direct ancestor (one cell per ancestor)
 names = cellfun(@fieldnames, varargin, 'UniformOutput', 0);
-methods = cellfun(@struct2cell, varargin, 'UniformOutput', 0);
 
-%Others gets one cell per ancestor of each ancestor's other ancestors, i.e. 
+%Others gets one cell per ancestor of each ancestor's other ancestors, i.e.
 %excluding the ancestor itself
 others = arrayfun(@(index)exclude(varargin', index), 1:numel(varargin),...
     'UniformOutput', 0);
@@ -55,34 +54,42 @@ others = arrayfun(@(index)exclude(varargin', index), 1:numel(varargin),...
 %indices gets index vectors of the selected method set, one cell per ancestor
 indices = cell(size(names));
 [m, indices{:}] = nunion(names{:});
-
-names = restrict(names, indices);
-methods = restrict(methods, indices);
-    function cell = restrict(cell, indices)
-        cell = cellfun(@(n,i) n(i), cell, indices, 'UniformOutput', 0);
-    end
+names = cellfun(@(n,i) n(i), names, indices, 'UniformOutput', 0);
+%Now names only contains the methods that will end up being publically
+%exposed.
 
 %build the new object by going through the methods coming from each
 %ancestor
 this = struct();
-cellfun(@assignmethods, names, methods, others);
-    function assignmethods(names, methods, others);
+cellfun(@assignmethods, names, varargin, others);
+    function assignmethods(names, obj, others);
+        %names  is the names of the methods to assign
+        %obj    is the object where the methods come from
+        %others is the other objects that get the method
+
         %assign each method in turn
-        cellfun(@assignmethod, names, methods);
-        function assignmethod(name, method)
-            
+        cellfun(@assignmethod, names);
+        function assignmethod(name)
             %method__ is our handle into the original object and will
             %not be overridden
             if strcmp('method__', name)
                 return
             end
+            
+            %get the actual method (not the transparent invoker)
+            method = obj.method__(name);
+            
             %store the method
             this.(name) = method;
-            
+
             %Now tell the other ancestors about the new method
             cellfun(@putmethod, others);
             function putmethod(other)
-                other.method__(name, method);
+                %the other object only gets the method if it has a slot for
+                %it
+                if isfield(other, name);
+                    other.method__(name, method);
+                end
             end
         end
     end
@@ -93,9 +100,18 @@ this.method__ = @putparentmethods;
     function fn = putparentmethods(name, fn)
         %when just getting a method, just the first method should be OK.
         if (nargin < 2)
-            fn = varargin{1}.method__(name);
+            fn = this.(name); %since inherited 'this' contains the raw
+            %methods.
         else
-            cellfun(@(parent) parent.method__(name, fn), varargin, 'UniformOutput', 0);
+            %store the method, and store it in the ancestors
+            this.(name) = fn;
+            cellfun(@putparentmethod, varargin);
+        end
+        
+        function putparentmethod(parent)
+            if isfield(parent, name)
+                parent.method__(name, fn);
+            end
         end
     end
 end

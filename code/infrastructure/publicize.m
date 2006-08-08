@@ -33,15 +33,11 @@ function this = publicize(this)
 
 this.method__ = @method;
     function fn = method(name, fn)
+        %shadow is a struct of accessor/mutators
         if (nargin < 2)
             fn = shadow.(name)();
         else
-            if isfield(shadow, name)
-                shadow.(name)(fn);
-            else
-                %actually, invoke() should just not be calling us here
-                %hypothesis: if i do nothing, no tests will fail
-            end
+            shadow.(name)(fn);
         end
     end
 end
