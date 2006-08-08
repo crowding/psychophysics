@@ -1,4 +1,4 @@
-function this = FilledRect(x_, y_, size_, color_)
+function this = FilledRect(loc_, size_, color_)
 
 %A filled rectangle object that is part of displays.
 
@@ -10,12 +10,12 @@ this = inherit(...
 
 %----- methods -----
 
-    function [x, y] = loc
-        [x, y] = deal(x_, y_);
+    function l = loc
+        l = loc_;
     end
 
-    function setLoc(x, y)
-        [x_, y_] = deal(x, y);
+    function setLoc(l)
+        loc_ = l;
     end
 
     function c = color
@@ -36,7 +36,7 @@ this = inherit(...
 
     function draw(window)
         if this.visible()
-            Screen('gluDisk', window, color_, x_, y_, size_);
+            Screen('gluDisk', window, color_, loc_(1), loc_(2), size_);
         end
     end
 

@@ -8,7 +8,7 @@ require(@setupEyelinkExperiment, @runDemo);
     
         back = Background(screenDetails.gray);
         rect = FilledRect([100 100 200 200], screenDetails.black);
-        disk = FilledDisk(500, 500, 25, screenDetails.white);
+        disk = FilledDisk([500 500], 25, screenDetails.white);
                 
         back.setVisible(1);
         rect.setVisible(1);
@@ -23,7 +23,7 @@ require(@setupEyelinkExperiment, @runDemo);
 
         events.add(InsideTrigger(rect, @moveRect));
         events.add(UpdateTrigger(@followDisk));
-        events.add(TimeTrigger(GetSecs() + 10, @stop));
+        events.add(TimeTrigger(GetSecs() + 30, @stop));
 
         % ----- the main loop, now reduced to 3 lines -----
         
@@ -46,7 +46,7 @@ require(@setupEyelinkExperiment, @runDemo);
         
         function r = followDisk(x, y, t)
             %make the disk follow the eye
-            disk.setLoc(x, y);
+            disk.setLoc([x y]);
         end
         
         function r = randomRect(bounds)

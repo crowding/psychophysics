@@ -1,5 +1,5 @@
-function fout = nsetnargout(nout, fin)
-%function fout = nsetnargout(nout, fin)
+function fout = setnargout(nout, fin)
+%function fout = setnargout(nout, fin)
 %A horrid piece of crap.
 %
 %You see, in any reasonable programming language, if you want to get

@@ -22,7 +22,6 @@ components_ = cell(0);
     function remove(drawer)
         %remove and release a single component from the drawing.
         id = drawer.id();
-        errors = emptyOf(lasterror);
         
         found = find(cellfun(@(x) x.id() == id, drawer));
         if ~isempty(found)
@@ -48,7 +47,7 @@ components_ = cell(0);
     end
 
 %{
-Drawing>draw (115 calls, 1.990 sec)
+Drawing>draw (115 calls, 1.990 sec) - fastest I found (even tried struct array instead of cell)
 %}
     function draw
         for c = components_ %auto-expansion creates a row

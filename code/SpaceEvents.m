@@ -19,7 +19,6 @@ triggers_ = cell(0);
         triggers_{end + 1} = trigger;
     end
 
-
     function remove(trigger)
         %Removes a trigger object.
         searchid = trigger.id();
@@ -32,15 +31,14 @@ triggers_ = cell(0);
         triggers{1:end} = [];
     end
 
-
     function update
         %Sample the eye
         [x, y, t] = this.sample();
 
         %send the sample to each trigger and the triggers will fire if they
         %match
-        cellfun(@(i) i.check(x, y, t), triggers_);
+        for trig = triggers_
+            trig{:}.check(x, y, t);
+        end
     end
-
-
 end
