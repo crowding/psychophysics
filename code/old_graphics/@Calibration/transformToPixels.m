@@ -1,11 +1,11 @@
-function f = transform(this)
+function f = transformToDegrees(this)
     %return a function handle to a transform obejct, which transforms spatial
     %coordinates (in pixels) to screen coordinate(in degrees) assuming the 
     %center of the screen is at [0,0] in spaital coordinates.
     
     center = this.rect;
-    center = ( center([1 2]) + center([3 4]) ) / 2
-    multiplier = 1./spacing(this)
+    center = ( center([1 2]) + center([3 4]) ) / 2;
+    multiplier = 1./spacing(this);
     f = @transform;
 
     function [x, y] = transform(x, y)
@@ -21,7 +21,7 @@ function f = transform(this)
                 x = x .* multiplier + center;
             else
                 x = x .* repmat(multiplier, size(x, 1), size(x,2)/2)...
-                         + repmat(multiplier, size(x, 1), size(x, 2)/2);
+                         + repmat(center, size(x, 1), size(x, 2)/2);
             end
         end
     end

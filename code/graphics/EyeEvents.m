@@ -1,12 +1,12 @@
-function this = EyeEvents(el_, calibration_)
-%function this = EyeEvents(el)
+function this = EyeEvents(calibration_, el_)
+%function this = EyeEvents(calibration, el)
 %
 % Makes an object for tracking eye movements, and
 % triggering calls when the eye moves in and out of screen-based regions.
 %
 % Constructor arguments:
-%   'el' the eyelink constants
 %   'calibration' the display calibration
+%   'el' the eyelink constants
 %
 % complaint:
 % (why pass around a bunch of constants as an argument?)
@@ -17,10 +17,10 @@ function this = EyeEvents(el_, calibration_)
 connection = Eyelink('IsConnected');
 switch connection
     case el_.connected
-        this = inherit(SpaceEvents(), public(@sample));
+        this = inherit(SpaceEvents(calibration_), public(@sample));
     case el_.dummyconnected
         warning('EyeEvents:usingMouse', 'using mouse movements, not eyes');
-        this = MouseEvents();
+        this = MouseEvents(calibration_);
     otherwise
         error('eyeEvents:not_connected', 'eyelink not connected');
 end

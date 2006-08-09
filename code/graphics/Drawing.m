@@ -1,4 +1,4 @@
-function this = Drawing(window_, calibration_)
+function this = Drawing(calibration_, window_)
 %Drawing is a holder for graphics drawing objects.
 %Drawing tries to coordinate the allocation of resources (textures etc.)
 %for graphics objects; therefore it needs to have cleanup code. Therefore
@@ -14,7 +14,7 @@ components_ = cell(0);
 % ----- methods -----
     function add(drawer)
         %add a single component to the drawing and prepare it to be drawn.
-        drawer.prepare(window_, calibration_); %do this first, since it
+        drawer.prepare(calibration_, window_); %do this first, since it
                                                %could error
         components_{end+1} = drawer;
     end

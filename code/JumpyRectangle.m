@@ -4,11 +4,15 @@ function JumpyRectangle
 require(@setupEyelinkExperiment, @runDemo);
     function runDemo(screenDetails)
     
-        canvas = Drawing(screenDetails.window, screenDetails.cal);
+        canvas = Drawing(screenDetails.cal, screenDetails.window);
     
+        cal = screenDetails.cal;
+        
+        indegrees = transformToDegrees(screenDetails.cal);
+        
         back = Background(screenDetails.gray);
-        rect = FilledRect([100 100 200 200], screenDetails.black);
-        disk = FilledDisk([500 500], 25, screenDetails.white);
+        rect = FilledRect([-2 -2 2 2], screenDetails.black);
+        disk = FilledDisk([-2 2], 0.5, screenDetails.white);
                 
         back.visible(1);
         rect.visible(1);
@@ -18,7 +22,7 @@ require(@setupEyelinkExperiment, @runDemo);
         canvas.add(rect);
         canvas.add(disk);
         
-        events = eyeEvents(screenDetails.el);
+        events = eyeEvents(cal, screenDetails.el);
         go = 1;
 
         events.add(InsideTrigger(rect, @moveRect));
@@ -44,7 +48,7 @@ require(@setupEyelinkExperiment, @runDemo);
 
         function r = moveRect(x, y, t)
             %set the rectangle to a random color and shape
-            rect.rect(randomRect(screenDetails.rect));
+            rect.rect(randomRect(indegrees(screenDetails.rect)));
         end
         
         function r = followDisk(x, y, t)
