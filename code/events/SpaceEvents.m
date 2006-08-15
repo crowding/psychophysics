@@ -17,7 +17,7 @@ triggers_ = cell(0);
 transform_ = transformToDegrees(calibration_);
 
     function add(trigger)
-        %adds a trigger obeject.
+        %adds a trigger object.
         triggers_{end + 1} = trigger;
     end
 
@@ -29,7 +29,8 @@ transform_ = transformToDegrees(calibration_);
     end
 
     function clear
-        triggers{1:end} = [];
+        triggers_(1:end) = []; %note use of parens and empty array even in
+        %cell array--it's not a syntax, it's a special idiom.
     end
 
     function update

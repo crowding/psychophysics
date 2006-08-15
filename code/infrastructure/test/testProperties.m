@@ -20,12 +20,12 @@ this = public(...
 
     function testPropertySetting
         p = properties('a', 1, 'b', 'foo', 'c', {3});
-        p.a('bar');
-        p.b({'baz' 'qux'});
-        p.c([12 32]);
+        p.setA('bar');
+        p.setB({'baz' 'qux'});
+        p.setC([12 32]);
         
         assertEquals('bar',         p.a());
-        assertEquals({'baz' 'qux'},   p.b());
+        assertEquals({'baz' 'qux'}, p.b());
         assertEquals([12 32],       p.c());
     end
 
@@ -35,7 +35,7 @@ this = public(...
             this = inherit(properties('value', 1), public(@increment));
             
             function increment
-                this.value(this.value() + 1);
+                this.setValue(this.value() + 1);
             end
         end
         
@@ -57,23 +57,19 @@ this = public(...
             %overriding
             [this, p_] = inherit(...
                 properties('a', 1, 'b', 2),...
-                public(@b, @sum)...
+                public(@b, @setB, @sum)...
             );
         
-            function val = b(val)
+            function val = setB(val)
                 %override the property accessor so that
                 %b gets rounded to integers
-                
-                %note i find checking nargin to be distateful, and would
-                %like a better convention for getting/setting.
-                if nargin > 0
-                    p_.b(round(val));
-                else
-                    val = p_.b(); %_0 suffix accesses the non-overridden
-                    %method.
-                end
+                p_.setB(round(val));
             end
-            
+
+            function val = b()
+                val = p_.b();
+            end
+
             function s = sum()
                 s = this.a() + this.b();
             end
@@ -85,8 +81,8 @@ this = public(...
         assertEquals(o.sum(), 3);
         
         %set a and b, but b gets rounded
-        o.a(2.25);
-        o.b(3.75);
+        o.setA(2.25);
+        o.setB(3.75);
         
         assertEquals(2.25, o.a());
         assertEquals(4, o.b());
@@ -105,7 +101,7 @@ this = public(...
 
 
     function increment_b(props)
-        props.b(props.b() + 1);
+        props.setB(props.b() + 1);
     end
 
 end

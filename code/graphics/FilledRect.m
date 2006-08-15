@@ -20,5 +20,4 @@ this = inherit(...
     function b = bounds
         b = this.rect();
     end
-
 end

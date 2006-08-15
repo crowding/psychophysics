@@ -9,7 +9,16 @@ varargin(whichcells) = cellfun(@(x) {x}, varargin(whichcells), 'UniformOutput', 
 
 %make the core structure
 this = struct(varargin{:});
-this = structfun(@newAccessor, this, 'UniformOutput', 0);
+[this, setters] = structfun(@accessor, this, 'UniformOutput', 0);
+
+%also put in property setters as separately named methods (faster than
+%checking nargin)
+names = fieldnames(this);
+setters = struct2cell(setters);
+cellfun(@putSetter, names, setters);
+    function putSetter(name, setter)
+        this.(['set' upper(name(1)) name(2:end)]) = setter;
+    end
 
 %this is a behind the scenes object so I will use the ugly boilerplate for
 %speed
@@ -24,14 +33,4 @@ this.method__ = @method__;
 %that boilerplate did the same job as 'this = publicize(this)' but directly,
 %so it is faster.
 
-    function fn = newAccessor(value)
-        fn = @accessor;
-        function v = accessor(v)
-            if (nargin > 0)
-                value = v;
-            else
-                v = value;
-            end
-        end
-    end
 end
