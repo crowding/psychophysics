@@ -48,10 +48,7 @@ components_ = cell(0);
         end
     end
 
-%{
-Drawing>draw (115 calls, 1.990 sec) - fastest I found (even tried struct
-array instead of cell)
-%}
+%why is this so much faster than update() when they are the same function and draw() does more in its subfunctions?!?
     drawer_ = @(X) X.draw(window__);
     function draw
         cellfun(drawer_, components_);

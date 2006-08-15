@@ -8,12 +8,13 @@ function this = MoviePlayer(patch_)
 
 [this, Drawer_] = inherit(...
     Drawer()...
-    ,public(@prepare, @release, @update, @draw, @bounds, @setVisible)...
+    ,public(@prepare, @release, @update, @draw, @bounds, @visible, @setVisible)...
     );
 
 textures_ = [];
 frameIndex_ = 1;
 prepared_ = 0;
+visible_ = 0;
 
     function prepare(drawing)
         Drawer_.prepare(drawing); %think about a mechanism for chained methods?
@@ -46,11 +47,12 @@ prepared_ = 0;
             totry{end+1} = @() Screen('Close', t.texture);
         end
 
-        %also set ourself not visible (removing the trigger from the drawing)
-        totry{end+1} = @()this.setVisible(0);
+        %mark us unprepared
         totry{end+1} = @cldrawing;
         function cldrawing
             prepared_ = 0;
+            visible_ = 0;
+            frameIndex_ = 1;
         end
         
         %finally release the parent
@@ -59,9 +61,8 @@ prepared_ = 0;
         tryAll(totry{:});
     end
 
-
     function update
-        if this.visible()
+        if visible_
             frameIndex_ = frameIndex_ + 1;
             if frameIndex_ > numel(textures_)
                 frameIndex_ = 1;
@@ -71,20 +72,22 @@ prepared_ = 0;
     end
 
     function draw(window)
-        if this.visible()
+        if visible_
             t = textures_(frameIndex_);
             Screen('DrawTexture', window, t.texture, [], t.playrect);
         end
     end
 
-
     function b = bounds
         b = this.toDegrees(textures_(frameIndex).playrect);
     end
 
+    function v = visible();
+        v = visible_;
+    end
 
-    function v = setVisible(v) %simple example of delegation
-        v = Drawer_.setVisible(v);
+    function v = setVisible(v)
+        visible_ = v;
         if (v)
             frameIndex_ = 1; %start at the beginning when shown
             %(update is called right after draw; first frame shown

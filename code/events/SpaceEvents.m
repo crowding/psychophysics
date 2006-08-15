@@ -1,7 +1,7 @@
 function this = SpaceEvents(calibration_)
 %base class for event managers that teack an object (mouse, eye) over
 %time.
-this = public(@add, @remove, @update, @clear, @sample);
+this = public(@add, @remove, @update, @clear, @draw, @sample);
 
 %-----private data-----
 
@@ -24,8 +24,12 @@ transform_ = transformToDegrees(calibration_);
     function remove(trigger)
         %Removes a trigger object.
         searchid = trigger.id();
-        found = find(cellfun(@(x)x.id() == searchid, triggers_), 'UniformOutput', 0);
-        triggers_{found(1)} = [];
+        found = find(cellfun(@(x)x.id() == searchid, triggers_));
+        try
+            triggers_(found(1)) = [];
+        catch
+            disp huh;
+        end
     end
 
     function clear
@@ -42,6 +46,13 @@ transform_ = transformToDegrees(calibration_);
         %match
         for trig = triggers_
             trig{:}.check(x, y, t);
+        end
+    end
+
+    function draw(window, toPixels);
+        %draw the triggers on the screen for debugging
+        for trig = triggers_
+            trig{:}.draw(window, toPixels);
         end
     end
 end

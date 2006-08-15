@@ -9,4 +9,8 @@ this = inherit(Trigger(), public(@check));
             fn_(x, y, t); %call function when eye is inside
         end
     end
+
+    function draw(window, toPixels)
+        Screen('FrameRect', window, [0 255 0], toPixels(obj_.bounds()));
+    end
 end

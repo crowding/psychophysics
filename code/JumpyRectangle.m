@@ -40,26 +40,35 @@ require(@setupEyelinkExperiment, @runDemo);
             
             lastVBL = -1;
             interval = screenDetails.cal.interval;
+            frameshit = 0;
+            framesmissed = 0;
             while(go)
                 events.update();
                 canvas.draw();
                 
                 [VBL] = Screen('Flip', screenDetails.window);
+                frameshit = frameshit + 1;
                 %count the number of frames advanced and do the
                 %appropriate number of canvas.update()s
                 if lastVBL > 0
-                    disp((VBL - lastVBL) / interval);
-                    %for i = 1:round((VBL - lastVBL) / interval)
+                    frames = round((VBL - lastVBL) / interval);
+                    framesmissed = framesmissed + frames - 1;
+                    
+                    if frames > 60
+                        error('mainLoop:drawing stuck', 'got stuck doing frame updates...');
+                    end
+                    for i = 1:round((VBL - lastVBL) / interval)
                         %may accumulate error if
                         %interval differs from the actual interval... 
                         %but we're screwed in that case.
                         canvas.update();
-                    %end
+                    end
                 else
                     canvas.update();
                 end
                 lastVBL = VBL;
             end
+            disp(sprintf('hit %d frames, skipped %d', frameshit, framesmissed));
         end
         
         canvas.clear();

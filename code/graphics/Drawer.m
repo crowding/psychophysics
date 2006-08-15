@@ -3,7 +3,6 @@ function this = Drawer
 
 this = inherit(...
     Identifiable,...
-    properties('visible', 0),...
     public(@prepare, @release, @update, @draw, @bounds, @toPixels, @toDegrees)...
     );
 
@@ -33,6 +32,10 @@ this = inherit(...
 
     function draw()
         %this will be called once per drawn frame
+    end
+
+    function bounds
+        %this should return the object bounds (in degrees);
     end
 
     function varargout = toPixels(varargin)
