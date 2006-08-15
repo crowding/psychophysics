@@ -79,7 +79,7 @@ visible_ = 0;
     end
 
     function b = bounds
-        b = this.toDegrees(textures_(frameIndex).playrect);
+        b = this.toDegrees(textures_(frameIndex_).playrect);
     end
 
     function v = visible();

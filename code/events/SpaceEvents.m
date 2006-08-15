@@ -25,9 +25,9 @@ transform_ = transformToDegrees(calibration_);
         %Removes a trigger object.
         searchid = trigger.id();
         found = find(cellfun(@(x)x.id() == searchid, triggers_));
-        try
+        if ~isempty(found)
             triggers_(found(1)) = [];
-        catch
+        else
             disp huh;
         end
     end

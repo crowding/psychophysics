@@ -1,16 +1,37 @@
-function this = NearTrigger(obj_, threshold_, fn_)
-%An object that fires a trigger when x and y are "near" the bounds of a
-%graphics object, with an adjustable amount of leeway.
+function this = NearTrigger(loc_, threshold_, fn_)
+%An object that fires a trigger when x and y is within a certain distance
+%to a point.
 
-this = inherit(Trigger(), public(@check, @draw));
-    
+this = inherit(Trigger(), public(@check, @draw, @set, @unset));
+
+    if (nargin == 0)
+        set_ = 0;
+    else
+        set_ = 1;
+    end
+        
     function check(x, y, t)
-        if inRect(obj_.bounds() + threshold_*[-1 -1 1 1], x, y)
+        if set_ && (norm([x y] - loc_) <= threshold_)
             fn_(x, y, t); %call function when eye is inside
         end
     end
+    
+    function set(loc, threshold, fn)
+        loc_ = loc;
+        threshold_ = threshold;
+        fn_ = fn;
+        
+        set_ = 1;
+    end
+
+    function unset()
+        set_ = 0;
+    end
 
     function draw(window, toPixels)
-        Screen('FrameRect', window, [0 255 0], toPixels(obj_.bounds() + threshold_*[-1 -1 1 1]));
+        if set_
+            Screen('FrameOval', window, [0 255 0],...
+                toPixels([loc_ loc_] + threshold_*[-1 -1 1 1]) );
+        end
     end
 end

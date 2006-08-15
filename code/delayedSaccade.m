@@ -1,19 +1,22 @@
 function delayedSaccade
 %a gaze-contingent display using a trigger driven state-machine programming.
 
+timeDilation = 5; %in mousemode, things should be slower.
+
 patch = ApparentMotion(...
-    'primitive', CauchyBar('size', [0.5 1 0.05], 'velocity', 10),...
-    'dx', 1, 'dt', 0.1, 'n', 10, 'center', [0 5 0]);
+    'primitive', CauchyBar('size', [0.5 1 0.05*timeDilation], 'velocity', 10/timeDilation),...
+    'dx', 1, 'dt', 0.1*timeDilation, 'n', 10, 'center', [0 5 0*timeDilation]);
 
 grossFixationCriterion = 3;
 fixationSettlingTime = 0.35;
 fineFixationCriterion = 1;
-fineFixationTime = 0.15;
-stimulusDisplayTime = 0.4; %how much display before cueing saccade
-saccadeReactionTime = 0.2; % min time after stimulation off before cueing saccade
-saccadeWindowTime = 0.2; %saccades made outside this window not accepted
-saccadeTransitTime = 0.15; % how long a saccade has to make it to the target
-totalStimulusTime = 2; % total time from stimulus onset to end of trial
+fineFixationTime = 0.15 * timeDilation;
+stimulusDisplayTime = 0.4 * timeDilation; %how much display before cueing saccade
+saccadeReactionTime = 0.2 * timeDilation; % min time after stimulation off before cueing saccade
+saccadeWindowTime = 0.2 * timeDilation; %saccades made outside this window not accepted
+saccadeTransitTime = 0.15 * timeDilation; % how long a saccade has to make it to the target
+totalStimulusTime = 2 * timeDilation; % total time from stimulus onset to end of trial
+badTrialTimeout = 2; %timeout for a bad trial (not dilated)
 
 require(@setupEyelinkExperiment, @runExperiment);
     function runExperiment(screenDetails)
@@ -47,103 +50,152 @@ require(@setupEyelinkExperiment, @runExperiment);
         stimulus = MoviePlayer(patch);
         canvas.add(stimulus);
         
-        %----- visible gaze indicator
+        %----- visible state and gaze indicator (development feedback) ----
+        
         gaze = FilledDisk([0 0], 0.1, [255 0 0]);
         canvas.add(gaze);
         gaze.setVisible(1);
-        events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
-        %-----
         
+        events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
+
+        state = DisplayText([-5 -5], '', [255 0 0]);
+        canvas.add(state);
+        state.setVisible(1);
+        
+        outlines = TriggerDrawer(events);
+        canvas.add(outlines);
+        outlines.setVisible(1);
+            
         %----- across-state variables -----
         stimulusOnsetTime = 0;
         observedFixation = [0, 0];
         go = 0;
         
+        %triggers we will re-use
+        nearTrigger = NearTrigger();
+        farTrigger = FarTrigger();
+        timeTrigger = TimeTrigger();
+        
+        %-- hack --
+        insideTrigger = InsideTrigger(stimulus, @completeTrial);
+        
+        events.add(nearTrigger);
+        events.add(farTrigger);
+        events.add(timeTrigger);
+        
         startStateMachine(@waitingForFixation);
         
-        %----- state machine transitions -----
+        %----- state transitions -----
         
         function waitingForFixation(x, y, t)
+            state.setText('waitingForFixation');
             fixation.setVisible(1);
             
-            stateTransitions(...
-                @NearTrigger, {fixation, grossFixationCriterion}, @settlingFixation...
-                );
+            nearTrigger.set(fixation.loc(), grossFixationCriterion, @settlingFixation);
+            farTrigger.unset();
+            timeTrigger.unset();
         end
-    
+        
         function settlingFixation(x, y, t)
-            stateTransitions(...
-                @FarTrigger, {FilledDisk([x, y], 0, 0), grossFixationCriterion}, @waitingForFixation,...
-                @TimeTrigger, {t + fixationSettlingTime}, @holdingFixation...
-                );
+            state.setText('settlingFixation');
+            nearTrigger.unset();
+            farTrigger.set([x y], grossFixationCriterion, @waitingForFixation);
+            timeTrigger.set(t + fixationSettlingTime, @holdingFixation);
         end
         
         function holdingFixation(x, y, t)
+            state.setText('holdingFixation');
             observedFixation = [x, y];
             
-            stateTransitions(...
-                @FarTrigger, {FilledDisk(observedFixation, 0, 0), fineFixationCriterion}, @waitingForFixation,...
-                @TimeTrigger, {t + fineFixationTime}, @showStimulus...
-                );
+            nearTrigger.unset();
+            farTrigger.set(observedFixation, fineFixationCriterion, @waitingForFixation);
+            timeTrigger.set(t + fineFixationTime, @showStimulus);
         end
             
         function showStimulus(x, y, t)
+            state.setText('showStimulus');
             stimulus.setVisible(1);
             stimulusOnset = t;
             
-            stateTransitions(...
-                @FarTrigger, {filledDisk(observedFixation, 0, 0), 1}, @brokenFixation,...
-                @TimeTrigger, {t + stimulusDisplayTime}, @cueSaccade... %should be timed on screen flip instead, no?
-                );
+            nearTrigger.unset();
+            farTrigger.set(observedFixation, fineFixationCriterion, @brokenFixation);
+            timeTrigger.set(stimulusOnset + stimulusDisplayTime, @cueSaccade); %should be timed on screen flip instead, no?
         end
         
         function cueSaccade(x, y, t)
+            state.setText('cueSaccade');
             fixation.setVisible(0);
             
-            stateTransitions(...
-                @TimeTrigger, {t + saccadeReactionTime}, @awaitSaccade,...
-                @FarTrigger, {FilledDisk(observedFixation, 0, 0), fineFixationCriterion}, @waitSaccade...
-                );
+            nearTrigger.unset();
+            farTrigger.set(observedFixation, fineFixationCriterion, @brokenFixation);
+            timeTrigger.set(t + saccadeReactionTime, @awaitSaccade);
         end
         
         function awaitSaccade(x, y, t)
-            stateTransitions(...
-                @TimeTrigger, {t + saccadeWindowTime}, @failedSaccade,...
-                @FarTrigger, {FilledDisk(observedFixation, 0, 0), fineFixationCriterion}, @saccadeTransit...
-                );
+            state.setText('awaitSaccade');
+            nearTrigger.unset();
+            timeTrigger.set(t + saccadeWindowTime, @failedSaccade);
+            farTrigger.set(observedFixation, fineFixationCriterion, @saccadeTransit);
         end
         
         function saccadeTransit(x, y, t)
-            stateTransitions(...
-                @InsideTrigger, {target}, @completeTrial,...
-                @TimeTrigger, {t + saccadeTransitTime}, @failedSaccade...
-                );
+            state.setText('saccadeTransit');
+            events.add(insideTrigger); %hack!
+            nearTrigger.unset();
+            farTrigger.unset();
+            timeTrigger.set(t + saccadeTransitTime, @targetNotReached);
         end
         
         function completeTrial(x, y, t)
-            stateTransitions(...
-                @TimeTrigger, {stimulusOnsetTime + stimulusDisplayTime}, @stop);
+            state.setText('completeTrial');
+            events.remove(insideTrigger); %hack!
+            
+            nearTrigger.unset();
+            farTrigger.unset();
+            timeTrigger.set(t + saccadeTransitTime, @stop);
+        end
+        
+        function targetNotReached(x, y, t)
+            state.setText('targetNotReached');
+            events.remove(insideTrigger); %hack!
+            badTrial(x, y, t);
         end
         
         function failedSaccade(x, y, t)
-            stop();
+            state.setText('failedSaccade');
+            badTrial(x, y, t);
         end
             
         function brokenFixation(x, y, t)
-            disp('broken fixation!');
-            stop();
+            state.setText('brokenFixation');
+            badTrial(x, y, t);
         end
         
-        function stop
+        function badTrial(x, y, t)
+            stimulus.setVisible(0);
+            fixation.setVisible(0);
+
+            nearTrigger.unset();
+            farTrigger.unset();
+            timeTrigger.set(t + badTrialTimeout, @stop);
+        end
+        
+        function stop(x, y, t)
+            state.setText('stop');
+            
+            stimulus.setVisible(0);
+            fixation.setVisible(0);
+            nearTrigger.unset();
+            farTrigger.unset();
+            timeTrigger.unset();
+            
             go = 0;
         end
         
         %----- state machine implementation -----
         
         function startStateMachine(initfn)
-            stateTransitions(...
-                @UpdateTrigger, {}, initfn);
-            
+            initfn();
             go = 1;
             eventLoop();
         end
@@ -157,7 +209,6 @@ require(@setupEyelinkExperiment, @runExperiment);
             while go
                 events.update();
                 canvas.draw();
-                events.draw(screenDetails.window, toPixels);
                 
                 [VBL] = Screen('Flip', screenDetails.window);
                 frameshit = frameshit + 1;
@@ -177,58 +228,10 @@ require(@setupEyelinkExperiment, @runExperiment);
                         canvas.update();
                     end
                 else
-                    canvas.update();
+                    canvas.update(); %give one update for the initial frame;
                 end
                 lastVBL = VBL;
             end
         end
-        
-        function stateTransitions(varargin)
-            %triplets of arguments give trigger constructors, arguments,
-            %and triggered functions.
-            
-            %Add each trigger, with given arguments. But for state machine
-            %simulation we need to remove all
-            %triggers from a state as soon as one is removed--so we wrap
-            %the triggered functions to do this.
-            
-            v = reshape(varargin, 3, []);
-            
-            toRemove = cell(1, size(v, 2));
-            transitionFlag = 0; %to ensure only one transition is taken
-            i = 0;
-            for trans = v %each column is a transition
-                i = i + 1; %oh for Python's enumerate() generator...
-                toRemove{i} = transitionTrigger(trans{:}); %make the trigger
-                events.add(toRemove{i});
-            end
-            
-            function trigger = transitionTrigger(constructor, args, fn)
-                %make a trigger that produces a state transition
-                trigger = constructor(args{:}, transitionWrapper(fn));
-                
-                function r = transitionWrapper(f)
-                    %removes triggers from the current state before
-                    %setting up the new state
-                    
-                    r = @doTransition;
-                    function doTransition(x, y, t)
-                        %sometimes two transition criteria will be met on
-                        %the same update. We use the flag to exclude all
-                        %but the first transition.
-                        if ~transitionFlag
-                            cellfun(events.remove, toRemove);
-                            f(x, y, t);
-                            transitionFlag = 1;
-                        else
-                            disp huh
-                        end
-                    end
-                end
-            end
-        end
-        
-        
     end
-
 end
