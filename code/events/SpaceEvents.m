@@ -1,7 +1,7 @@
 function this = SpaceEvents(calibration_)
 %base class for event managers that teack an object (mouse, eye) over
 %time.
-this = public(@add, @remove, @update, @clear, @draw, @sample);
+this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
 
 %-----private data-----
 
@@ -15,6 +15,7 @@ this = public(@add, @remove, @update, @clear, @draw, @sample);
 
 triggers_ = cell(0);
 transform_ = transformToDegrees(calibration_);
+online_ = 0;
 
     function add(trigger)
         %adds a trigger object.
@@ -39,6 +40,9 @@ transform_ = transformToDegrees(calibration_);
 
     function update
         %Sample the eye
+        if online_
+            error('spaceEvents:notOnline', 'must start spaceEvents before recording');
+        end
         [x, y, t] = this.sample();
         [x, y] = transform_(x, y); %convert to degrees (native units)
 
@@ -54,5 +58,13 @@ transform_ = transformToDegrees(calibration_);
         for trig = triggers_
             trig{:}.draw(window, toPixels);
         end
+    end
+
+    function start()
+        online_ = 1;
+    end
+
+    function stop()
+        online_ = 0;
     end
 end

@@ -17,7 +17,7 @@ function this = EyeEvents(calibration_, el_)
 connection = Eyelink('IsConnected');
 switch connection
     case el_.connected
-        this = inherit(SpaceEvents(calibration_), public(@sample));
+        [this, spaceEvents_] = inherit(SpaceEvents(calibration_), public(@sample, @start, @stop));
     case el_.dummyconnected
         warning('EyeEvents:usingMouse', 'using mouse movements, not eyes');
         this = MouseEvents(calibration_);
@@ -28,26 +28,36 @@ end
 %----- method definition -----
     function [x, y, t] = sample
         %obtain a new sample from the eye.
-        %poll on the presence of a sample
+        %poll on the presence of a sample (FIXME do I really want this?)
         while Eyelink('NewFloatSampleAvailable') == 0;
-
-            % FIXME: don't need to do this eyeAvailable check every
-            % frame. Profile this.
-            eye = Eyelink('EyeAvailable');
-            switch eye
-                case el_.BINOCULAR
-                    error('eyeEvents:binocular',...
-                        'don''t know which eye to use for events');
-                case el_.LEFT
-                    eyeidx = 1;
-                case el_.RIGHT
-                    eyeidx = 2;
-            end
-
-            sample = Eyelink('NewestFloatSample');
-            [x, y, t] = deal(...
-                sample.gx(eye), sample.gy(eye), sample.time / 1000);
         end
+
+        % FIXME: don't need to do this eyeAvailable check every
+        % frame. Profile this.
+        eye = Eyelink('EyeAvailable');
+        switch eye
+            case el_.BINOCULAR
+                error('eyeEvents:binocular',...
+                    'don''t know which eye to use for events');
+            case el_.LEFT_EYE
+                eyeidx = 1;
+            case el_.RIGHT_EYE
+                eyeidx = 2;
+        end
+
+        sample = Eyelink('NewestFloatSample')
+        [x, y, t] = deal(...
+            sample.gx(eyeidx), sample.gy(eyeidx), sample.time / 1000);
+    end
+
+    function start()
+        spaceEvents_.start();
+        Eyelink('StartRecording')
+    end
+
+    function stop()
+        Eyelink('StopRecording');
+        spaceEvents_.stop();
     end
 
 end

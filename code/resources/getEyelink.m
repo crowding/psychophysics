@@ -15,11 +15,11 @@ function [release, details] = getEyelink(details)
 %   localname - full path to where the EDF file is downloaded locally
 %   dummy - whether the eyelink was opened in dummy mode
 
-%   FIXME: - need to configure eyelink sample data (link_sample_data)
-    
-    initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-    [release, details] = initializer(details);
-    
+FILE_CANT_OPEN = -1;
+
+initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
+[release, details] = initializer(details);
+
 %sub-initializers:
 
     %open/close the eyelink connection
@@ -102,6 +102,9 @@ function [release, details] = getEyelink(details)
         %pick some kind of unique filename by combining a prefix with
         %an encoding of the date and time
         
+        %FIXME - what data can I get out of here?
+        Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
+        
         pause(1); % to make it likely that we get a unique filename, hah!
                   % oh, why is the eyelink so dumb?
         
@@ -116,7 +119,7 @@ function [release, details] = getEyelink(details)
         %file yet.
         tmp = tempname();
         status = Eyelink('ReceiveFile',edfname,tmp);
-        if (~details.dummy) && (status ~= details.el.FILE_CANT_OPEN)
+        if (~details.dummy) && (status ~= FILE_CANT_OPEN)
             error('Problem generating filename (expected status %d, got %d)',...
                 details.el.FILE_CANT_OPEN, status);
         end

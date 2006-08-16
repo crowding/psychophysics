@@ -97,7 +97,12 @@ try
 catch
     %if there is a problem, rethrow the last error.
     err = lasterror;
-    releaser();
+    try
+        releaser();
+    catch
+        stacktrace(err);
+        err = lasterror;
+    end
     rethrow(err);
 end
 

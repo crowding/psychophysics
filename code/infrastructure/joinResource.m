@@ -79,7 +79,13 @@ function f = joinResource(first, varargin)
                 release2();
             catch
                 err = lasterror;
-                release1(); %may need chaining
+                stacktrace(err); % has to get out somehow
+                try
+                    release1(); %may need chaining
+                catch
+                    stacktrace(err); % has to get out somehow
+                    err = lasterror;
+                end
                 rethrow(err);
             end
             release1();

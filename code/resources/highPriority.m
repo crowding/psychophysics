@@ -2,9 +2,8 @@ function i = highPriority(screen)
 i = @initializer;
 
     function r = initializer
-        old = Priority();
         max = MaxPriority(screen);
-        Priority(max);
+        old = Priority(max);
 
         r = @release;
 

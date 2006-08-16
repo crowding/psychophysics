@@ -1,16 +1,19 @@
 function delayedSaccade
 %a gaze-contingent display using a trigger driven state-machine programming.
 
-timeDilation = 5; %in mousemode, things should be slower.
+timeDilation = 1; %in mousemode, things should be slower.
 
 patch = ApparentMotion(...
     'primitive', CauchyBar('size', [0.5 1 0.05*timeDilation], 'velocity', 10/timeDilation),...
     'dx', 1, 'dt', 0.1*timeDilation, 'n', 10, 'center', [0 5 0*timeDilation]);
 
+goodBeep = audioplayer(MakeBeep(512, 0.2, 8000)*0.99, 8000);
+badBeep = audioPlayer(repmat([MakeBeep(512, 0.1, 8000) MakeBeep(512, 0.1, 8000)*0]*0.99, 1, 5), 8000);
+
 grossFixationCriterion = 3;
 fixationSettlingTime = 0.35;
 fineFixationCriterion = 1;
-fineFixationTime = 0.15 * timeDilation;
+fineFixationTime = 0.5 * timeDilation;
 stimulusDisplayTime = 0.4 * timeDilation; %how much display before cueing saccade
 saccadeReactionTime = 0.2 * timeDilation; % min time after stimulation off before cueing saccade
 saccadeWindowTime = 0.2 * timeDilation; %saccades made outside this window not accepted
@@ -147,6 +150,7 @@ require(@setupEyelinkExperiment, @runExperiment);
         end
         
         function completeTrial(x, y, t)
+            play(goodBeep);
             state.setText('completeTrial');
             events.remove(insideTrigger); %hack!
             
@@ -172,6 +176,7 @@ require(@setupEyelinkExperiment, @runExperiment);
         end
         
         function badTrial(x, y, t)
+            play(badBeep);
             stimulus.setVisible(0);
             fixation.setVisible(0);
 
