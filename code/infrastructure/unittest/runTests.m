@@ -1,17 +1,14 @@
-function results = runTests(suite)
+function results = runTests(obj)
     %a 'suite' here is a struct containing a bunch of function handles that
     %can be run; the handles either return successfully or throw errors.
     
     %gather all methods beginning with 'test'
-    testnames = fieldnames(suite);
+    testnames = fieldnames(obj);
     testnames = testnames(strmatch('test', testnames));
-    methods = cellfun(@(name) suite.(name), testnames, 'UniformOutput', 0);
     
-    results = cellfun(@runTest, testnames, methods);
+    results = cellfun(@(test)showtest(runTest(obj, test)), testnames);
     
     if (nargout == 0)
-        %print out the results
-        arrayfun(@showtest, results);
         
         %tally the results
         npass = sum(arrayfun(@(x) strcmp('PASS', x.result), results));
@@ -22,7 +19,7 @@ function results = runTests(suite)
             numel(results), npass, nfail, nerr));
     end
     
-    function showtest(result)
+    function result = showtest(result)
         disp(sprintf('%70s: %4s', result.test, result.result));
         disp([])
         if ~strcmp(result.result, 'PASS')
@@ -30,11 +27,13 @@ function results = runTests(suite)
         end
     end
     
-    function result = runTest(testname, testfn)
+    function result = runTest(obj, testname)
+        testfn = obj.(testname);
         
         result = struct('test', testname, 'result', [], 'details', []);
         
         try
+            obj.setUp();
             testfn();
             result.result = 'PASS';
         catch
@@ -49,6 +48,12 @@ function results = runTests(suite)
         function default(err)
             result.result = 'ERR';
             result.details = err;
+        end
+        try
+            obj.tearDown();
+        catch
+            result.result = 'ERR';
+            result.details(end+1) = lasterror;
         end
     end
 end

@@ -79,11 +79,11 @@ function f = joinResource(first, varargin)
                 release2();
             catch
                 err = lasterror;
-                stacktrace(err); % has to get out somehow
+                %stacktrace(err);  %FIXME - chained errors
                 try
                     release1(); %may need chaining
                 catch
-                    stacktrace(err); % has to get out somehow
+                    %stacktrace(err);  %FIXME - chained errors
                     err = lasterror;
                 end
                 rethrow(err);

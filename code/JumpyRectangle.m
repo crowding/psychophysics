@@ -1,7 +1,7 @@
 function JumpyRectangle
 % a simple gaze-contingent graphics demo. Demonstrates the use of triggers.
 
-require(@setupEyelinkExperiment, @runDemo);
+require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
     function runDemo(screenDetails)
     
         canvas = Drawing(screenDetails.cal, screenDetails.window);
@@ -16,9 +16,9 @@ require(@setupEyelinkExperiment, @runDemo);
         disk = FilledDisk([-2 2], 0.5, screenDetails.white);
 
         canvas.add(back);
+        canvas.add(patch);
         canvas.add(rect);
         canvas.add(disk);
-        canvas.add(patch);
 
         back.setVisible(1);
         rect.setVisible(1);
@@ -27,16 +27,18 @@ require(@setupEyelinkExperiment, @runDemo);
         events = EyeEvents(cal, screenDetails.el);
         go = 1;
 
-        playTrigger = TimeTrigger(0, @play);
+        playTrigger = TimeTrigger();
+        stopTrigger = TimeTrigger();
 
-        % ----- the main loop, now compact -----
-        require(highPriority(screenDetails.window), @mainloop)
+        % ----- the main loop, now not so compact -----
+        require(highPriority(screenDetails.window), RecordEyes(), @mainloop)
         function mainloop
             events.add(InsideTrigger(rect, @moveRect));
             events.add(UpdateTrigger(@followDisk));
             events.add(playTrigger);
-            events.add(TimeTrigger(GetSecs() + 20, @stop));
-            playTrigger.setTime(GetSecs() + 5);
+            events.add(stopTrigger);
+            playTrigger.set(GetSecs() + 5, @play);
+            stopTrigger.set(GetSecs() + 20, @stop);
             
             lastVBL = -1;
             interval = screenDetails.cal.interval;
@@ -55,7 +57,7 @@ require(@setupEyelinkExperiment, @runDemo);
                     framesmissed = framesmissed + frames - 1;
                     
                     if frames > 60
-                        error('mainLoop:drawing stuck', 'got stuck doing frame updates...');
+                        error('mainLoop:drawingStuck', 'got stuck doing frame updates...');
                     end
                     for i = 1:round((VBL - lastVBL) / interval)
                         %may accumulate error if
@@ -77,7 +79,7 @@ require(@setupEyelinkExperiment, @runDemo);
 
         function play(x, y, t)
             patch.setVisible(1);
-            playTrigger.setTime(playTrigger.time() + 5); %trigger every five seconds
+            playTrigger.set(t + 5, @play); %trigger every five seconds
         end
         
         function stop(x, y, t)

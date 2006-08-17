@@ -97,12 +97,12 @@ try
 catch
     %if there is a problem, rethrow the last error.
     err = lasterror;
-    try
-        releaser();
-    catch
-        stacktrace(err);
-        err = lasterror;
-    end
+    %    try    %FIXME--chained errors
+    releaser();
+    %    catch
+    %        stacktrace(err);
+    %        err = lasterror;
+    %    end
     rethrow(err);
 end
 

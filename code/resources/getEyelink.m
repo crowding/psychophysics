@@ -1,13 +1,15 @@
-function [release, details] = getEyelink(details)
+function initializer = GetEyelink(varargin)
 %
-%An intialization function for use with REQUIRE.
+%Produces an intialization function for use with REQUIRE, which:
 %
-%An initializer which connects to the Eyelink system, running the
+%Connects to the Eyelink system, running the
 %calibration and choosing an file name; cleans up the connection at close.
 %
 %Input structure fields:
 %   window - the PTB window number
 %   rect - the window rect
+%   edfname - the file name to use -- use empty string for no file,
+%                otherwise it will pick a name
 %
 %Output structure fields:
 %   el - the eyelink info structure
@@ -17,8 +19,11 @@ function [release, details] = getEyelink(details)
 
 FILE_CANT_OPEN = -1;
 
+%build the initializer, curry it with given args, and join it.
+args = varargin;
 initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-[release, details] = initializer(details);
+
+initializer = setnargout(2, @(varargin)initializer(varargin{:}, args{:}));
 
 %sub-initializers:
 
@@ -94,58 +99,74 @@ initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
         end
     end
 
+
+
     %open the eyelink data file on the eyelink machine
     %input field: dummy: skips a file check in dumy mode
     %output field: edfFilename = the name of the EDF file created
     function [release, details] = openEDF(details)
         e = env;
-        %pick some kind of unique filename by combining a prefix with
-        %an encoding of the date and time
-        
-        %FIXME - what data can I get out of here?
-        Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
-        
-        pause(1); % to make it likely that we get a unique filename, hah!
-                  % oh, why is the eyelink so dumb?
-        
-        edfname = ['z' clock2filename(clock) '.edf'];
-        localname = fullfile(e.eyedir, edfname);
-        details.edfname = edfname;
-        %make a note of where we will find the file locally
-        details.localname = localname;
-       
-        %the eyelink has no way directly to check that the filename is
-        %valid or non-existing... so we must assert that we can't open the
-        %file yet.
-        tmp = tempname();
-        status = Eyelink('ReceiveFile',edfname,tmp);
-        if (~details.dummy) && (status ~= FILE_CANT_OPEN)
-            error('Problem generating filename (expected status %d, got %d)',...
-                details.el.FILE_CANT_OPEN, status);
+
+        if ~isfield(details, 'edfname')
+            %pick some kind of unique filename by combining a prefix with
+            %a 7-letter encoding of the date and time
+
+            pause(1); % to make it likely that we get a unique filename, hah!
+            % oh, why is the eyelink so dumb?
+            details.edfname = ['z' clock2filename(clock) '.edf'];
         end
-        
-        %destructive step: open the file
-        status = Eyelink('OpenFile', edfname);
-        if (status < 0)
-            error('getEyelink:fileOpenError', ...
-                'status %d opening eyelink file %s', status, edfname);
+
+        if ~isempty(details.edfname)
+            %make a note of where we will find the file locally
+            details.localname = fullfile(e.eyedir, details.edfname);
+
+            %the eyelink has no way directly to check that the filename is
+            %valid or non-existing... so we must assert that we can't open the
+            %file yet.
+            tmp = tempname();
+            status = Eyelink('ReceiveFile',details.edfname,tmp);
+            if (~details.dummy) && (status ~= FILE_CANT_OPEN)
+                error('Problem generating filename (expected status %d, got %d)',...
+                    details.el.FILE_CANT_OPEN, status);
+            end
+
+            %destructive step: open the file
+            %FIXME - what data can I get out of here?
+            Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
+            status = Eyelink('OpenFile', details.edfname);
+            if (status < 0)
+                error('getEyelink:fileOpenError', ...
+                    'status %d opening eyelink file %s', status, edfname);
+            end
+        else
+            %not recording -- don't leave some random file open
+            status = Eyelink('CloseFile');
+            if status ~= 0
+                error('GetEyelink:couldNotClose', 'status %d closing EDF file', status);
+            end
+            detials.localname = '';
         end
-        
+
         %when we are done with the file, download it
         release = @downloadFile;
-        
-        function downloadFile
-            %try both in any case
-            status = Eyelink('CloseFile');
-            if Eyelink('IsConnected') ~= details.el.dummyconnected
-                fsize = Eyelink('ReceiveFile', edfname, localname);
 
-                if (fsize < 1 || status < 0)
-                    error('getEyeink:fileTransferError', ...
-                        'File %s empty or not transferred (close status: %d, receive: %d)',...
-                        edfname, status, fsize);
+        function downloadFile
+            %if we were recording to a file, download it
+            if ~isempty(details.edfname)
+                %try both in any case
+                status = Eyelink('CloseFile');
+                if Eyelink('IsConnected') ~= details.el.dummyconnected
+                    fsize = Eyelink('ReceiveFile', edfname, localname);
+
+                    if (fsize < 1 || status < 0)
+                        error('getEyeink:fileTransferError', ...
+                            'File %s empty or not transferred (close status: %d, receive: %d)',...
+                            edfname, status, fsize);
+                    end
                 end
             end
         end
+        
     end
+
 end

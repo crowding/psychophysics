@@ -1,5 +1,7 @@
-function [release, details] = setupEyelinkExperiment(details)
-%An initialization function for use with REQUIRE;
+function initializer = SetupEyelinkExperiment(varargin)
+%produces an initializer for use with REQUIRE.
+%any arguments given will be curried to the initializer.
+%
 %sets up the screen display and the eyelink connection.
 %combines getScreen with getEyelink.
 %
@@ -22,5 +24,6 @@ function [release, details] = setupEyelinkExperiment(details)
 %       localname - full path to where the EDF file is downloaded locally
 %       dummy - whether the eyelink was opened in dummy mode
 
-initializer = joinResource(@getScreen, @getEyelink);
-[release, details] = initializer();
+initializer = joinResource(GetScreen(), GetEyelink());
+args = varargin;
+initializer = setnargout(2, @(varargin)initializer(args{:}, varargin{:}));
