@@ -19,11 +19,9 @@ function initializer = GetEyelink(varargin)
 
 FILE_CANT_OPEN = -1;
 
-%build the initializer, curry it with given args, and join it.
-args = varargin;
+%build the initializer, and curry it with given args.
 initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-
-initializer = setnargout(2, @(varargin)initializer(varargin{:}, args{:}));
+initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
 
 %sub-initializers:
 

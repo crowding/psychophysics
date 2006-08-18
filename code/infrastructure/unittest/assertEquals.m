@@ -10,7 +10,11 @@
         elseif iscell(a) && iscell(b)
             cellfun(@assertEquals, a, b, 'ErrorHandler', @errorHandler);
         elseif isstruct(a) && isstruct(b)
-            error('Struct comparison not implemented.');
+            %compare field names, then fields in alphabetical order
+            a = orderfields(a);
+            b = orderfields(b);
+            assertEquals(fieldnames(a), fieldnames(b));
+            assertEquals(struct2cell(a), struct2cell(b));
         elseif ~all(a == b)
             if isa(a, 'numeric') && isa(b, 'numeric')
                 error('assert:assertionFailed', ...

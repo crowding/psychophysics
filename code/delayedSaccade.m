@@ -21,33 +21,33 @@ saccadeTransitTime = 0.15 * timeDilation; % how long a saccade has to make it to
 totalStimulusTime = 2 * timeDilation; % total time from stimulus onset to end of trial
 badTrialTimeout = 2; %timeout for a bad trial (not dilated)
 
-require(@setupEyelinkExperiment, @runExperiment);
-    function runExperiment(screenDetails)
-        require(highPriority(screenDetails.window), @trials);
+require(setupEyelinkExperiment(), @runExperiment);
+    function runExperiment(details)
+        require(highPriority(details), @trials);
         function trials
             for i = 1:10
-                doTrial(screenDetails);
+                doTrial(details);
             end
         end
     end
 
-    function doTrial(screenDetails)
+    function doTrial(details)
     
         %---- boilerplate setup -----
-        canvas = Drawing(screenDetails.cal, screenDetails.window);
+        canvas = Drawing(details.cal, details.window);
     
-        cal = screenDetails.cal;
+        cal = details.cal;
         toPixels = transformToPixels(cal);
         
-        events = EyeEvents(cal, screenDetails.el);
+        events = EyeEvents(cal, details.el);
         
         %-----stimulus construction----
 
-        back = Background(screenDetails.gray);
+        back = Background(details.gray);
         canvas.add(back);
         back.setVisible(1);
         
-        fixation = FilledDisk([0 0], 0.1, screenDetails.black);
+        fixation = FilledDisk([0 0], 0.1, details.black);
         canvas.add(fixation);
         
         stimulus = MoviePlayer(patch);
@@ -209,13 +209,13 @@ require(@setupEyelinkExperiment, @runExperiment);
             frameshit = 0;
             framesmissed = 0;
             lastVBL = -1;
-            interval = screenDetails.cal.interval;
+            interval = details.cal.interval;
             
             while go
                 events.update();
                 canvas.draw();
                 
-                [VBL] = Screen('Flip', screenDetails.window);
+                [VBL] = Screen('Flip', details.window);
                 frameshit = frameshit + 1;
                 %count the number of frames advanced and do the
                 %appropriate number of canvas.update()s

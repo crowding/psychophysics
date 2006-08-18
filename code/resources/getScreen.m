@@ -22,8 +22,8 @@ function initializer = GetScreen(varargin)
 %   gray - indexes into the colortable
 
 %curry arguments given now onto the initializer function
-curry = varargin;
-initializer = setnargout(nargout(@doGetScreen), @(varargin)doGetScreen(curry{:}, varargin{:}));
+
+initializer = setnargout(2, currynamedargs(@doGetScreen, varargin{:}));
 
     function [release, details] = doGetScreen(details)
         %input structure is optional

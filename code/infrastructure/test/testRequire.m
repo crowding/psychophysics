@@ -72,15 +72,15 @@ this = inherit(...
             assertLastError('require:');
         end
         
-        function release = init
-            release = 5678;
+        function [r, o] = init(o)
+            r = 5678;
         end
     end
 
     function testRobustToTypos
         %if you miss an @sign, you might call initialization before getting
         %into require, but require will then call the release function
-        %handle that its gets instead. This won't work so well for
+        %handle that it gets instead. This won't work so well for
         %multiple-argument invocations, however. Maybe it should?
         %
         %this behavior is intended as a development convenience.
@@ -95,6 +95,8 @@ this = inherit(...
         
         function r = init
             r = @release;
+            o = struct();
+            
             function release
                 rflag = 1;
             end
@@ -117,10 +119,23 @@ this = inherit(...
             assertLastError('require:');
         end
         
-        function init
+        function init(o)
         end
     end
 
+    function testNeedsTwoOutputs
+        try
+            require(@init, @noop);
+            fail('expected error');
+        catch
+            assertLastError('require:');
+        end
+        
+        function r = init(o)
+            r = @noop;
+        end
+    end
+        
 %---single initializer tests
     function testFailedInit
         %when init fails, the main body is not executed, and
@@ -134,7 +149,7 @@ this = inherit(...
             assertLastError('testRequire:');
         end
         
-        function r = init
+        function [r, o] = init(o)
             error('testRequire:test', 'test');
         end
         
@@ -157,8 +172,9 @@ this = inherit(...
             assert(releaseflag);
         end
         
-        function r = init
+        function [r, o] = init(o)
             r = @release;
+            
             function release
                 releaseflag = 1;
             end
@@ -178,7 +194,7 @@ this = inherit(...
             assertLastError('testRequire:');
         end
 
-        function r = init
+        function [r, o] = init(o)
             r = @()error('testRequire:test', 'test');
         end
     end
@@ -196,7 +212,7 @@ this = inherit(...
             assert(bflag)
         end
         
-        function r = init
+        function [r, o] = init(o)
             r = @release;
             
             function release
@@ -211,19 +227,20 @@ this = inherit(...
     end
 
     function testOutputCollection
-        %An initializer function can have two outputs, in which
-        %case the second output is collected and passed to the body.
+        %An initializer function has two outputs, and the second otuput
+        %can be passed to the main body.
         bflag = 0;
         require(@init, @body);
         assert(bflag);
         
-        function [r, o] = init
-            o = 4;
+        function [r, o] = init(o)
+            assertEquals(struct(), o);
+            o = struct('foo', 1);
             r = @noop;
         end
         
         function body(o)
-            assertEquals(o, 4);
+            assertEquals(struct('foo', 1), o);
             bflag = 1;
         end
     end
@@ -234,7 +251,8 @@ this = inherit(...
         %
         %This behavior is a lesser of several evils around matlab's
         %varargout handling - I simply can't capture all the outputs of a
-        %varargout function, so I choose to outlaw varargout here entirely.
+        %varargout function, so I choose to require two and only two output
+        %arguments.
         try
             require(@init, @noop);
             fail('expected an error');
@@ -242,7 +260,7 @@ this = inherit(...
             assertLastError('require:')
         end
         
-        function [r, varargout] = init
+        function [r, varargout] = init(o)
             r = @noop
             varargout = {1};
         end
@@ -253,17 +271,16 @@ this = inherit(...
         [a, b] = require(@init, @body);
         assertEquals([1 2], [a b]);
         
-        function r = init
+        function [r, o] = init(o)
             r = @noop;
         end
         
-        function [a, b] = body
+        function [a, b] = body(o)
             a = 1;
             b = 2;
         end 
     end
         
-            
 %---multiple initializer tests
 
     function testSuccessfulChain
@@ -274,7 +291,7 @@ this = inherit(...
         require(@init1, @init2, @noop)
         assertEquals([1 1 1 1],[iflag1 iflag2 rflag1 rflag2]);
         
-        function r = init1
+        function [r, o] = init1(o)
             assertEquals([0 0 0 0],[iflag1 iflag2 rflag1 rflag2]);
             iflag1 = 1;
             r = @release1;
@@ -285,7 +302,7 @@ this = inherit(...
             end
         end
 
-        function r = init2
+        function [r, o] = init2(o)
             assertEquals([1 0 0 0],[iflag1 iflag2 rflag1 rflag2]);
             iflag2 = 1;
             r = @release2;
@@ -309,7 +326,7 @@ this = inherit(...
             assert(rflag);
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release1;
             
             function release1
@@ -317,7 +334,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @()error('testRequire:test', 'test');
         end
     end
@@ -335,7 +352,7 @@ this = inherit(...
             assert(rflag); %the flag was released
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release1;
             
             function release1
@@ -343,7 +360,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @()error('testRequire:test', 'test');
         end
     end
@@ -358,7 +375,7 @@ this = inherit(...
             assertLastError('testRequire:expected');
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release;
             
             function release
@@ -366,7 +383,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @release;
             
             function release
@@ -396,7 +413,7 @@ this = inherit(...
             assert(rflag2);
         end
         
-        function r = init1
+        function [r,o] = init1(o)
             r = @release;
             
             function release
@@ -404,7 +421,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r,o] = init2(o)
             r = @release;
             
             function release
@@ -419,28 +436,27 @@ this = inherit(...
     end
 
     function testChainOutputCollection
-        %multiple initializer's return values and outputs are collected,
-        %and passed to the body.
+        %The initialization struct os passed through each initializer and
+        %into the body. A empty struct is given as first argument.
 
         bflag = 0;
         require(@init1, @init2, @body);
         assert(bflag);
         
-        function body(i, j, k)
-            assertEquals(3, nargin); 
-            assertEquals([1 2 3], [i j k]);
+        function body(o)
+            assertEquals(1, nargin); 
+            assertEquals(struct('i', 1, 'j', 2), o);
             bflag = 1;
         end
         
-        function [r, ii] = init1
+        function [r, o] = init1(o)
             r = @noop;
-            ii = 1;
+            o.i = 1;
         end
             
-        function [r, jj, kk] = init2
+        function [r, o] = init2(o)
             r = @noop;
-            jj = 2;
-            kk = 3;
+            o.j = 2;
         end
     end
     
@@ -454,7 +470,7 @@ this = inherit(...
         require(r, @body)
         assertEquals([1 1 1 1],[iflag1 iflag2 rflag1 rflag2]);
         
-        function r = init1
+        function [r,o] = init1(o)
             assertEquals([0 0 0 0],[iflag1 iflag2 rflag1 rflag2]);
             iflag1 = 1;
             r = @release1;
@@ -465,7 +481,7 @@ this = inherit(...
             end
         end
 
-        function r = init2
+        function [r,o] = init2(o)
             assertEquals([1 0 0 0],[iflag1 iflag2 rflag1 rflag2]);
             iflag2 = 1;
             r = @release2;
@@ -494,7 +510,7 @@ this = inherit(...
             assert(rflag);
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release1;
             
             function release1
@@ -502,7 +518,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @()error('testRequire:test', 'test');
         end
     end
@@ -520,7 +536,7 @@ this = inherit(...
             assert(rflag); %the flag was released
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release1;
             
             function release1
@@ -528,7 +544,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @()error('testRequire:test', 'test');
         end
     end
@@ -544,7 +560,7 @@ this = inherit(...
             assertLastError('testRequire:expected');
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release;
             
             function release
@@ -552,7 +568,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @release;
             
             function release
@@ -583,7 +599,7 @@ this = inherit(...
             assert(rflag2);
         end
         
-        function r = init1
+        function [r, o] = init1(o)
             r = @release;
             
             function release
@@ -591,7 +607,7 @@ this = inherit(...
             end
         end
         
-        function r = init2
+        function [r, o] = init2(o)
             r = @release;
             
             function release
@@ -606,8 +622,8 @@ this = inherit(...
     end
 
     function testJoinOutputCollection
-        %multiple initializer's return values and outputs are collected,
-        %and passed to the body. Only one optional output is supported.
+        %the initialization struct is passed down through each initializer
+        %and then into the body.
 
         bflag = 0;
         r = joinResource(@init1, @init2);
@@ -616,20 +632,21 @@ this = inherit(...
         
         function body(in)
             assertEquals(1, nargin); 
-            assertEquals(2, in);
+            assertEquals(struct('a', 1, 'b', 2, 'c', 2), in);
             bflag = 1;
         end
         
-        function [r, ii] = init1
+        function [r, o] = init1(o)
             r = @noop;
-            ii = 1;
+            o = struct('a', 1, 'b', 1);
         end
             
-        function [r, jj] = init2(ii)
+        function [r, o] = init2(o)
             %note passing through of outputs
             r = @noop;
-            assertEquals(ii, 1);
-            jj = 2;
+            assertEquals(struct('a', 1, 'b', 1), o);
+            o.b = 2;
+            o.c = 2;
         end
     end
 

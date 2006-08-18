@@ -7,64 +7,61 @@ function varargout = require(varargin)
 %function.
 %
 %REQUIRE takes multiple resource arguments.
-%Each resource argument shoud be a function handle. When called, the 
+%Each resource argument shoud be a function handle. When called, the
 %resource function should acquire a resource (e.g. open a file , connect to
 %a device, open a window on screen, etc.) The first argument returned by
 %the resource function should be a releaser, another function handle, taking no
 %arguments, that releases the resource in question.
 %
-%The initializer can optionally return a second parameter, which can 
-%describe the resource acquired (e.g. filehandle, screen/window number, 
-%calibration information, etc.) 
+%Initializers take one argument, that is a struct containing parameters
+%used for their task; they modify this struct with additional fields and
+%return it as their second output. So the form of an initializer is:
 %
-%Another function RESOURCE exists that may help in procuring the
-%appropriate function handles. 
+%function [releaser, params] = init(params)...
 %
-%REQUIRE
 %
 %Here is an example of usage without 'resource'. The function 'opener'
 %bundles corresponding 'open' and 'close' operations together. Note how
 %the 'fid' value is passed from 'opener' to 'write.'
 %
 %   require(@opener, @write);
-%   function write(fid)
-%       fprintf(fid, 'Hello world!\n');
+%   function write(params)
+%       fprintf(params.fid, 'Hello world!\n');
 %   end
 %
-%   function [r, fid] = opener
-%      fid = fopen(filename)
-%      if fid < -1
+%   function [releaser, params] = opener(params)
+%      params.fid = fopen(filename)
+%      if params.fid < -1
 %           error('could not open file');
 %      end
-%      r = @()close(fn);
+%      releaser = @()close(fid);
 %   end
-%
-%
-%Here is a more compact example using RESOURCE to make the function
-%handles. 
-%
-%   require(resource(@fopen, @fclose, 'out.txt', 'W'), @write);
-%   function write(fid)
-%       fprintf(fid, 'Hello world!\n');
-%   end
-%
-% REQUIRE can take multiple releaser arguments, in which case the optional 
-% outputs of the releaser are gathered into a cell array to be passed to
-% the body.
 %
 % WHY THIS EXISTS: MATLAB's silly lack of a 'finally' clause or anything
 % equivalent (e.g. the RAII idiom in C++) combined with a lot of
 % boilerplate device-and-file-and-window-opening code in psychtoolbox
 % scripts -- which is generally not written robustly, and should be
-% collapsible down to a single file.
+% collapsible down to a single file. General recognition that resource
+% management is tricky even if you have good exception handling at your
+% disposal; desire to encapsulate the tricky exception
 
 if (nargin < 2)
-    error('require:illegalArgument', 'require needs at least 1 argument');
+    error('require:illegalArgument', 'require needs at least 2 arguments');
+end
+
+if (nargin > 2)
+    %if we have multiple initializers; use joinResource to combine them.
+
+    init = JoinResource(varargin{1:end-1});
+    body = varargin{end};
+    [varargout{1:nargout}] = require(init, body);
+    return;
 end
 
 %run the initializer, collecting from it a release function handle and an
 %optional output.
 initializer = varargin{1};
+body = varargin{2};
 
 if ~isa(initializer, 'function_handle')
     error('require:missingReleaser', 'initializer did not produce a releaser');
@@ -74,25 +71,19 @@ initializer_outputs = nargout(initializer);
 if initializer_outputs < 1
     error('require:illegalArgument', 'initializers need to produce a releaser');
 else
-    [releaser, output{1:initializer_outputs - 1}] = initializer();
+    [releaser, output] = initializer(struct());
 end
 
 if ~isa(releaser, 'function_handle')
-    error('require:missingChainOutputCollection', 'initializer did not produce a releaser');
+    error('require:missingReleaser', 'initializer did not produce a releaser');
 end
 
 %now either run the body, or recurse onto the next initializer
 try
-    body = varargin{end};
-    if (nargin > 2)
-        %we have more initializers --
-        %recurse onto the next initializer, currying the initializer's
-        %output with the body function.
-        newbody = @(varargin) body(output{:}, varargin{:});
-        require(varargin{2:end-1}, newbody);
+    if nargin(body) ~= 0
+        [varargout{1:nargout}] = body(output); %run the curried, protected body
     else
-        %we have initialized everything - run the body
-        [varargout{1:nargout}] = body(output{:}); %run the curried, protected body
+        [varargout{1:nargout}] = body();
     end
 catch
     %if there is a problem, rethrow the last error.

@@ -31,7 +31,7 @@ require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
         stopTrigger = TimeTrigger();
 
         % ----- the main loop, now not so compact -----
-        require(highPriority(screenDetails.window), RecordEyes(), @mainloop)
+        require(highPriority(screenDetails), RecordEyes(), @mainloop)
         function mainloop
             events.add(InsideTrigger(rect, @moveRect));
             events.add(UpdateTrigger(@followDisk));
