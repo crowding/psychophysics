@@ -7,6 +7,10 @@ this = inherit(TestCase(),...
     ,@testMultipleHandlesOneContext...
     ,@testCopyReferenceBehavior...
     ,@testPassingReferenceBehavior...
+    ,@testClosureSavesState...
+    ,@testLoadDoesNotReattachToLiveContext...
+    ,@testLoadReattachesToItself...
+    ,@testSeparateVariablesReattach...
     ));
     
     [x0, y0, get0, x1, y1, get1] = deal([]);
@@ -61,6 +65,62 @@ this = inherit(TestCase(),...
         %reference to the bound variabels
         assertEquals([100 103], get1());
     end
+
+    function testClosureSavesState
+        %the state of a closure is written to files
+        
+        x0(); x0(); %create some state
+        
+        fname = tempname();
+        save(fname, 'get0');
+        in = load([fname '.mat']);
+        
+        assertEquals(get0(), in.get0());
+    end
+
+    function testLoadDoesNotReattachToLiveContext
+        %I would like for funcitons to re-attach to their contexts when
+        %loaded and saved in an atomic operation.
+
+        x0(); x0(); %create some state
+        
+        fname = tempname();
+        save(fname, 'x0');
+        in = load([fname '.mat']);
+        
+        assertEquals(3, x0());
+        assertEquals(3, in.x0()); %in.x0() was not affected by x0()
+        assertEquals(4, x0()); %and vice versa
+    end
+
+    function testLoadReattachesToItself
+        %how about two closures saved and loaded in one operation?
+        out = struct('x0', x0, 'y0', y0, 'get0', get0);
+        
+        fname = tempname();
+        save(fname, '-struct', 'out');
+        in = load([fname '.mat']);
+        
+        assertEquals(in.get0(), [0 0]);
+        in.x0(); %alter state
+        %does get0 see the same at x0 when loaded?
+        assertEquals(in.get0(), [1 0]);
+    end
+
+    function testSeparateVariablesReattach
+        %separate variables will re-attach on load if they were saved and
+        %loaded in the same operation 
+        
+        fname = tempname();
+        save(fname, 'x0', 'y0', 'get0');
+        in = load([fname '.mat']);
+        
+        assertEquals(in.get0(), [0 0]);
+        assertEquals(in.x0(), 1);
+        assertEquals(in.y0(), 1);
+        assertEquals(in.get0(), [1 1]);
+    end
+
 
     function callThreeTimes(bork)
         bork(); bork(); bork();
