@@ -24,17 +24,22 @@ function [this, varargout] = inherit(varargin)
 
 %If requested, save a reference copy of the methods from each ancestor.
 %This is so you can still call a method you override through inheritance.
-if (nargout > 1)
-    varargout = cellfun(@parent_backup, varargin(1:nargout-1), 'UniformOutput', 0);
-end
+
+this = struct();
+this.parents__ = cellfun(@parent_backup, varargin, 'UniformOutput', 0);
     function backup = parent_backup(parent)
-        %back up all methods except for method__ itself
+        backup = parent;
+        %ordinary methods need to get unwrapped
         parentmethodnames = fieldnames(parent);
-        which = strmatch('method__', parentmethodnames);
+        which = regexp(parentmethodnames, '__$', 'once');
+        which = ~cellfun(@isempty, which);
         parentmethodnames(which) = [];
-        backup = cellfun(parent.method__, parentmethodnames, 'UniformOutput', 0);
-        backup = cell2struct(backup, parentmethodnames, 1);
+        for name = parentmethodnames'
+            backup.(name{:}) = parent.method__(name{:});
+        end
     end
+
+varargout = this.parents__(1:nargout-1);
 
 %the names and methods of each direct ancestor (one cell per ancestor)
 names = cellfun(@fieldnames, varargin, 'UniformOutput', 0);
@@ -60,7 +65,6 @@ names = cellfun(@(n,i) n(i), names, indices, 'UniformOutput', 0);
 
 %build the new object by going through the methods coming from each
 %ancestor
-this = struct();
 cellfun(@assignmethods, names, varargin, others);
     function assignmethods(names, obj, others);
         %names  is the names of the methods to assign
@@ -70,9 +74,10 @@ cellfun(@assignmethods, names, varargin, others);
         %assign each method in turn
         cellfun(@assignmethod, names);
         function assignmethod(name)
-            %method__ is our handle into the original object and will
-            %not be overridden
-            if strcmp('method__', name)
+            
+            %double-underscpre fields are special and will not be
+            %overridden
+            if ~isempty(regexp(name, '__$', 'once'));
                 return
             end
             

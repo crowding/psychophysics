@@ -31,5 +31,4 @@ method_names = regexprep(method_names, '.*/', '');
 
 s = cell2struct(methods, method_names, 2); %varargin comes as a row vector
 
-[st, i] = dbstack();
-s.version__ = getversion(st(i+1));
+s.version__ = getversion(2);

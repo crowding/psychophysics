@@ -1,10 +1,6 @@
 * Some way to save and load the state of a trial -- closures will re-attach
   themselves to their workspaces when loaded, which is good, but think about
   forwasrds compatibility. Need something like load protection for it.
-    * final(), public(), inherit() and so on need to collect svn path and
-      version information from their callers, adn incorporate that into a
-      version__ attribute. 
-    * inherit() needs to collect things into a parents__ attribute.
     * How to trigger off this when loading?
         * need an enclosing matlab-style object?
 

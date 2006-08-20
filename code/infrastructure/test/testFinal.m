@@ -40,21 +40,22 @@ this = struct(...
         %all objects get a version__ field that gives the SVN path, function
         %name, and SVN version number of the file creating the object.
         
-        obj = myobj()
+        obj = myobj();
         vers = obj.version__;
         
         %we make sure the info I am reporting matches the auto-substituted
         %info (SVN junk...)
-        fninfo = functions(@Parent);
+        fninfo = functions(@myobj);
         url = '$HeadURL$';
         revision = '$Revision$';
         
         %process down the url and revision here
         url = regexprep(url, '\$HeadURL: (.*) \$', '$1');
-        revision = regexprep(url, '\$Revision: (.*) \$', '$1');
+        revision = regexprep(revision, '\$Revision: (.*) \$', '$1');
+        revision = str2num(revision);
         
         assertEquals(fninfo.function, vers.function);
         assertEquals(url, vers.url);
-        assertEquals(revivion, vers.revision);
+        assertEquals(revision, vers.revision);
     end
 end

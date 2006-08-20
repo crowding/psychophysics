@@ -11,18 +11,18 @@ function v = getversion(frame)
 [st, i] = dbstack('-completenames');
 frame = st(i + frame);
 
-[status, info] = system(sprintf('/usr/local/bin/svn info %s', frame.file))
+[status, info] = system(sprintf('/usr/local/bin/svn info %s', frame.file));
 if status ~= 0
     error('getversion:svn', 'couldn''t call svn');
 end
 
-url = regexp(info, '(?:^|\n)URL: (.*)(?:$|\n)', 'tokens', 'once')
-revision = regexp(info, '(?:^|\n)^Last Changed Rev: (.*)(?:$|\n)', 'tokens', 'once')
+url = regexp(info, '(?:^|\n)URL: (.*?)(?:$|\n)', 'tokens', 'once');
+revision = regexp(info, '(?:^|\n)Last Changed Rev: (.*?)(?:$|\n)', 'tokens', 'once');
 
 if isempty(url) || isempty(revision)
-    error('getversion:infoNotFound', 'could not interpret SVn information');
+    error('getversion:infoNotFound', 'could not get url and revision from SVN response');
 end
 
-revision = str2num(revision);
+revision = str2num(revision{1});
 
-v = struct('function', frame.name, 'url', url{1}, 'revision', revision{1});
+v = struct('function', frame.name, 'url', url{1}, 'revision', revision);
