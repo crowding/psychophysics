@@ -1,63 +1,70 @@
-function this = EyeEvents(calibration_, el_)
-%function this = EyeEvents(calibration, el)
+function this = EyeEvents(details_)
+%function this = EyeEvents(details_)
 %
 % Makes an object for tracking eye movements, and
 % triggering calls when the eye moves in and out of screen-based regions.
 %
-% Constructor arguments:
-%   'calibration' the display calibration
+% struct argument with fields:
+%   'cal' the display calibration
 %   'el' the eyelink constants
-%
-% complaint:
-% (why pass around a bunch of constants as an argument?)
+%   'dummy' true if connected in dummy mode
+%   'clockoffset' the clock offset in milliseconds (will be subtracted from
+%   the eyelink data)
 
 %----- constructor - checks a condition and returns the appropriate event
 %----- producer. Note that you don't need a Factory class for this, just
 %----- the regular constructor.
-connection = Eyelink('IsConnected');
-switch connection
-    case el_.connected
-        [this, spaceEvents_] = inherit(SpaceEvents(calibration_), public(@sample, @start, @stop));
-    case el_.dummyconnected
-        warning('EyeEvents:usingMouse', 'using mouse movements, not eyes');
-        this = MouseEvents(calibration_);
-    otherwise
-        error('eyeEvents:not_connected', 'eyelink not connected');
+if details_.dummy
+    warning('EyeEvents:usingMouse', 'using mouse movements, not eyes');
+    this = MouseEvents(details_);
+else
+    [this, spaceEvents_] = inherit(SpaceEvents(details_), public(@sample, @start, @stop));
 end
 
 %----- method definition -----
     function [x, y, t] = sample
         %obtain a new sample from the eye.
-        %poll on the presence of a sample (FIXME do I really want this?)
+        %poll on the presence of a sample (FIXME do I really want to do this?)
         while Eyelink('NewFloatSampleAvailable') == 0;
         end
 
-        % FIXME: don't need to do this eyeAvailable check every
-        % frame. Profile this.
+        % FIXME: Probably don't need to do this eyeAvailable check every
+        % frame. Profile this call?
         eye = Eyelink('EyeAvailable');
         switch eye
-            case el_.BINOCULAR
+            case details_.el_.BINOCULAR
                 error('eyeEvents:binocular',...
                     'don''t know which eye to use for events');
-            case el_.LEFT_EYE
+            case details_.el_.LEFT_EYE
                 eyeidx = 1;
-            case el_.RIGHT_EYE
+            case details_.el_.RIGHT_EYE
                 eyeidx = 2;
         end
 
-        sample = Eyelink('NewestFloatSample')
+        sample = Eyelink('NewestFloatSample');
         [x, y, t] = deal(...
-            sample.gx(eyeidx), sample.gy(eyeidx), sample.time / 1000);
+            sample.gx(eyeidx), sample.gy(eyeidx), (sample.time - details.clockoffset) / 1000);
     end
 
     function start()
         spaceEvents_.start();
-        Eyelink('StartRecording')
+        status = Eyelink('StartRecording');
+        if status ~= 0
+            error('EyeEvents:errorInStart', 'status %d starting recording', status);
+        end
     end
 
     function stop()
-        Eyelink('StopRecording');
+        try
+            status = Eyelink('StopRecording');
+            if status ~= 0
+                error('EyeEvents:errorInStart', 'status %d starting recording', status);
+            end
+        catch
+            spaceEvents_.stop();
+            rethrow
+        end
+        %duplicated call-think about how to do chained destructor methods
         spaceEvents_.stop();
     end
-
 end

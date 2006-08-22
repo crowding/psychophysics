@@ -1,6 +1,8 @@
-function this = SpaceEvents(calibration_)
+function this = SpaceEvents(details_)
 %base class for event managers that teack an object (mouse, eye) over
 %time.
+
+%-----public interface-----
 this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
 
 %-----private data-----
@@ -9,13 +11,15 @@ this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
 %lists specify a criterion that is to be met and a function to be
 %called when the criterion is met.
 
-%Array of trigger-interface objects. An advantage of closure-structs over
+%Array of trigger objects. An advantage of closure-structs over
 %matlab objects is that you can have an array containing diferent
 %implementations of one interface.
-
 triggers_ = cell(0);
-transform_ = transformToDegrees(calibration_);
+
+transform_ = transformToDegrees(details_.cal);
 online_ = 0;
+
+%----- methods -----
 
     function add(trigger)
         %adds a trigger object.
@@ -66,5 +70,8 @@ online_ = 0;
 
     function stop()
         online_ = 0;
+    end
+
+    function [x, y, t] = sample()
     end
 end

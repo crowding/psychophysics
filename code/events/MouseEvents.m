@@ -1,5 +1,5 @@
-function this = MouseEvents(calibration_)
-this = inherit(SpaceEvents(calibration_), public(@sample));
+function this = MouseEvents(details)
+this = inherit(SpaceEvents(details), public(@sample));
 
     function [x, y, t] = sample()
         %use the mouse coordinates instead
