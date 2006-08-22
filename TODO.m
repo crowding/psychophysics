@@ -1,15 +1,20 @@
+%{
+* TIMING. need to reference the playing of a movie off of screen refreshes;
+  * screen updates need a 'next refresh' parameter to say precisely when the 
+  next frame should be scheduled.
+    * make sure I know where the ApparentMotion object places its 0 time, and 
+    * record the time diff between its 0 and the frame it starts in.
+
 * Some way to save and load the state of a trial -- closures will re-attach
   themselves to their workspaces when loaded, which is good, but think about
   forwasrds compatibility. Need something like load protection for it.
     * How to trigger off this when loading?
         * need an enclosing matlab-style object?
 
-* TIMING. need to reference the playing of a movie off of screen refreshes;
-  also need to reference input events against screen refreshes
-  (need adjustable offset for this e.g. eyelink
-  * screen updates need a 'next refresh' parameter to say precisely when the 
-  next frame should be scheduled.
-    * make sure I know where the ApparentMotion object places its 0 time
+* enclosing matlab-style object for:
+    * straightforward property access
+    * operator overloading
+    * load-upgrade operations
 
 * fire-once triggers.
 
@@ -46,4 +51,4 @@
 
         * check CLOS's implementation for before-methods, after-methods, and 
           around-methods. CLOS does everything, probably well.
-
+%}

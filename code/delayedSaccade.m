@@ -1,14 +1,14 @@
 function delayedSaccade
 %a gaze-contingent display using a trigger driven state-machine programming.
 
-timeDilation = 1; %in mousemode, things should be slower.
+timeDilation = 5; %in mousemode, things should be slower.
 
 patch = ApparentMotion(...
     'primitive', CauchyBar('size', [0.5 1 0.05*timeDilation], 'velocity', 10/timeDilation),...
     'dx', 1, 'dt', 0.1*timeDilation, 'n', 10, 'center', [0 5 0*timeDilation]);
 
 goodBeep = audioplayer(MakeBeep(512, 0.2, 8000)*0.99, 8000);
-badBeep = audioPlayer(repmat([MakeBeep(512, 0.1, 8000) MakeBeep(512, 0.1, 8000)*0]*0.99, 1, 5), 8000);
+badBeep = audioplayer(repmat([MakeBeep(512, 0.1, 8000) MakeBeep(512, 0.1, 8000)*0]*0.99, 1, 5), 8000);
 
 grossFixationCriterion = 3;
 fixationSettlingTime = 0.35;
@@ -23,7 +23,7 @@ badTrialTimeout = 2; %timeout for a bad trial (not dilated)
 
 require(setupEyelinkExperiment(), @runExperiment);
     function runExperiment(details)
-        require(highPriority(details), @trials);
+        require(highPriority(details), RecordEyes(), @trials);
         function trials
             for i = 1:10
                 doTrial(details);
@@ -32,14 +32,10 @@ require(setupEyelinkExperiment(), @runExperiment);
     end
 
     function doTrial(details)
-    
         %---- boilerplate setup -----
-        canvas = Drawing(details.cal, details.window);
     
-        cal = details.cal;
-        toPixels = transformToPixels(cal);
-        
-        events = EyeEvents(cal, details.el);
+        [main, canvas, events] = mainLoop(details);
+        toPixels = transformToPixels(details.cal);
         
         %-----stimulus construction----
 
@@ -61,7 +57,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         
         events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
 
-        state = DisplayText([-5 -5], '', [255 0 0]);
+        state = Text([-5 -5], '', [255 0 0]);
         canvas.add(state);
         state.setVisible(1);
         
@@ -86,7 +82,14 @@ require(setupEyelinkExperiment(), @runExperiment);
         events.add(farTrigger);
         events.add(timeTrigger);
         
-        startStateMachine(@waitingForFixation);
+        waitingForFixation(); %enter initial state
+        main.go();
+        
+        stimulus.setVisible(0);
+        fixation.setVisible(0);
+        nearTrigger.unset();
+        farTrigger.unset();
+        timeTrigger.unset();
         
         %----- state transitions -----
         
@@ -150,13 +153,13 @@ require(setupEyelinkExperiment(), @runExperiment);
         end
         
         function completeTrial(x, y, t)
-            play(goodBeep);
+            %play(goodBeep);
             state.setText('completeTrial');
             events.remove(insideTrigger); %hack!
             
             nearTrigger.unset();
             farTrigger.unset();
-            timeTrigger.set(t + saccadeTransitTime, @stop);
+            timeTrigger.set(t + saccadeTransitTime, main.stop);
         end
         
         function targetNotReached(x, y, t)
@@ -176,7 +179,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         end
         
         function badTrial(x, y, t)
-            play(badBeep);
+            %play(badBeep);
             stimulus.setVisible(0);
             fixation.setVisible(0);
 
@@ -185,58 +188,5 @@ require(setupEyelinkExperiment(), @runExperiment);
             timeTrigger.set(t + badTrialTimeout, @stop);
         end
         
-        function stop(x, y, t)
-            state.setText('stop');
-            
-            stimulus.setVisible(0);
-            fixation.setVisible(0);
-            nearTrigger.unset();
-            farTrigger.unset();
-            timeTrigger.unset();
-            
-            go = 0;
-        end
-        
-        %----- state machine implementation -----
-        
-        function startStateMachine(initfn)
-            initfn();
-            go = 1;
-            eventLoop();
-        end
-        
-        function eventLoop();
-            frameshit = 0;
-            framesmissed = 0;
-            lastVBL = -1;
-            interval = details.cal.interval;
-            
-            while go
-                events.update();
-                canvas.draw();
-                
-                [VBL] = Screen('Flip', details.window);
-                frameshit = frameshit + 1;
-                %count the number of frames advanced and do the
-                %appropriate number of canvas.update()s
-                if lastVBL > 0
-                    frames = round((VBL - lastVBL) / interval);
-                    framesmissed = framesmissed + frames - 1;
-                    
-                    if frames > 60
-                        error('mainLoop:drawing stuck', 'got stuck doing frame updates...');
-                    end
-                    for i = 1:round((VBL - lastVBL) / interval)
-                        %may accumulate error if
-                        %interval differs from the actual interval... 
-                        %but we're screwed in that case.
-                        canvas.update();
-                    end
-                else
-                    canvas.update(); %give one update for the initial frame;
-                end
-                lastVBL = VBL;
-            end
-        end
     end
 end

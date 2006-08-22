@@ -52,7 +52,7 @@ end
 if (nargin > 2)
     %if we have multiple initializers; use joinResource to combine them.
 
-    init = JoinResource(varargin{1:end-1});
+    init = joinResource(varargin{1:end-1});
     body = varargin{end};
     [varargout{1:nargout}] = require(init, body);
     return;
@@ -80,6 +80,7 @@ end
 
 %now either run the body, or recurse onto the next initializer
 try
+    disp(nargin(body));
     if nargin(body) ~= 0
         [varargout{1:nargout}] = body(output); %run the curried, protected body
     else

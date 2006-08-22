@@ -24,6 +24,6 @@ function initializer = SetupEyelinkExperiment(varargin)
 %       localname - full path to where the EDF file is downloaded locally
 %       dummy - whether the eyelink was opened in dummy mode
 
-initializer = joinResource(GetScreen(), GetEyelink());
+initializer = joinResource(getScreen(), getEyelink());
 args = varargin;
 initializer = setnargout(2, @(varargin)initializer(args{:}, varargin{:}));

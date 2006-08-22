@@ -1,4 +1,4 @@
-function this = Drawing(calibration__, window__)
+function this = Drawing(details_)
 %Drawing is a holder for graphics drawing objects.
 %Drawing tries to coordinate the allocation of resources (textures etc.)
 %for graphics objects; therefore it needs to have cleanup code. Therefore
@@ -7,8 +7,7 @@ function this = Drawing(calibration__, window__)
 
 % ----- public interface -----
 this = inherit(...
-    properties('calibration', calibration__, 'window', window__),...
-    public(@add, @remove, @clear, @update, @draw));
+    public(@add, @remove, @clear, @update, @draw, @calibration, @window));
 % ----- instance variables -----
 
 components_ = cell(0);
@@ -48,12 +47,6 @@ components_ = cell(0);
         end
     end
 
-%why is this so much faster than update() when they are the same function and draw() does more in its subfunctions?!?
-    drawer_ = @(X) X.draw(window__);
-    function draw
-        cellfun(drawer_, components_);
-    end
-
 %look at SpaceEvents.update(), which looks like this, but runs much faster
 %than this did! What's going on?
 %{
@@ -69,6 +62,22 @@ components_ = cell(0);
         cellfun(updater_, components_);
     end
 
+    function c = calibration()
+        c = details_.cal;
+    end
+
+    function w = window()
+        w = details_.window;
+    end
+
+%why is this so much faster than update() when they are the same function and draw() does more in its subfunctions?!?
+    drawer_ = @(X) X.draw(details_.window);
+    function draw
+        cellfun(drawer_, components_);
+    end
+
+%----- internal functions -----
+
     function removeAt(index)
         %private function.
         %remove a component, THEN deallocates it
@@ -78,15 +87,15 @@ components_ = cell(0);
         
         %hooray for my closure-reference objects --
         %this order of operations be impossible with matlab's dumb
-        %copy-on-write objects, and there'd be many more than 2 lines:
+        %copy-on-write objects, and there'd be many more than 3 lines:
         %
         %try
-        %   components_(found(1)).release();
+        %   components_(found(index)) = release(components_(found(index)));
         %catch
         %   err = lasterror;
-        %   components_(found(i)) = [];
+        %   components_(found(index)) = [];
         %   rethrow(err);
         %end
-        %components_(found(1)) = [];
+        %components_(found(index)) = [];
     end
 end

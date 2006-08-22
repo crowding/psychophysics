@@ -23,7 +23,7 @@ this = struct(...
     end
 
     function testMethodNaming
-        testobj = myobj()
+        testobj = myobj();
         fn1 = functions(testobj.testfun);
 
         assertEquals('testFinal/myobj/testfun', fn1.function);

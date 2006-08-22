@@ -13,15 +13,24 @@ frame = st(i + frame);
 
 [status, info] = system(sprintf('/usr/local/bin/svn info %s', frame.file));
 if status ~= 0
-    error('getversion:svn', 'couldn''t call svn');
+    warning('getversion:svn', 'couldn''t call svn in %s', frame.file);
+    v = struct('function', frame.name, 'url', '', 'revision', NaN);
+    return
 end
 
 url = regexp(info, '(?:^|\n)URL: (.*?)(?:$|\n)', 'tokens', 'once');
 revision = regexp(info, '(?:^|\n)Last Changed Rev: (.*?)(?:$|\n)', 'tokens', 'once');
 
-if isempty(url) || isempty(revision)
-    error('getversion:infoNotFound', 'could not get url and revision from SVN response');
+if isempty(url)
+    warning('getversion:urlNotFound', 'could not get url from SVN response');
+    url = {''};
 end
+
+if isempty(revision)
+    warning('getversion:revisionNotFound', 'could not get revision from SVN response');
+    revision = {'NaN'};
+end
+
 
 revision = str2num(revision{1});
 

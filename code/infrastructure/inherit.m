@@ -21,7 +21,7 @@ function [this, varargout] = inherit(varargin)
 %ancestor to two different ancestors, also leads to loops. But in that
 %case, I don't have an easy way to get around it, because I don't yet have
 %a way to uniquely identify objects. So, avoid inbreeding your objects.
-
+%
 %If requested, save a reference copy of the methods from each ancestor.
 %This is so you can still call a method you override through inheritance.
 

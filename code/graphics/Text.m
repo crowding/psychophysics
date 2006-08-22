@@ -1,5 +1,6 @@
-function this = DisplayText(loc_, text_, color_)
-    
+function this = Text(loc_, text_, color_)
+%this = Text(loc_, text_, color_)
+
     visible_ = 0;
 
     this = inherit(Drawer(), ...

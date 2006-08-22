@@ -97,8 +97,6 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
         end
     end
 
-
-
     %open the eyelink data file on the eyelink machine
     %input field: dummy: skips a file check in dumy mode
     %output field: edfFilename = the name of the EDF file created
@@ -137,12 +135,13 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
                     'status %d opening eyelink file %s', status, edfname);
             end
         else
-            %not recording -- don't leave some random file open
+            %not recording -- don't leave some random previous file open on
+            %eyelink
             status = Eyelink('CloseFile');
             if status ~= 0
                 error('GetEyelink:couldNotClose', 'status %d closing EDF file', status);
             end
-            detials.localname = '';
+            details.localname = '';
         end
 
         %when we are done with the file, download it
