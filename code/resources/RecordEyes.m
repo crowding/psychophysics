@@ -166,8 +166,13 @@ initializer = setnargout(2,...
                 time = Eyelink('ReadTime');
 
                 if (GetSecs() - after_request) > timeout
-                    error('doClockSync:timeout', ...
-                        'timeout waiting for clock information from eyelink');
+                    time = NaN;
+                    post_request = NaN;
+                    pre_request = NaN;
+                    disp('timeout');
+                return
+                %error('doClockSync:timeout', ...
+                %      'timeout waiting for clock information from eyelink');
                 end
             end
         end

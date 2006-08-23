@@ -1,4 +1,7 @@
 %{
+* Cancel button. pressing esc in the mainloop for now; may want keyboard event
+  driver in the future.
+
 * TIMING. need to reference the playing of a movie off of screen refreshes;
   * screen updates need a 'next refresh' parameter to say precisely when the 
   next frame should be scheduled.

@@ -4,7 +4,7 @@ function JumpyRectangle
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
-require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
+require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
     function runDemo(details)
         [main, canvas, events] = mainLoop(details);
 
@@ -29,15 +29,16 @@ require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
 
         go = 1;
 
+        startTrigger = UpdateTrigger(@start);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
 
         events.add(InsideTrigger(rect, @moveRect));
         events.add(UpdateTrigger(@followDisk));
+        events.add(startTrigger);
         events.add(playTrigger);
         events.add(stopTrigger);
-        playTrigger.set(GetSecs() + 5, @play);
-        stopTrigger.set(GetSecs() + 20, main.stop);
+        
         
         % ----- the main loop. -----
         details = main.go(details);
@@ -48,6 +49,12 @@ require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
 
         %----- thet event reaction functions -----
 
+        function start(x, y, t)
+            playTrigger.set(t + 5, @play);
+            stopTrigger.set(t + 20, main.stop);
+            startTrigger.unset();
+        end
+        
         function play(x, y, t)
             patch.setVisible(1);
             playTrigger.set(t + 5, @play); %trigger every five seconds
@@ -61,7 +68,7 @@ require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
         function r = followDisk(x, y, t)
             %make the disk follow the eye
             disk.setLoc([x y]);
-            text.setText(sprintf('%0.2f, %0.2f', x, y));
+            text.setText(sprintf('%0.2f, %0.2f\n%0.3f, %0.3f', x, y, t, GetSecs()));
         end
 
         function r = randomRect(bounds)

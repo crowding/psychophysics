@@ -29,6 +29,12 @@ go_ = 0;
         
         while(go_)
             events_.update();
+            [keyIsDown, secs, keyCodes] = KbCheck();
+            
+            if keyIsDown && keyCodes(KbName('ESCAPE'))
+                error('mainLoop:userExit', 'user escaped from main loop.');
+            end
+            
             canvas_.draw();
 
             [VBL] = Screen('Flip', details.window, [], 2);

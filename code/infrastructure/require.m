@@ -80,7 +80,6 @@ end
 
 %now either run the body, or recurse onto the next initializer
 try
-    disp(nargin(body));
     if nargin(body) ~= 0
         [varargout{1:nargout}] = body(output); %run the curried, protected body
     else
