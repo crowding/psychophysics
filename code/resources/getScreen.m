@@ -74,7 +74,7 @@ initializer = setnargout(2, currynamedargs(@doGetScreen, varargin{:}));
 
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
-            [window, rect] = Screen('OpenWindow',details.screenNumber,0,[],[],2);
+            [window, rect] = Screen('OpenWindow',details.screenNumber,0,[],[],2,0,0);
             [details.window,details.rect] = deal(window, rect);
 
             release = @closeWindow;

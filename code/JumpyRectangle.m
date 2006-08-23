@@ -1,6 +1,9 @@
 function JumpyRectangle
 % a simple gaze-contingent graphics demo. Demonstrates the use of triggers.
 
+%setupEyelinkExperiment does everything up to preparing the trial;
+%mainLoop.go does everything after.
+
 require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
     function runDemo(details)
         [main, canvas, events] = mainLoop(details);
@@ -36,8 +39,8 @@ require(SetupEyelinkExperiment(struct('edfname', '')), @runDemo);
         playTrigger.set(GetSecs() + 5, @play);
         stopTrigger.set(GetSecs() + 20, main.stop);
         
-        % ----- the main loop, now not so compact -----
-        require(highPriority(details), RecordEyes(), main.go)
+        % ----- the main loop. -----
+        details = main.go(details);
 
         % ----- clean up -----
         canvas.clear();

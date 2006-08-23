@@ -4,7 +4,7 @@ this = public(@canvas, @mouse, @go, @stop);
 
 %-----instance variables-----
 canvas_ = Drawing(details_);
-events_ = EyeEvents(details_);
+events_ = EyeEvents();
 
 go_ = 0;
 
@@ -16,7 +16,11 @@ go_ = 0;
         m = mouse_;
     end
 
-    function go(details)
+    function details = go(details)
+        details = require(highPriority(details), events_.initializer(), @doGo);
+    end
+
+    function details = doGo(details)
         go_ = 1;
         interval = details.cal.interval;
         hitcount = 0;
@@ -27,7 +31,7 @@ go_ = 0;
             events_.update();
             canvas_.draw();
 
-            [VBL] = Screen('Flip', details.window);
+            [VBL] = Screen('Flip', details.window, [], 2);
             hitcount = hitcount + 1;
             
             %count the number of frames advanced and do the

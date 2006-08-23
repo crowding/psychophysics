@@ -20,7 +20,7 @@ function varargout = require(varargin)
 %function [releaser, params] = init(params)...
 %
 %
-%Here is an example of usage without 'resource'. The function 'opener'
+%Here is an example of usage. The function 'opener'
 %bundles corresponding 'open' and 'close' operations together. Note how
 %the 'fid' value is passed from 'opener' to 'write.'
 %
@@ -41,9 +41,9 @@ function varargout = require(varargin)
 % equivalent (e.g. the RAII idiom in C++) combined with a lot of
 % boilerplate device-and-file-and-window-opening code in psychtoolbox
 % scripts -- which is generally not written robustly, and should be
-% collapsible down to a single file. General recognition that resource
+% collapsible down to a single command. Resource
 % management is tricky even if you have good exception handling at your
-% disposal; desire to encapsulate the tricky exception
+% disposal; I want to encapsulate most of the tricky exception handling.
 
 if (nargin < 2)
     error('require:illegalArgument', 'require needs at least 2 arguments');

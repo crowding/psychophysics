@@ -1,5 +1,5 @@
-function this = MouseEvents(details)
-this = inherit(SpaceEvents(details), public(@sample));
+function this = MouseEvents()
+this = inherit(SpaceEvents(), public(@sample));
 
     function [x, y, t] = sample()
         %use the mouse coordinates instead

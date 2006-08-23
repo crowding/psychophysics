@@ -1,7 +1,7 @@
 function this = publicize(this)
     %wraps up a structure of function handles so that its methods can be
     %modified by reference, and the modofications will have effect for any
-    %context that has a copy of the structure. THis is used to make objects
+    %context that has a copy of the structure. This is used to make objects
     %that can be inherited from (as in PUBLIC and PROPERTIES).
 
 %replace 'this' with a dereferenced implementation and a shadow full of

@@ -47,20 +47,22 @@ require(setupEyelinkExperiment(), @runExperiment);
         canvas.add(stimulus);
         
         %----- visible state and gaze indicator (development feedback) ----
-        
+        state = Text([-5 -5], '', [255 0 0]);       
+        canvas.add(state);
+        state.setVisible(1);
+
+%{
         gaze = FilledDisk([0 0], 0.1, [255 0 0]);
         canvas.add(gaze);
         gaze.setVisible(1);
         
         events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
 
-        state = Text([-5 -5], '', [255 0 0]);
-        canvas.add(state);
-        state.setVisible(1);
         
         outlines = TriggerDrawer(events);
         canvas.add(outlines);
         outlines.setVisible(1);
+%}
             
         %----- across-state variables -----
         stimulusOnsetTime = 0;
@@ -71,16 +73,17 @@ require(setupEyelinkExperiment(), @runExperiment);
         nearTrigger = NearTrigger();
         farTrigger = FarTrigger();
         timeTrigger = TimeTrigger();
+        insideTrigger = InsideTrigger();
         
         %-- hack --
-        insideTrigger = InsideTrigger(stimulus, @completeTrial);
         
         events.add(nearTrigger);
         events.add(farTrigger);
         events.add(timeTrigger);
+        events.add(insideTrigger);
         
         waitingForFixation(); %enter initial state
-        require(highPriority(details), RecordEyes, main.go);
+        main.go();
         
         stimulus.setVisible(0);
         fixation.setVisible(0);
@@ -143,7 +146,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         
         function saccadeTransit(x, y, t)
             state.setText('saccadeTransit');
-            events.add(insideTrigger); %hack!
+            insideTrigger.set(stimulus, @completeTrial);
             nearTrigger.unset();
             farTrigger.unset();
             timeTrigger.set(t + saccadeTransitTime, @targetNotReached);
@@ -161,7 +164,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         
         function targetNotReached(x, y, t)
             state.setText('targetNotReached');
-            events.remove(insideTrigger); %hack!
+            insideTrigger.unset(); %hack!
             badTrial(x, y, t);
         end
         

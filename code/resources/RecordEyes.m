@@ -29,20 +29,24 @@ initializer = setnargout(2,...
         else
             %Eyelink('StartRecording');
   
+            Eyelink('StartRecording');
+            %{
             status = Eyelink('StartRecording');
             if status ~= 0
                 error('RecordEyes:error', 'status %d starting recording', status);
             end
+            %}
             release = @doRelease;
         end
 
         function doRelease
-            %Eyelink('StopRecording');
-            
+            Eyelink('StopRecording');
+            %{
             status = Eyelink('StopRecording');
             if status ~= 0
                 error('RecordEyes:error', 'status %d stopping recording', status);
             end
+            %}
         end
 
         function noop
@@ -66,7 +70,7 @@ initializer = setnargout(2,...
         %Do many rounds of time checking and see what is the most accurate
         %predictor.
         [time, pre_request, post_request] = ...
-            arrayfun(@(i)getTime(0.2), 1:500);
+            arrayfun(@(i)getTime(15), 1:500);
         
         % There is an offset between the mac and eyelink clocks.
         % Additionally, the eyelink clock only returns an integer number of
@@ -138,7 +142,9 @@ initializer = setnargout(2,...
         hold off;
         %}
         
+        %output the clock offset and the time we measured it at
         details.clockoffset = est3(1);
+        details.clockoffsetmeasured = mean(pre_request);
 
         release = @noop;
 

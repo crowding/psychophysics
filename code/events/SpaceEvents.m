@@ -1,9 +1,9 @@
-function this = SpaceEvents(details_)
-%base class for event managers that teack an object (mouse, eye) over
+function this = SpaceEvents()
+%base class for event managers that track an object (mouse, eye) over
 %time.
 
 %-----public interface-----
-this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
+this = public(@add, @remove, @update, @clear, @draw, @initializer, @sample);
 
 %-----private data-----
 
@@ -12,8 +12,9 @@ this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
 %called when the criterion is met.
 
 %there are alternatives for how to maintain the trigger list. The
-%datatype of the list appears to be a source fo much overhead when calling
-%update. Right now hte middle alternative seems fastest, 
+%datatype of the list appears to be a source of much overhead when calling
+%update. Right now the middle alternative seems fastest, for whatever
+%reason.
 
 %triggers_ = cell(0); %ideal
 triggers_ = struct('id', {}, 'check', {}, 'draw', {}); %middle
@@ -21,7 +22,7 @@ triggers_ = struct('id', {}, 'check', {}, 'draw', {}); %middle
 %draw_ = emptyOf(@(x)0); %ugly
 %id_ = []; %ugly
 
-transform_ = transformToDegrees(details_.cal);
+transform_ = [];
 online_ = 0;
 
 %----- methods -----
@@ -40,7 +41,7 @@ online_ = 0;
         %Removes a trigger object.
         searchid = trigger.id();
         %found = find(cellfun(@(x)x.id() == searchid, triggers_)); %ideal
-        found = find([triggers_.id] == searchid); %middle
+        found = find(arrayfun(@(x)x.id() == searchid, triggers_)); %middle
         %found = find(id_ == searchid); %ugly
         if ~isempty(found)
             %triggers_(found(1)) = []; %ideal
@@ -50,7 +51,7 @@ online_ = 0;
             %id_(found(1)) = []; %ugly
         else
             warning('SpaceEvents:noSuchItem',...
-                'tried to remove ninexistent item with id %d', searchid);
+                'tried to remove nonexistent item with id %d', searchid);
         end
     end
 
@@ -70,7 +71,7 @@ online_ = 0;
     function update
         %Sample the eye
         
-        if online_
+        if ~online_
             error('spaceEvents:notOnline', 'must start spaceEvents before recording');
         end
         [x, y, t] = this.sample();
@@ -97,13 +98,21 @@ online_ = 0;
         end
     end
 
-    function start()
-        online_ = 1;
+    function i = initializer(varargin)
+        i = setnargout(2, currynamedargs(@doInit, varargin{:})); 
     end
 
-    function stop()
-        online_ = 0;
+    function [release, details] = doInit(details)
+        
+        transform_ = transformToDegrees(details.cal);
+        online_ = 1;
+        release = @stop;
+        
+        function stop
+            online_ = 0;
+        end
     end
+
 
     function [x, y, t] = sample()
     end
