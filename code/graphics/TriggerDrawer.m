@@ -6,7 +6,7 @@ this = inherit(Drawer(), public(@draw, @visible, @setVisible));
 
     function draw(window)
         if visible_
-            events_.draw(window, this.toPixels)
+            events_.draw(window, this.toPixels);
         end
     end
 

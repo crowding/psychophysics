@@ -23,11 +23,8 @@ badTrialTimeout = 2; %timeout for a bad trial (not dilated)
 
 require(setupEyelinkExperiment(), @runExperiment);
     function runExperiment(details)
-        require(highPriority(details), RecordEyes(), @trials);
-        function trials
-            for i = 1:10
-                doTrial(details);
-            end
+        for i = 1:2
+            doTrial(details);
         end
     end
 
@@ -83,7 +80,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         events.add(timeTrigger);
         
         waitingForFixation(); %enter initial state
-        main.go();
+        require(highPriority(details), RecordEyes, main.go);
         
         stimulus.setVisible(0);
         fixation.setVisible(0);
@@ -185,7 +182,7 @@ require(setupEyelinkExperiment(), @runExperiment);
 
             nearTrigger.unset();
             farTrigger.unset();
-            timeTrigger.set(t + badTrialTimeout, @stop);
+            timeTrigger.set(t + badTrialTimeout, main.stop);
         end
         
     end

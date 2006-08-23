@@ -11,10 +11,15 @@ this = public(@add, @remove, @update, @clear, @draw, @start, @stop, @sample);
 %lists specify a criterion that is to be met and a function to be
 %called when the criterion is met.
 
-%Array of trigger objects. An advantage of closure-structs over
-%matlab objects is that you can have an array containing diferent
-%implementations of one interface.
-triggers_ = cell(0);
+%there are alternatives for how to maintain the trigger list. The
+%datatype of the list appears to be a source fo much overhead when calling
+%update. Right now hte middle alternative seems fastest, 
+
+%triggers_ = cell(0); %ideal
+triggers_ = struct('id', {}, 'check', {}, 'draw', {}); %middle
+%check_ = emptyOf(@(x)0); %ugly
+%draw_ = emptyOf(@(x)0); %ugly
+%id_ = []; %ugly
 
 transform_ = transformToDegrees(details_.cal);
 online_ = 0;
@@ -23,27 +28,48 @@ online_ = 0;
 
     function add(trigger)
         %adds a trigger object.
-        triggers_{end + 1} = trigger;
+        
+        %triggers_{end + 1} = trigger; %ideal
+        triggers_(end+1) = interface(trigger, triggers_); %middle
+        %check_(end+1) = trigger.check; %ugly
+        %draw_(end+1) = trigger.draw; %ugly
+        %id_(end+1) = trigger.id(); %ugly
     end
 
     function remove(trigger)
         %Removes a trigger object.
         searchid = trigger.id();
-        found = find(cellfun(@(x)x.id() == searchid, triggers_));
+        %found = find(cellfun(@(x)x.id() == searchid, triggers_)); %ideal
+        found = find([triggers_.id] == searchid); %middle
+        %found = find(id_ == searchid); %ugly
         if ~isempty(found)
-            triggers_(found(1)) = [];
+            %triggers_(found(1)) = []; %ideal
+            triggers_(found(1)) = []; %middle
+            %check_(found(1)) = []; %ugly
+            %draw_(found(1)) = []; %ugly
+            %id_(found(1)) = []; %ugly
         else
-            disp huh;
+            warning('SpaceEvents:noSuchItem',...
+                'tried to remove ninexistent item with id %d', searchid);
         end
     end
 
     function clear
-        triggers_(1:end) = []; %note use of parens and empty array even in
-        %cell array--it's not a syntax, it's a special idiom.
+        %The use of () and [] even when clearing out a 
+        %cell array--it's not a general syntax, it's a special idiom. it
+        %preserves the array type.
+
+        %triggers_(:) = []; %ideal
+        triggers_(:) = []; %middle
+        
+        %check_(:) = []; %ugly
+        %draw_(:) = []; %ugly
+        %id_(:) = []; %ugly
     end
 
     function update
         %Sample the eye
+        
         if online_
             error('spaceEvents:notOnline', 'must start spaceEvents before recording');
         end
@@ -52,15 +78,22 @@ online_ = 0;
 
         %send the sample to each trigger and the triggers will fire if they
         %match
-        for trig = triggers_
-            trig{:}.check(x, y, t);
+        
+        for trig = triggers_ %ideal, middle
+        %for check = check_ %ugly
+            %trig{:}.check(x, y, t); %ideal
+            trig.check(x, y, t); %middle
+            %check(x, y, t); %ugly
         end
     end
 
-    function draw(window, toPixels);
+    function draw(window, toPixels)
         %draw the triggers on the screen for debugging
-        for trig = triggers_
-            trig{:}.draw(window, toPixels);
+        for trig = triggers_ %ideal, middle
+        %for draw = draw_ %ugly
+            %trig{i}.draw(window, toPixels); %ideal
+            trig.draw(window, toPixels); %middle
+            %draw(window, toPixels); %ugly
         end
     end
 

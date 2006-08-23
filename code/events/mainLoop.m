@@ -18,16 +18,16 @@ go_ = 0;
 
     function go(details)
         go_ = 1;
-        interval = details_.cal.interval;
+        interval = details.cal.interval;
         hitcount = 0;
         skipcount = 0;
-        lastVBL = Screen('Flip', details_.window);
+        lastVBL = Screen('Flip', details.window);
         
         while(go_)
             events_.update();
             canvas_.draw();
 
-            [VBL] = Screen('Flip', details_.window);
+            [VBL] = Screen('Flip', details.window);
             hitcount = hitcount + 1;
             
             %count the number of frames advanced and do the
