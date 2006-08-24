@@ -28,7 +28,12 @@ go_ = 0;
         lastVBL = Screen('Flip', details.window);
         
         while(go_)
+            %take a sample from the eyetracker and react to it
             events_.update();
+            if ~go_ %the update may cause us to exit;
+                break;
+            end
+            
             [keyIsDown, secs, keyCodes] = KbCheck();
             
             if keyIsDown && keyCodes(KbName('ESCAPE'))

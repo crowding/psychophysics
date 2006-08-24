@@ -1,4 +1,4 @@
-function this = InsideTrigger(obj_, fn_)
+function this = InsideTrigger(obj_, range_, fn_)
 %An object that fires a trigger when x and y are inside the bounds of a
 %graphics object.
 if nargin == 2
@@ -10,14 +10,15 @@ end
 this = inherit(Trigger(), public(@check, @draw, @set, @unset));
 
     function check(x, y, t)
-        if set_ && inRect(obj_.bounds(), x, y)
+        if set_ && inRect(obj_.bounds() + range_ .* [-1 -1 1 1], x, y)
             fn_(x, y, t); %call function when eye is inside
         end
     end
 
-    function set(obj, fn)
+    function set(obj, range, fn)
         obj_ = obj;
         fn_ = fn;
+        range_ = range;
         set_ = 1;
     end
 
@@ -27,7 +28,8 @@ this = inherit(Trigger(), public(@check, @draw, @set, @unset));
 
     function draw(window, toPixels)
         if set_
-            Screen('FrameRect', window, [0 255 0], toPixels(obj_.bounds()));
+            Screen('FrameRect', window, [0 255 0],...
+                toPixels(obj_.bounds() + range_ .*[-1 -1 1 1]));
         end
     end
 end
