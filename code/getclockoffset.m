@@ -17,7 +17,17 @@ end
     require(highPriority(details, 'priority', 0), @collectdata);
     function [time, before, after] = collectdata
         [time, before, after] = ...
-            arrayfun(@(i)getTime(0.2), 1:500);
+            arrayfun(@(i)getTime(0.2), 1:500, 'ErrorHandler', @handler);
+    end
+    function [time, before, after] = handler(err, i)
+        [time, before, after] = handlers(err, ...
+            'doClockSync:timeout', @timeoutHandler);
+        function [time, before, after] = timeoutHandler(err)
+            message(details, 'Having dificulty reading eyelink clock (%d)', i);
+            time = NaN;
+            before = NaN;
+            after = NaN;
+        end
     end
 
 % There is an offset between the mac and eyelink clocks.
@@ -51,7 +61,7 @@ pre_request = pre_request(good);
 %%this is a naive estimator, and is not accurate (is biased due to
 %%eyelink's rounding to milliseconds)
 %
-%est1 = mean(time - 1000*pre_request);
+%est1 = mean(time - 1000*pre_request) + 0.5;
 
 %%this one is more accurate, but assumes a uniform sampling so it
 %%winds up being less precise. Will be used as a seed for the next
@@ -111,14 +121,22 @@ measured = mean(pre_request);
 
         time = 0;
         while(time == 0)
+            before_check = GetSecs();
             time = Eyelink('ReadTime');
-
+            after_check = GetSecs();
+            
+            if (after_check - before_check > 0.1)
+                message(details, 'ReadTime took %0.2f seconds!');
+                continue;
+            end
+            
             if (GetSecs() - after_request) > timeout
                 %time = NaN;
                 %post_request = NaN;
                 %pre_request = NaN;
                 %disp('timeout');
                 %return
+                message(details, 'timeout waiting for eyelink clock');
                 error('doClockSync:timeout', ...
                       'timeout waiting for clock information from eyelink');
             end
@@ -131,5 +149,9 @@ measured = mean(pre_request);
         before_request = GetSecs();
         time = floor(GetSecs() * 1000 + offset + rand() * 0.1);
         after_request = GetSecs();
+        if rand() > 0.99
+            error('doClockSync:timeout', ...
+                'random simulated timeout error');
+        end
     end
 end

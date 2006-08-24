@@ -12,7 +12,7 @@ function initializer = GetScreen(varargin)
 %input structure fields:
 %   backgroundcolor - the normalized background color to use. default 0.5
 %   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
-
+%
 %output structure fields:
 %   screenNumber - the screen number of the display
 %   window - the PTB window handle
@@ -21,6 +21,8 @@ function initializer = GetScreen(varargin)
 %   black
 %   white
 %   gray - indexes into the colortable
+%   foregroundIndex
+%   backgroundIndex
 
 %some defaults
 defaults = struct(...

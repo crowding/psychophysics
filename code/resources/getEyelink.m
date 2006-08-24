@@ -93,8 +93,10 @@ initializer = currynamedargs(initializer, varargin{:});
             details.eyelinkSettings = setupEyelink(details.rect, struct());
         end
         
-        if ~details.dummy
-            disp('Do tracker setup now');
+        if details.dummy
+            message(details, 'Operating in dummy mode!');
+        else
+            message(details, 'Do tracker setup now');
             status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
             if status < 0
                 error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
