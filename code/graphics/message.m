@@ -7,16 +7,22 @@ function f = message(details, varargin)
 
 string = sprintf(varargin{:});
 
-%just use the default text style
 
-Screen('FillRect', details.window, details.backgroundIndex);
-bounds = Screen('textBounds', details.window, string);
-center = sum(details.rect([1 2;3 4])) ./ 2;
-offset = sum(bounds([1 2; 3 4])) ./ 2;
-origin = center - offset;
+if isfield(details, 'window')
 
-Screen('DrawText', details.window, ...
-    string, origin(1), origin(2), ...
-    details.foregroundIndex, details.backgroundIndex);
+    %just use the default text style
+    Screen('FillRect', details.window, details.backgroundIndex);
+    bounds = Screen('textBounds', details.window, string);
+    center = sum(details.rect([1 2;3 4])) ./ 2;
+    offset = sum(bounds([1 2; 3 4])) ./ 2;
+    origin = center - offset;
 
-Screen('Flip', details.window);
+    Screen('DrawText', details.window, ...
+        string, origin(1), origin(2), ...
+        details.foregroundIndex, details.backgroundIndex);
+
+    Screen('Flip', details.window);
+    
+else
+    disp(string);
+end

@@ -23,7 +23,7 @@ end
         [time, before, after] = handlers(err, ...
             'doClockSync:timeout', @timeoutHandler);
         function [time, before, after] = timeoutHandler(err)
-            message(details, 'Having dificulty reading eyelink clock (%d)', i);
+            message(details, 'Having difficulty reading eyelink clock (%d)', i);
             time = NaN;
             before = NaN;
             after = NaN;
@@ -136,7 +136,6 @@ measured = mean(pre_request);
                 %pre_request = NaN;
                 %disp('timeout');
                 %return
-                message(details, 'timeout waiting for eyelink clock');
                 error('doClockSync:timeout', ...
                       'timeout waiting for clock information from eyelink');
             end

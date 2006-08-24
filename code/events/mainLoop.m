@@ -37,7 +37,7 @@ go_ = 0;
             
             canvas_.draw();
 
-            [VBL] = Screen('Flip', details.window, [], 2);
+            [VBL] = Screen('Flip', details.window, 0, 0);
             hitcount = hitcount + 1;
             
             %count the number of frames advanced and do the

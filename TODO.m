@@ -1,4 +1,6 @@
 %{
+* doTrial should take some kind of logger argument.
+
 * still unexplained delays in requesting the stimulus time.
 
 * drift correction (simulate with set-cursor in mouse mode)

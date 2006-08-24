@@ -10,19 +10,16 @@ require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
 
         indegrees = transformToDegrees(details.cal);
 
-        back = Background(details.backgroundIndex);
         patch = MoviePlayer(CauchyPatch);
-        rect = FilledRect([-2 -2 2 2], details.black);
-        disk = FilledDisk([-2 2], 0.5, details.white);
-        text = Text([-5 -5], 'hello world!', [0 details.white 0]);
+        rect = FilledRect([-2 -2 2 2], details.blackIndex);
+        disk = FilledDisk([-2 2], 0.5, details.whiteIndex);
+        text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
 
-        canvas.add(back);
         canvas.add(patch);
         canvas.add(rect);
         canvas.add(disk);
         canvas.add(text);
 
-        back.setVisible(1);
         rect.setVisible(1);
         disk.setVisible(1);
         text.setVisible(1);

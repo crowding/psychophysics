@@ -43,9 +43,7 @@ details_ = [];
     end
 
     function i = initializer(varargin)
-        i = currynamedargs(...
-            joinResource(spaceEvents_.initializer(), RecordEyes(), @doInit),...
-            varargin{:});
+        i = joinResource(spaceEvents_.initializer(varargin{:}), RecordEyes(), @doInit);
     end
 
     function [release, details] = doInit(details)

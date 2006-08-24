@@ -74,32 +74,30 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
 
         %Step 2: Open a window on the screen.
         function [release, details] = openScreen(details)
-
+            
+            details.blackIndex = BlackIndex(details.screenNumber);
+            details.whiteIndex = WhiteIndex(details.screenNumber);
+            
+            details.backgroundIndex = details.blackIndex + ...
+                (details.whiteIndex - details.blackIndex) * details.backgroundColor;
+            details.foregroundIndex = details.blackIndex + ...
+                (details.whiteIndex - details.blackIndex) * details.foregroundColor;
+            
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
-            [window, rect] = Screen('OpenWindow',details.screenNumber,0,[],[],2,0,0);
-            [details.window,details.rect] = deal(window, rect);
+            [details.window, details.rect] = ...
+                Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0);
 
             release = @closeWindow;
             function closeWindow
-                Screen('Close', window);
+                message(details, 'Closing screen');
+                pause(0.5);
+                Screen('Close', details.window);
             end
         end
 
         %Step 3: Retreive some information and gray the screen
         function [release, details] = blankScreen(details)
-
-            details.black = BlackIndex(details.window);
-            details.white = WhiteIndex(details.window);
-            
-            details.backgroundIndex = details.black + ...
-                (details.white - details.black) * details.backgroundColor;
-            details.foregroundIndex = details.black + ...
-                (details.white - details.black) * details.foregroundColor;
-            
-            Screen('FillRect', details.window, details.backgroundIndex);
-            Screen('Flip', details.window);
-            Screen('FillRect', details.window, details.backgroundIndex);
 
             release = @noop;
 

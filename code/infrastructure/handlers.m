@@ -27,7 +27,7 @@ function varargout = handlers(varargin)
 %    end
 
 if (nargin > 0) && strcmp('struct', class(varargin{1}));
-    err = varargin{1}
+    err = varargin{1};
     varargin = varargin(2:end);
 else
     err = lasterror;

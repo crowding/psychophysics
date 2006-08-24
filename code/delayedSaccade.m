@@ -1,4 +1,4 @@
-function delayedSaccade
+function delayedSaccade()
 %a gaze-contingent display using a trigger driven state-machine programming.
 
 timeDilation = 1; %in mousemode, things should be slower.
@@ -35,28 +35,22 @@ require(setupEyelinkExperiment(), @runExperiment);
         toPixels = transformToPixels(details.cal);
         
         %-----stimulus construction----
-
-        back = Background(details.gray);
-        canvas.add(back);
-        back.setVisible(1);
         
-        fixation = FilledDisk([0 0], 0.1, details.black);
+        fixation = FilledDisk([0 0], 0.1, details.blackIndex);
         canvas.add(fixation);
         
         stimulus = MoviePlayer(patch);
         canvas.add(stimulus);
         
         %----- visible state and gaze indicator (development feedback) ----
-        state = Text([-5 -5], '', [255 0 0]);       
+        state = Text([-5 -5], '', [details.whiteIndex 0 0]);       
         canvas.add(state);
         state.setVisible(1);
 
-
-        gaze = FilledDisk([0 0], 0.1, [255 0 0]);
+        gaze = FilledDisk([0 0], 0.1, [details.whiteIndex 0 0]);
         canvas.add(gaze);
         gaze.setVisible(1);
         events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
-
         
         outlines = TriggerDrawer(events);
         canvas.add(outlines);
