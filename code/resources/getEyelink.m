@@ -21,26 +21,39 @@ FILE_CANT_OPEN = -1;
 
 %build the initializer, and curry it with given args.
 initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
+initializer = currynamedargs(initializer, varargin{:});
 
 %sub-initializers:
 
     %open/close the eyelink connection
     function [release, details] = connect(details)
+        
+        %check the connection before, because:
+        %stupidly, Eyelink('Initialize') returns 0 if the eyelink is
+        %already initialized IN DUMMY MODE. Bah.
+        if Eyelink('isconnected')
+            warning('GetEyelink:already_connected', 'Eyelink was left connected');
+            Eyelink('ShutDown');
+        end
+           
         %connect to the eyelink machine.
         try
             status = Eyelink('Initialize');
+            details.dummy = 0;
         catch
-            warning('Using eyelink in dummy mode')
+            %There is no rhyme or reason as to why eyelink throws
+            %an error and not a status code here
+            warning('GetEyelink:dummyMode', 'Using eyelink in dummy mode');
             status = Eyelink('InitializeDummy');
+            details.dummy = 1;
         end
         
         if status < 0
             error('getEyelink:initFailed',...
                 'Initialization status %d', status);
         end
-        
-        [release, details] = deal(@close, details);
+
+        release = @close;
         
         function close
             Eyelink('Shutdown'); %no output argument
@@ -53,16 +66,12 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
     function [release, details] = initDefaults(details)
         el = EyelinkInitDefaults(details.window);
         details.el = el;
-        
-        conn = Eyelink('IsConnected');
-        switch conn
-            case el.connected
-                details.dummy = 0;
-            case el.dummyconnected
-                details.dummy = 1;
-            otherwise
-                error('getEyelink:notConnected', 'not connected (%d)', conn);
-        end
+    
+        %hackish, because I don't yet want to tear up EyelinkInitDefaults,
+        %but background and foreground color should be specifiable from the
+        %experiment outset
+        details.el.backgroundcolour = details.backgroundIndex;
+        detauls.el.foregroundcolour = details.foregroundIndex;
         
         [release, details] = deal(@noop, details);
         
@@ -73,14 +82,16 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
         end
     end
 
-
     %do the tracker setup. Requires the 'el' field from initDefaults as
     %well as the 'rect' field from getScreen.
     function [release, details] = doSetup(details)
         
         %set and record as many settings as possible
-        eyelinkSettings = setupEyelink(details.rect);
-        details.eyelinkSettings = eyelinkSettings;
+        if isfield(details, 'eyelinkSettings')
+            details.eyelinkSettings = setupEyelink(details.rect, details.eyelinkSettings);
+        else
+            details.eyelinkSettings = setupEyelink(details.rect, struct());
+        end
         
         if ~details.dummy
             disp('Do tracker setup now');
@@ -132,7 +143,7 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
             status = Eyelink('OpenFile', details.edfname);
             if (status < 0)
                 error('getEyelink:fileOpenError', ...
-                    'status %d opening eyelink file %s', status, edfname);
+                    'status %d opening eyelink file %s', status, details.edfname);
             end
         else
             %not recording -- don't leave some random previous file open on
@@ -143,7 +154,7 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
             end
             details.localname = '';
         end
-
+        
         %when we are done with the file, download it
         release = @downloadFile;
 
@@ -153,17 +164,15 @@ initializer = setnargout(2, currynamedargs(initializer, varargin{:}));
                 %try both in any case
                 status = Eyelink('CloseFile');
                 if Eyelink('IsConnected') ~= details.el.dummyconnected
-                    fsize = Eyelink('ReceiveFile', edfname, localname);
+                    fsize = Eyelink('ReceiveFile', details.edfname, details.localname);
 
-                    if (fsize < 1 || status < 0)
+                    if (fsize < 0 || status < 0)
                         error('getEyeink:fileTransferError', ...
                             'File %s empty or not transferred (close status: %d, receive: %d)',...
-                            edfname, status, fsize);
+                            details.edfname, status, fsize);
                     end
                 end
             end
         end
-        
     end
-
 end

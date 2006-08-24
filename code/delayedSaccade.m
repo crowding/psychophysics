@@ -1,7 +1,7 @@
 function delayedSaccade
 %a gaze-contingent display using a trigger driven state-machine programming.
 
-timeDilation = 5; %in mousemode, things should be slower.
+timeDilation = 1; %in mousemode, things should be slower.
 
 patch = ApparentMotion(...
     'primitive', CauchyBar('size', [0.5 1 0.05*timeDilation], 'velocity', 10/timeDilation),...
@@ -23,7 +23,7 @@ badTrialTimeout = 2; %timeout for a bad trial (not dilated)
 
 require(setupEyelinkExperiment(), @runExperiment);
     function runExperiment(details)
-        for i = 1:2
+        for i = 1:10
             doTrial(details);
         end
     end
@@ -51,17 +51,17 @@ require(setupEyelinkExperiment(), @runExperiment);
         canvas.add(state);
         state.setVisible(1);
 
-%{
+
         gaze = FilledDisk([0 0], 0.1, [255 0 0]);
         canvas.add(gaze);
         gaze.setVisible(1);
-        
         events.add(UpdateTrigger(@(x, y, t) gaze.setLoc([x y])));
 
         
         outlines = TriggerDrawer(events);
         canvas.add(outlines);
         outlines.setVisible(1);
+%{
 %}
             
         %----- across-state variables -----
@@ -83,7 +83,7 @@ require(setupEyelinkExperiment(), @runExperiment);
         events.add(insideTrigger);
         
         waitingForFixation(); %enter initial state
-        main.go();
+        main.go(details);
         
         stimulus.setVisible(0);
         fixation.setVisible(0);

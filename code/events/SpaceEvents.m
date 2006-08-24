@@ -75,6 +75,9 @@ online_ = 0;
             error('spaceEvents:notOnline', 'must start spaceEvents before recording');
         end
         [x, y, t] = this.sample();
+        if isnan(x)
+            return;
+        end
         [x, y] = transform_(x, y); %convert to degrees (native units)
 
         %send the sample to each trigger and the triggers will fire if they
@@ -99,7 +102,7 @@ online_ = 0;
     end
 
     function i = initializer(varargin)
-        i = setnargout(2, currynamedargs(@doInit, varargin{:})); 
+        i = currynamedargs(@doInit, varargin{:}); 
     end
 
     function [release, details] = doInit(details)

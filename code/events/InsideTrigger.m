@@ -26,6 +26,8 @@ this = inherit(Trigger(), public(@check, @draw, @set, @unset));
     end
 
     function draw(window, toPixels)
-        Screen('FrameRect', window, [0 255 0], toPixels(obj_.bounds()));
+        if set_
+            Screen('FrameRect', window, [0 255 0], toPixels(obj_.bounds()));
+        end
     end
 end

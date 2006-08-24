@@ -10,8 +10,9 @@ function initializer = GetScreen(varargin)
 %Optional init structure fields:
 %
 %input structure fields:
-%   [none] (input structure optional)
-%
+%   backgroundcolor - the normalized background color to use. default 0.5
+%   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
+
 %output structure fields:
 %   screenNumber - the screen number of the display
 %   window - the PTB window handle
@@ -21,16 +22,16 @@ function initializer = GetScreen(varargin)
 %   white
 %   gray - indexes into the colortable
 
-%curry arguments given now onto the initializer function
+%some defaults
+defaults = struct(...
+    'backgroundColor', 0.5, ...
+    'foregroundColor', 0);
 
-initializer = setnargout(2, currynamedargs(@doGetScreen, varargin{:}));
+%curry arguments given now onto the initializer function
+initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
 
     function [release, details] = doGetScreen(details)
-        %input structure is optional
-        if ~exist('details', 'var')
-            details = struct;
-        end
-
+        
         %The initializer is composed of sub-initializers.
         initializer = joinResource(@checkOpenGL, @setGamma, @openScreen, @blankScreen);
         [release, details] = initializer(details);
@@ -85,15 +86,18 @@ initializer = setnargout(2, currynamedargs(@doGetScreen, varargin{:}));
 
         %Step 3: Retreive some information and gray the screen
         function [release, details] = blankScreen(details)
-            %TODO: this would be better done with a 'background' graphics object
 
             details.black = BlackIndex(details.window);
             details.white = WhiteIndex(details.window);
-            details.gray = GrayIndex(details.window);
-
-            Screen('FillRect', details.window, details.gray);
+            
+            details.backgroundIndex = details.black + ...
+                (details.white - details.black) * details.backgroundColor;
+            details.foregroundIndex = details.black + ...
+                (details.white - details.black) * details.foregroundColor;
+            
+            Screen('FillRect', details.window, details.backgroundIndex);
             Screen('Flip', details.window);
-            Screen('FillRect', details.window, details.gray);
+            Screen('FillRect', details.window, details.backgroundIndex);
 
             release = @noop;
 

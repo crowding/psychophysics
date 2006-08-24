@@ -10,6 +10,7 @@ this = inherit(...
     TestCase()...
     ,public(...
         @testRequiresTwoArguments,...
+        @testCanTakeVarargout,...
         @testNeedsInitFunctionHandle,...
         @testNeedsReleaseFunctionHandle,...
         ...%@testRobustToTypos,... %these are not specified behavior right now
@@ -20,7 +21,6 @@ this = inherit(...
         @testFailedRelease,...
         @testFailedReleaseAfterFailedBody,...
         @testOutputCollection,...
-        @testVarargoutNotSupported,...
         @testBodyOutput,...
         ...
         @testSuccessfulChain,...
@@ -116,7 +116,7 @@ this = inherit(...
             require(@init, @noop);
             fail('expected error');
         catch
-            assertLastError('require:');
+            assertLastError('MATLAB:');
         end
         
         function init(o)
@@ -124,6 +124,7 @@ this = inherit(...
     end
 
     function testNeedsTwoOutputs
+        %all initializers need to produce two outputs.
         try
             require(@init, @noop);
             fail('expected error');
@@ -133,6 +134,18 @@ this = inherit(...
         
         function r = init(o)
             r = @noop;
+        end
+    end
+
+    function testCanTakeVarargout
+        %initializers can be functions declaring variable numbers of
+        %outputs (nice for currying...)
+        
+        assertEquals(-1, nargout(@init));
+        require(@init, @noop);
+        
+        function varargout = init(in)
+            varargout = {@noop, in};
         end
     end
         
@@ -242,27 +255,6 @@ this = inherit(...
         function body(o)
             assertEquals(struct('foo', 1), o);
             bflag = 1;
-        end
-    end
-
-    function testVarargoutNotSupported
-        %initializers declaring varargout are not supported. The
-        %initializer is not called.
-        %
-        %This behavior is a lesser of several evils around matlab's
-        %varargout handling - I simply can't capture all the outputs of a
-        %varargout function, so I choose to require two and only two output
-        %arguments.
-        try
-            require(@init, @noop);
-            fail('expected an error');
-        catch
-            assertLastError('require:')
-        end
-        
-        function [r, varargout] = init(o)
-            r = @noop
-            varargout = {1};
         end
     end
 

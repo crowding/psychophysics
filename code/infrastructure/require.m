@@ -64,15 +64,10 @@ initializer = varargin{1};
 body = varargin{2};
 
 if ~isa(initializer, 'function_handle')
-    error('require:missingReleaser', 'initializer did not produce a releaser');
+    error('require:badInitializer', 'initializer must be a function handle');
 end
 
-initializer_outputs = nargout(initializer);
-if initializer_outputs < 1
-    error('require:illegalArgument', 'initializers need to produce a releaser');
-else
-    [releaser, output] = initializer(struct());
-end
+[releaser, output] = initializer(struct());
 
 if ~isa(releaser, 'function_handle')
     error('require:missingReleaser', 'initializer did not produce a releaser');

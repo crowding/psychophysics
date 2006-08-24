@@ -17,7 +17,7 @@ go_ = 0;
     end
 
     function details = go(details)
-        details = require(highPriority(details), events_.initializer(), @doGo);
+        details = require(events_.initializer(details), highPriority(), @doGo);
     end
 
     function details = doGo(details)
@@ -47,6 +47,7 @@ go_ = 0;
                 skipcount = skipcount + frames - 1;
 
                 if frames > 60
+                    profile viewer
                     error('mainLoop:drawingStuck', 'got stuck doing frame updates...');
                 end
                 for i = 1:frames

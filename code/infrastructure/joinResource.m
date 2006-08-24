@@ -36,15 +36,9 @@ function f = joinResource(first, varargin)
         nfirst = nargout(first);
         nrest = nargout(rest);
         
-        if nfirst < 1
-            error('joinResource:illegalArgument', ...
-                'Initializers need at least 1 output (and not varargout)');
-            %the rest of the initializers are checked in the recursion
-        end
-        
         %return a function closing over the initializers, taking the output
         %from the rest of the arguments
-        f = setnargout(nargout(rest), @joinedInitializer);
+        f = @joinedInitializer;
     end
     
     
@@ -52,19 +46,21 @@ function f = joinResource(first, varargin)
     %joins.
     %
     %The function executes the first initializer, pass its result to the
-    %second, executes the second, and return the result of the second.
+    %second, executes the second, and returns the result of the second.
     %
-    %It returns a releaser which releases hte second initializer before the
+    %It returns a releaser which releases the second initializer before the
     %first.
     %
+    %If there is a problem with the second initializer, it releases the
+    %first.
     
-    function [r, varargout] = joinedInitializer(varargin)
+    function [r, details] = joinedInitializer(details)
         %This function over variables 'nfirst' and 'nrest' so that it knows
         %how many arguments to expect in output. 
         %a handle to this function is the combined initializer.
-        [release1, pass{1:nfirst-1}] = first(varargin{:});
+        [release1, pass] = first(details);
         try
-            [release2, varargout{1:nrest-1}] = rest(pass{:});
+            [release2, details] = rest(pass);
         catch
             e = lasterror; %FIXME - this path not exercised by unit tests?
             release1(); %FIXME - may need chaining

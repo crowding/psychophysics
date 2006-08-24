@@ -19,7 +19,7 @@ function settings = setupEyelink(screenRect, arg)
 % 6/6/01	Begun SetEyeLinkDefaults based on testcalib and testcalls
 % 6/19/02	Renamed EXSetEyeLinkDefaults and included with other EX routines
 %			added several commands, fixed head camera cammand (no = )
-% 8/2/06    rewrote, returns struct with all the values set, and arg can
+% 8/2/06    pbm rewrote, returns struct with all the values set, and arg can
 %           override those values
 
     rect = num2cell(screenRect);
@@ -49,6 +49,7 @@ function settings = setupEyelink(screenRect, arg)
         'analog_out_data_type', 'OFF',...           % YES default
         'file_sample_data', 'LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS');
 
+    
     if Eyelink('isconnected') == 0, 				% make sure it is connected
         error('Error in setupEyelink:  Eyelink not connected');
     end;
@@ -59,7 +60,7 @@ function settings = setupEyelink(screenRect, arg)
 
     %override the default settings with arguments
     if exist('arg', 'var')
-        for f = fieldnames(arg)
+        for f = fieldnames(arg)'
             field = f{:}; %strip field out of cell
             settings.(field) = arg.(field);
         end

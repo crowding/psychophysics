@@ -10,7 +10,7 @@ require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
 
         indegrees = transformToDegrees(details.cal);
 
-        back = Background(details.gray);
+        back = Background(details.backgroundIndex);
         patch = MoviePlayer(CauchyPatch);
         rect = FilledRect([-2 -2 2 2], details.black);
         disk = FilledDisk([-2 2], 0.5, details.white);

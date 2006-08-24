@@ -18,7 +18,9 @@ details_ = [];
             %otherwise...
             %obtain a new sample from the eye.
             %poll on the presence of a sample (FIXME do I really want to do this?)
-            while Eyelink('NewFloatSampleAvailable') == 0;
+            if Eyelink('NewFloatSampleAvailable') == 0;
+                [x, y, t] = deal(NaN);
+                return;
             end
 
             % FIXME: Probably don't need to do this eyeAvailable check every
@@ -41,8 +43,9 @@ details_ = [];
     end
 
     function i = initializer(varargin)
-        i = setnargout(2, currynamedargs(...
-            joinResource(spaceEvents_.initializer(), RecordEyes(), @doInit)), varargin{:});
+        i = currynamedargs(...
+            joinResource(spaceEvents_.initializer(), RecordEyes(), @doInit),...
+            varargin{:});
     end
 
     function [release, details] = doInit(details)
