@@ -1,15 +1,7 @@
 %{
-* cache for getversion information.
-
-* message function.
-
-* unexplained delays in requesting the stimulus time. Throw up a message on
-  timeout errors for now. Check if it's the readtime function itself that 
-  takes a long time.
+* still unexplained delays in requesting the stimulus time.
 
 * drift correction (simulate with set-cursor in mouse mode)
-
-* set el.backgroundcolor.
 
 * Cancel button. pressing esc in the mainloop for now; may want keyboard event
   driver in the future.

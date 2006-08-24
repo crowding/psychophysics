@@ -149,7 +149,7 @@ measured = mean(pre_request);
         before_request = GetSecs();
         time = floor(GetSecs() * 1000 + offset + rand() * 0.1);
         after_request = GetSecs();
-        if rand() > 0.99
+        if rand() > 0.999
             error('doClockSync:timeout', ...
                 'random simulated timeout error');
         end
