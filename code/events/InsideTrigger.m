@@ -1,7 +1,7 @@
 function this = InsideTrigger(obj_, range_, fn_)
 %An object that fires a trigger when x and y are inside the bounds of a
 %graphics object.
-if nargin == 2
+if nargin == 3
     set_ = 1;
 else
     set_ = 0;
@@ -17,8 +17,8 @@ this = inherit(Trigger(), public(@check, @draw, @set, @unset));
 
     function set(obj, range, fn)
         obj_ = obj;
-        fn_ = fn;
         range_ = range;
+        fn_ = fn;
         set_ = 1;
     end
 

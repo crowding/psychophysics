@@ -17,7 +17,7 @@ end
     require(highPriority(details, 'priority', 0), @collectdata);
     function [time, before, after] = collectdata
         [time, before, after] = ...
-            arrayfun(@(i)getTime(0.2), 1:500, 'ErrorHandler', @handler);
+            arrayfun(@(i)getTime(0.2,10), 1:500);
     end
     function [time, before, after] = handler(err, i)
         [time, before, after] = handlers(err, ...
@@ -105,14 +105,18 @@ clockoffset = est3(1);
 measured = mean(pre_request);
 
 %----- helper functions -----
-    function [time, before_request, after_request] = getEyelinkTime(timeout)
+    function [time, before_request, after_request] = ...
+            getEyelinkTime(softtimeout, hardtimeout)
         %requests the time from the eyelink, and the time before and after
-        %the request was made. All responses are set to NaN if the eyelink
-        %times out
+        %the request was made. after 'softtimeout' has passed, the eyelink
+        %connection is cycled. After 'hardtimeout' has passed, an error is
+        %thrown. Unreliable stuff, this...
 
         before_request = GetSecs();
         status = Eyelink('RequestTime');
         after_request = GetSecs();
+        
+        timeout = GetSecs();
 
         if status ~= 0
             error('doClockSync:badStatus', ...
@@ -121,36 +125,38 @@ measured = mean(pre_request);
 
         time = 0;
         while(time == 0)
-            before_check = GetSecs();
-            time = Eyelink('ReadTime');
-            after_check = GetSecs();
+            s = GetSecs();
             
-            if (after_check - before_check > 0.1)
-                message(details, 'ReadTime took %0.2f seconds!');
-                continue;
-            end
-            
-            if (GetSecs() - after_request) > timeout
-                %time = NaN;
-                %post_request = NaN;
-                %pre_request = NaN;
-                %disp('timeout');
-                %return
-                error('doClockSync:timeout', ...
+            if (s - before_request) > hardtimeout
+                
+                error('getclockoffset:timeout', ...
                       'timeout waiting for clock information from eyelink');
+                  
+            elseif (s - timeout) > softtimeout
+                
+                message('Eyelink not responding, cycling connection');
+                Eyelink('shutdown');
+                status = Eyelink('Initialize');
+                if status ~= 0
+                    error('getclockoffset:panic', 'eyelink connection went away');
+                end
+                timeout = s;
+                
             end
+
+            time = Eyelink('ReadTime');
         end
     end
 
-    function [time, before_request, after_request] = getDummyTime(timeout);
+    function [time, before, after] = getDummyTime(timeout, hardtimeout);
         offset = 19237.4829;
         %dummy version of the above
-        before_request = GetSecs();
+        before = GetSecs();
         time = floor(GetSecs() * 1000 + offset + rand() * 0.1);
-        after_request = GetSecs();
-        if rand() > 0.999
-            error('doClockSync:timeout', ...
-                'random simulated timeout error');
-        end
+        after = GetSecs();
+        %if rand() > 0.999
+        %    error('doClockSync:timeout', ...
+        %        'random simulated timeout error');
+        %end
     end
 end

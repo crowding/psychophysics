@@ -170,7 +170,7 @@ require(setupEyelinkExperiment(), @runExperiment);
             %give feedback at next refresh
             nearTrigger.unset();
             farTrigger.unset();
-            timeTrigger.set(t + eps(t), @finishBadTrial);
+            timeTrigger.set(t + details.cal.interval, @finishBadTrial);
         end
 
         function finishBadTrial(x, y, t)

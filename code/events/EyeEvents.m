@@ -11,19 +11,25 @@ details_ = [];
 %----- method definition -----
     function [x, y, t] = sample
         if details_.dummy
-            [x, y] = GetMouse();
+            [x, y, buttons] = GetMouse();
             t = GetSecs();
+            if any(buttons) %simulate blinking
+                x = NaN;
+                y = NaN;
+            end
             return;
         else
             %otherwise...
             %obtain a new sample from the eye.
             %poll on the presence of a sample (FIXME do I really want to do this?)
             if Eyelink('NewFloatSampleAvailable') == 0;
-                [x, y, t] = deal(NaN);
+                x = NaN;
+                y = NaN;
+                t = GetSecs();
                 return;
             end
 
-            % FIXME: Probably don't need to do this eyeAvailable check every
+            % Probably don't need to do this eyeAvailable check every
             % frame. Profile this call?
             eye = Eyelink('EyeAvailable');
             switch eye
@@ -37,8 +43,13 @@ details_ = [];
             end
 
             sample = Eyelink('NewestFloatSample');
-            [x, y, t] = deal(...
-                sample.gx(eyeidx), sample.gy(eyeidx), (sample.time - details_.clockoffset) / 1000);
+            x = sample.gx(eyeidx);
+            y = sample.gy(eyeidx);
+            if x == -32768 %no position -- blinking?
+                x = NaN;
+                y = NaN;
+            end
+            t = (sample.time - details_.clockoffset) / 1000;
         end
     end
 
@@ -48,10 +59,7 @@ details_ = [];
 
     function [release, details] = doInit(details)
         details_ = details;
-        release = @stop;
-        
-        function stop
-        end
+        release = @noop;
     end
 
 end

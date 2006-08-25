@@ -52,7 +52,6 @@ go_ = 0;
                 skipcount = skipcount + frames - 1;
 
                 if frames > 60
-                    profile viewer
                     error('mainLoop:drawingStuck', 'got stuck doing frame updates...');
                 end
                 for i = 1:frames
