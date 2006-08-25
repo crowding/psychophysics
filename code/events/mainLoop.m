@@ -50,7 +50,11 @@ go_ = 0;
             if lastVBL > 0
                 frames = round((VBL - lastVBL) / interval);
                 skipcount = skipcount + frames - 1;
-
+                
+                %if frames > 1
+                %    noop; 
+                %end
+                
                 if frames > 60
                     error('mainLoop:drawingStuck', 'got stuck doing frame updates...');
                 end

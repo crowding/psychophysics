@@ -1,17 +1,23 @@
-function e = env();
-%Returns a structure containing path variables of use to the motion experiments
+function environment = env();
+%Returns a structure containing path variables of use to the experiments
 
-%this dir is the code dir
-e.codedir = fileparts(mfilename('fullpath'));
+persistent e;
 
-%the base directory is hte parent of the code directory
-e.basedir = fileparts(e.codedir);
+if isempty(e)
+    %this dir is the code dir
+    e.codedir = fileparts(mfilename('fullpath'));
 
-%experiment results are saved in the data dir
-e.datadir = fullfile(fileparts(e.codedir), 'data');
+    %the base directory is hte parent of the code directory
+    e.basedir = fileparts(e.codedir);
 
-%calibrations are stored in a subdirectory
-e.calibrationdir = fullfile(e.datadir, 'calibration');
+    %experiment results are saved in the data dir
+    e.datadir = fullfile(fileparts(e.codedir), 'data');
 
-%raw eyelink data is stored in another subdirectory
-e.eyedir = fullfile(e.datadir, 'eyelink');
+    %calibrations are stored in a subdirectory
+    e.calibrationdir = fullfile(e.datadir, 'calibration');
+
+    %raw eyelink data is stored in another subdirectory
+    e.eyedir = fullfile(e.datadir, 'eyelink');
+end
+
+environment = e;

@@ -1,7 +1,7 @@
 function delayedSaccade()
 %a gaze-contingent display using a trigger driven state-machine programming.
 
-timeDilation = 1; %in mousemode, things should be slower.
+timeDilation = 3; %in mousemode, things should be slower.
 
 patch = ApparentMotion(...
     'primitive', CauchyBar('size', [0.5 1 0.05*timeDilation], 'velocity', 10/timeDilation),...
@@ -16,8 +16,8 @@ targetMargin = 1; %the margin around the target which indicates a successful sac
 
 fineFixationTime = 0.5 * timeDilation;
 stimulusDisplayTime = 0.4 * timeDilation; %how much display before cueing saccade
-saccadeReactionTime = 0.2 * timeDilation; % min time after stimulation off before cueing saccade
-saccadeWindowTime = 0.2 * timeDilation; %saccades made outside this window not accepted
+saccadeReactionTime = 0.00 * timeDilation; % min time after stimulation off before cueing saccade
+saccadeWindowTime = 0.5 * timeDilation; %saccades made outside this window not accepted
 saccadeTransitTime = 0.15 * timeDilation; % how long a saccade has to make it to the target
 
 goodTrialTones = [750 0.2 0.9];
