@@ -10,12 +10,12 @@ i = currynamedargs(@initializer, varargin{:});
         end
         
         old = Priority(o.priority);
-        disp(sprintf('%g->%g', old, o.priority));
+        %disp(sprintf('%g->%g', old, o.priority));
         
         r = @release;
         
         function release
-            disp(sprintf('%g->%g', o.priority, old));
+            %disp(sprintf('%g->%g', o.priority, old));
             Priority(old);
         end
     end

@@ -1,18 +1,15 @@
 %{
 
-*triggers should only take effect at the next update, unsure about how to do 
- this. TimeTrigger(t+eps(t) when this is required, but even that won't work when driven off a time trigger -- time triggers fake their input times.
-
-* samples and triggers should react to NaN samples, so as to keep the experiment moving during blinks and such.
-
-* eyeEvents should replace FFFF samples with NaN, and fill in the time on 
-  missed samples?
-
 * TIMING. need to reference the playing of a movie off of screen refreshes;
   * screen updates need a 'next refresh' parameter to say precisely when the 
   next frame should be scheduled.
     * make sure I know where the ApparentMotion object places its 0 time, and 
     * record the time diff between its 0 and the frame it starts in.
+
+* wrapper object for property setting?
+
+*triggers should only take effect at the next update, unsure about how to do 
+ this. TimeTrigger(t+eps(t) when this is required, but even that won't work when driven off a time trigger -- time triggers fake their input times.
 
 * make something to unset all triggers when a state transition is reached.
 

@@ -7,11 +7,12 @@ function this = EyeEvents()
 [this, spaceEvents_] = inherit(SpaceEvents(), public(@sample, @initializer));
 
 details_ = [];
+mouseOffset = [0, 0];
 
 %----- method definition -----
     function [x, y, t] = sample
         if details_.dummy
-            [x, y, buttons] = GetMouse();
+            [x, y, buttons] = GetMouse(details_.window);
             t = GetSecs();
             if any(buttons) %simulate blinking
                 x = NaN;
@@ -55,11 +56,12 @@ details_ = [];
 
     function i = initializer(varargin)
         i = joinResource(spaceEvents_.initializer(varargin{:}), RecordEyes(), @doInit);
+        
+        function [release, details] = doInit(details)
+            details_ = details;
+            release = @noop;
+        end
     end
 
-    function [release, details] = doInit(details)
-        details_ = details;
-        release = @noop;
-    end
 
 end
