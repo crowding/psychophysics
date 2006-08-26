@@ -10,9 +10,9 @@ this = inherit(Trigger(), public(@check, @draw, @set, @unset));
         set_ = 1;
     end
         
-    function check(x, y, t)
+    function check(x, y, t, next)
         if set_ && (norm([x y] - loc_) <= threshold_)
-            fn_(x, y, t); %call function when eye is inside
+            fn_(x, y, t, next); %call function when eye is inside
         end
     end
     

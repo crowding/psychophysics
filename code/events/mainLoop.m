@@ -17,6 +17,11 @@ go_ = 0;
     end
 
     function details = go(details)
+        %run the main loop, collecting events, calling triggers, and 
+        %redrawing the screen until stop() is called.
+        %
+        %Initializes the event managers and sets high CPU priority before
+        %running.
         details = require(events_.initializer(details), highPriority(), @doGo);
     end
 
@@ -29,13 +34,14 @@ go_ = 0;
         
         while(go_)
             %take a sample from the eyetracker and react to it
-            events_.update();
+            events_.update(lastVBL + interval);
+            
             if ~go_ %the update may cause us to exit;
                 break;
             end
-            
+
+            %check for an escape key
             [keyIsDown, secs, keyCodes] = KbCheck();
-            
             if keyIsDown && keyCodes(KbName('ESCAPE'))
                 error('mainLoop:userExit', 'user escaped from main loop.');
             end
@@ -56,7 +62,8 @@ go_ = 0;
                 %end
                 
                 if frames > 60
-                    error('mainLoop:drawingStuck', 'got stuck doing frame updates...');
+                    error('mainLoop:drawingStuck', ...
+                        'got stuck doing frame updates...');
                 end
                 for i = 1:frames
                     %may accumulate error if
@@ -73,7 +80,11 @@ go_ = 0;
         disp(sprintf('hit %d frames, skipped %d', hitcount, skipcount));
     end
 
-    function stop(x, y, t)
+    function stop(x, y, t, next)
+        %Stops the main loop. Takes arguments compatible with beign called
+        %from a trigger.
+        %
+        %See also mainLoop>go.
         go_ = 0;
     end
 

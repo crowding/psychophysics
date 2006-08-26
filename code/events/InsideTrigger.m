@@ -9,9 +9,9 @@ end
 
 this = inherit(Trigger(), public(@check, @draw, @set, @unset));
 
-    function check(x, y, t)
+    function check(x, y, t, next)
         if set_ && inRect(obj_.bounds() + range_ .* [-1 -1 1 1], x, y)
-            fn_(x, y, t); %call function when eye is inside
+            fn_(x, y, t, next); %call function when eye is inside
         end
     end
 

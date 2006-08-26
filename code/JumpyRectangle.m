@@ -46,23 +46,23 @@ require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
 
         %----- thet event reaction functions -----
 
-        function start(x, y, t)
+        function start(x, y, t, next)
             playTrigger.set(t + 5, @play);
             stopTrigger.set(t + 20, main.stop);
             startTrigger.unset();
         end
         
-        function play(x, y, t)
+        function play(x, y, t, next)
             patch.setVisible(1);
             playTrigger.set(t + 5, @play); %trigger every five seconds
         end
 
-        function r = moveRect(x, y, t)
+        function r = moveRect(x, y, t, next)
             %set the rectangle to a random color and shape
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 
-        function r = followDisk(x, y, t)
+        function r = followDisk(x, y, t, next)
             %make the disk follow the eye
             disk.setLoc([x y]);
             text.setText(sprintf('%0.2f, %0.2f\n%0.3f, %0.3f', x, y, t, GetSecs()));

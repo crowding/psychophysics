@@ -3,9 +3,9 @@ function this = OutsideTrigger(obj_, fn_)
 
 this = inherit(Identifiable(), public(@check));
 
-    function check(x, y, t)
+    function check(x, y, t, next)
         if ~inrect(obj_.bounds(), x, y)
-            fn_(x, y, t); %call function when eye is inside
+            fn_(x, y, t, next); %call function when eye is outside
         end
     end
 

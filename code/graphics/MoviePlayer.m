@@ -8,19 +8,27 @@ function this = MoviePlayer(patch_)
 
 [this, Drawer_] = inherit(...
     Drawer()...
-    ,public(@prepare, @release, @update, @draw, @bounds, @visible, @setVisible)...
+    ,public(...
+        @prepare, @release, @update, @draw, ...
+        @bounds, @visible, @setVisible)...
     );
 
 textures_ = [];
-frameIndex_ = 1;
-prepared_ = 0;
+frameIndex_ = 1; %whcih frame we are about to show
+frameCounter_ = 1; %the index into the teture array (may be different from frame index
 visible_ = 0;
+prepared_ = 0;
 
     function prepare(drawing)
+        %Prepares the movie for drawing into a window.
+        %
+        %drawing: the Drawing object that manages the display.
+        
         Drawer_.prepare(drawing); %think about a mechanism for chained methods?
         try
             if prepared_
-                error('Drawer:alreadyPrepared', 'Attempted to prepare an already-prepared graphics object.');
+                error('Drawer:alreadyPrepared', ...
+                    'Attempted to prepare an already-prepared graphics object.');
             end
             prepared_ = 1;
             textures_ = texture_movie(patch_, drawing.window(), drawing.calibration());
@@ -33,6 +41,12 @@ visible_ = 0;
     end
 
     function release()
+        %Deallocates all textures, etc. associated with the prepared movie.
+        
+        %we have a bunch of things to clean up, and should keep trying if
+        %any one fails. Thus we place each cleanup item into a function
+        %handle and pass the whole mess to tryAll.
+        
         %following does not work because of a bug in matlab where anonymous
         %functions are not bound to separate instances of anonymous function
         %workspaces.
@@ -40,10 +54,9 @@ visible_ = 0;
         %totry = arrayfun(@(t)@() Screen('Close', t.texture), textures_,...
         %    'UniformOutput', 0);
         %
-        %we do this instead:
-        %
+        %we have to do this instead:
         totry = {};
-        for t = textures_
+        for t = textures_'
             totry{end+1} = @() Screen('Close', t.texture);
         end
 
@@ -53,6 +66,7 @@ visible_ = 0;
             prepared_ = 0;
             visible_ = 0;
             frameIndex_ = 1;
+            frameCounter = 1;
         end
         
         %finally release the parent
@@ -62,11 +76,20 @@ visible_ = 0;
     end
 
     function update
+        %advance 1 frame forward in the movie. Should be called by a main
+        %loop which is responsible for keeping track of whether drawing is
+        %occurring on schedule, and giving extra update() calls if frames
+        %are skipped.
+        
         if visible_
-            frameIndex_ = frameIndex_ + 1;
+            frameCounter_ = frameCounter_ + 1;
+            if textures_(frameIndex_).frame < frameCounter_
+                frameIndex_ = frameIndex_ + 1;
+            end
             if frameIndex_ > numel(textures_)
-                frameIndex_ = 1;
-                this.setVisible(0);
+                %stop on last frame for best cooperation with bounds()
+                frameIndex_ = frameIndex_ - 1;
+                setVisible(0);
             end
         end
     end
@@ -74,24 +97,42 @@ visible_ = 0;
     function draw(window)
         if visible_
             t = textures_(frameIndex_);
-            Screen('DrawTexture', window, t.texture, [], t.playrect);
+            if (t.frame == frameCounter_)
+                Screen('DrawTexture', window, t.texture, [], t.playrect);
+            end
         end
     end
 
     function b = bounds
-        b = this.toDegrees(textures_(frameIndex_).playrect);
+        %Gives the current bounds of the object, i.e. the bounds of
+        %the next frame to be shown.
+            b = this.toDegrees(textures_(frameIndex_).playrect);
     end
 
     function v = visible();
         v = visible_;
     end
 
-    function v = setVisible(v)
+    function onset = setVisible(v, next)
+        % v:     if true, will start drawing the movie at the next refresh.
+        %
+        % next:  if exists and set to the scheduled next refresh, gives the
+        %        stimulus onset time (which may be different from the next
+        %        refresh for many movies)
+        % ---
+        % onset: the stimulus onset time.
         visible_ = v;
-        if (v)
-            frameIndex_ = 1; %start at the beginning when shown
+        
+        if v
+            %start at the first frame
             %(update is called right after draw; first frame shown
-            %should be 1)
+            %should be the first frame)
+            frameIndex_ = 1;
+            frameCounter_ = textures_(1).frame;
+            
+            if exist('next', 'var');
+                onset = next - textures_(1).time;
+            end
         end
     end
 end

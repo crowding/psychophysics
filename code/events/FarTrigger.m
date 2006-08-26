@@ -11,9 +11,9 @@ this = inherit(Trigger(), public(@check, @draw, @set, @unset));
     end
         
     %this should trigger upon a failed sample.
-    function check(x, y, t)
-        if set_ && (any(isnan([x y])) || (norm([x y] - loc_) > threshold_))
-            fn_(x, y, t); %call function when eye is inside
+    function check(x, y, t, next)
+        if set_ && (norm([x y] - loc_) > threshold_)
+            fn_(x, y, t, next); %call function when eye is inside
         end
     end
     

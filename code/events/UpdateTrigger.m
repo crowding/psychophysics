@@ -1,5 +1,8 @@
 function this = UpdateTrigger(fn_)
-%A trigger that fires on every update.
+%A trigger that calls its function on every update.
+%
+%See also Trigger.
+
 this = inherit(Trigger(), public(@check, @set, @unset));
 
     if (nargin < 1)
@@ -9,9 +12,9 @@ this = inherit(Trigger(), public(@check, @set, @unset));
     end
     
     %methods
-    function check(x, y, t)
+    function check(x, y, t, next)
         if set_
-            fn_(x, y, t); %call function always
+            fn_(x, y, t, next); %call function always
         end
     end
 

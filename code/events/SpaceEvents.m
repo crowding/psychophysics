@@ -1,6 +1,6 @@
 function this = SpaceEvents()
-%base class for event managers that track an object (mouse, eye) over
-%time.
+%base class for event managers that track a @-D spatial input (e.g. mouse,
+%eye) over time.
 
 %-----public interface-----
 this = public(@add, @remove, @update, @clear, @draw, @initializer, @sample);
@@ -29,6 +29,8 @@ online_ = 0;
 
     function add(trigger)
         %adds a trigger object.
+        %
+        %See also Trigger.
         
         %triggers_{end + 1} = trigger; %ideal
         triggers_(end+1) = interface(trigger, triggers_); %middle
@@ -39,6 +41,9 @@ online_ = 0;
 
     function remove(trigger)
         %Removes a trigger object.
+        %
+        %See also Trigger.
+        
         searchid = trigger.id();
         %found = find(cellfun(@(x)x.id() == searchid, triggers_)); %ideal
         found = find(arrayfun(@(x)x.id() == searchid, triggers_)); %middle
@@ -56,6 +61,8 @@ online_ = 0;
     end
 
     function clear
+        %Removes all triggers.
+        
         %The use of () and [] even when clearing out a 
         %cell array--it's not a general syntax, it's a special idiom. it
         %preserves the array type.
@@ -68,8 +75,12 @@ online_ = 0;
         %id_(:) = []; %ugly
     end
 
-    function update
-        %Sample the eye
+    function update(next)
+        % Sample the eye and give to sample to all triggers.
+        %
+        % next: the scheduled next refresh.
+        %
+        % See also SpaceEvents>sample, Trigger>check.
         
         if ~online_
             error('spaceEvents:notOnline', 'must start spaceEvents before recording');
@@ -82,14 +93,21 @@ online_ = 0;
         
         for trig = triggers_ %ideal, middle
         %for check = check_ %ugly
-            %trig{:}.check(x, y, t); %ideal
-            trig.check(x, y, t); %middle
-            %check(x, y, t); %ugly
+            %trig{:}.check(x, y, t, next); %ideal
+            trig.check(x, y, t, next); %middle
+            %check(x, y, t, next); %ugly
         end
     end
 
     function draw(window, toPixels)
-        %draw the triggers on the screen for debugging
+        % draw the trigger areas on the screen for debugging purposes.
+        %
+        % window - the window identifier
+        % toPixels - a function transforming degree coordinates to pixels
+        %            (see <a href="matlab:help Calibration/transformToPixels">Calibration/transformToPixels</a>)
+        %
+        % See also Trigger>draw.
+        
         for trig = triggers_ %ideal, middle
         %for draw = draw_ %ugly
             %trig{i}.draw(window, toPixels); %ideal
@@ -99,6 +117,11 @@ online_ = 0;
     end
 
     function i = initializer(varargin)
+        %at the beginning of a trial, the initializer will be called. It will
+        %do things like start the eyeLink recording.
+        %
+        %See also require.
+        
         i = currynamedargs(@doInit, varargin{:}); 
     end
 
@@ -114,5 +137,8 @@ online_ = 0;
     end
 
     function [x, y, t] = sample()
+        %Implementors should obtian an [x, y, t] sample of the input
+        %device. x and y can be NaN if no coordinates are available (e.g. during
+        %blinks). Return immediately without waiting around for input.
     end
 end

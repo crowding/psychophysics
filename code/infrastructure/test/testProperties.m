@@ -30,7 +30,6 @@ this = inherit(...
         assertEquals([12 32],       p.c());
     end
 
-
     function testPropertyInheritance
         function this = TestObject
             this = inherit(properties('value', 1), public(@increment));
@@ -99,7 +98,6 @@ this = inherit(...
         increment_b(p);
         assertEquals(3, p.b());
     end
-
 
     function increment_b(props)
         props.setB(props.b() + 1);
