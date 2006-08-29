@@ -14,9 +14,9 @@ this = inherit(...
     function testPropertyGetting
         p = properties('a', 1, 'b', 'foo', 'c', {3});
         
-        assertEquals(1,     p.a());
-        assertEquals('foo', p.b());
-        assertEquals({3},   p.c());
+        assertEquals(1,     p.getA());
+        assertEquals('foo', p.getB());
+        assertEquals({3},   p.getC());
     end
 
 
@@ -26,9 +26,9 @@ this = inherit(...
         p.setB({'baz' 'qux'});
         p.setC([12 32]);
         
-        assertEquals('bar',         p.a());
-        assertEquals({'baz' 'qux'}, p.b());
-        assertEquals([12 32],       p.c());
+        assertEquals('bar',         p.getA());
+        assertEquals({'baz' 'qux'}, p.getB());
+        assertEquals([12 32],       p.getC());
     end
 
     function testPropertyInheritance
@@ -36,17 +36,17 @@ this = inherit(...
             this = inherit(properties('value', 1), public(@increment));
             
             function increment
-                this.setValue(this.value() + 1);
+                this.setValue(this.getValue() + 1);
             end
         end
         
         a = TestObject();
         
-        assertEquals(a.value(), 1);
+        assertEquals(a.getValue(), 1);
         a.increment();
-        assertEquals(a.value(), 2);
+        assertEquals(a.getValue(), 2);
         a.increment();
-        assertEquals(a.value(), 3);
+        assertEquals(a.getValue(), 3);
     end
 
 
@@ -58,7 +58,7 @@ this = inherit(...
             %overriding
             [this, p_] = inherit(...
                 properties('a', 1, 'b', 2),...
-                public(@b, @setB, @sum)...
+                public(@getB, @setB, @sum)...
             );
         
             function val = setB(val)
@@ -67,26 +67,26 @@ this = inherit(...
                 p_.setB(round(val));
             end
 
-            function val = b()
-                val = p_.b();
+            function val = getB()
+                val = p_.getB();
             end
 
             function s = sum()
-                s = this.a() + this.b();
+                s = this.getA() + this.getB();
             end
         end
         
         o = TestObject();
-        assertEquals(o.a(), 1);
-        assertEquals(o.b(), 2);
+        assertEquals(o.getA(), 1);
+        assertEquals(o.getB(), 2);
         assertEquals(o.sum(), 3);
         
         %set a and b, but b gets rounded
         o.setA(2.25);
         o.setB(3.75);
         
-        assertEquals(2.25, o.a());
-        assertEquals(4, o.b());
+        assertEquals(2.25, o.getA());
+        assertEquals(4, o.getB());
         assertEquals(o.sum(), 6.25);
     end
 
@@ -94,10 +94,10 @@ this = inherit(...
     function testReferenceBehavior
         p = properties('a', 1, 'b', 2);
         
-        assertEquals(1, p.a());
-        assertEquals(2, p.b());
+        assertEquals(1, p.getA());
+        assertEquals(2, p.getB());
         increment_b(p);
-        assertEquals(3, p.b());
+        assertEquals(3, p.getB());
     end
 
     function testPropertiesField
@@ -108,7 +108,7 @@ this = inherit(...
     end
 
     function increment_b(props)
-        props.setB(props.b() + 1);
+        props.setB(props.getB() + 1);
     end
 
 end

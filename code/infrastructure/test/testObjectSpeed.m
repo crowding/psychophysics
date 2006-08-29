@@ -3,11 +3,11 @@ function testObjectSpeed
 %setter, getter methods
 
 profile on
-foobar()
+foobar();
     function o = foobar()
         o = teststruct;
         o = testoldschool; %to be made with matlab 5 objects
- %       o = teststupidschool; %to be made with stupid-style 5 objects
+        o = teststupidschool; %to be made with stupid-style matlab 5 objects
         o = testprimitive;
         o = testintermediate;
         o = testfancy;
@@ -23,39 +23,39 @@ profile viewer
         for i = 1:2000
             obj.prop = obj.prop + obj.fun();
         end
-        obj.prop()
+        obj.prop
     end
 
     function obj = testsuperfancy
         obj = superfancytestobj(0);
         for i = 1:2000
-            obj.setProp(obj.prop() + obj.fun());
+            obj.setProp(obj.getProp() + obj.fun());
         end
-        obj.prop()
+        obj.getProp()
     end
 
     function obj = testfancy
         obj = fancytestobj(0);
         for i = 1:2000
-            obj.setProp(obj.prop() + obj.fun());
+            obj.setProp(obj.getProp() + obj.fun());
         end
-        obj.prop()
+        obj.getProp()
     end
 
     function obj = testintermediate
         obj = intermediatetestobj(0);
         for i = 1:2000
-            obj.setProp(obj.prop() + obj.fun());
+            obj.setProp(obj.getProp() + obj.fun());
         end
-        obj.prop()
+        obj.getProp()
     end
 
     function obj = testprimitive
         obj = primitivetestobj(0);
         for i = 1:2000
-            obj.setProp(obj.prop() + obj.fun());
+            obj.setProp(obj.getProp() + obj.fun());
         end
-        obj.prop()
+        obj.getProp()
     end
 
     function obj = testoldschool
@@ -64,9 +64,9 @@ profile viewer
             %note how equivalent effects are more awkward, needing two
             %statements...
             [obj, f] = fun(obj);
-            obj = setProp(obj, prop(obj) + f);
+            obj = setProp(obj, getProp(obj) + f);
         end
-        prop(obj)
+        getProp(obj)
     end
 
     function obj = teststupidschool
@@ -93,7 +93,7 @@ profile viewer
 %-----constructors-----
 
     function this = wrappedtestobj(n)
-        this = ObjectWrapper(superfancytestobj(n));
+        this = Object(superfancytestobj(n));
     end
 
     function this = superfancytestobj(val_)
@@ -103,7 +103,7 @@ profile viewer
             );
 
         function val = fun()
-            val = this.val();
+            val = this.getVal();
             this.setVal(val + 1);
         end
     end
@@ -149,9 +149,9 @@ profile viewer
     function this = primitivetestobj(val_)
         prop_ = 0;
 
-        this = final(@prop, @setProp, @fun);
+        this = final(@getProp, @setProp, @fun);
 
-        function v = prop()
+        function v = getProp()
             v = prop_;
         end
 

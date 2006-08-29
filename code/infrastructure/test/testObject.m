@@ -1,4 +1,4 @@
-function this = testObjectWrapper()
+function this = testObject()
 
     this = inherit(TestCase(), public(...
         @testInvoke...
@@ -17,7 +17,7 @@ function this = testObjectWrapper()
     function testInvoke
         %should be able to invoke just like a struct-object
 
-        testobj = ObjectWrapper(public(@helloworld));
+        testobj = Object(public(@helloworld));
         function r = helloworld
             r = 'Hello, world!';
         end
@@ -27,7 +27,7 @@ function this = testObjectWrapper()
 
     function testInvokeMultipleOutputs
         %invoke should work with multiple outputs
-        testobj = ObjectWrapper(public(@helloworld));
+        testobj = Object(public(@helloworld));
         function [r, j] = helloworld
             r = 'hello';
             j = 'world';
@@ -42,7 +42,7 @@ function this = testObjectWrapper()
         %and multiple inputs
         flag = 0;
         
-        testobj = ObjectWrapper(public(@helloworld));
+        testobj = Object(public(@helloworld));
         function helloworld
             flag = 1;
         end
@@ -54,7 +54,7 @@ function this = testObjectWrapper()
     function testPropertyGetting
         %you should be able to get the value of a property as though it
         %were a field.
-        testobj = ObjectWrapper(properties('test', 1));
+        testobj = Object(properties('test', 1));
         
         assertEquals(1, testobj.test);
     end
@@ -62,7 +62,7 @@ function this = testObjectWrapper()
     function testPropertySetting
         %you should be able to assign properties, while maintaining
         %reference semantics.
-        testobj = ObjectWrapper(properties('test', 1));
+        testobj = Object(properties('test', 1));
         testobk = testobj;
         
         testobj.test = 2;
@@ -75,9 +75,9 @@ function this = testObjectWrapper()
         %you should be able to override your accessors that are
         %invoked using reference semantics.
         [testobj, props, methods] = ...
-            ObjectWrapper(properties('test', 1), public(@test, @setTest));
-        function t = test
-            t = props.test() + 1;
+            Object(properties('test', 1), public(@getTest, @setTest));
+        function t = getTest
+            t = props.getTest() + 1;
         end
         function setTest(value)
             props.setTest(value*2);
@@ -88,17 +88,17 @@ function this = testObjectWrapper()
     end
 
     function testPropertyChainGetting
-        testobj = ObjectWrapper(...
+        testobj = Object(...
             properties(...
-                'foo', ObjectWrapper(properties(...
+                'foo', Object(properties(...
                     'bar', 2))));
         
         assertEquals(2, testobj.foo.bar);
     end
 
     function testPropertyChainSetting
-        testobj = ObjectWrapper(properties( ...
-            'foo', ObjectWrapper(properties('bar', 2))));
+        testobj = Object(properties( ...
+            'foo', Object(properties('bar', 2))));
         
         prop = testobj.foo;
         
@@ -111,7 +111,7 @@ function this = testObjectWrapper()
         %the real reason to use object wrappers is that you can invoke save
         %and load filters, which is necessary for maintaining your data
         %under changes in code.
-        testobj = ObjectWrapper(properties('foo', 2), public(@loadobj, @saveobj));
+        testobj = Object(properties('foo', 2), public(@loadobj, @saveobj));
         function this = saveobj(this)
             this.foo = this.foo + 1;
         end
@@ -131,7 +131,7 @@ function this = testObjectWrapper()
         %for future help with load filters, capture and keep around a
         %handle to the constructor.
         
-        testobj = ObjectWrapper(properties('foo', 2));
+        testobj = Object(properties('foo', 2));
         
         c = functions(constructor__(testobj));
         
@@ -146,10 +146,10 @@ function this = testObjectWrapper()
 
     function testPropertyMethods
         %you can always use method__ to get at the underlying method for an
-        %object's properties -- even an inherited ObjectWrapper
-        testobj = ObjectWrapper(properties('bar', 3));
+        %object's properties -- even an inherited Object
+        testobj = Object(properties('bar', 3));
         
-        b = testobj.method__('bar');
+        b = testobj.method__('getBar');
         testobj.bar = 1;
         assertEquals(1, b());
         
