@@ -11,7 +11,7 @@ switch subs(1).type
         end
 
     otherwise
-        error('ObjectWrapper:subsasgn:invalidType', ...
-            '() or {} access not implemented for ObjectWrappers.');
+        error('Object:subsasgn:invalidType', ...
+            '() or {} access not implemented for Objects.');
 end
 end

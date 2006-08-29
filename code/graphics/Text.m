@@ -5,7 +5,7 @@ function this = Text(loc_, text_, color_)
 
     this = inherit(Drawer(), ...
         public(@draw, @bounds, ...
-        @text, @setText, @color, @setColor, @loc, @setLoc, @visible, @setVisible));
+        @getText, @setText, @getColor, @setColor, @getLoc, @setLoc, @getVisible, @setVisible));
 
     function draw(window)
         loc = this.toPixels(loc_);
@@ -13,7 +13,7 @@ function this = Text(loc_, text_, color_)
     end
     
     %----- dumb accessors -----
-    function t = text
+    function t = getText
         t = text_;
     end
 
@@ -21,7 +21,7 @@ function this = Text(loc_, text_, color_)
         text_ = t;
     end
 
-    function c = color
+    function c = getColor
         c = color_;
     end
 
@@ -29,7 +29,7 @@ function this = Text(loc_, text_, color_)
         color_ = c;
     end
 
-    function l = loc
+    function l = getLoc
         l = loc_;
     end
 
@@ -37,7 +37,7 @@ function this = Text(loc_, text_, color_)
         loc_ = l;
     end
 
-    function v = visible
+    function v = getVisible
         v = visible_;
     end
 

@@ -10,7 +10,7 @@ function this = MoviePlayer(patch_)
     Drawer()...
     ,public(...
         @prepare, @release, @update, @draw, ...
-        @bounds, @visible, @setVisible)...
+        @bounds, @getVisible, @setVisible)...
     );
 
 textures_ = [];
@@ -109,7 +109,7 @@ prepared_ = 0;
             b = this.toDegrees(textures_(frameIndex_).playrect);
     end
 
-    function v = visible();
+    function v = getVisible();
         v = visible_;
     end
 

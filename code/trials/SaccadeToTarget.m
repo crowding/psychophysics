@@ -5,7 +5,7 @@ function this = SaccadeToTarget(varargin)
 %multiplicative factor, and a parameter 'diagnostics' to show diagnostic
 %information
 
-this = ObjectWrapper(public(@params, @setParams, @run));
+this = ObjectWrapper(public(@getParams, @setParams, @run));
 
 %little juggling to get time dilation parameter to affect the defaults...
 p = namedargs('timeDilation', 1, varargin{:});
@@ -41,7 +41,7 @@ p = namedargs(...
     p... %note p at end - given arguments override defaults
     );
 
-    function out = params()
+    function out = getParams()
         out = p;
     end
 
@@ -56,7 +56,8 @@ p = namedargs(...
         %-----stimulus components----
 
         fixation = FilledDisk(...
-            p.fixationLocation, p.fixationPointRadius, details.blackIndex);
+            p.fixationLocation, p.fixationPointRadius, ...
+            [details.blackIndex details.blackIndex details.whiteIndex]);
         canvas.add(fixation);
 
         target = MoviePlayer(p.target);
@@ -103,15 +104,21 @@ p = namedargs(...
 
         function waitingForFixation(x, y, t, next)
             fixation.setVisible(1);
+            fixation.setColor(...
+                [details.blackIndex details.blackIndex details.whiteIndex]);
 
             nearTrigger.set(...
-                fixation.loc(), p.grossFixationCriterion, @settlingFixation);
+                fixation.getLoc(), p.grossFixationCriterion, @settlingFixation);
             farTrigger.unset();
             timeTrigger.unset();
         end
 
         function settlingFixation(x, y, t, next)
             nearTrigger.unset();
+            
+            fixation.setColor(...
+                [details.blackIndex details.blackIndex details.blackIndex]);
+            
             farTrigger.set(...
                 [x y], p.grossFixationCriterion, @waitingForFixation);
             %after settling, the next valid sample goes into the holding
@@ -180,7 +187,7 @@ p = namedargs(...
         end
         
         function waitFinished(x, y, t, next) 
-            if ~target.visible()
+            if ~target.getVisible()
                 main.stop();
                 goodFeedback();
             end

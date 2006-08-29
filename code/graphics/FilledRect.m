@@ -12,12 +12,12 @@ this = inherit(...
 %----- methods -----
 
     function draw(window)
-        if this.visible()
-            Screen('FillRect', window, this.color(), this.toPixels(this.rect()));
+        if this.getVisible()
+            Screen('FillRect', window, this.getColor(), this.toPixels(this.getRect()));
         end
     end
 
     function b = bounds
-        b = this.rect();
+        b = this.getRect();
     end
 end

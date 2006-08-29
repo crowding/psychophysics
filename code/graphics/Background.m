@@ -19,8 +19,8 @@ this = inherit(...
 %Inheritance/mixins wouldn't hurt either.
 
     function draw(window)
-        if this.visible()
-            Screen('FillRect', window, this.color());
+        if this.getVisible()
+            Screen('FillRect', window, this.getColor());
         end
     end
 end

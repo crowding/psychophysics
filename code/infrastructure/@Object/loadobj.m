@@ -11,7 +11,7 @@ function this = loadobj(this)
     %want to be able to 'upgrade' objects whose defining files later on
     %have a loadobj method.
     %
-    %For future use, the ObjectWrapper constructor redords a handle to the
+    %For future use, the Object constructor redords a handle to the
     %function that called it. This might be used to hunt down a loadobj__
     %method in the future.
 end

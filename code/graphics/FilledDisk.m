@@ -7,8 +7,8 @@ this = inherit(...
     Drawer(),...
     public(...
         @draw, @bounds,...
-        @loc, @setLoc, @radius, @setRadius,...
-        @color, @setColor, @visible, @setVisible)...
+        @getLoc, @setLoc, @getRadius, @setRadius,...
+        @getColor, @setColor, @getVisible, @setVisible)...
     );
 
 %----- private instance variables (plus those that are arguments) -----
@@ -33,7 +33,7 @@ visible_ = 0;
     end
 
 %manually declare accessors, for speed inside the function.
-    function l = loc
+    function l = getLoc
         l = loc_;
     end
 
@@ -41,7 +41,7 @@ visible_ = 0;
         loc_ = l;
     end
 
-    function r = radius
+    function r = getRadius
         r = radius_;
     end
 
@@ -49,7 +49,7 @@ visible_ = 0;
         radius_ = r;
     end
 
-    function c = color
+    function c = getColor
         c = color_;
     end
 
@@ -57,7 +57,7 @@ visible_ = 0;
         color_ = c;
     end
 
-    function v = visible
+    function v = getVisible
         v = visible_;
     end
 

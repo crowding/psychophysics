@@ -1,6 +1,6 @@
 function this = TriggerDrawer(events_)
 
-this = inherit(Drawer(), public(@draw, @visible, @setVisible));
+this = inherit(Drawer(), public(@draw, @getVisible, @setVisible));
 
     visible_ = 0;
 
@@ -10,7 +10,7 @@ this = inherit(Drawer(), public(@draw, @visible, @setVisible));
         end
     end
 
-    function v = visible
+    function v = getVisible
         v = visible_;
     end
 
