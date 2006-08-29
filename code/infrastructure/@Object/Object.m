@@ -9,7 +9,7 @@ else
     orig = varargin{1};
 end
 
-if isa(orig, 'ObjectWrapper')
+if isa(orig, 'Object')
     this = orig;
 else
     wrapped = orig;
@@ -55,7 +55,7 @@ else
     this.orig = orig;
     this.constructor__ = handle;
 
-    this = class(this, 'ObjectWrapper');
+    this = class(this, 'Object');
 end
 
 %{
