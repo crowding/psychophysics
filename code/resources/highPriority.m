@@ -23,4 +23,3 @@ i = currynamedargs(@initializer, varargin{:});
         end
     end
 end
-

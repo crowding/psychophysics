@@ -11,6 +11,9 @@ this = inherit(TestCase(),...
     ,@testLoadDoesNotReattachToLiveContext...
     ,@testLoadReattachesToItself...
     ,@testSeparateVariablesReattach...
+    ,@testGrabHandleToSelf...
+    ,@testGrabParentHandleByEvalInCaller...
+    ,@testCantGrabGrandparentHandleByTwoEvalsInCaller...
     ));
     
     [x0, y0, get0, x1, y1, get1] = deal([]);
@@ -121,7 +124,111 @@ this = inherit(TestCase(),...
         assertEquals(in.get0(), [1 1]);
     end
 
+    function testGrabHandleToSelf
+        a = 1;
+        
+        function [out, handle] = grabSelfHandle
+            a = a + 1;
+            out = a;
+            handle = @grabSelfHandle;
+        end
+        
+        [tmp2, handle] = grabSelfHandle();
+        assertEquals(2, tmp2);
 
+        [tmp3, handle] = handle();
+        assertEquals(3, tmp3);
+        
+        [tmp4, handle] = handle();
+        assertEquals(4, tmp4);
+        
+        assertEquals(a, 4);
+    end
+
+    function testGrabParentHandleByEvalInCaller
+        a = 1;
+        
+        function [out, handle] = grabSelfHandle
+            a = a + 1;
+            out = a;
+            
+            handle = getParentHandle();
+        end
+
+        [tmp2, handle] = grabSelfHandle();
+        assertEquals(2, tmp2);
+
+        [tmp3, handle] = handle();
+        assertEquals(3, tmp3);
+
+        [tmp4, handle] = handle();
+        assertEquals(4, tmp4);
+
+        assertEquals(a, 4);
+    end
+
+    function h = getParentHandle()
+        h = evalin('caller', '@()@grabSelfHandle');
+        h = h();
+    end
+
+    function testCantGrabGrandparentHandleByTwoEvalsInCaller
+        a = 1;
+        function [out, handle] = grabSelfHandle
+            a = a + 1;
+            out = a;
+            
+            handle = getParentHandle();
+            function h = getParentHandle()
+                h = getGrandparentHandle();
+            end 
+        end
+        
+        [tmp2, handle] = grabSelfHandle();
+        assertEquals(2, tmp2);
+
+        %we won't be able to find the function
+        try
+            [tmp3, handle] = handle();
+            fail()
+        catch
+            assertLastError('MATLAB:UndefinedFunction');
+        end
+    end
+
+    function h = getGrandparentHandle
+        h = evalin('caller', 'evalin(''caller'', ''@()@grabSelfHandle'')');
+        h = h();
+    end
+
+%{
+    function self = create_object
+        stk = dbstack('-completenames');
+        mname = stk(2).file;
+        fcn_names = scan(mname, {'test[A-Za-z0-9_]*'});
+        fcns = evalin('caller',['@(){' sprintf('@%s ', fcn_names{:}) '}']);
+        fcns = fcns();
+        for i = 1:length(fcns);fcn = fcns{i};
+            self.(fcn_names{i}) = fcn;
+        end
+    end
+
+    function names = scan(fname, patterns)
+
+        if iscell(patterns)
+            patterns = sprintf('(%s)|',patterns{:});
+        end
+        str = evalc(sprintf('mlint(''-calls'',''%s'')', fname));
+        names = regexp(str,'\d+\s*([AZa-z][A-Za-z0-9_]*)','tokens');
+        names = cellfun(@(x) x{1}, names, 'uniformoutput', false);
+        i = cellfun(@(x)~isempty(regexp(x, patterns)), names);
+        names = names(i);
+    end
+%}
+
+
+
+        
     function callThreeTimes(bork)
         bork(); bork(); bork();
     end    

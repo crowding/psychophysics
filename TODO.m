@@ -1,17 +1,18 @@
 %{
+*change getterName to 'get' + property name...
 
-* TIMING. need to reference the playing of a movie off of screen refreshes;
-  * screen updates need a 'next refresh' parameter to say precisely when the 
-  next frame should be scheduled.
-    * make sure I know where the ApparentMotion object places its 0 time, and 
-    * record the time diff between its 0 and the frame it starts in.
+* something something drift correction?
 
-* wrapper object for property setting?
+* sophisticated help facility for objects.
 
-*triggers should only take effect at the next update, unsure about how to do 
- this. TimeTrigger(t+eps(t) when this is required, but even that won't work when driven off a time trigger -- time triggers fake their input times.
+* start collecting data on reaction times and see what a good window is...
 
-* make something to unset all triggers when a state transition is reached.
+* triggers should only take effect at the next update, unsure about how to do 
+  this. TimeTrigger(t+eps(t) when this is required, but even that won't work 
+  when driven off a time trigger -- time triggers fake their input times.
+
+* make something to unset all triggers when a state transition is reached. 
+  Profile the consequences.
 
 * average the eye position over some number of samples after settling?
 
@@ -26,11 +27,6 @@
   forwasrds compatibility. Need something like load protection for it.
     * How to trigger off this when loading?
         * need an enclosing matlab-style object?
-
-* enclosing matlab-style object for:
-    * straightforward property access
-    * operator overloading
-    * load-upgrade operations
 
 * fire-once triggers.
 

@@ -12,7 +12,9 @@ this = inherit(TestCase()...
     ,@testDelegateToGrandchild...
     ,@testDelegateToGrandparentToGrandchild...
     ,@testParents...
+    ,@testProperties...
     ,@testVersion...
+    ,@testInheritObjectWrappers...
     ));
 
     function this = Parent
@@ -124,7 +126,7 @@ this = inherit(TestCase()...
         assertEquals('Grandchild', g.flurbl());
     end
 
-    function this = testParents
+    function testParents
         %inherited objects get a 'parent__' field that makes sure you know
         %what was inherited.
         
@@ -161,7 +163,21 @@ this = inherit(TestCase()...
         end
     end
 
-    function this = testVersion
+    function testProperties
+        %inherited objects get a 'properties__' cell array of strings.
+        
+        obj = inherit(...
+            properties('one', 1, 'two', 2)...
+            ,properties('one', 1, 'three', 3)...
+            );
+
+        assertEquals(3, numel(obj.properties__));
+        assert(strmatch('one', obj.properties__));
+        assert(strmatch('two', obj.properties__));
+        assert(strmatch('three', obj.properties__));
+    end
+
+    function testVersion
         %all objects get a version__ field that gives the SVN path, function
         %name, and SVN version number of the file creating the object.
         
@@ -169,7 +185,8 @@ this = inherit(TestCase()...
         vers = obj.version__;
         
         %we make sure the info I am reporting matches the auto-substituted
-        %info (SVN junk...)
+        %info (the 'url' and 'revision' lines below are auto-filled in by
+        %SVN).
         fninfo = functions(@Parent);
         url = '$HeadURL$';
         revision = '$Revision$';
@@ -182,6 +199,13 @@ this = inherit(TestCase()...
         assertEquals(fninfo.function, vers.function);
         assertEquals(url, vers.url);
         assertEquals(revision, vers.revision);
+    end
+
+    function testInheritObjectWrappers
+        %you can inherit from object wrappers - the object wrapper-ness
+        %gets stripped from the outermost object. calling object() again
+        %puts it back.
+        fail('not written');
     end
         
 end

@@ -48,6 +48,8 @@ initializer = currynamedargs(...
             pause(0.1); %pause to allow eyelink to start sending up data?
             
             %{
+            % StartRecording is supposed to return a status value, but it
+            % doesn't seem to.
             status = Eyelink('StartRecording');
             if status ~= 0
                 error('RecordEyes:error', 'status %d starting recording', status);
@@ -59,6 +61,9 @@ initializer = currynamedargs(...
         function doRelease
             Eyelink('StopRecording');
             %{
+            %again, the eyelink is supposed to give us a status value, but
+            %doesn't.
+            
             status = Eyelink('StopRecording');
             if status ~= 0
                 error('RecordEyes:error', 'status %d stopping recording', status);

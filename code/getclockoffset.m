@@ -7,29 +7,6 @@ else
     getTime = @getEyelinkTime;
 end
 
-%Do many rounds of time checking and see what is the most accurate
-%predictor.
-
-%Note, polling for the eyelink time does not appear to work when we are at
-%a high priority--timeout errors are likely. So set a lower priority 
-%[time, pre_request, post_request] = collectdata();
-[time, pre_request, post_request] = ...
-    require(highPriority(details, 'priority', 0), @collectdata);
-    function [time, before, after] = collectdata
-        [time, before, after] = ...
-            arrayfun(@(i)getTime(0.2,10), 1:500);
-    end
-    function [time, before, after] = handler(err, i)
-        [time, before, after] = handlers(err, ...
-            'doClockSync:timeout', @timeoutHandler);
-        function [time, before, after] = timeoutHandler(err)
-            message(details, 'Having difficulty reading eyelink clock (%d)', i);
-            time = NaN;
-            before = NaN;
-            after = NaN;
-        end
-    end
-
 % There is an offset between the mac and eyelink clocks.
 % Additionally, the eyelink clock only returns an integer number of
 % milliseconds. If t is the value of getSecs measured just before
@@ -46,10 +23,22 @@ end
 % is assumed to be independent so it is ignored (I want a precise
 % repeatable measurement, and don't care if it contains some small
 % constant bias.)
+%
+% Begin by taking a bunch of samples of the eyelink clock.
 
-%the distribution of intervals (post_request - pre_request)
-%is a J-curve -- I trust the short intervals. Filter out the 50%
-%of good trials (where the request happened quickly)
+% Polling for the eyelink time does not appear to work when we are at
+% a high priority--timeout errors are likely. So set a lower priority.
+
+[time, pre_request, post_request] = ...
+    require(highPriority(details, 'priority', 0), @collectdata);
+    function [time, before, after] = collectdata
+        [time, before, after] = ...
+            arrayfun(@(i)getTime(0.2,10), 1:500);
+    end
+
+% The distribution of intervals (post_request - pre_request)
+% is a J-curve -- I trust the short intervals. Filter out the 50%
+% of good trials (where the request happened quickly):
 crit = median(post_request - pre_request);
 good = (post_request - pre_request) < crit;
 time = time(good);
@@ -57,24 +46,22 @@ post_request = post_request(good);
 pre_request = pre_request(good);
 
 
-%%now see how closely we recreate the staircase.
-%%this is a naive estimator, and is not accurate (is biased due to
-%%eyelink's rounding to milliseconds)
+%%now see how closely we recreate the staircase. Here's a naive estimate
+%%assuming uniorm sampling, which we will use to bootstrap the least
+%%squares estimate.
 %
-%est1 = mean(time - 1000*pre_request) + 0.5;
+est1 = mean(time - 1000*pre_request) + 0.5;
 
-%%this one is more accurate, but assumes a uniform sampling so it
-%%winds up being less precise. Will be used as a seed for the next
-%%estimate.
+%%this is another estimator, but is more noisy:
 %
-est2 = mean(time - floor(1000*pre_request));
+%est2 = mean(time - floor(1000*pre_request));
 
-%least squares fit method is more precise/accurate. the staircase
+%least squares fit method is more accurate. the staircase
 %function is an ad hoc steplike spline function with a sharpness
 %parameter.
 est3 = fminsearch(...
     @(est) sum(staircase(1000*pre_request + est(1), est(2)) - time).^2,...
-    [est2, 10]);
+    [est1, 10]);
 
 
 %{
@@ -138,6 +125,8 @@ measured = mean(pre_request);
                 Eyelink('shutdown');
                 status = Eyelink('Initialize');
                 if status ~= 0
+                    %this is a bad thing, since we've changed state that is
+                    %depended on by our caller
                     error('getclockoffset:panic', 'eyelink connection went away');
                 end
                 timeout = s;

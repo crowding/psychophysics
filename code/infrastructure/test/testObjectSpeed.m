@@ -7,62 +7,94 @@ foobar()
     function o = foobar()
         o = teststruct;
         o = testoldschool; %to be made with matlab 5 objects
+ %       o = teststupidschool; %to be made with stupid-style 5 objects
         o = testprimitive;
         o = testintermediate;
         o = testfancy;
         o = testsuperfancy;
+        o = testwrapped;
     end
 profile viewer
 
 
+
+    function obj = testwrapped
+        obj = wrappedtestobj(0);
+        for i = 1:2000
+            obj.prop = obj.prop + obj.fun();
+        end
+        obj.prop()
+    end
+
     function obj = testsuperfancy
         obj = superfancytestobj(0);
-        for i = 1:20000
+        for i = 1:2000
             obj.setProp(obj.prop() + obj.fun());
         end
+        obj.prop()
     end
 
     function obj = testfancy
         obj = fancytestobj(0);
-        for i = 1:20000
+        for i = 1:2000
             obj.setProp(obj.prop() + obj.fun());
         end
+        obj.prop()
     end
 
     function obj = testintermediate
         obj = intermediatetestobj(0);
-        for i = 1:20000
+        for i = 1:2000
             obj.setProp(obj.prop() + obj.fun());
         end
+        obj.prop()
     end
 
     function obj = testprimitive
         obj = primitivetestobj(0);
-        for i = 1:20000
+        for i = 1:2000
             obj.setProp(obj.prop() + obj.fun());
         end
-    end
-
-    function s = teststruct
-        s = struct('prop', 0, 'val', 0);
-        for i = 1:20000
-            v = s.val;
-            s.val = v + 1;
-            s.prop = s.prop + v;
-        end
+        obj.prop()
     end
 
     function obj = testoldschool
         obj = OldSchool(0);
-        for i = 1:20000
+        for i = 1:2000
             %note how equivalent effects are more awkward, needing two
             %statements...
             [obj, f] = fun(obj);
             obj = setProp(obj, prop(obj) + f);
         end
+        prop(obj)
     end
 
+    function obj = teststupidschool
+        obj = StupidSchool(0);
+        for i = 1:2000
+            %this isw the way properties are "supposed" to be implemented
+            %in matlab 5. Look how fucking awkward it is!
+            [obj, f] = fun(obj);
+            obj = set(obj, 'prop', get(obj, 'prop') + f);
+        end
+        get(obj, 'prop')
+    end
 
+    function s = teststruct
+        s = struct('prop', 0, 'val', 0);
+        for i = 1:2000
+            v = s.val;
+            s.val = v + 1;
+            s.prop = s.prop + v;
+        end
+        s.prop
+    end
+
+%-----constructors-----
+
+    function this = wrappedtestobj(n)
+        this = ObjectWrapper(superfancytestobj(n));
+    end
 
     function this = superfancytestobj(val_)
         this = inherit(...
@@ -71,9 +103,9 @@ profile viewer
             );
 
         function val = fun()
-            val = this.setVal(this.val() + 1);
+            val = this.val();
+            this.setVal(val + 1);
         end
-
     end
 
     function this = fancytestobj(val_)
@@ -89,12 +121,13 @@ profile viewer
 
     end
 
-%objects can be made faster by including a boilerplate version of method()?
+%objects can be made faster by including a boilerplate version of method
+%and thus losing a level of indirection?
     function this = intermediatetestobj(val_)
 
-        this = final(@fun);
+        this = final(@fun, @method__);
+        
         %boilerplate
-        this.method__ = @method__;
         function val = method__(name, val)
             if nargin > 1
                 this.(name) = val;
@@ -103,6 +136,7 @@ profile viewer
             end
         end
         %/boilerplate
+        
         this = inherit(this, properties('prop',0));
 
         function val = fun()
@@ -111,6 +145,7 @@ profile viewer
         end
     end
 
+%faster still by doing it all manually?;
     function this = primitivetestobj(val_)
         prop_ = 0;
 

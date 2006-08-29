@@ -15,11 +15,22 @@ persistent cache;
 
 
 % use a struct as pretend associative array by cleaning the file names (hackish)
+
 e = env;
-fieldname = strrep(frame.file, [e.basedir '/'], '');
+
+%the key to the hash is the file name plus anything following the parent
+%function name (for nested functions)
+fieldname = [...
+    strrep(frame.file, [e.basedir '/'], '')...
+    regexprep(frame.name, '^[a-zA-z][a-zA-Z0-9_]*', '', 'once')...
+    ];
+
+%matlab provides structs, which are almost but not entirely unlike dicts,
+%in that keys must be valid identifier names for some reason. So this usage
+%isn't entirely correct...
 fieldname = regexprep(fieldname, '(^[^a-zA-Z])|([^a-zA-Z0-9])', '_');
 fieldname = regexprep(fieldname, '^[^a-zA-Z]', 'f');
-fieldname = fieldname(max(1,end-63):end);
+fieldname = fieldname(max(1,end-62):end);
 
 if isfield(cache, fieldname)
     v = cache.(fieldname);

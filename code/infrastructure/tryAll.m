@@ -2,7 +2,7 @@ function tryAll(varargin)
     %tries to execute every function given, ignoring errors until the end,
     %when the first encountered error is propagated.
     
-    err = emptyof(lasterror);
+    err = emptyOf(lasterror);
     
     for i = varargin
         try

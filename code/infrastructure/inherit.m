@@ -119,4 +119,21 @@ this.method__ = @putparentmethods;
             end
         end
     end
+
+%finally, inherit the properties lists...
+props = cellfun(@getprops, varargin, 'UniformOutput', 0);
+    function r = getprops(s)
+        if isfield(s, 'properties__')
+            r = s.properties__;
+        else
+            r = {};
+        end
+    end
+
+props = nunion({}, props{:});
+
+if ~isempty(props)
+    this.properties__ = props;
+end
+
 end

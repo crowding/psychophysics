@@ -8,6 +8,7 @@ this = inherit(...
     ,@testPropertyInheritance...
     ,@testPropertyOverride...
     ,@testReferenceBehavior...
+    ,@testPropertiesField...
     ));
 
     function testPropertyGetting
@@ -97,6 +98,13 @@ this = inherit(...
         assertEquals(2, p.b());
         increment_b(p);
         assertEquals(3, p.b());
+    end
+
+    function testPropertiesField
+        p = properties('a', 1, 'c', 2, 'b', 3);
+        assert(strmatch('a', p.properties__));
+        assert(strmatch('b', p.properties__));
+        assert(strmatch('c', p.properties__));
     end
 
     function increment_b(props)
