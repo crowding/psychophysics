@@ -85,9 +85,16 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
             
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
-            [details.window, details.rect] = ...
-                Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0);
-
+            try
+                [details.window, details.rect] = ...
+                    Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0);
+            catch
+                %and yet, sometimes screen itself crashes and leaves a
+                %window open...
+                clear Screen;
+                rethrow(lasterror)
+            end
+            
             release = @closeWindow;
             function closeWindow
                 message(details, 'Closing screen');

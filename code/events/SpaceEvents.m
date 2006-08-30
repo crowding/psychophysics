@@ -33,7 +33,7 @@ online_ = 0;
         %See also Trigger.
         
         %triggers_{end + 1} = trigger; %ideal
-        triggers_(end+1) = interface(trigger, triggers_); %middle
+        triggers_(end+1) = interface(triggers_, trigger); %middle
         %check_(end+1) = trigger.check; %ugly
         %draw_(end+1) = trigger.draw; %ugly
         %id_(end+1) = trigger.id(); %ugly

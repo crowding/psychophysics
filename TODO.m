@@ -1,14 +1,15 @@
 %{
-*change getterName to 'get' + property name...
+* profile the most costly children of update() to see where I am skipping frames...
 
-* something something drift correction?
+* something something drift correction? coloring the fixation point blue for now
+    *also, adding 'offset' value to insideTrigger
 
 * sophisticated help facility for objects.
 
 * start collecting data on reaction times and see what a good window is...
 
 * triggers should only take effect at the next update, unsure about how to do 
-  this. TimeTrigger(t+eps(t) when this is required, but even that won't work 
+  this. TimeTrigger(t + eps(t)) when this is required, but even that won't work 
   when driven off a time trigger -- time triggers fake their input times.
 
 * make something to unset all triggers when a state transition is reached. 
@@ -16,17 +17,9 @@
 
 * average the eye position over some number of samples after settling?
 
-* drift correction (simulate with set-cursor in mouse mode)
-
 * doTrial should take some kind of logger argument.
 
 * still unexplained delays in requesting the stimulus time.
-
-* Some way to save and load the state of a trial -- closures will re-attach
-  themselves to their workspaces when loaded, which is good, but think about
-  forwasrds compatibility. Need something like load protection for it.
-    * How to trigger off this when loading?
-        * need an enclosing matlab-style object?
 
 * fire-once triggers.
 
@@ -41,6 +34,8 @@
 * Test cases that auto-populate their methods
     * use mlint for the scanning step
         * testRunner? see below confusion on xUnit.
+
+*unit test all lines in Object/subsasgn, Object/subsref, PropertyWrapper/subsasgn, PropertyWrapper/subsref.
 
 * Test suites and test runners.
     * what is up with xUnit architecture?

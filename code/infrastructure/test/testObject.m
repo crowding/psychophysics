@@ -12,6 +12,9 @@ function this = testObject()
         ,@testLoadSaveFilter...
         ,@testConstructorReference...
         ,@testPropertyMethods...
+        ,@testChainedGettingFromPrimitive...
+        ,@testChainedSettingOnPrimitive...
+        ,@testRepmat...
         ));
     
     function testInvoke
@@ -157,4 +160,28 @@ function this = testObject()
         sb(4);
         assertEquals(4, testobj.bar); 
     end
+
+
+    function testChainedGettingFromPrimitive
+        testobj = Object(properties('foo', {}));
+        
+        assertEquals(cell(0, 1), testobj.foo(:));
+    end
+
+    function testChainedSettingOnPrimitive
+        testobj = Object(properties('foo', {}));
+        
+        %this works...
+        testobj.foo{end+1} = 4;
+        
+        assertEquals({4}, testobj.foo);
+        testobj.foo{end+1} = testobj;
+    end
+
+    function testRepmat
+        %you should be able to repmat() an array of Object
+        a = Object(properties('a', 1, 'b', 2));
+        b = repmat(a, 1, 1);
+    end
+
 end

@@ -5,9 +5,12 @@ function this = SaccadeToTarget(varargin)
 %multiplicative factor, and a parameter 'diagnostics' to show diagnostic
 %information
 
-this = ObjectWrapper(public(@getParams, @setParams, @run));
+%we like Object access syntax/saving but want fast access to the struct
+this = Object(...
+    properties('params', [], 'successful', 0), ...
+    public(@getParams, @setParams, @run));
 
-%little juggling to get time dilation parameter to affect the defaults...
+%little juggling for the time dilation to affect the other defaults
 p = namedargs('timeDilation', 1, varargin{:});
 
 %default values
@@ -41,10 +44,12 @@ p = namedargs(...
     p... %note p at end - given arguments override defaults
     );
 
+    %fast accessor
     function out = getParams()
         out = p;
     end
-
+    
+    %fast setter
     function setParams(in)
         p = in;
     end
@@ -190,6 +195,10 @@ p = namedargs(...
             if ~target.getVisible()
                 main.stop();
                 goodFeedback();
+
+                %flag success for experiment protocols that reshuffle
+                %failed trials
+                this.successful = 1;
             end
         end
 
