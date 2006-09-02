@@ -14,7 +14,12 @@ for i = 1:nargin
 
     switch class(varargin{i})
         case 'char'
-            assign(varargin{i:i+1});
+            %we also support dotted strings to make substructs...
+            subs = splitstr('.', varargin{i});
+            value = varargin{i+1};
+            
+            value = makevalue(subs{2:end}, value);
+            assign(subs{1}, value);
             skip=1; %skip the next argument
         case 'struct'
             for assignment = cat(2, fieldnames(varargin{i}), struct2cell(varargin{i}))'
@@ -24,7 +29,6 @@ for i = 1:nargin
 end
 
     function assign(field, value)
-
         if isfield(o, field) && isstruct(o.(field)) && isstruct(value)
             o.(field) = namedargs(o.(field), value);
         else
@@ -32,4 +36,12 @@ end
         end
     end
 
+end
+
+function out = makevalue(varargin)
+    if (nargin > 1)
+        out = struct(varargin{1}, makevalue(varargin{2:end}));
+    else
+        out = varargin{1};
+    end
 end

@@ -18,11 +18,8 @@ else
     name = regexprep(name,'.*[^a-zA-Z0-9]', '');
 end
 
-handlecommand = ['@()@' strrep(name, '''', '''''')]
-%handlecommand = ['eval(''@' strrep(name, '''', '''''') ''')'];
-%command = ['evalin(''caller'', [''@' name '''])'];
+handlecommand = ['@()@' strrep(name, '''', '''''')];
 
-handlecommand
 producer = evalinlevel(handlecommand, n);
 functions(producer);
 h = producer();

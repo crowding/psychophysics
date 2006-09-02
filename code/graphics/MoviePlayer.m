@@ -10,7 +10,7 @@ function this = MoviePlayer(patch_)
     Drawer()...
     ,public(...
         @prepare, @release, @update, @draw, ...
-        @bounds, @getVisible, @setVisible)...
+        @bounds, @getVisible, @setVisible, @finishTime)...
     );
 
 textures_ = [];
@@ -134,5 +134,11 @@ prepared_ = 0;
                 onset = next - textures_(1).time;
             end
         end
+    end
+
+    function finish = finishTime
+        %returns the time (relative to stimulus onset) that the stimulus
+        %will show its last frame.)
+        finish = textures_(end).time;
     end
 end

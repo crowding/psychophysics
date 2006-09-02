@@ -6,10 +6,11 @@ set_ = 0;
 time_ = 0;
 fn_ = 0;
 valid_ = 0;
+log_ = 0;
 set(varargin{:})
 
 %----- public interface -----
-this = inherit(Trigger(), public(@check, @set, @unset, @draw));
+this = inherit(Trigger(), public(@check, @set, @unset, @draw, @setLog));
 
 %----- methods -----
     function check(x, y, t, next)
@@ -24,6 +25,7 @@ this = inherit(Trigger(), public(@check, @set, @unset, @draw));
         if set_ && (t >= time_)
             %if it must be a valid sample, check then forward
             if ~valid_ || all(~isnan([x y]))
+                log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
                 fn_(x, y, time_, next); %pretend it was triggered on the exact time
             end
         end
@@ -62,6 +64,10 @@ this = inherit(Trigger(), public(@check, @set, @unset, @draw));
             t = time_ - GetSecs();
             Screen('DrawText', window, sprintf('%0.3f', t), 20, 20, [0 255 0] );
         end
+    end
+
+    function setLog(log)
+        log_ = log;
     end
         
 end

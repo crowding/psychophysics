@@ -5,15 +5,22 @@ function this = SaccadeToTarget(varargin)
 %multiplicative factor, and a parameter 'diagnostics' to show diagnostic
 %information
 
+%the trial params are big enough to go in a 'trialParams' namespace
+%A little juggling for the time dilation and passed arguments
+defaults = namedargs(...
+      'successful', 0 ...
+    , 'trialParams.timeDilation', 1 ...
+    , 'err', [] ...
+    );
+
 %we like Object access syntax/saving but want fast access to the struct
-this = Object(...
-    properties('params', [], 'successful', 0), ...
-    public(@getParams, @setParams, @run));
+[this, props] = Object(...
+    propertiesfromdefaults(defaults, 'params', varargin{:}), ...
+    Identifiable(), ...
+    public(@getTrialParams, @setTrialParams, @run));
 
-%little juggling for the time dilation to affect the other defaults
-p = namedargs('timeDilation', 1, varargin{:});
-
-%default values
+%we use the trial params struct a lot, so take it into a local struct
+p = props.getTrialParams();
 p = namedargs(...
     'target', ApparentMotion(... %the target (a @Patch object)
         'primitive', CauchyBar(...
@@ -27,58 +34,62 @@ p = namedargs(...
     'grossFixationCriterion', 3,... %the window which starts a trial
     'fixationSettlingTime',   0.35,... %wait this long to settle fixation
     'fineFixationCriterion',  0.75,... %eye stays in this radius when fixating
-    'targetMargin',           1,... %how close you ned to get to the target
+    'targetMargin',           1,... %how close you need to get to the target
     ...
     'fineFixationTime',       0.75 * p.timeDilation,...
-    'stimulusDisplayTime',    0.40 * p.timeDilation,... %wait before cueing
+    'nAveragingSamples',      10,... %how many samples to take of eye position average
+    'cueTime',                0.40 * p.timeDilation,... %wait before cueing
+    'cueSaccade',             1,... %whether to cue the saccade
     'saccadeReactionTime',    0.00 * p.timeDilation,... %min reaction time
     'saccadeWindowTime',      0.50 * p.timeDilation,... %window for saccade to begin
-    'saccadeTransitTime',     0.15 * p.timeDilation,... %how long a saccade has to make it to the target
+    'saccadeTransitTime',     0.15 * p.timeDilation,... %how long a saccade has
     ...
-    'goodTrialTones',         [750 0.2 0.9],...
+    'goodTrialTones',         [750 0.05 0 750 0.2 0.9],...
     'goodTrialTimeout',       0,...
     'badTrialTones',          repmat([500 0.1 0.9 0 0.1 0], 1, 5),...
     'badTrialTimeout',        2,...
     ...
     'diagnostics', 0,...     %whether to show the diagnostic displays
-    p... %note p at end - given arguments override defaults
+    ...  
+    p...                     %note p at end - passed arguments override defaults
     );
 
-    %fast accessor
-    function out = getParams()
+%override trialParams accessors
+    function out = getTrialParams()
         out = p;
     end
     
-    %fast setter
-    function setParams(in)
+    function setTrialParams(in)
         p = in;
     end
 
-    function run(details, logger)
-        
-        [main, canvas, events] = mainLoop(details);
+
+    function run()
+        params = this.params;
+        [main, canvas, events] = mainLoop(params);
 
         %-----stimulus components----
 
         fixation = FilledDisk(...
             p.fixationLocation, p.fixationPointRadius, ...
-            [details.blackIndex details.blackIndex details.whiteIndex]);
+            [params.blackIndex params.blackIndex params.whiteIndex]);
         canvas.add(fixation);
 
         target = MoviePlayer(p.target);
         canvas.add(target);
 
         %----- visible state and gaze indicator (development feedback) ----
+
         if p.diagnostics
-            state = Text([-5 -5], '', [0 0 details.whiteIndex]);
+            state = Text([-5 -5], '', [0 0 params.whiteIndex]);
             canvas.add(state);
             state.setVisible(1);
 
-            gaze = FilledDisk([0 0], 0.1, [details.whiteIndex 0 0]);
+            gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
             canvas.add(gaze);
-            gaze.setVisible(1);
             events.add(UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y])));
-            
+
+            gaze.setVisible(1);
             
             outlines = TriggerDrawer(events);
             canvas.add(outlines);
@@ -87,7 +98,11 @@ p = namedargs(...
 
         %----- shared-state variables -----
         observedFixation = [0, 0];
-
+        stimulusOnset = 0;
+        nSamples = 0;
+        accumX = 0;
+        accumY = 0;
+        
         %triggers are expensive to create, so we will share them across
         %states.
         nearTrigger = NearTrigger();
@@ -102,15 +117,23 @@ p = namedargs(...
         
         %the first action is to go into the first state
         timeTrigger.set(0, @waitingForFixation);
+        
+        disp(sprintf('cue at %g s (%g deg)', ...
+            p.cueTime, p.target.center(1) + p.target.dx/p.target.dt*p.cueTime));
 
-        main.go(details);
+        main.go();
+        
 
         %----- state functions -----
 
+        
         function waitingForFixation(x, y, t, next)
             fixation.setVisible(1);
+            %gaze.setVisible(1);
+            
+            %fixation dot is blue while not inside the fixation window
             fixation.setColor(...
-                [details.blackIndex details.blackIndex details.whiteIndex]);
+                [params.blackIndex params.blackIndex params.whiteIndex]);
 
             nearTrigger.set(...
                 fixation.getLoc(), p.grossFixationCriterion, @settlingFixation);
@@ -118,46 +141,63 @@ p = namedargs(...
             timeTrigger.unset();
         end
 
+        
         function settlingFixation(x, y, t, next)
             nearTrigger.unset();
+            %gaze.setVisible(0);
             
             fixation.setColor(...
-                [details.blackIndex details.blackIndex details.blackIndex]);
+                [params.blackIndex params.blackIndex params.blackIndex]);
             
             farTrigger.set(...
                 [x y], p.grossFixationCriterion, @waitingForFixation);
-            %after settling, the next valid sample goes into the holding
-            %pattern.
-            timeTrigger.set(t + p.fixationSettlingTime, @holdingFixation, 1);
+            
+            %wait for settling, then average fixation
+            accumX = 0;
+            accumY = 0;
+            nAveragingSamples = 0;
+            timeTrigger.set(t + p.fixationSettlingTime, @averagingFixation, 1);
         end
 
+        
+        function averagingFixation(x, y, t, next)
+            %this should be called for as many samples as are necessary
+            accumX = accumX + x;
+            accumY = accumY + y;
+            nSamples = nSamples + 1;
+            if (nSamples >= p.nAveragingSamples)
+                observedFixation = [accumX, accumY] ./ nSamples;
+                holdingFixation(x, y, t, next);
+            end
+        end
+        
+        
         function holdingFixation(x, y, t, next)
-            observedFixation = [x, y];
-
             nearTrigger.unset();
             farTrigger.set(...
                 observedFixation, p.fineFixationCriterion, @waitingForFixation);
             timeTrigger.set(t + p.fineFixationTime, @showStimulus);
         end
 
+        
         function showStimulus(x, y, t, next)
-            %does it stop recording if I drift correct? Yes.
-            
-            %status = Eyelink( 'DriftCorrStart', 400, 300);
-            %Eyelink('SendKeyButton', double('A'), 0, details.el.KB_PRESS);
-           
-            %we tell the target when the next refresh is, and the target
-            %tells us when its time-zero is.
-            onset = target.setVisible(1, next);
+            stimulusOnset = target.setVisible(1, next);
+            params.log('STIMULUS_ONSET %f', stimulusOnset);
 
             nearTrigger.unset();
             farTrigger.set(...
                 observedFixation, p.fineFixationCriterion, @brokenFixation);
             
-            timeTrigger.set(...
-                onset + p.stimulusDisplayTime, @cueSaccade);
+            if (p.cueSaccade)
+                timeTrigger.set(...
+                    stimulusOnset + p.cueTime, @cueSaccade);
+            else
+                timeTrigger.set(...
+                    stimulusOnset + target.finishTime(), @completed);
+            end     
         end
 
+        
         function cueSaccade(x, y, t, next)
             fixation.setVisible(0);
 
@@ -167,54 +207,61 @@ p = namedargs(...
             timeTrigger.set(t + p.saccadeReactionTime, @awaitSaccade);
         end
 
+        
         function awaitSaccade(x, y, t, next)
             nearTrigger.unset();
             timeTrigger.set(t + p.saccadeWindowTime, @failedSaccade);
             farTrigger.set(...
                 observedFixation, p.fineFixationCriterion, @saccadeTransit);
-            insideTrigger.set(target, p.targetMargin, @completeTrial);
+            insideTrigger.set(target.bounds, p.targetMargin, observedFixation, @finishedSaccade);
         end
+        
 
         function saccadeTransit(x, y, t, next)
-            insideTrigger.set(target, p.targetMargin, @completeTrial);
+            timeTrigger.unset();
             nearTrigger.unset();
             farTrigger.unset();
             timeTrigger.set(t + p.saccadeTransitTime, @targetNotReached);
+            insideTrigger.set(target.bounds, p.targetMargin, observedFixation, @finishedSaccade);
         end
+        
 
-        function completeTrial(x, y, t, next)
+        function finishedSaccade(x, y, t, next)
             insideTrigger.unset();
             nearTrigger.unset();
             farTrigger.unset();
             
-            %spin on waitFinished until trial is over
-            timeTrigger.set(0, @waitFinished);
+            %wait until stimulus has ben shown
+            timeTrigger.set(stimulusOnset + target.finishTime(), @completed);
         end
         
-        function waitFinished(x, y, t, next) 
-            if ~target.getVisible()
-                main.stop();
-                goodFeedback();
+        
+        function completed(x, y, t, next)
+            main.stop();
+            goodFeedback();
 
-                %flag success for experiment protocols that reshuffle
-                %failed trials
-                this.successful = 1;
-            end
+            %flag success for experiment protocols that reshuffle
+            %failed trials
+            this.successful = 1;
         end
+        
 
         function targetNotReached(x, y, t, next)
             insideTrigger.unset();
             badTrial(x, y, t, next);
         end
 
+        
         function failedSaccade(x, y, t, next)
             badTrial(x, y, t, next);
         end
 
+        
         function brokenFixation(x, y, t, next)
             badTrial(x, y, t, next);
         end
 
+        
         function badTrial(x, y, t, next)
             %clear screen
             target.setVisible(0);
@@ -223,19 +270,24 @@ p = namedargs(...
             %give feedback at next refresh
             nearTrigger.unset();
             farTrigger.unset();
-            timeTrigger.set(t + details.cal.interval, @finishBadTrial);
+            timeTrigger.set(t + params.cal.interval, @finishBadTrial);
         end
 
+        
         function finishBadTrial(x, y, t, next)
             main.stop();
             badFeedback();
         end
 
+        
         function goodFeedback
-            play(tones(p.goodTrialTones)); %done on the fly to save memory -- there will be many trial objects
+            %sound constructed on the fly to save memory -- there will be
+            %many trial objects and we record everything they remember
+            play(tones(p.goodTrialTones)); 
             pause(p.goodTrialTimeout)
         end
 
+        
         function badFeedback
             play(tones(p.badTrialTones));
             pause(p.badTrialTimeout);

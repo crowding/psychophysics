@@ -17,9 +17,9 @@ for i = 1:n
     switch class(arg)
         case 'char'
             if n == i
-                error('namedargs:notPaired', 'arguments must com in name/value pairs');
-            elseif isempty(regexp(arg, '^[A-Za-z][A-Za-z0-9_]{0,62}$', 'once'))
-                error('namedargs:badName', '''%s'' is not a valid argument name', arg);
+                error('namedargs:notPaired', 'arguments must come in name/value pairs');
+            elseif ~all(cellfun(@isvarname, splitstr('.',arg)))
+                error('namedargs:badName', '''%s'' is not a valid argument name chain', arg);
             end
             
             skip=1; %skip the next argument

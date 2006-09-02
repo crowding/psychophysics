@@ -11,15 +11,26 @@ function this = Experiment(varargin)
 % Any other named arguments are stuffed into the 'params' property and will
 % be passed down into the Eyelink and Screen setup routines.
 
-defaults = struct(...
-    'trials', {{}},... %wrap in cells is deliberate - struct() sucks
-    'subject', {''},...
-    'runs', {{}}...
+defaults = namedargs(...
+    'trials', {}...
+    ,'subject', ''...
+    ,'filename',''...
+    ,'runs', {}...
+    ,'description', ''...
+    ,'params.logfile', ''...
     );
 
+if numel(dbstack) > 1
+    caller_ = callerhandle(1);
+else
+    caller_ = callerhandle(0);
+end
+
 this = Object(...
-    propertiesfromdefaults(defaults, 'params', varargin{:}),...
-    public(@run));
+    Identifiable()...
+    ,propertiesfromdefaults(defaults, 'params', varargin{:})...
+    ,public(@run)...
+    );
 
 %input-dependent default
 if isempty(this.trials)
@@ -28,84 +39,101 @@ end
 
 %----- instance variables -----
 
-    function filename = run
+    function run
         if isempty(this.subject)
-            error('need subject initials'); %need to gather subject infos
+            this.subject = input(this, 'Enter subject initials:');
+            if ~isvarname(subject)
+                error('Please use only letters and numbers in subject identifiers.')
+            end
         end
-        %perhaps query for some subject params?
+
+        if isempty(this.filename)
+            this.filename = sprintf('%s-%04d-%02d-%02d--%02d-%02d-%02d-%s.mat',...
+                this.subject, floor(clock), func2str(caller_));
+        end
         
+        if isempty(this.params.logfile)
+            this.params.logfile = [this.filename '.log'];
+        end
+            
+        %TODO: perhaps see if there's a per-subject config?
+
         %an total experiment can have many runs. Each run will be saved.
-        theRun = ExperimentRun('trials', this.trials, this.params);
-        theRun.run(this.trials);
+        theRun = ExperimentRun(this.params);
+        e = [];
+        try
+            theRun.run(this.trials);
+        catch
+            theRun.err = lasterror;
+        end
         this.runs{end+1} = theRun;
 
-        %now save ourself?
-        warning('experiment save not implemented');
-        
+        %now save ourself. Since we overwrite, it is prudent to write
+        %to a temp file first.
+        t = tempname;
+        disp( sprintf('writing to temp file %s', t));
+        save(t, 'this');
+        finalfile = fullfile(env('datadir'), this.filename);
+        movefile([t '.mat'], finalfile);
+        disp( sprintf('saved to %s', finalfile) );
+
+
         %if there was an error, report it after saving
         if ~isempty(theRun.err)
-            rethrow(theRun.err)
+            warning('the run stopped with an error: %s', theRun.err.identifier)
+            stacktrace(theRun.err);
         end
     end
 
-
-
-    %An object that stores data for each 'run' of a long experiment.
+%An object is created to store data for each 'run' of an experiment.
     function this = ExperimentRun(varargin)
-        %The 'trials' parameter is a trial iterator. it generates trials
-        %(and might
-        %pause, respond to keyboard input, adn so on, which is why it needs
-        %params() to run.)
-        defaults = struct(...
-            'trialsDone', {{}},...
-            'err', [],...
-            'startDate', []);
-        
+
+        defaults = namedargs(...
+            'trialsDone', {}...
+            ,'err', []...
+            ,'startDate', []...
+            );
+
         this = Object(...
-            propertiesfromdefaults(defaults, 'params', varargin{:}),...
-            public(@run));
-        
-        
+            Identifiable()...
+            ,propertiesfromdefaults(defaults, 'params', varargin{:})...
+            ,public(@run)...
+            );
+
+
         function run(trials)
             this.startDate = clock();
             
-            this.params = require(setupEyelinkExperiment(this.params), @doRun);
+            %experimentRun params get to know information about the
+            %environment...
+            this.params = require(...
+                openLog(this.params),...
+                setupEyelinkExperiment(),...
+                LogEnclosed('EXPERIMENT_RUN %.15f', this.id),...
+                @doRun);
             function params = doRun(params)
                 if params.dummy
-                    params.timeDilation = 3;
+                    params.trialParams.timeDilation = 3;
                 end
-                
-                while trials.hasNext()
-                  
-                    trial = trials.next();
-                    
-                    e = [];
-                    try
-                        trial.run(params);
-                    catch
-                        e = lasterr;
-                    end
 
-                    trials.result(trial);
-                    
+                while trials.hasNext()
+                    trial = trials.next(params);
+                    params.log('BEGIN TRIAL %.15f', trial.id);
                     try
-                        this.trialsDone{end+1} = trial;
+                        trial.run();
                     catch
-                        clear Screen
-                        this.trialsDone{end+1} = trial;
+                        trial.err = lasterror;
                     end
+                    this.trialsDone = {trial this.trialsDone};
+                    params.log('END TRIAL %.15f', trial.id);
                     
-                    if ~isempty(e)
-                        this.err = e;
-                        break;
-                    end
+                    trials.result(trial);
                 end
-                
             end
-            
         end
-        
-    end
+
+
+    end %-----ExperimentRun-----
 
 
 end

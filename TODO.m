@@ -1,8 +1,10 @@
 %{
-* profile the most costly children of update() to see where I am skipping frames...
+*LOGGING...
+    *logging around methods
+    *the logger gets passed in through the params
+    *log when triggers fire
 
-* something something drift correction? coloring the fixation point blue for now
-    *also, adding 'offset' value to insideTrigger
+* profile the most costly children of update() to see where I am skipping frames...
 
 * sophisticated help facility for objects.
 

@@ -22,9 +22,9 @@ components_ = cell(0);
 
     function remove(drawer)
         %remove and release a single component from the drawing.
-        id = drawer.id();
+        id = drawer.getId();
         
-        found = find(cellfun(@(x) x.id() == id, drawer));
+        found = find(cellfun(@(x) x.getId() == id, drawer));
         if ~isempty(found)
             removeAt(found(1));
         end

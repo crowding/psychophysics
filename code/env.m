@@ -1,4 +1,4 @@
-function environment = env();
+function environment = env(key);
 %Returns a structure containing path variables of use to the experiments
 
 persistent e;
@@ -20,4 +20,8 @@ if isempty(e)
     e.eyedir = fullfile(e.datadir, 'eyelink');
 end
 
-environment = e;
+if ~exist('key', 'var')
+    environment = e;
+else
+    environment = e.(key);
+end

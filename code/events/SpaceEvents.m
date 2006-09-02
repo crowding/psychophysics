@@ -17,43 +17,44 @@ this = public(@add, @remove, @update, @clear, @draw, @initializer, @sample);
 %reason.
 
 %triggers_ = cell(0); %ideal
-triggers_ = struct('id', {}, 'check', {}, 'draw', {}); %middle
-%check_ = emptyOf(@(x)0); %ugly
-%draw_ = emptyOf(@(x)0); %ugly
-%id_ = []; %ugly
+triggers_ = struct('getId', {}, 'check', {}, 'draw', {}, 'setLog', {}); %middle
 
 transform_ = [];
 online_ = 0;
+log_ = [];
 
 %----- methods -----
 
     function add(trigger)
+        if online_
+            error('SpaceEvents:modification_while_running',...
+            'Can''t add or remove triggers while running.');
+        end
         %adds a trigger object.
         %
         %See also Trigger.
         
         %triggers_{end + 1} = trigger; %ideal
         triggers_(end+1) = interface(triggers_, trigger); %middle
-        %check_(end+1) = trigger.check; %ugly
-        %draw_(end+1) = trigger.draw; %ugly
-        %id_(end+1) = trigger.id(); %ugly
     end
 
     function remove(trigger)
         %Removes a trigger object.
         %
         %See also Trigger.
+        if online_
+            error('SpaceEvents:modification_while_running',...
+            'Can''t add or remove triggers while running.');
+        end
+
         
-        searchid = trigger.id();
-        %found = find(cellfun(@(x)x.id() == searchid, triggers_)); %ideal
-        found = find(arrayfun(@(x)x.id() == searchid, triggers_)); %middle
+        searchid = trigger.getId();
+        %found = find(cellfun(@(x)x.getId() == searchid, triggers_)); %ideal
+        found = find(arrayfun(@(x)x.getId() == searchid, triggers_)); %middle
         %found = find(id_ == searchid); %ugly
         if ~isempty(found)
             %triggers_(found(1)) = []; %ideal
             triggers_(found(1)) = []; %middle
-            %check_(found(1)) = []; %ugly
-            %draw_(found(1)) = []; %ugly
-            %id_(found(1)) = []; %ugly
         else
             warning('SpaceEvents:noSuchItem',...
                 'tried to remove nonexistent item with id %d', searchid);
@@ -70,9 +71,6 @@ online_ = 0;
         %triggers_(:) = []; %ideal
         triggers_(:) = []; %middle
         
-        %check_(:) = []; %ugly
-        %draw_(:) = []; %ugly
-        %id_(:) = []; %ugly
     end
 
     function update(next)
@@ -92,10 +90,8 @@ online_ = 0;
         %match
         
         for trig = triggers_ %ideal, middle
-        %for check = check_ %ugly
             %trig{:}.check(x, y, t, next); %ideal
             trig.check(x, y, t, next); %middle
-            %check(x, y, t, next); %ugly
         end
     end
 
@@ -109,10 +105,8 @@ online_ = 0;
         % See also Trigger>draw.
         
         for trig = triggers_ %ideal, middle
-        %for draw = draw_ %ugly
             %trig{i}.draw(window, toPixels); %ideal
             trig.draw(window, toPixels); %middle
-            %draw(window, toPixels); %ugly
         end
     end
 
@@ -129,6 +123,13 @@ online_ = 0;
         
         transform_ = transformToDegrees(details.cal);
         online_ = 1;
+
+        %now that we are starting an experiment, tell each trigger where to
+        %log to.
+        for t = triggers_
+            t.setLog(details.log);
+        end
+
         release = @stop;
         
         function stop

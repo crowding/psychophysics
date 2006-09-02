@@ -83,6 +83,13 @@ try
 catch
     %if there is a problem, rethrow the last error.
     err = lasterror;
+    %log the error if a logger is among the parameters
+    try
+        if isfield(output, 'log')
+            output.log.logMessage('ERROR %s', err.identifier);
+        end
+    catch
+    end
     %    try    %FIXME--chained errors
     releaser();
     %    catch

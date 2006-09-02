@@ -3,17 +3,20 @@ function this = UpdateTrigger(fn_)
 %
 %See also Trigger.
 
-this = inherit(Trigger(), public(@check, @set, @unset));
+this = inherit(Trigger(), public(@check, @set, @unset, @setLog));
 
-    if (nargin < 1)
-        set_ = 0;
-    else
-        set_ = 1;
-    end
-    
+if (nargin < 1)
+    set_ = 0;
+else
+    set_ = 1;
+end
+
+log_ = [];
+
     %methods
     function check(x, y, t, next)
         if set_
+            log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
             fn_(x, y, t, next); %call function always
         end
     end
@@ -25,5 +28,9 @@ this = inherit(Trigger(), public(@check, @set, @unset));
 
     function unset()
         set_ = 0;
+    end
+
+    function setLog(log)
+        log_ = log;
     end
 end

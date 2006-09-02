@@ -1,6 +1,5 @@
 function [clockoffset, measured] = getclockoffset(details)
 
-
 if details.dummy
     getTime = @getDummyTime;
 else
@@ -9,20 +8,15 @@ end
 
 % There is an offset between the mac and eyelink clocks.
 % Additionally, the eyelink clock only returns an integer number of
-% milliseconds. If t is the value of getSecs measured just before
-% sampling the eyelink's clock, then the eyelink's clock s(t)
-% equals:
+% milliseconds. If t is the computer's clock, then the eyelink's clock s(t)
+% is a stairstep function:
 %
-% s(t) = floor(1000*t + ofs + noise)
+% s(t) = floor(1000*t + ofs)
 %
-% where noise is some latency and delay introduced between the
-% computer time measurement and the request to measure the
-% eyelink's time. ofs is the offset we desire to measure.
-%
-% We take many samples and fit the best value of ofs. Noise
-% is assumed to be independent so it is ignored (I want a precise
-% repeatable measurement, and don't care if it contains some small
-% constant bias.)
+% We take many samples and fit the best value of ofs. Noise and latency
+% are assumed to be independent so they are ignored (I want a precise
+% repeatable measurement, and don't care about its actual value so long as
+% it can be compared across a number of trials.)
 %
 % Begin by taking a bunch of samples of the eyelink clock.
 
@@ -33,12 +27,12 @@ end
     require(highPriority(details, 'priority', 0), @collectdata);
     function [time, before, after] = collectdata
         [time, before, after] = ...
-            arrayfun(@(i)getTime(0.2,10), 1:500);
+            arrayfun(@(i)getTime(0.05,10), 1:250);
     end
 
 % The distribution of intervals (post_request - pre_request)
-% is a J-curve -- I trust the short intervals. Filter out the 50%
-% of good trials (where the request happened quickly):
+% is a J-curve -- I trust the short intervals. Select the best 50%
+% of trials (where the request happened quickly):
 crit = median(post_request - pre_request);
 good = (post_request - pre_request) < crit;
 time = time(good);
@@ -47,7 +41,7 @@ pre_request = pre_request(good);
 
 
 %%now see how closely we recreate the staircase. Here's a naive estimate
-%%assuming uniorm sampling, which we will use to bootstrap the least
+%%assuming uniorm sampling, which we will use to bootstrap a least
 %%squares estimate.
 %
 est1 = mean(time - 1000*pre_request) + 0.5;
@@ -57,15 +51,13 @@ est1 = mean(time - 1000*pre_request) + 0.5;
 %est2 = mean(time - floor(1000*pre_request));
 
 %least squares fit method is more accurate. the staircase
-%function is an ad hoc steplike spline function with a sharpness
-%parameter.
+%function is an ad hoc spline curve with a sharpness parameter.
 est3 = fminsearch(...
     @(est) sum(staircase(1000*pre_request + est(1), est(2)) - time).^2,...
     [est1, 10]);
 
-
 %{
-%visual diagnostics: graph the fits
+%visual diagnostics
 
 %visually inspect with the abscissa being mod(t, 1/1000) and the
 %ordinate being s(t) - floor(1000*t) -- i.e. collapse the staircase down
@@ -82,7 +74,7 @@ s = time(i);
 plot(abscissa, s - floor(1000*t), 'k.');
 plot(abscissa, floor(1000*t + est1) - floor(1000*t), 'r-');
 plot(abscissa, floor(1000*t + est2) - floor(1000*t), 'g-');
-plot(abscissa, staircase(1000.*t + est3(1), est3(2)) - floor(1000*t), 'g-');
+plot(abscissa, staircase(1000.*t + est3(1), est3(2)) - floor(1000*t), 'b-');
 drawnow;
 hold off;
 %}
@@ -96,41 +88,43 @@ measured = mean(pre_request);
             getEyelinkTime(softtimeout, hardtimeout)
         %requests the time from the eyelink, and the time before and after
         %the request was made. after 'softtimeout' has passed, the eyelink
-        %connection is cycled. After 'hardtimeout' has passed, an error is
+        %is prodded again. After 'hardtimeout' has passed, an error is
         %thrown. Unreliable stuff, this...
 
         before_request = GetSecs();
-        status = Eyelink('RequestTime');
+        status = Eyelink('RequestTime'); %do it twice for luck!!!
         after_request = GetSecs();
         
-        timeout = GetSecs();
-
         if status ~= 0
             error('doClockSync:badStatus', ...
                 'status %d from requesttime', status);
         end
-
+        
+        start = before_requst;
         time = 0;
         while(time == 0)
             s = GetSecs();
             
-            if (s - before_request) > hardtimeout
+            if (s - start) > hardtimeout
                 
                 error('getclockoffset:timeout', ...
                       'timeout waiting for clock information from eyelink');
                   
             elseif (s - timeout) > softtimeout
                 
-                message('Eyelink not responding, cycling connection');
-                Eyelink('shutdown');
-                status = Eyelink('Initialize');
-                if status ~= 0
-                    %this is a bad thing, since we've changed state that is
-                    %depended on by our caller
-                    error('getclockoffset:panic', 'eyelink connection went away');
-                end
-                timeout = s;
+                warning('doClockSync:eyelinkNotResponding', ...
+                    'Eyelink not responding, prodding again (%s)', GetSecs);
                 
+                %request the time again...
+                before_request = GetSecs();
+                status = Eyelink('RequestTime');
+                status = Eyelink('RequestTime'); %and do it twice for luck!!!
+                after_request = GetSecs();
+                %actually, for more than luck... it seems SR's eyelink library
+                %helpfully screws things up sometimes when the connection
+                %has been idle.
+
+                timeout = s;
             end
 
             time = Eyelink('ReadTime');
@@ -143,9 +137,5 @@ measured = mean(pre_request);
         before = GetSecs();
         time = floor(GetSecs() * 1000 + offset + rand() * 0.1);
         after = GetSecs();
-        %if rand() > 0.999
-        %    error('doClockSync:timeout', ...
-        %        'random simulated timeout error');
-        %end
     end
 end

@@ -30,7 +30,7 @@ require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
 
-        events.add(InsideTrigger(rect, 0, @moveRect));
+        events.add(InsideTrigger(rect.bounds, 0, @moveRect));
         events.add(UpdateTrigger(@followDisk));
         events.add(startTrigger);
         events.add(playTrigger);

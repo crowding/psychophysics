@@ -19,6 +19,7 @@ end
         names = fieldnames(prototype);
         extra = rmfield(s, names);
         out = rmfield(s, fieldnames(extra));
+        out = orderfields(out, prototype);
     end
 
 end

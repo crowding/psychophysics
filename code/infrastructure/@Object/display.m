@@ -7,7 +7,7 @@ switch numel(this)
             disp([f.function ':']);
         end
         
-        if isfield(this.orig, 'properties')
+        if isfield(this.orig, 'properties__')
             propnames = this.orig.properties__;
             values = cellfun(@(prop) this.orig.(getterName(prop))(), propnames, 'UniformOutput', 0);
             args = {propnames{:}; values{:}};

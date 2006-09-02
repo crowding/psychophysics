@@ -75,13 +75,20 @@ function f = joinResource(first, varargin)
                 release2();
             catch
                 err = lasterror;
-                %stacktrace(err);  %FIXME - chained errors
                 try
-                    release1(); %may need chaining
+                    if isfield(output, 'log')
+                        output.log.logMessage('ERROR %s', err.identifier);
+                    end
                 catch
-                    %stacktrace(err);  %FIXME - chained errors
-                    err = lasterror;
                 end
+
+                %stacktrace(err);  %FIXME - chained errors
+                %try
+                release1();
+                %catch
+                %    %stacktrace(err);  %FIXME - chained errors
+                %    err = lasterror;
+                %end
                 rethrow(err);
             end
             release1();
