@@ -9,6 +9,7 @@ this = inherit(...
     ,@testPropertyOverride...
     ,@testReferenceBehavior...
     ,@testPropertiesField...
+    ,@testPropertyOverrideInChild...
     ));
 
     function testPropertyGetting
@@ -47,6 +48,30 @@ this = inherit(...
         assertEquals(a.getValue(), 2);
         a.increment();
         assertEquals(a.getValue(), 3);
+    end
+
+    function testPropertyOverrideInChild
+        function this = Parent
+            %inherit is not getting the method__ right...
+            this = inherit(properties('a', 1), public(@doubleA));
+            
+            function aa = doubleA
+                aa = 2 * this.getA();
+            end
+        end
+        
+        function this = Child
+            [this, parent_] = inherit(Parent(), public(@getA));
+            
+            function a = getA
+                a = parent_.getA() + 1;
+            end
+        end
+        
+        c = Child();
+        c.setA(4)
+        assertEquals(10, c.doubleA());
+        
     end
 
 

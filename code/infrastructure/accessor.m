@@ -3,7 +3,7 @@ function [get, set] = accessor(value_)
 
 get = @getter;
 %might be even faster if we could avoid these function
-%handles being in the smae workspace as accessor.
+%handles being in the same workspace as accessor.
 set = @setter;
 
     function v = getter

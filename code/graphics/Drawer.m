@@ -3,25 +3,15 @@ function this = Drawer
 
 this = inherit(...
     Identifiable,...
-    public(@prepare, @release, @update, @draw, @bounds, @toPixels, @toDegrees)...
+    public(@prepare, @release, @init, @update, @draw, @bounds)...
     );
-
-    toPixels_ = [];
-    toDegrees_ = [];
-
-    function prepare(drawing)
-        toPixels_ = transformToPixels(drawing.calibration());
-        toDegrees_ = transformToDegrees(drawing.calibration());
-        
+    function prepare(params)
         %in subclasses, calculate, build, textures, etc. for the given
-        %display. Is a chained init function, need an inheritance idiom for
-        %it rather than having to always remember to call the parent
-        %function.
+        %display.
     end
 
     function release()
-        %release any textures or other resources. Is a chained release 
-        %function, need an inheritance mechanism for it.
+        %Should release any textures or other resources.
     end
 
     function update()
@@ -38,11 +28,10 @@ this = inherit(...
         %this should return the object bounds (in degrees);
     end
 
-    function varargout = toPixels(varargin)
-        varargout{1:nargout} = toPixels_(varargin{:});
-    end
+%----- prepare and release are invoked by this initializer function
 
-    function varargout = toDegrees(varargin)
-        varargout{1:nargout} = toDegrees_(varargin{:});
+    function [releaser, params] = init(params)
+        this.prepare(params);
+        releaser = this.release;
     end
 end

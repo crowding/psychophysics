@@ -12,6 +12,7 @@ end
 arrayfun(@printStackTrace, errors);
 
     function printStackTrace(theErr)
+        %printErrorMessage(theErr);
         disp(['??? ' theErr.identifier ': ' theErr.message]);
         arrayfun(@traceframe, theErr.stack);
         disp('');
@@ -23,6 +24,16 @@ arrayfun(@printStackTrace, errors);
                 frame.file, frame.line, frame.name, frame.line));
             %a line of code...
             %dbtype(frame.file, num2str(frame.line));
+        end
+        
+        function printErrorMessage(theErr)
+            %some error messages are really parser messages, make it so I
+            %can click in them
+            message = regexprep(...
+                theErr.message...
+                ,'(File:\s*(.*?)\s*Line:\s*(.*)\s*Column:\s*(.*)\s*)'...
+                ,'<a href="error:\2,\3,\4">\1</a>');
+            disp(['??? ' theErr.identifier ': ' message]);
         end
     end
 end

@@ -81,11 +81,12 @@ cellfun(@assignmethods, names, varargin, others);
                 return
             end
             
-            %get the actual method (not the transparent invoker)
+            %get the actual method as well as the transparent invoker
             method = obj.method__(name);
+            wrappedmethod = obj.(name);
             
             %store the method
-            this.(name) = method;
+            this.(name) = wrappedmethod;
 
             %Now tell the other ancestors about the new method
             cellfun(@putmethod, others);
@@ -105,11 +106,19 @@ this.method__ = @putparentmethods;
     function fn = putparentmethods(name, fn)
         %when just getting a method, just the first method should be OK.
         if (nargin < 2)
-            fn = this.(name); %since inherited 'this' contains the raw
-            %methods.
+            %return the 'raw' method, not the wrapped one...
+            for i = this.parents__(end:-1:1)
+                if isfield(i{:}, name)
+                    fn = i{:}.method__(name);
+                    break;
+                end
+            end
+            if ~exist('fn', 'var')
+                error('inherit:noSuchMethod','No such method %s', name)
+            end
         else
-            %store the method, and store it in the ancestors
-            this.(name) = fn;
+            %store the method here, and store it in all the ancestors
+            this.(name) = fn; %Anything refer to this anymore?
             cellfun(@putparentmethod, varargin);
         end
         

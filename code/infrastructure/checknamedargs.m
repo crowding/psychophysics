@@ -29,6 +29,7 @@ for i = 1:n
                 error('namedargs:structArray', 'Nonscalar struct arrays as named arguments ar not permitted.')
             end
         otherwise
+            clear Screen;
             error('namedargs:badArgumentType', 'Bad argument type for named arugments.')
     end
 end

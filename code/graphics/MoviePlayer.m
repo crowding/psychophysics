@@ -18,8 +18,9 @@ frameIndex_ = 1; %whcih frame we are about to show
 frameCounter_ = 1; %the index into the teture array (may be different from frame index
 visible_ = 0;
 prepared_ = 0;
+toDegrees_ = [];
 
-    function prepare(drawing)
+    function prepare(params)
         %Prepares the movie for drawing into a window.
         %
         %drawing: the Drawing object that manages the display.
@@ -31,7 +32,8 @@ prepared_ = 0;
                     'Attempted to prepare an already-prepared graphics object.');
             end
             prepared_ = 1;
-            textures_ = texture_movie(patch_, drawing.window(), drawing.calibration());
+            textures_ = texture_movie(patch_, params.window, params.cal);
+            toDegrees_ = transformToDegrees(params.cal);
         catch
             err = lasterror;
             %maybe I need an idiom for the chained initialization pattern too...
@@ -106,7 +108,7 @@ prepared_ = 0;
     function b = bounds
         %Gives the current bounds of the object, i.e. the bounds of
         %the next frame to be shown.
-            b = this.toDegrees(textures_(frameIndex_).playrect);
+            b = toDegrees_(textures_(frameIndex_).playrect);
     end
 
     function v = getVisible();

@@ -22,7 +22,8 @@ go_ = 0;
         %
         %Initializes the event managers and sets high CPU priority before
         %running.
-        require(events_.initializer(details_), listenChars(), highPriority(), @doGo);
+        require(events_.initializer(details_), canvas_.initializer(), ...
+            listenChars(), highPriority(), @doGo);
     end
 
     function details = doGo(details)
@@ -37,12 +38,9 @@ go_ = 0;
         pushEvents = events_.update;
         log = details.log;
         window = details.window;
-        drawScreen = canvas_.draw;
-        stepFrame = canvas_.update;
+        draw = details.draw;
+        update = details.update;
 
-        
-        ListenChar();
-        
         %the main loop
         while(1)
             %take a sample from the eyetracker and react to it
@@ -60,8 +58,9 @@ go_ = 0;
             if CharAvail() && lower(GetChar()) == 'q'
                 error('mainLoop:userCanceled', 'user escaped from main loop.');
             end
-            
-            drawScreen();
+
+            %draw all the objects
+            draw(window);
 
             [VBL] = Screen('Flip', window, 0, 0); %was 20.00    3458   
             hitcount = hitcount + 1;
@@ -84,7 +83,9 @@ go_ = 0;
                 %may accumulate error if
                 %interval differs from the actual interval...
                 %but we're screwed in that case.
-                stepFrame();
+                
+                %step forward the frame on all objects
+                update();
             end
 
             lastVBL = VBL;

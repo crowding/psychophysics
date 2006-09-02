@@ -1,11 +1,17 @@
 function this = FilledDisk(loc_, radius_, color_)
-
-%A filled rectangle object that is part of displays.
+%A graphics object that draws a disk at a specified location.
+%
+%loc_ : the coordinates (in degrees) of the center of the disk.
+%radius_: the radius of the disk in degrees.
+%color_: the color of the disk.
+%
+%See also Drawer, Drawing.
 
 %----- public interface -----
 this = inherit(...
     Drawer(),...
     public(...
+        @prepare,...
         @draw, @bounds,...
         @getLoc, @setLoc, @getRadius, @setRadius,...
         @getColor, @setColor, @getVisible, @setVisible)...
@@ -13,7 +19,7 @@ this = inherit(...
 
 %----- private instance variables (plus those that are arguments) -----
 
-toPixels_ = this.toPixels;
+toPixels_ = [];
 visible_ = 0;
 
 %----- methods -----
@@ -30,6 +36,10 @@ visible_ = 0;
         disp = repmat(radius_, 1, 2);
         center = loc_;
         b = ([center - disp, center + disp]);
+    end
+
+    function prepare(params)
+        toPixels_ = transformToPixels(params.cal);
     end
 
 %manually declare accessors, for speed inside the function.

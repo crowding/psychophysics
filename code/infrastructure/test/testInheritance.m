@@ -15,6 +15,7 @@ this = inherit(TestCase()...
     ,@testProperties...
     ,@testVersion...
     ,@testInheritObjects...
+    ,@testGrandchildOverridesChild...
     ));
 
     function this = Parent
@@ -42,7 +43,7 @@ this = inherit(TestCase()...
     end
 
     function this = Child
-        this = public(@bar, @baz, @quuux, @boffo);
+        this = public(@bar, @baz, @quuux, @boffo, @grup, @flounce);
         [this, parent_] = inherit(Parent(), this);
 
         function r = bar
@@ -57,15 +58,22 @@ this = inherit(TestCase()...
             r = this.quux();
         end
         
-        function r = boffo
-            %how to delegate to a parent - the _0 suffix
-            r = [parent_.boffo() ' + Child'];
+        function r = grup
+            r = this.flounce();
         end
         
+        function r = flounce
+            r = 'Child';
+        end
+        
+        function r = boffo
+            %how to delegate to a parent
+            r = [parent_.boffo() ' + Child'];
+        end
     end
 
     function this = Grandchild
-        this = public(@gravorsh, @flurbl);
+        this = public(@gravorsh, @flurbl, @flounce);
         this = inherit(Child(),this);
         
         function r = gravorsh
@@ -74,6 +82,10 @@ this = inherit(TestCase()...
         
         function r = flurbl
             r = this.yip();
+        end
+        
+        function t = flounce
+            t = 'Grandchild';
         end
     end
 
@@ -199,6 +211,11 @@ this = inherit(TestCase()...
         assertEquals(fninfo.function, vers.function);
         assertEquals(url, vers.url);
         assertEquals(revision, vers.revision);
+    end
+
+    function testGrandchildOverridesChild
+        g = Grandchild();
+        assertEquals('Grandchild', g.grup());
     end
 
     function testInheritObjects

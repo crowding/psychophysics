@@ -1,101 +1,72 @@
-function this = Drawing(details_)
-%Drawing is a holder for graphics drawing objects.
-%Drawing tries to coordinate the allocation of resources (textures etc.)
-%for graphics objects; therefore it needs to have cleanup code. Therefore
-%this does not return the Drawing object itself, but an initializer you can
-%use with REQUIRE.
+function this = Drawing(varargin)
+%Drawing holds on to graphics drawing objects and tells them when to draw
+%themselves to the screen. The initialization struct should contain at
+%least a 'window' field, and anything else required to draw the objects to
+%the screen.
+%
+%
 
 % ----- public interface -----
-this = inherit(...
-    public(@add, @remove, @clear, @update, @draw, @calibration, @window));
+this = public(@add, @initializer);
+
 % ----- instance variables -----
 
-components_ = cell(0);
+%the list of graphics components, restricted to the interface we use
+components_ = struct('draw', {}, 'update', {}, 'init', {});
+params_ = namedargs(varargin{:});
+
+%whether we are online
+online_ = 0;
 
 % ----- methods -----
     function add(drawer)
-        %add a single component to the drawing and prepare it to be drawn.
-        drawer.prepare(this); %do this first, since it
-                              %could error
-        components_{end+1} = drawer;
-    end
-
-    function remove(drawer)
-        %remove and release a single component from the drawing.
-        id = drawer.getId();
-        
-        found = find(cellfun(@(x) x.getId() == id, drawer));
-        if ~isempty(found)
-            removeAt(found(1));
+        %Add a graphics object to the display. The object must support the 
+        %'draw', 'update', and 'init' methods. Objects cannot be added
+        %while the main loop is running for performance reasons.
+        %
+        %Aee also Drawer.
+        if online_
+            error('mainLoop:modificationWhileRunning',...
+                ['adding graphics objects while in the display'...
+                 'is not supported.']);
         end
+
+        components_(end+1) = interface(components_, drawer);
     end
 
-    function clear
-        %clear all the components from the graphics
-        errs = emptyOf(lasterror);
-                
-        for ii = numel(components_):-1:1 %stepping backwards
-            %try to clear everything, postponing errors for later
-            try
-                removeAt(ii);
-            catch
-                errs(end+1) = lasterror;
+    function init = initializer(varargin)
+        %Produces an initializer to be called as we enter the main loop.
+        %
+        %The initializer prepares all the graphics objects and outputs two
+        %fields, 'drawers' and 'updaters' containing cell arrays of the
+        %object's draw and update methods. On completion, the graphics
+        %objects are released.
+        %
+        %See also require.
+        
+        init = JoinResource(currynamedargs(@online, varargin{:}), components_.init);
+        
+        function [release, params] = online(params)
+            online_ = 1;
+            params.draw = @draw; %to be de-abstracted upon combining with mainLoop
+            params.update = @update; %to be de-abstracted upon combining with mainLoop
+            
+            release = @offline;
+            function offline
+                online_ = 0;
+            end
+            
+            function draw(window) %to be de-functionhandled by combining with mainloop
+                for i = components_
+                    i.draw(window);
+                end
+            end
+            
+            function update
+                for i = components_
+                    i.update();
+                end
             end
         end
-        if ~isempty(errs)
-            rethrow(errs(1)); %FIXME: way to throw multiple errors?
-        end
-    end
-
-%look at SpaceEvents.update(), which looks like this, but runs much faster
-%than this did! What's going on?
-%{
-    function update
-        for com = components_
-            com{:}.update(); %updates for each element
-        end
-    end
-%}
-
-    updater_ = @(X) X.update();
-    function update
-        cellfun(updater_, components_);
-    end
-
-    function c = calibration()
-        c = details_.cal;
-    end
-
-    function w = window()
-        w = details_.window;
-    end
-
-%why is this so much faster than update() when they are the same function and draw() does more in its subfunctions?!?
-    drawer_ = @(X) X.draw(details_.window);
-    function draw
-        cellfun(drawer_, components_);
-    end
-
-%----- internal functions -----
-
-    function removeAt(index)
-        %private function.
-        %remove a component, THEN deallocates it
-        it = components_{index};
-        components_{index} = {};
-        it.release();
-        
-        %hooray for my closure-reference objects --
-        %this order of operations be impossible with matlab's dumb
-        %copy-on-write objects, and there'd be many more than 3 lines:
-        %
-        %try
-        %   components_(found(index)) = release(components_(found(index)));
-        %catch
-        %   err = lasterror;
-        %   components_(found(index)) = [];
-        %   rethrow(err);
-        %end
-        %components_(found(index)) = [];
     end
 end

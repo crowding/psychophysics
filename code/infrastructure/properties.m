@@ -1,6 +1,11 @@
 function this = properties(varargin)
-%creates a properties object, which can be inherited into any larger
-%object.
+%Creates a properties object, which can be inherited into any larger
+%object. Aruments are as in <a href="matlab:help struct">struct</a> (without its support for creating cell
+%arrays.) The properties object has getter and setter methods with names
+%like getX and setX, and a field 'properties__' which lists the names of
+%the properties.
+%
+%See also public, gettername, settername.
 
 %make the core structure
 if mod(nargin, 2)
@@ -25,10 +30,11 @@ setterNames = cellfun(@setterName, names, 'UniformOutput', 0);
 %so we don't trip struct()'s astonishing behavior with cell array
 %arguments)
 tostruct = {getterNames{:}; getters{:}; setterNames{:}; setters{:}};
-this = struct(tostruct{:});
+this = publicize(struct(tostruct{:}));
 
 %this is a behind the scenes object so I will use the ugly boilerplate for
 %speed
+%{
 this.method__ = @method__;
     function val = method__(name, val);
         if nargin > 1
@@ -39,6 +45,7 @@ this.method__ = @method__;
             val = this.(name);
         end
     end
+%}
 
 this.properties__ = names;
 %that boilerplate did the same job as 'this = publicize(this)' but directly,

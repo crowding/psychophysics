@@ -1,6 +1,4 @@
 function this = public(varargin)
-%function s = public(varargin)
-%
 %Given a bunch of function handles and variables to publically expose,
 %PUBLIC creates a closure-based reference object.
 %
@@ -9,11 +7,7 @@ function this = public(varargin)
 %Unlike the object produced using FINAL, this one can be dynamically
 %modified. New objects can inherit behavior from this one.
 
-%TODO: something about interfaces (duck-typing for the win?)
-
 % ----- implementation -----
-% This is sort of tricky, but shows how very powerful closures are.
-
 %To allow ancestor code to call into inheritor code, we need
 %to be able to effectively modify the 'this' structure that the ancestor
 %code holds onto -- OR have the 'this' refer to something we can modify.
