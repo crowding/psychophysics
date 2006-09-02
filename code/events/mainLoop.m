@@ -33,25 +33,31 @@ go_ = 0;
         lastVBL = Screen('Flip', details.window);
         
         %for better speed in the loop, eschew struct access
+        triggers = events_.getTriggers(); %brutally ugly speed hack
         pushEvents = events_.update;
         log = details.log;
         window = details.window;
         drawScreen = canvas_.draw;
         stepFrame = canvas_.update;
+
         
         ListenChar();
         
         %the main loop
         while(1)
             %take a sample from the eyetracker and react to it
-            pushEvents(lastVBL + interval); %was  27.73    3469   
+            %triggers is passed in manually because, for whatever reason,
+            %looking it up from lexical scope inside the function imposes
+            %300% overhead.
+            pushEvents(triggers, lastVBL + interval); %was  13.87    1865 
+            %spaceEvents_update from here was 18654.109 s
             
             if ~go_
                 break;
             end
 
             %check for the quit key
-            if CharAvail() && lower(GetChar()) == 'q' %was  6.31    3459  
+            if CharAvail() && lower(GetChar()) == 'q'
                 error('mainLoop:userCanceled', 'user escaped from main loop.');
             end
             
@@ -66,7 +72,7 @@ go_ = 0;
             skipcount = skipcount + frames - 1;
 
             if frames > 1
-                log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL); %was  0.57     600  
+                log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
             end
 
             if frames > 60
@@ -78,7 +84,7 @@ go_ = 0;
                 %may accumulate error if
                 %interval differs from the actual interval...
                 %but we're screwed in that case.
-                stepFrame(); %was   4.47    4060   
+                stepFrame();
             end
 
             lastVBL = VBL;
