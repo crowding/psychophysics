@@ -64,35 +64,36 @@ p = namedargs(...
     end
 
 
-    function run()
-        params = this.params;
-        [main, canvas, events] = mainLoop(params);
+    function params = run(varargin)
+        params = namedargs(this.params, varargin{:});
+        
+        [main, events] = mainLoop(params);
 
         %-----stimulus components----
 
         fixation = FilledDisk(...
             p.fixationLocation, p.fixationPointRadius, ...
             [params.blackIndex params.blackIndex params.whiteIndex]);
-        canvas.add(fixation);
+        main.addGraphic(fixation);
 
         target = MoviePlayer(p.target);
-        canvas.add(target);
+        main.addGraphic(target);
 
         %----- visible state and gaze indicator (development feedback) ----
 
         if p.diagnostics
             state = Text([-5 -5], '', [0 0 params.whiteIndex]);
-            canvas.add(state);
+            main.addGraphic(state);
             state.setVisible(1);
 
             gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
-            canvas.add(gaze);
+            main.addGraphic(gaze);
             events.add(UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y])));
 
             gaze.setVisible(1);
             
             outlines = TriggerDrawer(events);
-            canvas.add(outlines);
+            main.addGraphic(outlines);
             outlines.setVisible(1);
         end
 
@@ -121,7 +122,7 @@ p = namedargs(...
         disp(sprintf('cue at %g s (%g deg)', ...
             p.cueTime, p.target.center(1) + p.target.dx/p.target.dt*p.cueTime));
 
-        main.go();
+        main.go(params);
         
 
         %----- state functions -----

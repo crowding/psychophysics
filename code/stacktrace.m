@@ -12,8 +12,8 @@ end
 arrayfun(@printStackTrace, errors);
 
     function printStackTrace(theErr)
-        %printErrorMessage(theErr);
-        disp(['??? ' theErr.identifier ': ' theErr.message]);
+        printErrorMessage(theErr);
+        %disp(['??? ' theErr.identifier ': ' theErr.message]);
         arrayfun(@traceframe, theErr.stack);
         disp('');
 
@@ -31,8 +31,8 @@ arrayfun(@printStackTrace, errors);
             %can click in them
             message = regexprep(...
                 theErr.message...
-                ,'(File:\s*(.*?)\s*Line:\s*(.*)\s*Column:\s*(.*)\s*)'...
-                ,'<a href="error:\2,\3,\4">\1</a>');
+                ,'File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
+                ,'<a href="error:$1,$2,$3">$0</a>');
             disp(['??? ' theErr.identifier ': ' message]);
         end
     end

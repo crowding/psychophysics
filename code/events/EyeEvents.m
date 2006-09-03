@@ -15,21 +15,20 @@ function this = EyeEvents()
 %update. Right now the middle alternative seems fastest, for whatever
 %reason.
 
-%triggers_ = cell(0); %ideal
-triggers_ = struct('getId', {}, 'check', {}, 'draw', {}, 'setLog', {}); %middle
+this = final(@add, @update, @initializer, @sample, @getTriggers);
 
-transform_ = [];
+%Our list of triggers.
+triggers_ = struct('check', {}, 'draw', {}, 'setLog', {});
+
+%values used while running in the main loop
 online_ = 0;
+toDegrees_ = [];
 log_ = [];
-
-this = final(@add, @remove, @update, @clear, @draw, @initializer, @sample, @getTriggers);
-
-details_ = [];
+params_ = [];
 
 badSampleCount_ = 0;
 missingSampleCount_ = 0;
 goodSampleCount_ = 0;
-
 
 
 %----- method definition -----
@@ -39,48 +38,17 @@ goodSampleCount_ = 0;
     end
 
     function add(trigger)
+        %Adds a trigger object. Each trigger object is called when an eye
+        %movement sample is received.
+        %
+        %See aslo Trigger.
         if online_
             error('SpaceEvents:modification_while_running',...
-                'Can''t add or remove triggers while running. Matlab is too slow. Try again in a different language.');
+                'Can''t add triggers while running. Matlab is too slow. Try again in a different language.');
         end
-        %adds a trigger object.
-        %
-        %See also Trigger.
 
         %triggers_{end + 1} = trigger; %ideal
         triggers_(end+1) = interface(triggers_, trigger); %middle
-    end
-
-
-    function remove(trigger)
-        %Removes a trigger object.
-        %
-        %See also Trigger.
-        if online_
-            error('SpaceEvents:modification_while_running',...
-                'Can''t add or remove triggers while running.');
-        end
-
-
-        searchid = trigger.getId();
-        %found = find(cellfun(@(x)x.getId() == searchid, triggers_)); %ideal
-        found = find(arrayfun(@(x)x.getId() == searchid, triggers_)); %middle
-        %found = find(id_ == searchid); %ugly
-        if ~isempty(found)
-            %triggers_(found(1)) = []; %ideal
-            triggers_(found(1)) = []; %middle
-        else
-            warning('SpaceEvents:noSuchItem',...
-                'tried to remove nonexistent item with id %d', searchid);
-        end
-    end
-
-    function clear
-        %Removes all triggers.
-
-        %triggers_(:) = []; %ideal
-        triggers_(:) = []; %middle
-
     end
 
     function update(triggers, next)
@@ -97,7 +65,7 @@ goodSampleCount_ = 0;
             error('spaceEvents:notOnline', 'must start spaceEvents before recording');
         end
         [x, y, t] = sample();
-        [x, y] = transform_(x, y); %convert to degrees (native units)
+        [x, y] = toDegrees_(x, y); %convert to degrees (native units)
 
         %send the sample to each trigger and the triggers will fire if they
         %match
@@ -125,23 +93,27 @@ goodSampleCount_ = 0;
 
     function i = initializer(varargin)
         %at the beginning of a trial, the initializer will be called. It will
-        %do things like start the eyeLink recording.
+        %do things like start the eyeLink recording, and tell every trigger
+        %where the log file is.
         %
         %See also require.
 
-        i = JoinResource(currynamedargs(@initLog, varargin{:}),...
-            @initSampleCounts, RecordEyes());
+        i = JoinResource(...
+            currynamedargs(@initLog, varargin{:})...
+            ,@initSampleCounts...
+            ,RecordEyes()...
+            );
     end
 
 
-    function [release, details] = initLog(details)
-        transform_ = transformToDegrees(details.cal);
+    function [release, params] = initLog(params)
+        toDegrees_ = transformToDegrees(params.cal);
         online_ = 1;
 
         %now that we are starting an experiment, tell each trigger where to
         %log to.
         for t = triggers_
-            t.setLog(details.log);
+            t.setLog(params.log);
         end
 
         release = @stop;
@@ -152,8 +124,8 @@ goodSampleCount_ = 0;
     end
 
 
-    function [release, details] = initSampleCounts(details)
-        details_ = details;
+    function [release, params] = initSampleCounts(params)
+        params_ = params;
         release = @printSampleCounts;
 
         badSampleCount_ = 0;
@@ -173,8 +145,8 @@ goodSampleCount_ = 0;
         %connected. Returns x and y == NaN if the sample has invalid
         %coordinates.
 
-        if details_.dummy
-            [x, y, buttons] = GetMouse(details_.window);
+        if params_.dummy
+            [x, y, buttons] = GetMouse(params_.window);
             t = GetSecs();
             if any(buttons) %simulate blinking
                 x = NaN;
@@ -195,12 +167,12 @@ goodSampleCount_ = 0;
                 % frame. Profile this call?
                 eye = Eyelink('EyeAvailable');
                 switch eye
-                    case details_.el.BINOCULAR
+                    case params_.el.BINOCULAR
                         error('eyeEvents:binocular',...
                             'don''t know which eye to use for events');
-                    case details_.el.LEFT_EYE
+                    case params_.el.LEFT_EYE
                         eyeidx = 1;
-                    case details_.el.RIGHT_EYE
+                    case params_.el.RIGHT_EYE
                         eyeidx = 2;
                 end
 
@@ -215,7 +187,7 @@ goodSampleCount_ = 0;
                     goodSampleCount_ = goodSampleCount_ + 1;
                 end
 
-                t = (sample.time - details_.clockoffset) / 1000;
+                t = (sample.time - params_.clockoffset) / 1000;
             end
         end
     end
