@@ -67,7 +67,7 @@ p = namedargs(...
     function params = run(varargin)
         params = namedargs(this.params, varargin{:});
         
-        [main, events] = mainLoop(params);
+        main = mainLoop(params);
 
         %-----stimulus components----
 
@@ -88,11 +88,11 @@ p = namedargs(...
 
             gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
             main.addGraphic(gaze);
-            events.add(UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y])));
+            main.addTrigger(UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y])));
 
             gaze.setVisible(1);
             
-            outlines = TriggerDrawer(events);
+            outlines = TriggerDrawer(main);
             main.addGraphic(outlines);
             outlines.setVisible(1);
         end
@@ -111,10 +111,10 @@ p = namedargs(...
         timeTrigger = TimeTrigger();
         insideTrigger = InsideTrigger();
 
-        events.add(nearTrigger);
-        events.add(farTrigger);
-        events.add(timeTrigger);
-        events.add(insideTrigger);
+        main.addTrigger(nearTrigger);
+        main.addTrigger(farTrigger);
+        main.addTrigger(timeTrigger);
+        main.addTrigger(insideTrigger);
         
         %the first action is to go into the first state
         timeTrigger.set(0, @waitingForFixation);

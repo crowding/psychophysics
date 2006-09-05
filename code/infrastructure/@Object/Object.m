@@ -10,18 +10,16 @@ function [this, varargout] = Object(varargin)
 %
 switch(nargin)
     case 0
-        orig = public();
+        this = public();
     case 1
-        orig = varargin{1};
+        this = varargin{1};
     otherwise
-        [orig, varargout{1:nargout-1}] = inherit(varargin{:});
+        [this, varargout{1:nargout-1}] = inherit(varargin{:});
 end
 
-if isa(orig, 'Object')
-    this = orig;
+if isa(this, 'Object')
+    return;
 else
-    wrapped = orig;
-    
     %record a handle to the 'constructor' of this object
     
     %this could be put in a subfunction, but evalin() doesn't seem to be
@@ -43,27 +41,29 @@ else
         constructor = [];
     end
     
-    %wrap the methods in property wrappers... note that method__() should
-    %continue to correctly extract the underlying methods!
-    if isfield(orig, 'properties__');
-        for prop = (wrapped.properties__(:))';
-            gname = getterName(prop{:});
-            sname = setterName(prop{:});
-            getter = orig.(gname);
-            setter = orig.(sname);
-            
-            wrapped.(prop{:}) = PropertyWrapper(getter, setter);
-        end
-        
-        %also wrap properties__ since it is expected to be just a cell
-        %array
-        [pget, pset] = accessor(wrapped.properties__);
-        wrapped.properties__ = PropertyWrapper(pget, pset);
-    end
-    
-    this.wrapped = wrapped;
-    this.orig = orig;
-    this.constructor__ = constructor;
+    this = struct(...
+        'wrapped', this...
+        ,'version', getversion(2)...
+        ,'constructor', constructor...
+        ,'getters', getgetters(this)...
+        ,'setters', getsetters(this)...
+        );
 
     this = class(this, 'Object');
+end
+
+end
+
+function getters = getgetters(wrapped)
+    propnames = wrapped.property__();
+    fns = cellfun(@(n)wrapped.method__(getterName(n)), propnames, 'UniformOutput', 0);
+    args = {propnames{:}; fns{:}};
+    getters = struct(args{:});
+end
+
+function setters = getsetters(wrapped)
+    propnames = wrapped.property__();
+    fns = cellfun(@(n)wrapped.method__(setterName(n)), propnames, 'UniformOutput', 0);
+    args = {propnames{:}; fns{:}};
+    setters = struct(args{:});
 end

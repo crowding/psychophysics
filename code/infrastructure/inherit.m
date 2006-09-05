@@ -25,101 +25,102 @@ function [this, varargout] = inherit(varargin)
 %If requested, save a reference copy of the methods from each ancestor.
 %This is so you can still call a method you override through inheritance.
 
-this = struct();
-this.parents__ = cellfun(@parent_backup, varargin, 'UniformOutput', 0);
-    function backup = parent_backup(parent)
-        backup = parent;
-        %ordinary methods need to get unwrapped
-        parentmethodnames = fieldnames(parent);
-        which = regexp(parentmethodnames, '__$', 'once');
-        which = ~cellfun(@isempty, which);
-        parentmethodnames(which) = [];
-        for name = parentmethodnames'
-            backup.(name{:}) = parent.method__(name{:});
+[this, methodnames] = inheritmethods();
+    function [this, methodnames] = inheritmethods();
+        this = struct();
+        this.parents__ = cellfun(@parent_backup, varargin, 'UniformOutput', 0);
+        function backup = parent_backup(parent)
+            backup = parent;
+            %ordinary methods need to get unwrapped
+            parentmethodnames = parent.method__();
+            for name = parentmethodnames'
+                backup.(name{:}) = parent.method__(name{:});
+            end
         end
+
+
+        %the names and methods of each direct ancestor (one cell per ancestor)
+        names = cellfun(@(p)p.method__(), varargin, 'UniformOutput', 0);
+
+        %Others gets one cell per ancestor of each ancestor's other ancestors, i.e.
+        %excluding the ancestor itself
+        others = arrayfun(@(index)exclude(varargin', index), 1:numel(varargin),...
+            'UniformOutput', 0);
+        function r = exclude(array, varargin)
+            r = array;
+            r(varargin{:}) = [];
+        end
+
+        %Now, methods from ancestors listed later override methods from ancestors
+        %listed earlier. The nunion function tells us which methods come from where.
+
+        %indices gets index vectors of the selected method set, one cell per ancestor
+        indices = cell(size(names));
+        [m, indices{:}] = nunion(names{:});
+        names = cellfun(@(n,i) n(i), names, indices, 'UniformOutput', 0);
+        %Now names only contains the methods that will end up being publically
+        %exposed.
+
+        %build the new object by going through the methods coming from each
+        %ancestor
+        cellfun(@assignmethods, names, varargin, others);
+        function assignmethods(names, obj, others);
+            %names  is the names of the methods to assign
+            %obj    is the object where the methods come from
+            %others is the other objects that get the method
+
+            %assign each method in turn
+            cellfun(@assignmethod, names);
+            function assignmethod(name)
+
+                %get the actual method as well as the transparent invoker
+                method = obj.method__(name);
+                wrappedmethod = obj.(name);
+
+                %store the method
+                this.(name) = wrappedmethod;
+
+                %Now tell the other ancestors about the new method
+                cellfun(@putmethod, others);
+                function putmethod(other)
+                    %the other object only gets the method if it has a slot for
+                    %it.
+                    if isfield(other, name)
+                        %FIXME: questionable use of isfield() here
+                        %should be based off of method__
+                        other.method__(name, method);
+                    end
+                end
+            end
+        end
+        
+        methodnames = nunion(names{:});
     end
 
 varargout = this.parents__(1:nargout-1);
 
-%the names and methods of each direct ancestor (one cell per ancestor)
-names = cellfun(@fieldnames, varargin, 'UniformOutput', 0);
-
-%Others gets one cell per ancestor of each ancestor's other ancestors, i.e.
-%excluding the ancestor itself
-others = arrayfun(@(index)exclude(varargin', index), 1:numel(varargin),...
-    'UniformOutput', 0);
-    function r = exclude(array, varargin)
-        r = array;
-        r(varargin{:}) = [];
-    end
-
-%Now, methods from ancestors listed later override methods from ancestors
-%listed earlier. The nunion function tells us which methods come from where.
-
-%indices gets index vectors of the selected method set, one cell per ancestor
-indices = cell(size(names));
-[m, indices{:}] = nunion(names{:});
-names = cellfun(@(n,i) n(i), names, indices, 'UniformOutput', 0);
-%Now names only contains the methods that will end up being publically
-%exposed.
-
-%build the new object by going through the methods coming from each
-%ancestor
-cellfun(@assignmethods, names, varargin, others);
-    function assignmethods(names, obj, others);
-        %names  is the names of the methods to assign
-        %obj    is the object where the methods come from
-        %others is the other objects that get the method
-
-        %assign each method in turn
-        cellfun(@assignmethod, names);
-        function assignmethod(name)
-            
-            %double-underscpre fields are special and will not be
-            %overridden
-            if ~isempty(regexp(name, '__$', 'once'));
-                return
-            end
-            
-            %get the actual method as well as the transparent invoker
-            method = obj.method__(name);
-            wrappedmethod = obj.(name);
-            
-            %store the method
-            this.(name) = wrappedmethod;
-
-            %Now tell the other ancestors about the new method
-            cellfun(@putmethod, others);
-            function putmethod(other)
-                %the other object only gets the method if it has a slot for
-                %it
-                if isfield(other, name);
-                    other.method__(name, method);
-                end
-            end
-        end
-    end
-
-%Now, the "putmethod__' operation needs to be defined for the inherited
+%Now, the "method__' operation needs to be defined for the inherited
 %object.
-this.method__ = @putparentmethods;
-    function fn = putparentmethods(name, fn)
-        %when just getting a method, just the first method should be OK.
-        if (nargin < 2)
-            %return the 'raw' method, not the wrapped one...
-            for i = this.parents__(end:-1:1)
-                if isfield(i{:}, name)
-                    fn = i{:}.method__(name);
-                    break;
+this.method__ = @method__;
+    function fn = method__(name, fn)
+        switch nargin
+            case 0
+                fn = methodnames;
+            case 1
+                %return the 'raw' method, not the wrapped one...
+                for i = this.parents__(end:-1:1)
+                    if isfield(i{:}, name)
+                        fn = i{:}.method__(name);
+                        break;
+                    end
                 end
-            end
-            if ~exist('fn', 'var')
-                error('inherit:noSuchMethod','No such method %s', name)
-            end
-        else
-            %store the method here, and store it in all the ancestors
-            this.(name) = fn; %Anything refer to this anymore?
-            cellfun(@putparentmethod, varargin);
+                if ~exist('fn', 'var')
+                    error('inherit:noSuchMethod','No such method %s', name)
+                end
+            otherwise
+                %store the method here, and store it in all the ancestors
+                this.(name) = fn; %Anything refer to this anymore?
+                cellfun(@putparentmethod, varargin);
         end
         
         function putparentmethod(parent)
@@ -129,20 +130,46 @@ this.method__ = @putparentmethods;
         end
     end
 
-%finally, inherit the properties lists...
-props = cellfun(@getprops, varargin, 'UniformOutput', 0);
-    function r = getprops(s)
-        if isfield(s, 'properties__')
-            r = s.properties__;
-        else
-            r = {};
+%another matlab annoyance: if you hav a bunch of code and have left off a
+%semicolon somewhere, there is no good way to track down where short of
+%breaking out the debugger.
+
+%and similarly the property() method needs to be defined.
+this.property__ = makeproperty();
+    function fn = makeproperty
+        propnames = {};
+        for i = this.parents__
+            if isfield(i{:}, 'property__')
+                propnames = union(propnames, i{:}.property__());
+            end
+        end
+        
+        %it's totally unpredictable what way matlab's UNION will want to
+        %orient its output
+        propnames = propnames(:);
+        
+        getters = cellfun(@(name)this.(getterName(name)), propnames, 'uniformOutput', 0);
+        getters = {propnames{:}; getters{:}};
+        getters = struct(getters{:});
+
+        setters = cellfun(@(name)this.(setterName(name)), propnames, 'uniformOutput', 0);
+        setters = {propnames{:}; setters{:}};
+        setters = struct(setters{:});
+
+        fn = @property__;
+        function val = property__(name, val);
+            switch nargin
+                case 0
+                    val = propnames;
+                case 1
+                    val = getters.(name)();
+                otherwise
+                    setters.(name)();
+            end
         end
     end
 
-props = nunion({}, props{:});
-
-if ~isempty(props)
-    this.properties__ = props;
-end
+%put in versioning information.
+this.version__ = getversion(2);
 
 end

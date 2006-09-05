@@ -25,7 +25,7 @@ toDegrees_ = [];
         %
         %drawing: the Drawing object that manages the display.
         
-        Drawer_.prepare(drawing); %think about a mechanism for chained methods?
+        Drawer_.prepare(params); %think about a mechanism for chained methods?
         try
             if prepared_
                 error('Drawer:alreadyPrepared', ...
@@ -69,6 +69,7 @@ toDegrees_ = [];
             visible_ = 0;
             frameIndex_ = 1;
             frameCounter = 1;
+            Drawer_.release()
         end
         
         %finally release the parent

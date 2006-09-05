@@ -12,7 +12,8 @@ this = inherit(TestCase()...
     ,@testDelegateToGrandchild...
     ,@testDelegateToGrandparentToGrandchild...
     ,@testParents...
-    ,@testProperties...
+    ,@testPropertyMethod...
+    ,@testMethodMethod...
     ,@testVersion...
     ,@testInheritObjects...
     ,@testGrandchildOverridesChild...
@@ -175,18 +176,27 @@ this = inherit(TestCase()...
         end
     end
 
-    function testProperties
-        %inherited objects get a 'properties__' cell array of strings.
-        
+    function testPropertyMethod
         obj = inherit(...
             properties('one', 1, 'two', 2)...
-            ,properties('one', 1, 'three', 3)...
+            ,properties('one', 100, 'three', 3)...
             );
 
-        assertEquals(3, numel(obj.properties__));
-        assert(strmatch('one', obj.properties__));
-        assert(strmatch('two', obj.properties__));
-        assert(strmatch('three', obj.properties__));
+        assertEquals({'one', 'three', 'two'}', sort(obj.property__()));
+        assertEquals(100, obj.property__('one'));
+        assertEquals(2, obj.property__('two'));
+        assertEquals(3, obj.property__('three'));
+    end
+
+
+    function testMethodMethod
+        obj = Child();
+        assertEquals(...
+            sort({'bar','foo','quux','boffo','yip','gravorsh','baz','quuux','grup','flounce'}')...
+            ,sort(obj.method__()) );
+
+        %other characteristics of method__ are tested adequately by
+        %inheritance exercises...
     end
 
     function testVersion
@@ -211,6 +221,11 @@ this = inherit(TestCase()...
         assertEquals(fninfo.function, vers.function);
         assertEquals(url, vers.url);
         assertEquals(revision, vers.revision);
+        
+        %was thinking about grabbing the handle, but when I'm dumping out
+        %to text it doesn't make much sense.
+        %h = functions(vers.handle);
+        %assertEquals(fninfo.function, h.function);
     end
 
     function testGrandchildOverridesChild
@@ -222,7 +237,7 @@ this = inherit(TestCase()...
         %you can inherit from object wrappers - the object wrapper-ness
         %gets stripped from the outermost object. calling object() again
         %puts it back.
-        fail('not written');
+        %fail('not written');
     end
         
 end

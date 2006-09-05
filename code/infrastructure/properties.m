@@ -12,43 +12,60 @@ if mod(nargin, 2)
     error('properties:illegalArgument', 'expected an even number of arguments');
 end
 
-names = varargin(1:2:end);
-values = varargin(2:2:end);
+[this, names, methodnames] = makeproperties(varargin{:});
+    function [this, names, methodnames] = makeproperties(varargin)
+        names = varargin(1:2:end);
+        values = varargin(2:2:end);
 
-if any(~all(cellfun(@isvarname, names)))
-    error('properties:illegalArgument', 'property names must be valid variable names');
-end
+        if any(~all(cellfun(@isvarname, names)))
+            error('properties:illegalArgument', 'property names must be valid variable names');
+        end
 
-%make getters and setters arounnd each value
-[getters, setters] = cellfun(@accessor, values, 'UniformOutput', 0);
+        %make getters and setters arounnd each value
+        [getters, setters] = cellfun(@accessor, values, 'UniformOutput', 0);
 
-%assign names to them
-getterNames = cellfun(@getterName, names, 'UniformOutput', 0);
-setterNames = cellfun(@setterName, names, 'UniformOutput', 0);
+        %assign names to them
+        getterNames = cellfun(@getterName, names, 'UniformOutput', 0);
+        setterNames = cellfun(@setterName, names, 'UniformOutput', 0);
 
-%put them all in a struct (all arguments to this struct() call are scalars,
-%so we don't trip struct()'s astonishing behavior with cell array
-%arguments)
-tostruct = {getterNames{:}; getters{:}; setterNames{:}; setters{:}};
-this = publicize(struct(tostruct{:}));
+        %put them all in a struct (all arguments to this struct() call are scalars,
+        %so we don't trip struct()'s astonishing behavior with cell array
+        %arguments)
+        tostruct = {getterNames{:}; getters{:}; setterNames{:}; setters{:}};
+        this = struct(tostruct{:});
+        methodnames = {getterNames{:}, setterNames{:}}';
+    end
+names = names(:);
 
-%this is a behind the scenes object so I will use the ugly boilerplate for
-%speed
-%{
-this.method__ = @method__;
-    function val = method__(name, val);
-        if nargin > 1
-            %I suppose this doesn't actually have any purpose, since
-            %nothing in this context will call the getters or setters?
-            this.(name) = val;
-        else
-            val = this.(name);
+this.property__ = @property__;
+
+    function value = property__(name, value)
+        switch nargin
+            case 0
+                value = names;
+            case 1
+                %could this be made more efficient?
+                value = this.(getterName(name))();
+            otherwise
+                value = this.(setterName(name))(value);
         end
     end
-%}
 
-this.properties__ = names;
-%that boilerplate did the same job as 'this = publicize(this)' but directly,
-%so it is faster.
+%this only exists to be used by publicize....
+this.method__ = @method__;
+    function value = method__(name, value)
+        switch nargin
+            case 0
+                value = methodnames;
+            case 1
+                value = this.(name);
+            otherwise
+                error('publicize:cannotModify', 'cannot override methods here.');
+        end
+    end
+
+this.version__ = getversion(2);
+
+this = publicize(this);
 
 end

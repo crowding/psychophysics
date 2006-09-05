@@ -6,12 +6,15 @@ switch class(this)
         error('Object:multipleAssign', 'Object does not support parallel assign?');
         end
         %}
+        
+        %FIXME. think about matlab's horrible duality for struct arrays:
+        %a.field(index) = value (makes no sense but works)
+        %a(index).field = value (makes sense)
         switch subs(1).type
             case '.'
                 propname = subs(1).subs;
                 if numel(subs) > 1
-                    oldval = get(this.wrapped.(propname));
-
+                    oldval = this.getters.(propname)();
                     %MATLAB's dispatch rules are absolutely bonkers and will
                     %dispatch according to which argument has the highest 'precedence.'
                     %But many overloaded methods (for instance, subsasgn) only make
@@ -20,10 +23,9 @@ switch class(this)
                     %fail utterly. What to do?
                     %call our own dispatch function, since callign subsref directly is
                     newval = dosubsasgn(oldval, subs(2:end), value);
-
-                    set(this.wrapped.(propname), newval);
+                    this.setters.(propname)(newval);
                 else
-                    set(this.wrapped.(propname), value);
+                    this.setters.(propname)(value);
                 end
 
             case '()'

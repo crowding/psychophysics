@@ -1,4 +1,4 @@
-function v = getversion(frame)
+function v = getversion(frameno)
 %getversion(frame)
 %
 %takes a stack frame index, where getversion is index 0, and returns
@@ -8,11 +8,12 @@ function v = getversion(frame)
 %'url' the full URL in the SVN repository
 %'revision' the last modified revision number
 
+%grab the stack frame and the handle
 [st, i] = dbstack('-completenames');
-frame = st(i + frame);
+frameix = min(numel(st), i + frameno);
+frame = st(frameix);
 
 persistent cache;
-
 
 % use a struct as pretend associative array by cleaning the file names (hackish)
 
@@ -27,18 +28,23 @@ fieldname = [...
 
 %matlab provides structs, which are almost but not entirely unlike dicts,
 %in that keys must be valid identifier names for some reason. So this usage
-%isn't entirely correct...
+%isn't entirely correct. Come to think of it, I have to idea whether
+%structs provide near-o(1) access like hashes do. I certainly wouldn't put
+%it past the mathworks to be using some wholly inappropriate
+%implementation.
 fieldname = regexprep(fieldname, '(^[^a-zA-Z])|([^a-zA-Z0-9])', '_');
 fieldname = regexprep(fieldname, '^[^a-zA-Z]', 'f');
 fieldname = fieldname(max(1,end-62):end);
+fieldname = regexprep(fieldname, '^_*', '');
 
 if isfield(cache, fieldname)
     v = cache.(fieldname);
 else
 
+    %actually grab the version information
     [status, info] = system(sprintf('/usr/local/bin/svn info %s', frame.file));
     if status ~= 0
-        warning('getversion:svn', 'couldn''t call svn in %s', frame.file);
+        warning('getversion:svn', 'couldn''t call svn on %s', frame.file);
         v = struct('function', frame.name, 'url', '', 'revision', NaN);
         return
     end
@@ -47,12 +53,12 @@ else
     revision = regexp(info, '(?:^|\n)Last Changed Rev: (.*?)(?:$|\n)', 'tokens', 'once');
 
     if isempty(url)
-        warning('getversion:urlNotFound', 'could not get url from SVN response');
+        warning('getversion:urlNotFound', 'could not get url from SVN response for file ''%s''', frame.file);
         url = {''};
     end
 
     if isempty(revision)
-        warning('getversion:revisionNotFound', 'could not get revision from SVN response');
+        warning('getversion:revisionNotFound', 'could not get revision from SVN response for file ''%s''', frame.file);
         revision = {'NaN'};
     end
 

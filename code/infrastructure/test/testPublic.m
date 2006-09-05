@@ -4,7 +4,7 @@ function this = testPublic
     %create myself using final
     this = final(@setUp, @tearDown, ...
         @testMethodNaming, @testVersion, ...
-        @testMethodGetting, @testMethodSetting, @method__);
+        @testMethodGetting, @testMethodSetting, @testMethod);
     
     function setUp
     end
@@ -19,13 +19,6 @@ function this = testPublic
         assertEquals('testobj', o.calltestfun());
     end
 
-    function val = method__(name, val);
-        if nargin > 1
-            this.(name) = val;
-        else
-            val = this.(name);
-        end
-    end
 
     function testVersion
         %all objects get a version__ field that gives the SVN path, function
@@ -71,6 +64,11 @@ function this = testPublic
         function v = override()
             v = 'override';
         end
+    end
+
+    function testMethod
+        o = testobj();
+        assertEquals({'calltestfun', 'testfun'}', sort(o.method__()));
     end
         
     function this = testobj

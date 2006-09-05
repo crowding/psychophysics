@@ -1,4 +1,4 @@
-function [this, events_] = mainLoop(params_)
+function this = mainLoop(params_)
 %The main loop which controls presentation of a trial. There are three
 %output arguments, main, drawing, and events, which used to be separate
 %objects in separate files, but were tied together for speed.
@@ -8,14 +8,24 @@ function [this, events_] = mainLoop(params_)
 %The drawing has a list of graphics objects, which
 
 %----- constructed objects -----
-this = public(@go, @stop, @addGraphic);
-events_ = EyeEvents();
+this = public(@go, @stop, @addGraphic, @addTrigger, @drawTriggers);
 
 %instance variables
 go_ = 0; % flags whether the main loop is running
 
 %the list of graphics components, restricted to the interface we use
 graphics_ = struct('draw', {}, 'update', {}, 'init', {});
+
+%Our list of triggers.
+triggers_ = struct('check', {}, 'draw', {}, 'setLog', {});
+
+%values used while running in the main loop
+toDegrees_ = [];
+log_ = [];
+
+badSampleCount_ = 0;
+missingSampleCount_ = 0;
+goodSampleCount_ = 0;
 
 %----- methods -----
 
@@ -26,8 +36,13 @@ graphics_ = struct('draw', {}, 'update', {}, 'init', {});
         %
         %Initializes the event managers and sets high CPU priority before
         %running.
-        params = require(events_.initializer(params), graphicsInitializer(), ...
-            listenChars(), highPriority(params, 'priority', 0), @doGo);
+        params = require(...
+            triggerInitializer(params)...
+            ,graphicsInitializer()...
+            ,listenChars()...
+            ,highPriority()...
+            ,@doGo...
+            );
     end
 
     function params = doGo(params)
@@ -35,21 +50,19 @@ graphics_ = struct('draw', {}, 'update', {}, 'init', {});
         interval = params.cal.interval;
         hitcount = 0;
         skipcount = 0;
-        lastVBL = Screen('Flip', params.window);
 
         %for better speed in the loop, eschew struct access?
-        triggers = events_.getTriggers(); %brutally ugly speed hack
-        pushEvents = events_.update;
         log = params.log;
         window = params.window;
 
+        lastVBL = Screen('Flip', params.window);
         %the main loop
         while(1)
             %take a sample from the eyetracker and react to it
             %triggers is passed in manually because, for whatever reason,
             %looking it up from lexical scope inside the function imposes
             %300% overhead.
-            pushEvents(triggers, lastVBL + interval);
+            pushEvents(lastVBL + interval);
 
             if ~go_
                 break;
@@ -99,7 +112,6 @@ graphics_ = struct('draw', {}, 'update', {}, 'init', {});
         disp(sprintf('hit %d frames, skipped %d', hitcount, skipcount));
     end
 
-
     function stop(x, y, t, next)
         %Stops the main loop. Takes arguments compatible with being called
         %from a trigger.
@@ -120,7 +132,97 @@ graphics_ = struct('draw', {}, 'update', {}, 'init', {});
                 'is not supported.']);
         end
 
-        graphics_(end+1) = interface(graphics_, drawer);
+        graphics_(end+1) = interface(graphics_, finalize(drawer));
+    end
+
+    function addTrigger(trigger)
+        %Adds a trigger object. Each trigger object is called when an eye
+        %movement sample is received.
+        %
+        %See also Trigger.
+        if go_
+            error('mainLoop:modification_while_running',...
+                'Can''t add triggers while running the main loop. Matlab is too slow. Try again in a different language.');
+        end
+
+        triggers_(end+1) = interface(triggers_, finalize(trigger)); %middle
+    end
+
+    function pushEvents(next)
+        % Sample the eye and give to sample to all triggers.
+        %
+        % next: the scheduled next refresh.
+        % triggers: the triggers to check. you'd think this would be passed
+        % in manually, but lexical scope lookup is very slow for some
+        % reason. Hmm. Array reallocation issues?
+        %
+        % See also Trigger>check.
+
+        if ~go_
+            error('mainLoop:notOnline', 'must start spaceEvents before recording');
+        end
+        [x, y, t] = sample();
+        [x, y] = toDegrees_(x, y); %convert to degrees (native units)
+
+        %send the sample to each trigger and the triggers will fire if they
+        %match
+
+        for trig = triggers_ %ideal, middle
+            %trig{:}.check(x, y, t, next); %ideal
+            trig.check(x, y, t, next); %middle
+        end
+    end
+
+    function [x, y, t] = sample
+        %Takes a sample from the eye, or mouse if the eyelink is not
+        %connected. Returns x and y == NaN if the sample has invalid
+        %coordinates.
+
+        if params_.dummy
+            [x, y, buttons] = GetMouse(params_.window);
+            t = GetSecs();
+            if any(buttons) %simulate blinking
+                x = NaN;
+                y = NaN;
+                badSampleCount_ = badSampleCount_ + 1;
+            else
+                goodSampleCount_ = goodSampleCount_ + 1;
+            end
+        else
+            %obtain a new sample from the eye.
+            if Eyelink('NewFloatSampleAvailable') == 0;
+                x = NaN;
+                y = NaN;
+                t = GetSecs();
+                missingSampleCount_ = missingSampleCount_ + 1;
+            else
+                % Probably don't need to do this eyeAvailable check every
+                % frame. Profile this call?
+                eye = Eyelink('EyeAvailable');
+                switch eye
+                    case params_.el.BINOCULAR
+                        error('eyeEvents:binocular',...
+                            'don''t know which eye to use for events');
+                    case params_.el.LEFT_EYE
+                        eyeidx = 1;
+                    case params_.el.RIGHT_EYE
+                        eyeidx = 2;
+                end
+
+                sample = Eyelink('NewestFloatSample');
+                x = sample.gx(eyeidx);
+                y = sample.gy(eyeidx);
+                if x == -32768 %no position -- blinking?
+                    badSampleCount_ = badSampleCount_ + 1;
+                    x = NaN;
+                    y = NaN;
+                else
+                    goodSampleCount_ = goodSampleCount_ + 1;
+                end
+
+                t = (sample.time - params_.clockoffset) / 1000;
+            end
+        end
     end
 
 
@@ -133,6 +235,70 @@ graphics_ = struct('draw', {}, 'update', {}, 'init', {});
         %See also require.
 
         init = currynamedargs(JoinResource(graphics_.init), varargin{:});
+    end
+
+    function i = triggerInitializer(varargin)
+        %at the beginning of a trial, the initializer will be called. It will
+        %do things like start the eyeLink recording, and tell every trigger
+        %where the log file is.
+        %
+        %See also require.
+
+        i = currynamedargs(...
+                jqoinResource(...
+                    @initLog...
+                    ,@initSampleCounts...
+                    ,RecordEyes()...
+                )...
+                ,varargin{:}...
+            );
+    end
+
+    function [release, params] = initLog(params)
+        toDegrees_ = transformToDegrees(params.cal);
+
+        %now that we are starting an experiment, tell each trigger where to
+        %log to.
+        for t = triggers_
+            t.setLog(params.log);
+        end
+
+        release = @stop;
+
+        function stop
+            online_ = 0;
+        end
+    end
+
+
+    function [release, params] = initSampleCounts(params)
+        params_ = params;
+        release = @printSampleCounts;
+
+        badSampleCount_ = 0;
+        missingSampleCount_ = 0;
+        goodSampleCount_ = 0;
+
+        function printSampleCounts
+            disp(sprintf('%d good samples, %d bad, %d missing', ...
+                goodSampleCount_, badSampleCount_, missingSampleCount_));
+        end
+    end
+
+
+    function drawTriggers(window, toPixels)
+        % draw the trigger areas on the screen for debugging purposes.
+        %
+        % window - the window identifier
+        % toPixels - a function transforming degree coordinates to pixels
+        %            (see <a href="matlab:help Calibration/transformToPixels">Calibration/transformToPixels</a>)
+        %
+        % See also Trigger>draw.
+
+        for trig = triggers_ %ideal, middle
+            %trig{i}.draw(window, toPixels); %ideal
+            trig.draw(window, toPixels_); %middle
+        end
     end
 
 end

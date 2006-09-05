@@ -23,12 +23,40 @@ if (numel(varargin) == 0)
     varargin = cell([1 0]);
 end
 
-methods = varargin;
-method_info = cellfun(@functions, methods);
-method_names = arrayfun(@(x)x.function, method_info, 'UniformOutput', 0);
-%nested functions are denoted with a slashed path
-method_names = regexprep(method_names, '.*/', '');
+[s, names] = makemethods(varargin{:});
+function [s, method_names] = makemethods(varargin)
+    methods = varargin(:);
+    method_info = cellfun(@functions, methods);
+    method_names = arrayfun(@(x)x.function, method_info, 'UniformOutput', 0);
+    %nested functions are denoted with a slashed path
+    method_names = regexprep(method_names, '.*/', '');
+    s = cell2struct(methods, method_names, 1); %varargin comes as a row vector
+end
 
-s = cell2struct(methods, method_names, 2); %varargin comes as a row vector
+names = names(:);
 
 s.version__ = getversion(2);
+s.method__ = @method__;
+s.property__ = @property__;
+
+    function val = method__(name, value)
+        switch nargin
+            case 0
+                val = names;
+            case 1
+                val = s.(name);
+            otherwise
+                error('final:cannotOverride', 'cannot override methods in a final object');
+        end
+    end
+
+    function val = property__(name, value)
+        switch nargin
+            case 0
+                val = {};
+            otherwise
+                error('final:noSuchProperty', 'no such property %s');
+        end
+    end
+
+end

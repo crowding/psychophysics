@@ -20,11 +20,4 @@ this = publicize(this);
 %store version tags
 this.version__ = getversion(2);
 
-    %implementation note: if we instead of a struct of wrappers used a
-    %MATLAB object with overridden subsref(), the parent could call down
-    %into methods it didn't even declare -- sort of an abstract base class.
-    %For now I'm interested in using as few MATLAB objects as possible (how
-    %fast is subsref dispatch vs. indirect struct lookup and funciton
-    %handle dispatch?)
-
 end

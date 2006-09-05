@@ -12,19 +12,17 @@ function this = Experiment(varargin)
 % be passed down into the Eyelink and Screen setup routines.
 
 defaults = namedargs(...
-    'trials', {}...
+    'trials', ShuffledTrials()...
     ,'subject', ''...
     ,'filename',''...
     ,'runs', {}...
     ,'description', ''...
+    ,'caller', getversion(2)...
     ,'params.logfile', ''...
     );
 
-if numel(dbstack) > 1
-    caller_ = callerhandle(1);
-else
-    caller_ = callerhandle(0);
-end
+%by default, saved file names include the name of the function that called
+%Experiment
 
 this = Object(...
     Identifiable()...
@@ -32,28 +30,28 @@ this = Object(...
     ,public(@run)...
     );
 
-%input-dependent default
-if isempty(this.trials)
-    this.trials = ShuffledTrials(this.params);
-end
-
-%----- instance variables -----
-
     function run
         if isempty(this.subject)
-            this.subject = input(this, 'Enter subject initials:');
-            if ~isvarname(subject)
-                error('Please use only letters and numbers in subject identifiers.')
-            end
+            this.subject = input('Enter subject initials: ', 's');
         end
-
+        
+        if ~isvarname(this.subject)
+            error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
+        end
+        
         if isempty(this.filename)
-            this.filename = sprintf('%s-%04d-%02d-%02d--%02d-%02d-%02d-%s.mat',...
-                this.subject, floor(clock), func2str(caller_));
+            fname = this.caller.function;
+            if ~isvarname(fname)
+                error('Experiment:badCallerName'...
+                    ,'Caller name %s does not make a good filename.'...
+                    , fname);
+            end
+            this.filename = sprintf('%s-%04d-%02d-%02d__%02d-%02d-%02d-%s.mat',...
+                this.subject, floor(clock), fname);
         end
         
         if isempty(this.params.logfile)
-            this.params.logfile = [this.filename '.log'];
+            this.params.logfile = regexprep(this.filename, '(\.mat|.$)', '$1.log');
         end
             
         %TODO: perhaps see if there's a per-subject config?

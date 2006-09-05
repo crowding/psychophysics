@@ -8,8 +8,9 @@ this = inherit(...
     ,@testPropertyInheritance...
     ,@testPropertyOverride...
     ,@testReferenceBehavior...
-    ,@testPropertiesField...
     ,@testPropertyOverrideInChild...
+    ,@testMethodMethod...
+    ,@testPropertyMethod...
     ));
 
     function testPropertyGetting
@@ -69,7 +70,7 @@ this = inherit(...
         end
         
         c = Child();
-        c.setA(4)
+        c.setA(4);
         assertEquals(10, c.doubleA());
         
     end
@@ -125,15 +126,27 @@ this = inherit(...
         assertEquals(3, p.getB());
     end
 
-    function testPropertiesField
-        p = properties('a', 1, 'c', 2, 'b', 3);
-        assert(strmatch('a', p.properties__));
-        assert(strmatch('b', p.properties__));
-        assert(strmatch('c', p.properties__));
-    end
-
     function increment_b(props)
         props.setB(props.getB() + 1);
+    end
+
+    function testMethodMethod
+        p = properties('a', 1, 'b', 2);
+        assertEquals({'getA', 'getB', 'setA', 'setB'}', sort(p.method__()));
+        getter = functions(p.method__('getA'));
+        assertEquals('accessor/getter', getter.function);
+        
+        %this should not error (but doesn't do anything really)
+        p.method__('getA', @()1);
+            
+    end
+
+    function testPropertyMethod
+        p = properties('a', 1, 'b', 2);
+        assertEquals({'a', 'b'}', sort(p.property__()));
+        assertEquals(1, p.property__('a'));
+        p.property__('a', 3);
+        assertEquals(3, p.property__('a'));
     end
 
 end

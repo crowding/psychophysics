@@ -1,3 +1,3 @@
 function c = constructor__(this);
-    c = this.constructor__;
+    c = this.constructor;
 end

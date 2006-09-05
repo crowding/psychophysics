@@ -11,16 +11,9 @@ function this = Identifiable
         
     %Identifiable is a mixin class that carries a serial number accessible
     %using id().
-    this = public(@getId, @setId);
-    this.properties__ = {'id'};
+    this = inherit(properties('id', number), public(@setId));
     
-    id_ = number;
     number = number + 1;
-    
-    function out = getId
-        out = id_;
-    end
-
     function setId(value)
         error('Identifiable:readOnly', 'IDs are not modifiable');
     end

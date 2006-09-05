@@ -2,12 +2,13 @@ function this = testFinal
 %tests the creation of 'final' objects (basic ones, that can not be
 %inherited
 
-%create myself the hard way, for this once
+%create myself the hard way, this time
 this = struct(...
     'setUp', @noop...
     ,'tearDown', @noop...
     ,'testMethodNaming', @testMethodNaming...
     ,'testVersion', @testVersion...
+    ,'testMethod', @testMethod...
     ,'method__', @method__...
     );
 
@@ -15,10 +16,24 @@ this = struct(...
     end
 
     function val = method__(name, val);
-        if nargin > 1
-            this.(name) = val;
-        else
-            val = this.(name);
+        switch nargin
+            case 0
+                val = {'setUp', 'tearDown', 'testMethodNaming', 'testVersion', 'testMethod'};
+            case 1
+                this.(name) = val;
+            otherwise
+                val = this.(name);
+        end
+    end
+
+    function testMethod
+        testobj = myobj();
+        assertEquals({'testfun'}, testobj.method__());
+        fun = functions(testobj.method__('testfun'));
+        assertEquals('testFinal/myobj/testfun', fun.function);
+        try
+            testobj.method('testfun', @sin);
+            fail('expected error');
         end
     end
 

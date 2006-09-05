@@ -1,4 +1,4 @@
-function this = TriggerDrawer(events_)
+function this = TriggerDrawer(main)
 
 this = inherit(Drawer(), public(@draw, @getVisible, @setVisible));
 
@@ -6,7 +6,7 @@ this = inherit(Drawer(), public(@draw, @getVisible, @setVisible));
 
     function draw(window)
         if visible_
-            events_.draw(window, this.toPixels);
+            events_.drawTriggers(window, this.toPixels);
         end
     end
 
