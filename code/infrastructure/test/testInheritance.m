@@ -20,7 +20,7 @@ this = inherit(TestCase()...
     ));
 
     function this = Parent
-        this = public(@bar,@foo,@quux,@boffo,@yip, @gravorsh);
+        this = public(@bar,@foo,@quux,@boffo,@yip,@gravorsh);
 
         function r = foo
             r = 'Parent';
@@ -40,6 +40,9 @@ this = inherit(TestCase()...
         
         function r = yip
             r = this.gravorsh();
+        end
+        
+        function r = gravorsh()
         end
     end
 
@@ -131,7 +134,6 @@ this = inherit(TestCase()...
     function testDelegateToGrandchild
         g = Grandchild();
         assertEquals('Grandchild', g.gravorsh());
-        
     end
 
     function testDelegateToGrandparentToGrandchild

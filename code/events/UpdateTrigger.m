@@ -3,7 +3,7 @@ function this = UpdateTrigger(fn_)
 %
 %See also Trigger.
 
-this = inherit(Trigger(), public(@check, @set, @unset, @setLog));
+this = final(@check, @set, @unset, @setLog);
 
 if (nargin < 1)
     set_ = 0;

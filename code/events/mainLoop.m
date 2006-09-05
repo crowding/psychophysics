@@ -1,27 +1,34 @@
-function this = mainLoop(params_)
+function this = mainLoop(graphics, triggers, varargin)
+params_ = namedargs(varargin{:});
 %The main loop which controls presentation of a trial. There are three
 %output arguments, main, drawing, and events, which used to be separate
 %objects in separate files, but were tied together for speed.
 %
-%The main loop allows you to start and stop.
+%It also used ot let you dynamically add and remove drawing objects and
+%triggers, but this has been disable due to massive speed problems with
+%matlab's nested functions.
 %
-%The drawing has a list of graphics objects, which
+%The main loop allows you to start and stop.
 
 %----- constructed objects -----
-this = public(@go, @stop, @addGraphic, @addTrigger, @drawTriggers);
+this = public(@go, @stop, @drawTriggers);
 
 %instance variables
 go_ = 0; % flags whether the main loop is running
 
 %the list of graphics components, restricted to the interface we use
-graphics_ = struct('draw', {}, 'update', {}, 'init', {});
+graphics_ = interface(struct('draw', {}, 'update', {}, 'init', {}), graphics);
+ng_ = numel(graphics_);
 
 %Our list of triggers.
-triggers_ = struct('check', {}, 'draw', {}, 'setLog', {});
+triggers_ = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
+nt_ = numel(triggers_);
 
 %values used while running in the main loop
 toDegrees_ = [];
 log_ = [];
+
+params_ = struct();
 
 badSampleCount_ = 0;
 missingSampleCount_ = 0;
@@ -30,19 +37,20 @@ goodSampleCount_ = 0;
 %----- methods -----
 
     function params = go(varargin)
-        params = namedargs(params_, varargin{:});
+        params_ = namedargs(params_, varargin{:});
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
         %
         %Initializes the event managers and sets high CPU priority before
         %running.
-        params = require(...
-            triggerInitializer(params)...
+        params_ = require(...
+            triggerInitializer(params_)...
             ,graphicsInitializer()...
             ,listenChars()...
             ,highPriority()...
             ,@doGo...
             );
+        params = params_;
     end
 
     function params = doGo(params)
@@ -74,8 +82,8 @@ goodSampleCount_ = 0;
             end
 
             %draw all the objects
-            for i = graphics_
-                i.draw(window);
+            for i = 1:ng_
+                graphics_(i).draw(window);
             end
                     
             [VBL] = Screen('Flip', window, 0, 0); %was 20.00    3458
@@ -101,8 +109,8 @@ goodSampleCount_ = 0;
                 %but we're screwed in that case.
 
                 %step forward the frame on all objects
-                for i = graphics_
-                    i.update()
+                for i = 1:ng_
+                    graphics_(i).update()
                 end
             end
 
@@ -132,7 +140,8 @@ goodSampleCount_ = 0;
                 'is not supported.']);
         end
 
-        graphics_(end+1) = interface(graphics_, finalize(drawer));
+        graphics_(ng_+1) = interface(graphics_, finalize(drawer)); %was 15.71/24
+        ng_ = ng_ + 1;
     end
 
     function addTrigger(trigger)
@@ -145,7 +154,8 @@ goodSampleCount_ = 0;
                 'Can''t add triggers while running the main loop. Matlab is too slow. Try again in a different language.');
         end
 
-        triggers_(end+1) = interface(triggers_, finalize(trigger)); %middle
+        triggers_(nt_+1) = interface(triggers_, finalize(trigger));
+        nt_ = nt_+1;
     end
 
     function pushEvents(next)
@@ -167,13 +177,12 @@ goodSampleCount_ = 0;
         %send the sample to each trigger and the triggers will fire if they
         %match
 
-        for trig = triggers_ %ideal, middle
-            %trig{:}.check(x, y, t, next); %ideal
-            trig.check(x, y, t, next); %middle
+        for i = 1:nt_
+            triggers_(i).check(x, y, t, next);
         end
     end
 
-    function [x, y, t] = sample
+    function [x, y, t] = sample()
         %Takes a sample from the eye, or mouse if the eyelink is not
         %connected. Returns x and y == NaN if the sample has invalid
         %coordinates.
@@ -245,7 +254,7 @@ goodSampleCount_ = 0;
         %See also require.
 
         i = currynamedargs(...
-                jqoinResource(...
+                joinResource(...
                     @initLog...
                     ,@initSampleCounts...
                     ,RecordEyes()...
@@ -259,8 +268,8 @@ goodSampleCount_ = 0;
 
         %now that we are starting an experiment, tell each trigger where to
         %log to.
-        for t = triggers_
-            t.setLog(params.log);
+        for i = 1:nt_
+            triggers_(i).setLog(params.log);
         end
 
         release = @stop;
@@ -295,9 +304,8 @@ goodSampleCount_ = 0;
         %
         % See also Trigger>draw.
 
-        for trig = triggers_ %ideal, middle
-            %trig{i}.draw(window, toPixels); %ideal
-            trig.draw(window, toPixels_); %middle
+        for i = 1:nt_ %ideal, middle
+            triggers_(i).draw(window, toPixels_); %middle
         end
     end
 

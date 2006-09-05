@@ -10,7 +10,7 @@ log_ = 0;
 set(varargin{:})
 
 %----- public interface -----
-this = inherit(Trigger(), public(@check, @set, @unset, @draw, @setLog));
+this = final(@check, @set, @unset, @draw, @setLog);
 
 %----- methods -----
     function check(x, y, t, next)

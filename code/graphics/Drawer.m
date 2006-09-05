@@ -3,16 +3,8 @@ function this = Drawer
 
 this = inherit(...
     Identifiable,...
-    public(@prepare, @release, @init, @update, @draw, @bounds)...
+    public(@init, @update, @draw, @bounds)...
     );
-    function prepare(params)
-        %in subclasses, calculate, build, textures, etc. for the given
-        %display.
-    end
-
-    function release()
-        %Should release any textures or other resources.
-    end
 
     function update()
         %this will be called once per notional frame regardless fo how many

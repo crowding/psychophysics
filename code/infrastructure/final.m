@@ -26,9 +26,7 @@ end
 [s, names] = makemethods(varargin{:});
 function [s, method_names] = makemethods(varargin)
     methods = varargin(:);
-    method_info = cellfun(@functions, methods);
-    method_names = arrayfun(@(x)x.function, method_info, 'UniformOutput', 0);
-    %nested functions are denoted with a slashed path
+    method_names = cellfun(@func2str, methods, 'UniformOutput', 0);
     method_names = regexprep(method_names, '.*/', '');
     s = cell2struct(methods, method_names, 1); %varargin comes as a row vector
 end

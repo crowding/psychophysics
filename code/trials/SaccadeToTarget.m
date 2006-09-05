@@ -66,43 +66,14 @@ p = namedargs(...
 
     function params = run(varargin)
         params = namedargs(this.params, varargin{:});
-        
-        main = mainLoop(params);
 
         %-----stimulus components----
 
         fixation = FilledDisk(...
             p.fixationLocation, p.fixationPointRadius, ...
             [params.blackIndex params.blackIndex params.whiteIndex]);
-        main.addGraphic(fixation);
 
         target = MoviePlayer(p.target);
-        main.addGraphic(target);
-
-        %----- visible state and gaze indicator (development feedback) ----
-
-        if p.diagnostics
-            state = Text([-5 -5], '', [0 0 params.whiteIndex]);
-            main.addGraphic(state);
-            state.setVisible(1);
-
-            gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
-            main.addGraphic(gaze);
-            main.addTrigger(UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y])));
-
-            gaze.setVisible(1);
-            
-            outlines = TriggerDrawer(main);
-            main.addGraphic(outlines);
-            outlines.setVisible(1);
-        end
-
-        %----- shared-state variables -----
-        observedFixation = [0, 0];
-        stimulusOnset = 0;
-        nSamples = 0;
-        accumX = 0;
-        accumY = 0;
         
         %triggers are expensive to create, so we will share them across
         %states.
@@ -111,11 +82,44 @@ p = namedargs(...
         timeTrigger = TimeTrigger();
         insideTrigger = InsideTrigger();
 
-        main.addTrigger(nearTrigger);
-        main.addTrigger(farTrigger);
-        main.addTrigger(timeTrigger);
-        main.addTrigger(insideTrigger);
         
+        %----- build the main loop.-----
+        %matlab is so freaking slow at altering structs in lexical scope
+        %that I have to give the graphics and triggers as constructor
+        %arguments.
+        
+        if p.diagnostics
+            %----- visible state and gaze indicator (development feedback) ----
+            state = Text([-5 -5], '', [0 0 params.whiteIndex]);
+            main.addGraphic(state);
+            state.setVisible(1);
+
+            gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
+            gazeupdate = UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y]));
+            gaze.setVisible(1);
+            
+            outlines = TriggerDrawer(main);
+            outlines.setVisible(1);
+            
+            main = mainLoop(...
+                {fixation, target, state, gaze, outlines}...
+                ,{nearTrigger, farTrigger, timeTrigger, insideTrigger, gazeupdate}...
+                );
+        else
+            main = mainLoop(...
+                {fixation, target}...
+                ,{nearTrigger, farTrigger, timeTrigger, insideTrigger}...
+                );
+        end
+        
+        %----- shared-state variables -----
+        observedFixation = [0, 0];
+        stimulusOnset = 0;
+        nSamples = 0;
+        accumX = 0;
+        accumY = 0;
+
+        %----- begin -----
         %the first action is to go into the first state
         timeTrigger.set(0, @waitingForFixation);
         
@@ -123,10 +127,8 @@ p = namedargs(...
             p.cueTime, p.target.center(1) + p.target.dx/p.target.dt*p.cueTime));
 
         main.go(params);
-        
 
         %----- state functions -----
-
         
         function waitingForFixation(x, y, t, next)
             fixation.setVisible(1);

@@ -14,22 +14,6 @@ names = this.method__();
 for i = names'
     [this.(i{:}), shadow.(i{:})] = reassignableFunction(this.(i{:}));
 end
-    function [fout, accessor] = reassignableFunction(fin)
-        fout = @invoke;
-        accessor = @access;
-
-        function varargout = invoke(varargin)
-            [varargout{1:nargout}] = fin(varargin{:});
-        end
-
-        function f = access(f)
-            if (nargin == 0)
-                f = fin;
-            else
-                fin = f;
-            end
-        end
-    end
 
 %We also define the special function,
 %method__, so that we can access or modify what's the functions are
@@ -43,10 +27,7 @@ this.method__ = @method;
                 %shadow is a struct of accessor/mutators
                 fn = shadow.(name)();
             otherwise
-                shadow.(name)(fn);
+                shadow.(name)(fn); %this doesn't really have an effect
         end
     end
-
-
-
 end

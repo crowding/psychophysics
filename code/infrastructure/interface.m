@@ -10,7 +10,7 @@ function [out, extra] = interface(prototype, in)
 %than a cell array of structs.
 
 if iscell(in)
-    [out, extra] = cellfun(@extract_interface, in, 'UniformOutput', 0);
+    [out, extra] = cellfun(@extract_interface, in);
 else
     [out, extra] = extract_interface(in);
 end

@@ -25,110 +25,89 @@ function [this, varargout] = inherit(varargin)
 %If requested, save a reference copy of the methods from each ancestor.
 %This is so you can still call a method you override through inheritance.
 
-[this, methodnames] = inheritmethods();
-    function [this, methodnames] = inheritmethods();
-        this = struct();
-        this.parents__ = cellfun(@parent_backup, varargin, 'UniformOutput', 0);
-        function backup = parent_backup(parent)
-            backup = parent;
-            %ordinary methods need to get unwrapped
-            parentmethodnames = parent.method__();
-            for name = parentmethodnames'
-                backup.(name{:}) = parent.method__(name{:});
-            end
-        end
+[this, shadow] = inheritmethods(varargin);
+    function [this, shadow] = inheritmethods(parents_);
+        
+        %method-methods of each direct ancestor (one cell per ancestor)
+        methodMethods = cellfun(@(p)p.method__, parents_, 'UniformOutput', 0);
 
-
-        %the names and methods of each direct ancestor (one cell per ancestor)
-        names = cellfun(@(p)p.method__(), varargin, 'UniformOutput', 0);
-
-        %Others gets one cell per ancestor of each ancestor's other ancestors, i.e.
-        %excluding the ancestor itself
-        others = arrayfun(@(index)exclude(varargin', index), 1:numel(varargin),...
-            'UniformOutput', 0);
-        function r = exclude(array, varargin)
-            r = array;
-            r(varargin{:}) = [];
-        end
-
-        %Now, methods from ancestors listed later override methods from ancestors
-        %listed earlier. The nunion function tells us which methods come from where.
-
-        %indices gets index vectors of the selected method set, one cell per ancestor
-        indices = cell(size(names));
-        [m, indices{:}] = nunion(names{:});
-        names = cellfun(@(n,i) n(i), names, indices, 'UniformOutput', 0);
-        %Now names only contains the methods that will end up being publically
-        %exposed.
-
-        %build the new object by going through the methods coming from each
-        %ancestor
-        cellfun(@assignmethods, names, varargin, others);
-        function assignmethods(names, obj, others);
-            %names  is the names of the methods to assign
-            %obj    is the object where the methods come from
-            %others is the other objects that get the method
-
-            %assign each method in turn
-            cellfun(@assignmethod, names);
-            function assignmethod(name)
-
-                %get the actual method as well as the transparent invoker
-                method = obj.method__(name);
-                wrappedmethod = obj.(name);
-
-                %store the method
-                this.(name) = wrappedmethod;
-
-                %Now tell the other ancestors about the new method
-                cellfun(@putmethod, others);
-                function putmethod(other)
-                    %the other object only gets the method if it has a slot for
-                    %it.
-                    if isfield(other, name)
-                        %FIXME: questionable use of isfield() here
-                        %should be based off of method__
-                        other.method__(name, method);
-                    end
-                end
+        backup = cell(size(parents_));
+        for i = 1:numel(parents_)
+            backup{i} = cell2struct(struct2cell(parents_{i}),fieldnames(parents_{i}));
+            for name = methodMethods{i}()'
+                backup{i}.(name{:}) = methodMethods{i}(name{:});
             end
         end
         
-        methodnames = nunion(names{:});
+        %from each object the names of the methods we will inherit from it.
+        allMethods = cellfun(@(f)f(), methodMethods, 'UniformOutput', 0);
+
+        methodnames = nunion(allMethods{:});
+        %build a logical array that holds a mark for each object that implements
+        %each method. Methods along columns, parents in rows.
+        hasMethod = logical(zeros(numel(parents_), numel(methodnames)));
+        for i = 1:numel(parents_)
+            j = intersectionIx(methodnames, allMethods{i})';
+            hasMethod(i, j) = 1;
+        end
+        
+        %the inherited method is the last one in every row...
+        [tmp, inheritedMethodIx] = max(flipud(hasMethod));
+        inheritedMethodIx = size(hasMethod, 1) + 1 - inheritedMethodIx;
+
+        %the overridden methods are the other ones
+        overriddenMethod = hasMethod;
+        overriddenMethod(sub2ind(size(overriddenMethod), inheritedMethodIx, 1:numel(methodnames))) = 0;
+        
+        thisargs = cell(1, 2*numel(methodnames));
+        shadowargs = cell(1, 2*numel(methodnames));
+        
+        %now stuff the methods in...
+        for i = 1:numel(methodnames)
+            methodname = methodnames{i};
+            
+            thisargs{2*i-1} = methodname;
+            shadowargs{2*i-1} = methodname;
+            
+            method = methodMethods{inheritedMethodIx(i)}(methodname);
+
+            
+            [thisargs{2*i}, shadowargs{2*i}] = reassignableFunction(method);
+            for p = methodMethods(overriddenMethod(:,i)) %logical indexing
+                p{:}(methodname, method);
+            end
+        end
+        
+        %and stuff in an implementation of method__ using these precomputed
+        %matrices? for the fastness!
+        
+        function val = method__(name, val) %this should be inside a version of reassignableMethod...
+            switch(nargin)
+                case 0
+                    val = methodnames;
+                case 1
+                    val = shadow.(name)();
+                otherwise
+                    i = find(strcmp(name, methodnames));
+                    if ~isempty(i)
+                        
+                        for p = methodMethods(hasMethod(:,i)) %logical indexing
+                            p{:}(name, val);
+                        end
+                        shadow.(name)(val);
+                    end
+                    %otherwise assigning the method has no effect
+            end
+        end
+        
+        this = struct(thisargs{:}, 'method__', @method__, 'parents__', {backup});
+        shadow = struct(shadowargs{:});
     end
+
+%i doubt this...
+%this = publicize(this);
 
 varargout = this.parents__(1:nargout-1);
-
-%Now, the "method__' operation needs to be defined for the inherited
-%object.
-this.method__ = @method__;
-    function fn = method__(name, fn)
-        switch nargin
-            case 0
-                fn = methodnames;
-            case 1
-                %return the 'raw' method, not the wrapped one...
-                for i = this.parents__(end:-1:1)
-                    if isfield(i{:}, name)
-                        fn = i{:}.method__(name);
-                        break;
-                    end
-                end
-                if ~exist('fn', 'var')
-                    error('inherit:noSuchMethod','No such method %s', name)
-                end
-            otherwise
-                %store the method here, and store it in all the ancestors
-                this.(name) = fn; %Anything refer to this anymore?
-                cellfun(@putparentmethod, varargin);
-        end
-        
-        function putparentmethod(parent)
-            if isfield(parent, name)
-                parent.method__(name, fn);
-            end
-        end
-    end
 
 %another matlab annoyance: if you hav a bunch of code and have left off a
 %semicolon somewhere, there is no good way to track down where short of
@@ -148,11 +127,21 @@ this.property__ = makeproperty();
         %orient its output
         propnames = propnames(:);
         
-        getters = cellfun(@(name)this.(getterName(name)), propnames, 'uniformOutput', 0);
+        %pull otu getter and setter methods.
+        %i'd do this with a cellfun but it adds an inexplicable 0.4
+        %seconds, thanks to matlab's incredibly slow use of structs and
+        %cells in lexical scope
+        getters = cell(size(propnames));
+        for i = 1:numel(getters)
+            getters{i} = this.(getterName(propnames{i}));
+        end
         getters = {propnames{:}; getters{:}};
         getters = struct(getters{:});
 
-        setters = cellfun(@(name)this.(setterName(name)), propnames, 'uniformOutput', 0);
+        setters = cell(size(propnames));
+        for i = 1:numel(setters)
+            setters{i} = this.(setterName(propnames{i}));
+        end
         setters = {propnames{:}; setters{:}};
         setters = struct(setters{:});
 

@@ -8,14 +8,11 @@ function this = FilledDisk(loc_, radius_, color_)
 %See also Drawer, Drawing.
 
 %----- public interface -----
-this = inherit(...
-    Drawer(),...
-    public(...
-        @prepare,...
+this = final(...
+        @init, @update,...
         @draw, @bounds,...
         @getLoc, @setLoc, @getRadius, @setRadius,...
-        @getColor, @setColor, @getVisible, @setVisible)...
-    );
+        @getColor, @setColor, @getVisible, @setVisible);
 
 %----- private instance variables (plus those that are arguments) -----
 
@@ -38,8 +35,9 @@ visible_ = 0;
         b = ([center - disp, center + disp]);
     end
 
-    function prepare(params)
+    function [release, params] = init(params)
         toPixels_ = transformToPixels(params.cal);
+        release = @noop;
     end
 
 %manually declare accessors, for speed inside the function.
@@ -73,5 +71,8 @@ visible_ = 0;
 
     function v = setVisible(v)
         visible_ = v;
+    end
+
+    function update
     end
 end

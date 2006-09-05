@@ -1,8 +1,9 @@
 function this = TriggerDrawer(main)
 
-this = inherit(Drawer(), public(@draw, @getVisible, @setVisible));
+this = final(@draw, @getVisible, @setVisible, @update, @init);
 
     visible_ = 0;
+    toPixels_ = [];
 
     function draw(window)
         if visible_
@@ -16,6 +17,14 @@ this = inherit(Drawer(), public(@draw, @getVisible, @setVisible));
 
     function v = setVisible(v)
         visible_ = v;
+    end
+
+    function update()
+    end
+
+    function [release, params] = init(params)
+        toPixels_ = transformToPixels(params.cal);
+        release = @noop;
     end
 
 end

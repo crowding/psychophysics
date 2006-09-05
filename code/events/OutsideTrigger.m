@@ -1,4 +1,4 @@
-function this = InsideTrigger(bounds_, range_, offset_, fn_)
+function this = OutsideTrigger(bounds_, range_, offset_, fn_)
 %An object that fires a trigger when x and y are outside the bounds
 %given by a function
 if nargin == 3
@@ -9,7 +9,7 @@ end
 
 log_ = [];
 
-this = inherit(Trigger(), public(@check, @draw, @set, @unset));
+this = final(@check, @draw, @set, @unset, @setLog);
 
     function check(x, y, t, next)
         if set_ && all(~isnan([x, y])) && ~inRect(...

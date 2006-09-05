@@ -6,12 +6,9 @@ function this = MoviePlayer(patch_)
 %
 %Will count off frames without having to draw each one.
 
-[this, Drawer_] = inherit(...
-    Drawer()...
-    ,public(...
-        @prepare, @release, @update, @draw, ...
-        @bounds, @getVisible, @setVisible, @finishTime)...
-    );
+this = final(...
+        @init, @update, @draw, ...
+        @bounds, @getVisible, @setVisible, @finishTime);
 
 textures_ = [];
 frameIndex_ = 1; %whcih frame we are about to show
@@ -20,12 +17,11 @@ visible_ = 0;
 prepared_ = 0;
 toDegrees_ = [];
 
-    function prepare(params)
+    function [releaser, params] =  init(params)
         %Prepares the movie for drawing into a window.
         %
         %drawing: the Drawing object that manages the display.
         
-        Drawer_.prepare(params); %think about a mechanism for chained methods?
         try
             if prepared_
                 error('Drawer:alreadyPrepared', ...
@@ -36,47 +32,44 @@ toDegrees_ = [];
             toDegrees_ = transformToDegrees(params.cal);
         catch
             err = lasterror;
-            %maybe I need an idiom for the chained initialization pattern too...
-            Drawer_.release();
             rethrow(err);
         end
-    end
+        
+        releaser = @release;
+        function release()
+            %Deallocates all textures, etc. associated with the prepared movie.
 
-    function release()
-        %Deallocates all textures, etc. associated with the prepared movie.
-        
-        %we have a bunch of things to clean up, and should keep trying if
-        %any one fails. Thus we place each cleanup item into a function
-        %handle and pass the whole mess to tryAll.
-        
-        %following does not work because of a bug in matlab where anonymous
-        %functions are not bound to separate instances of anonymous function
-        %workspaces.
-        %
-        %totry = arrayfun(@(t)@() Screen('Close', t.texture), textures_,...
-        %    'UniformOutput', 0);
-        %
-        %we have to do this instead:
-        totry = {};
-        for t = textures_'
-            totry{end+1} = @() Screen('Close', t.texture);
+            %we have a bunch of things to clean up, and should keep trying if
+            %any one fails. Thus we place each cleanup item into a function
+            %handle and pass the whole mess to tryAll.
+
+            %following does not work because of a bug in matlab where anonymous
+            %functions are not bound to separate instances of anonymous function
+            %workspaces.
+            %
+            %totry = arrayfun(@(t)@() Screen('Close', t.texture), textures_,...
+            %    'UniformOutput', 0);
+            %
+            %we have to do this instead:
+            totry = {};
+            for t = textures_'
+                totry{end+1} = @() Screen('Close', t.texture);
+            end
+
+            %mark us unprepared
+            totry{end+1} = @cldrawing;
+            function cldrawing
+                prepared_ = 0;
+                visible_ = 0;
+                frameIndex_ = 1;
+                frameCounter = 1;
+            end
+
+            tryAll(totry{:});
         end
 
-        %mark us unprepared
-        totry{end+1} = @cldrawing;
-        function cldrawing
-            prepared_ = 0;
-            visible_ = 0;
-            frameIndex_ = 1;
-            frameCounter = 1;
-            Drawer_.release()
-        end
-        
-        %finally release the parent
-        totry{end+1} = Drawer_.release; %mechanism for chained mathods?
-        
-        tryAll(totry{:});
     end
+
 
     function update
         %advance 1 frame forward in the movie. Should be called by a main

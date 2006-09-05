@@ -9,7 +9,7 @@ end
 
 log_ = [];
 
-this = inherit(Trigger(), public(@check, @draw, @set, @unset, @setLog));
+this = final(@check, @draw, @set, @unset, @setLog);
 
     function check(x, y, t, next)
         if set_ && inRect(...

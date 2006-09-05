@@ -2,7 +2,7 @@ function this = FarTrigger(loc_, threshold_, fn_)
 %An object that fires a trigger when x and y is a certain distance away
 %from a point.
 
-this = inherit(Trigger(), public(@check, @draw, @set, @unset, @setLog));
+this = final(@check, @draw, @set, @unset, @setLog);
 
 if (nargin == 0)
     set_ = 0;
