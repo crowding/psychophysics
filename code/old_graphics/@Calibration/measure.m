@@ -47,7 +47,7 @@ require(...
         readings = zeros(numel(background), oversample + 2);
 
         for bf = [background(:)';foreground(:)';1:numel(background)]
-            bf
+            disp(bf')
             Screen(params.screenNumber, 'LoadNormalizedGammaTable', ...
                 linspace(bf(1),bf(2),256)'*[1 1 1]);
             WaitSecs(3);
@@ -66,12 +66,15 @@ require(...
         reading = [];
         while (length(reading) < params.oversample) & (tries < params.retry)
             %talk to the photometer and try to obtain 3 readings.
+            comm('write', params.port, sprintf('!\r'));
+            WaitSecs(0.1);
+            comm('purge', params.port);
             comm('write', params.port, sprintf('!NEW %d\r', params.oversample));
             time = GetSecs;
             response = '';
             while (length(reading) < params.oversample) && (GetSecs < time + params.timeout)
                 response = comm('readl', params.port);
-
+                disp(response);
                 %use regexp to match...
                 response = regexp(response, '\d[^\n\r]*', 'match');
 
@@ -90,6 +93,9 @@ require(...
                 end
             end
         end
+        comm('write', params.port, sprintf('!\r'));
+        WaitSecs(0.1);
+        comm('purge', params.port);
     end
 
 
