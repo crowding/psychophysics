@@ -1,0 +1,324 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 39;
+	objects = {
+		014CEA520018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		014CEA530018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				ZERO_LINK = NO;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+//010
+//011
+//012
+//013
+//014
+//030
+//031
+//032
+//033
+//034
+		034768E8FF38A79811DB9C8B = {
+			explicitFileType = "compiled.mach-o.executable";
+			fallbackIsa = PBXFileReference;
+			isa = PBXExecutableFileReference;
+			path = comm.mexmac;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+//030
+//031
+//032
+//033
+//034
+//080
+//081
+//082
+//083
+//084
+		08FB7793FE84155DC02AAC07 = {
+			buildSettings = {
+			};
+			buildStyles = (
+				014CEA520018CE5811CA2923,
+				014CEA530018CE5811CA2923,
+			);
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = 08FB7794FE84155DC02AAC07;
+			projectDirPath = "";
+			targets = (
+				08FB779FFE84155DC02AAC07,
+			);
+		};
+		08FB7794FE84155DC02AAC07 = {
+			children = (
+				E21B292E045AD0AC00A80002,
+				08FB7795FE84155DC02AAC07,
+				E2AB90200451B9DB00A80002,
+				1AB674ADFE9D54B511CA2CBB,
+			);
+			isa = PBXGroup;
+			name = comm;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 = {
+			children = (
+				E218284606242A6D00686175,
+				E25DC7CF0615928E00967017,
+				E25DC7CB0615927D00967017,
+				E25DC7D8061592EA00967017,
+				E2AB90060451B66200A80002,
+				E2AC9BBC0438890E00A80002,
+			);
+			isa = PBXGroup;
+			name = Source;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		08FB779FFE84155DC02AAC07 = {
+			buildPhases = (
+				08FB77A0FE84155DC02AAC07,
+				08FB77A1FE84155DC02AAC07,
+				08FB77A3FE84155DC02AAC07,
+				08FB77A5FE84155DC02AAC07,
+				E2AB925D0453481900A80002,
+			);
+			buildSettings = {
+				EXPORTED_SYMBOLS_FILE = exports;
+				FRAMEWORK_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = "\"$(SYSTEM_APPS_DIR)/MATLAB/extern/include\"";
+				INSTALL_PATH = "$(HOME)/bin";
+				LIBRARY_SEARCH_PATHS = "\"$(SYSTEM_APPS_DIR)/MATLAB/bin/mac\"";
+				OTHER_CFLAGS = "-DMATLAB_MEX_FILE -fno-common";
+				OTHER_LDFLAGS = "-bundle -Wl,-flat_namespace -undefined suppress";
+				PREBINDING = NO;
+				PRODUCT_NAME = comm.mexmac;
+				USE_DYNAMIC_NO_PIC = NO;
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			dependencies = (
+			);
+			isa = PBXToolTarget;
+			name = comm;
+			productInstallPath = "$(HOME)/bin";
+			productName = comm;
+			productReference = 034768E8FF38A79811DB9C8B;
+		};
+		08FB77A0FE84155DC02AAC07 = {
+			buildActionMask = 2147483647;
+			files = (
+				E25DC7D9061592EA00967017,
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		08FB77A1FE84155DC02AAC07 = {
+			buildActionMask = 2147483647;
+			files = (
+				E2AB90070451B66200A80002,
+				E25DC7CC0615927D00967017,
+				E25DC7D00615928E00967017,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		08FB77A3FE84155DC02AAC07 = {
+			buildActionMask = 2147483647;
+			files = (
+				E25DC8750615A88C00967017,
+				E25DC8F20615A8BE00967017,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		08FB77A5FE84155DC02AAC07 = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXRezBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+//080
+//081
+//082
+//083
+//084
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+		1AB674ADFE9D54B511CA2CBB = {
+			children = (
+				034768E8FF38A79811DB9C8B,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+//E20
+//E21
+//E22
+//E23
+//E24
+		E218284606242A6D00686175 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.objc;
+			path = comm.m;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		E21B292E045AD0AC00A80002 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.rtf;
+			path = Readme.rtf;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		E25DC7CB0615927D00967017 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = serialPort.c;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		E25DC7CC0615927D00967017 = {
+			fileRef = E25DC7CB0615927D00967017;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E25DC7CF0615928E00967017 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = comm.c;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		E25DC7D00615928E00967017 = {
+			fileRef = E25DC7CF0615928E00967017;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E25DC7D8061592EA00967017 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = serialPort.h;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		E25DC7D9061592EA00967017 = {
+			fileRef = E25DC7D8061592EA00967017;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E25DC8740615A88C00967017 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = CoreFoundation.framework;
+			path = /System/Library/Frameworks/CoreFoundation.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		E25DC8750615A88C00967017 = {
+			fileRef = E25DC8740615A88C00967017;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E25DC8F10615A8BE00967017 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = IOKit.framework;
+			path = /System/Library/Frameworks/IOKit.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		E25DC8F20615A8BE00967017 = {
+			fileRef = E25DC8F10615A8BE00967017;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E2AB90060451B66200A80002 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = mexversion.c;
+			path = /Applications/MATLAB/extern/src/mexversion.c;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		E2AB90070451B66200A80002 = {
+			fileRef = E2AB90060451B66200A80002;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		E2AB90200451B9DB00A80002 = {
+			children = (
+				E25DC8740615A88C00967017,
+				E25DC8F10615A8BE00967017,
+			);
+			isa = PBXGroup;
+			name = Libraries;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		E2AB925D0453481900A80002 = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXShellScriptBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "nmedit -s /Applications/MATLAB/extern/lib/mac/mexFunction.map build/comm.mexmac\ncp build/comm.mexmac ../../extern/comm.mexmac\n/Developer/Tools/CpMac comm.m ../../extern/comm.m";
+		};
+		E2AC9BBC0438890E00A80002 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = text;
+			path = exports;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+	};
+	rootObject = 08FB7793FE84155DC02AAC07;
+}

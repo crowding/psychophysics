@@ -1,4 +1,4 @@
-function dump(obj, printer)
+function dump(obj, printer, prefix)
 %I was going to save all my data in matlab files, but this meant that
 %i would have to do all my analysis in matlab, or some matlab-compatible
 %thing. Since i have grown to dislike matlab and with the long-term goal
@@ -14,27 +14,60 @@ function dump(obj, printer)
 %function.) The idea is that rumin eval() on all the strings should
 %recreate the data (for objects, this presupposes that the object's nature
 %is determined by its properties.)
-prefix = inputname(1);
+if ~exist('prefix', 'var')
+    prefix = inputname(1);
+    if isempty(prefix)
+        prefix = 'ans';
+    end
+end
 
-dumpit(prefix, obj)
+if ~exist('printer', 'var') || isempty(printer)
+    printer = @printtobase;
+end
 
-
+dumpit(prefix, obj);
 
     function dumpit(prefix, obj)
 
-        if ndims(obj) > 3
-            error('dump:multiDimensional', 'could not dump multidimensional array.');
-        end
 
         if isnumeric(obj)
+            if ndims(obj) > 3
+                error('dump:multiDimensional', 'could not dump multidimensional array.');
+            end
             printer('%s = %s;', prefix, mat2str(obj))
             return;
         end
 
+        if ischar(obj)
+            dumpstr(prefix, obj);
+            return;
+        end
+        
+        if islogical(obj)
+            if ndims(obj) > 3
+                error('dump:multiDimensional', 'could not dump multidimensional array.');
+            end
+            
+            printer('%s = logical(%s)', prefix, mat2str(logical(obj))
+        end
+
+        if numel(obj) ~= 1
+            %it's not char and not numeric and not a cell, this
+            %means it's complicated and we should dump individual
+            %entries.
+            switch class(obj)
+                case 'cell'
+                    dumpcell(prefix, obj)
+                otherwise
+                    dumpcell(prefix, num2cell(obj))
+                    printer('%s = cell2mat(%s);', prefix, prefix);
+            end
+            return;
+        end
+
         switch class(obj)
-            case 'char'
-                dumpstr(prefix, obj);
             case 'struct'
+
                 if isfield(obj, 'property__')
                     dumpobject(prefix, obj.property__);
                     %we should have a field naming the constructor to
@@ -47,15 +80,28 @@ dumpit(prefix, obj)
                 else
                     dumpstruct(prefix, obj);
                 end
+%{
+            case 'function_handle'
+                f = functions(obj);
+                dumpstruct(prefix, f);
+                printer('%s = undumpable(''function_handle'', %s);', prefix, prefix);
+%}
             otherwise
                 if isa(obj, 'Object')
+                    %w = wrapped__(obj);
+                    %dumpit(prefix, w);
+                    %printer('%s = Object(%s);', prefix, prefix);
+                    
+                    v = version__(obj);
                     dumpobject(prefix, obj.property__);
-                    printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
+                    printer('%s = %s(%s);', prefix, v.function, prefix);
                 elseif isa(obj, 'PropertyObject')
                     dumpstruct(prefix, obj);
                     printer('%s = %s(%s);', prefix, class(obj), prefix);
                 else
-                    error('can''t dump class %s', class(obj));
+                    %we use a 
+                    printer('%s = undumpable(''%s'');', prefix, class(obj));
+                    %error('can''t dump class %s', class(obj));
                 end
         end
     end
@@ -106,4 +152,25 @@ dumpit(prefix, obj)
         end
     end
 
+    function dumpcell(prefix, obj)
+        nd = ndims(obj);
+
+        sizestring = join(',', arrayfun(@num2str, size(obj), 'UniformOutput', 0));
+        printer('%s = cell(%s);', prefix, sizestring);
+
+        for i = 1:numel(obj) %go backwards to auto-size
+            [sub{1:nd}] = ind2sub(size(obj), i);
+            subscript = cellfun(@int2str, sub, 'UniformOutput', 0);
+
+            subscript = ['{' join(',', subscript), '}'];
+            dumpit([prefix subscript], obj{sub{:}});
+        end
+    end
+
+    function printtobase(varargin)
+        expr = sprintf(varargin{:});
+        disp(expr);
+        evalin('base', expr);
+    end
 end
+

@@ -2,7 +2,7 @@ function this = Trigger
     %the Trigger interface.
     %
     %see also SpaceEvents.
-    this = inherit(Identifiable(), public(@check, @draw));
+    this = public(@check, @draw);
     
     function check(x, y, t, next)
         %Implementors check if the arguments meet some criteria, and

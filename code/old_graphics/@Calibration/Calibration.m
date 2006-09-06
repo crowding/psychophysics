@@ -16,6 +16,8 @@ function p = Calibration(varargin)
 % 'pixelSize' the screen bit depth.
 % 'interval' the frame interval in seconds (1 / refresh rate)
 % 'gamma' A gamma correction table.
+% 'calibration_rect' the rectangle that we placed the photometer over
+% 'measurement' the raw gamma measurements.
 % 'measured' set to true if the gamma table has been produced by photometric 
 %  measurement.
 % 'bitdepth' the bit depth of the gamma correction table.
@@ -27,7 +29,7 @@ function p = Calibration(varargin)
 % p = save(p) saves the calibration to a standard directory.
 % p = load(p) finds the calibration that matches this computer and screen 
 %             resolution.
-% p = takegamma(p) speaks to a photometer on the given screen, and fills out 
+% p = calibrate_gamma(p) speaks to a photometer on the given screen, and fills out 
 %     its own gamma correction table.
 
 classname = mfilename('class');
@@ -47,11 +49,14 @@ else
 	p.pixelSize = NaN;
 	p.interval = NaN;
 	p.gamma = NaN;
+	p.calibration_rect = NaN;
+    p.location = NaN;
+    p.measurement = NaN;
 	p.measured = NaN;
 	p.bitdepth = NaN;
 	p.date = NaN;
 	 
-        p.svn = svninfo(fileparts(mfilename('fullpath')));
+    p.svn = svninfo(fileparts(mfilename('fullpath')));
 	p = class(p, classname, PropertyObject);
 end
 

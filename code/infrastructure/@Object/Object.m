@@ -15,6 +15,7 @@ switch(nargin)
         this = varargin{1};
     otherwise
         [this, varargout{1:nargout-1}] = inherit(varargin{:});
+        this.version__ = getversion(2);
 end
 
 if isa(this, 'Object')

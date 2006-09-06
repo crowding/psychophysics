@@ -25,7 +25,6 @@ defaults = namedargs(...
 %Experiment
 
 this = Object(...
-    Identifiable()...
     ,propertiesfromdefaults(defaults, 'params', varargin{:})...
     ,public(@run)...
     );
@@ -107,7 +106,7 @@ this = Object(...
             this.params = require(...
                 openLog(this.params),...
                 setupEyelinkExperiment(),...
-                logEnclosed('EXPERIMENT_RUN %.15f', this.id),...
+                logEnclosed('EXPERIMENT_RUN'),...
                 @doRun);
             function params = doRun(params)
                 if params.dummy
@@ -116,22 +115,28 @@ this = Object(...
 
                 while trials.hasNext()
                     trial = trials.next(params);
-                    params.log('BEGIN TRIAL %.15f', trial.id);
+                    params.log('BEGIN TRIAL');
                     try
                         trial.run();
                     catch
                         trial.err = lasterror;
                     end
+                    
+                    a = cputime;
                     this.trialsDone = {trial this.trialsDone};
-                    params.log('END TRIAL %.15f', trial.id);
+                    b = cputime - a;
+                    
+                    disp(sprintf('stored in %f s', b));
+                    
+                    %no exception handling around dump: if there's a
+                    %problem with dumping data, end the experiment, please
+                    dump(trial, params.log);
+                    
+                    params.log('END TRIAL');
                     
                     trials.result(trial);
                 end
             end
         end
-
-
     end %-----ExperimentRun-----
-
-
 end
