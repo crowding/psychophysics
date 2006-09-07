@@ -20,6 +20,7 @@ function initializer = GetEyelink(varargin)
 FILE_CANT_OPEN = -1;
 
 %build the initializer, and curry it with given args.
+
 initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
 initializer = currynamedargs(initializer, varargin{:});
 
@@ -37,16 +38,26 @@ initializer = currynamedargs(initializer, varargin{:});
         end
            
         %connect to the eyelink machine.
-        try
-            status = Eyelink('Initialize');
-            details.dummy = 0;
-        catch
-            %There is no rhyme or reason as to why eyelink throws
-            %an error and not a status code here
-            warning('GetEyelink:dummyMode', 'Using eyelink in dummy mode');
-            status = Eyelink('InitializeDummy');
-            details.dummy = 1;
+        if ~isfield(details, 'dummy')
+            %auto-choose real or dummy mode
+            try
+                status = Eyelink('Initialize');
+                details.dummy = 0;
+            catch
+                %There is no rhyme or reason as to why eyelink throws
+                %an error and not a status code here
+                warning('GetEyelink:dummyMode', 'Using eyelink in dummy mode');
+                status = Eyelink('InitializeDummy');
+                details.dummy = 1;
+            end
+        else
+            if details.dummy
+                status = Eyelink('InitializeDummy');
+            else
+                status = Eyelink('Initialize');
+            end
         end
+                
         
         if status < 0
             error('getEyelink:initFailed',...

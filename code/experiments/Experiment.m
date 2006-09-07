@@ -10,15 +10,16 @@ function this = Experiment(varargin)
 %
 % Any other named arguments are stuffed into the 'params' property and will
 % be passed down into the Eyelink and Screen setup routines.
+caller = getversion(2);
 
 defaults = namedargs(...
     'trials', ShuffledTrials()...
     ,'subject', ''...
-    ,'filename',''...
+    ,'filename','__auto__'...
     ,'runs', {} ...
     ,'description', ''...
-    ,'caller', getversion(2)...
-    ,'params.logfile', ''...
+    ,'caller', caller...
+    ,'params.logfile', '__auto__'...
     );
 
 %note the Experiment object is not dumped to the edf-file, only the
@@ -38,7 +39,7 @@ this = Object(...
             error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
         end
 
-        if isempty(this.filename)
+        if isequal(this.filename, '__auto__')
             fname = this.caller.function;
             if ~isvarname(fname)
                 error('Experiment:badCallerName'...
@@ -49,14 +50,14 @@ this = Object(...
                 this.subject, floor(clock), fname);
         end
 
-        if isempty(this.params.logfile)
+        if isequal(this.params.logfile, '__auto__')
             this.params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
         end
 
         %TODO: perhaps see if there's a per-subject config?
 
         %an total experiment can have many runs. Each run will be saved.
-        theRun = ExperimentRun(this.params, 'trials', this.trials);
+        theRun = ExperimentRun(this.params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
         e = [];
         try
             theRun.run();
@@ -68,13 +69,14 @@ this = Object(...
 
         %now save ourself. Since we overwrite, it is prudent to write
         %to a temp file first.
-        t = tempname;
-        disp( sprintf('writing to temp file %s', t));
-        save(t, 'this');
-        finalfile = fullfile(env('datadir'), this.filename);
-        movefile([t '.mat'], finalfile);
-        disp( sprintf('saved to %s', finalfile) );
-
+        if(~isempty(this.filename))
+            t = tempname;
+            disp( sprintf('writing to temp file %s', t));
+            save(t, 'this');
+            finalfile = fullfile(env('datadir'), this.filename);
+            movefile([t '.mat'], finalfile);
+            disp( sprintf('saved to %s', finalfile) );
+        end
 
         %if there was an error, report it after saving
         if ~isempty(theRun.err)
@@ -117,10 +119,6 @@ this = Object(...
                 logEnclosed('EXPERIMENT_RUN'),...
                 @doRun);
             function params = doRun(params)
-                if params.dummy
-                    params.trialParams.timeDilation = 3;
-                end
-
                 done = trialsDone_;
                 n = numel(done);
 

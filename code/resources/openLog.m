@@ -7,8 +7,16 @@ defaults = struct('logfile', filename);
 init = currynamedargs(@initLog, defaults, varargin{:});
 
     function [release, params] = initLog(params)
-        file_ = fopen(fullfile(env('datadir'), params.logfile), 'a');
-
+        if ~isempty(params.logfile)
+            fname = fullfile(env('datadir'), params.logfile);
+            file_ = fopen(fname, 'a');
+            if (file <= 0)
+                error('openLog:problemOpeningFile', 'status %d opening log file "%s"', file_, fname);
+            end
+        else
+            file_ = -1;
+        end
+        
         params.log = @logMessage;
         
         %test line breaking (FIXME: should be a unit test)
@@ -19,8 +27,10 @@ init = currynamedargs(@initLog, defaults, varargin{:});
         release = @closeLog;
 
         function closeLog
-            fclose(file_);
-            disp(sprintf('logged to %s', params.logfile));
+            if file_ > 0
+                fclose(file_);
+                disp(sprintf('logged to %s', params.logfile));
+            end
         end
 
         function logMessage(varargin)
@@ -41,7 +51,10 @@ init = currynamedargs(@initLog, defaults, varargin{:});
                     stop = 1;
                 end
                 
-                fprintf(file_, '%s\n', chunk);
+                if file_ > 0
+                    fprintf(file_, '%s\n', chunk);
+                end
+
                 if Eyelink('IsConnected')
                     try
                         %the eyelink toolbox is very picky and will crash eveything if
