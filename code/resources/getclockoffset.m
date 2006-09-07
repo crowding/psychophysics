@@ -114,9 +114,13 @@ measured = mean(pre_request);
             elseif (s - timeout) > softtimeout
                 
                 warning('doClockSync:eyelinkNotResponding', ...
-                    'Eyelink not responding, prodding again (%s)', GetSecs);
+                    'Eyelink not responding, prodding again (%f)', GetSecs);
                 
                 %request the time again...
+                Eyelink('Shutdown');
+                status = Eyelink('Initialize');
+                AssertEquals(0, status);
+                WaitSecs(0.1);
                 before_request = GetSecs();
                 status = Eyelink('RequestTime');
                 status = Eyelink('RequestTime'); %and do it twice for luck!!!

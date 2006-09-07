@@ -10,7 +10,7 @@ init = currynamedargs(@initLog, defaults, varargin{:});
         if ~isempty(params.logfile)
             fname = fullfile(env('datadir'), params.logfile);
             file_ = fopen(fname, 'a');
-            if (file <= 0)
+            if (file_ <= 0)
                 error('openLog:problemOpeningFile', 'status %d opening log file "%s"', file_, fname);
             end
         else

@@ -22,7 +22,7 @@ defaults = namedargs(...
 %we use the trial params struct a lot, so take it into a local struct
 p = props.getTrialParams();
 if isequal(p.timeDilation, '__auto__')
-    if params.dummy
+    if this.params.dummy
         p.timeDilation = 3;
     else
         p.timeDilation = 1;
@@ -59,7 +59,7 @@ p = namedargs(...
     'fixationPointRadius',    0.1,...
     'grossFixationCriterion', 3,... %the window which starts a trial
     'fixationSettlingTime',   0.35,... %wait this long to settle fixation
-    'fineFixationCriterion',  0.75,... %eye stays in this radius when fixating
+    'fineFixationCriterion',  1,... %eye stays in this radius when fixating
     'targetMargin',           1,... %how close you need to get to the target
     ...
     'fineFixationTime',       0.75 * p.timeDilation,...
