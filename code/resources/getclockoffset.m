@@ -92,7 +92,7 @@ measured = mean(pre_request);
         %thrown. Unreliable stuff, this...
 
         before_request = GetSecs();
-        status = Eyelink('RequestTime'); %do it twice for luck!!!
+        status = Eyelink('RequestTime');
         after_request = GetSecs();
         
         if status ~= 0
@@ -100,8 +100,9 @@ measured = mean(pre_request);
                 'status %d from requesttime', status);
         end
         
-        start = before_requst;
+        start = before_request;
         time = 0;
+        timeout = start;
         while(time == 0)
             s = GetSecs();
             

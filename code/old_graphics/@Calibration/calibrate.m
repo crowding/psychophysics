@@ -95,7 +95,9 @@ plot3(inputs, inputs, fullvals, 'w-', 'LineWidth', 3);
 %find the full field intensity that splits black and white intensities
 %evenly
 split = (fullvals - blackvals) ./ (whitevals - blackvals);
-gray = interp1(split, inputs, params.desired_background);
+[split, splinputs] = distinctx(split, inputs);
+gray = interp1(split, splinputs, params.desired_background);
+
 
 %Now capture a full gamma curve for the gray background
 
@@ -114,7 +116,9 @@ s2inputs = params.stage2.foreground;
 s2vals = params.stage2.readings;
 
 %and invert it
-grayvals = sort(s2vals); %clean up, assuming monotonicity
+s2vals = sort(s2vals); %clean up, assuming monotonicity
+[s2vals, s2inputs] = distinctx(s2vals, s2inputs);
+
 gammacurve = interp1(s2vals, s2inputs, linspace(min(s2vals),max(s2vals),256), 'cubic');
 
 %visual check - this should overlap the red line

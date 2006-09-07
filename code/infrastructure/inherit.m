@@ -52,7 +52,7 @@ function [this, varargout] = inherit(varargin)
         end
         
         %the inherited method is the last one in every row...
-        [tmp, inheritedMethodIx] = max(flipud(hasMethod));
+        [tmp, inheritedMethodIx] = max(flipud(hasMethod), [], 1);
         inheritedMethodIx = size(hasMethod, 1) + 1 - inheritedMethodIx;
 
         %the overridden methods are the other ones

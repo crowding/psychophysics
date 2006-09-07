@@ -25,152 +25,161 @@ if ~exist('printer', 'var') || isempty(printer)
     printer = @printtobase;
 end
 
-dumpit(prefix, obj);
+dumpit(prefix, obj, printer);
 
-    function dumpit(prefix, obj)
+end
+
+function dumpit(prefix, obj, printer)
 
 
-        if isnumeric(obj)
-            if ndims(obj) > 3
-                error('dump:multiDimensional', 'could not dump multidimensional array.');
+if isnumeric(obj)
+    if ndims(obj) > 3
+        error('dump:multiDimensional', 'could not dump multidimensional array.');
+    end
+    if isa(obj, 'double')
+        printer('%s = %s;', prefix, smallmat2str(obj));
+    else
+        printer('%s = %s;', prefix, smallmat2str(obj, 'class'));
+    end
+    return;
+end
+
+if ischar(obj)
+    dumpstr(prefix, obj, printer);
+    return;
+end
+
+if islogical(obj)
+    if ndims(obj) > 3
+        error('dump:multiDimensional', 'could not dump multidimensional array.');
+    end
+
+    printer('%s = logical(%s)', prefix, smallmat2str(double(obj)));
+    return;
+end
+
+if numel(obj) ~= 1
+    %it's not char and not numeric and not a cell, this
+    %means it's complicated and we should dump individual
+    %entries.
+    switch class(obj)
+        case 'cell'
+            dumpcell(prefix, obj, printer)
+        otherwise
+            dumpcell(prefix, num2cell(obj), printer)
+            printer('%s = cell2mat(%s);', prefix, prefix);
+    end
+    return;
+end
+
+switch class(obj)
+    case 'struct'
+
+        if isfield(obj, 'property__')
+            dumpobject(prefix, obj.property__, printer);
+            %we should have a field naming the constructor to
+            %call. But it could just be a bare properties thing.
+            if isfield(obj, 'version__')
+                dumpstruct([prefix '.version__'], obj.version__, printer);
+                printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
+            else
+                printer('%s = properties(%s);', prefix, prefix);
             end
-            printer('%s = %s;', prefix, mat2str(obj))
-            return;
+        else
+            dumpstruct(prefix, obj, printer);
         end
+        %{
+        case 'function_handle'
+        f = functions(obj);
+        dumpstruct(prefix, f);
+        printer('%s = undumpable(''function_handle'', %s);', prefix, prefix);
+        %}
+    otherwise
+        if isa(obj, 'Object')
+            %w = wrapped__(obj);
+            %dumpit(prefix, w);
+            %printer('%s = Object(%s);', prefix, prefix);
 
-        if ischar(obj)
-            dumpstr(prefix, obj);
-            return;
+            v = version__(obj);
+            dumpobject(prefix, obj.property__, printer);
+            dumpstruct([prefix '.version__'], v, printer);
+                
+            printer('%s = %s(%s);', prefix, v.function, prefix);
+        elseif isa(obj, 'PropertyObject')
+            dumpstruct(prefix, obj, printer);
+            printer('%s = %s(%s);', prefix, class(obj), prefix);
+        else
+            %we use a
+            printer('%s = undumpable(''%s'');', prefix, class(obj));
+            %error('can''t dump class %s', class(obj));
         end
-        
-        if islogical(obj)
-            if ndims(obj) > 3
-                error('dump:multiDimensional', 'could not dump multidimensional array.');
-            end
-            
-            printer('%s = logical(%s)', prefix, mat2str(logical(obj)));
-        end
+end
+end
 
-        if numel(obj) ~= 1
-            %it's not char and not numeric and not a cell, this
-            %means it's complicated and we should dump individual
-            %entries.
-            switch class(obj)
-                case 'cell'
-                    dumpcell(prefix, obj)
-                otherwise
-                    dumpcell(prefix, num2cell(obj))
-                    printer('%s = cell2mat(%s);', prefix, prefix);
-            end
-            return;
-        end
+function dumpstr(prefix, str, printer)
+%i'm going to write the string as an argument to sprintf, not
+%as a matlab string, because the matlab string literals can't
+%actually escape characters, for fuck's sake.
+if size(str, 1) > 1
+    error('dump:multiline', 'Can''t dump multiline strings');
+end
 
-        switch class(obj)
-            case 'struct'
+if any(str == 0) || any(str > 255)
+    error('dump:charValues', ...
+        'can''t handle strings with nulls or high char values.')
+end
 
-                if isfield(obj, 'property__')
-                    dumpobject(prefix, obj.property__);
-                    %we should have a field naming the constructor to
-                    %call. But it could just be a bare properties thing.
-                    if isfield(obj, 'version__')
-                        printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
-                    else
-                        printer('%s = properties(%s);', prefix, prefix);
-                    end
-                else
-                    dumpstruct(prefix, obj);
-                end
-%{
-            case 'function_handle'
-                f = functions(obj);
-                dumpstruct(prefix, f);
-                printer('%s = undumpable(''function_handle'', %s);', prefix, prefix);
-%}
-            otherwise
-                if isa(obj, 'Object')
-                    %w = wrapped__(obj);
-                    %dumpit(prefix, w);
-                    %printer('%s = Object(%s);', prefix, prefix);
-                    
-                    v = version__(obj);
-                    dumpobject(prefix, obj.property__);
-                    printer('%s = %s(%s);', prefix, v.function, prefix);
-                elseif isa(obj, 'PropertyObject')
-                    dumpstruct(prefix, obj);
-                    printer('%s = %s(%s);', prefix, class(obj), prefix);
-                else
-                    %we use a 
-                    printer('%s = undumpable(''%s'');', prefix, class(obj));
-                    %error('can''t dump class %s', class(obj));
-                end
-        end
-    end
+%format the string as an argument to sprintf:
 
-    function dumpstr(prefix, str)
-        %i'm going to write the string as an argument to sprintf, not
-        %as a matlab string, because the matlab string literals can't
-        %actually escape characters, for fuck's sake.
-        if size(str, 1) > 1
-            error('dump:multiline', 'Can''t dump multiline strings');
-        end
+%QUAD quotes, percents and backslashes:
+str = regexprep(str, '[''%\\]', '$0$0$0$0');
 
-        if any(str == 0) || any(str > 255)
-            error('dump:charValues', ...
-                'can''t handle strings with nulls or high char values.')
-        end
+%non-printables and high bytes get the escaped hex treatment, which
+%we obtain by a round of sprintf-ing
+i = (str < 32) | (str > 126);
+arg = regexprep(str, '[^\x20-\xFE]', '\\\\x%02x');
+str = sprintf(arg, str(i));
 
-        %format the string as an argument to sprintf:
+%now we have escaped hex values, and double quotes, backslashes,
+%and percents, which is perfect to feed into sprintf on the input
+%side, by simply eval()ing this string:
 
-        %QUAD quotes, percents and backslashes:
-        str = regexprep(str, '[''%\\]', '$0$0$0$0');
+printer('%s = sprintf(''%s'');', prefix, str);
+end
 
-        %non-printables and high bytes get the escaped hex treatment, which
-        %we obtain by a round of sprintf-ing
-        i = (str < 32) | (str > 126);
-        arg = regexprep(str, '[^\x20-\xFE]', '\\\\x%02x');
-        str = sprintf(arg, str(i));
+function dumpobject(prefix, propmethod, printer)
+for p = propmethod()'
+    %random debugging note: matlab will not how you the difference
+    %in disp() between a char array and a singleton cell containing
+    %a char array, even though the distinction ALWAYS MATTERS.
+    dumpit([prefix '.' p{:}], propmethod(p{:}), printer);
+end
+end
 
-        %now we have escaped hex values, and double quotes, backslashes,
-        %and percents, which is perfect to feed into sprintf on the input
-        %side, by simply eval()ing this string:
+function dumpstruct(prefix, obj, printer)
+for f = fieldnames(obj)'
+    dumpit([prefix '.' f{:}], obj.(f{:}), printer);
+end
+end
 
-        printer('%s = sprintf(''%s'');', prefix, str);
-    end
+function dumpcell(prefix, obj, printer)
+nd = ndims(obj);
 
-    function dumpobject(prefix, propmethod)
-        for p = propmethod()'
-            %random debugging not: matlab will not how you teh difference
-            %in disp() between a char array and a singleton cell containing
-            %a char array, even though the distinction ALWAYS MATTERS.
-            dumpit([prefix '.' p{:}], propmethod(p{:}));
-        end
-    end
+sizestring = join(',', arrayfun(@num2str, size(obj), 'UniformOutput', 0));
+printer('%s = cell(%s);', prefix, sizestring);
 
-    function dumpstruct(prefix, obj)
-        for f = fieldnames(obj)'
-            dumpit([prefix '.' f{:}], obj.(f{:}));
-        end
-    end
+for i = 1:numel(obj)
+    [sub{1:nd}] = ind2sub(size(obj), i);
+    subscript = cellfun(@int2str, sub, 'UniformOutput', 0);
 
-    function dumpcell(prefix, obj)
-        nd = ndims(obj);
+    subscript = ['{' join(',', subscript), '}'];
+    dumpit([prefix subscript], obj{sub{:}}, printer);
+end
+end
 
-        sizestring = join(',', arrayfun(@num2str, size(obj), 'UniformOutput', 0));
-        printer('%s = cell(%s);', prefix, sizestring);
-
-        for i = 1:numel(obj) %go backwards to auto-size
-            [sub{1:nd}] = ind2sub(size(obj), i);
-            subscript = cellfun(@int2str, sub, 'UniformOutput', 0);
-
-            subscript = ['{' join(',', subscript), '}'];
-            dumpit([prefix subscript], obj{sub{:}});
-        end
-    end
-
-    function printtobase(varargin)
-        expr = sprintf(varargin{:});
-        disp(expr);
-        evalin('base', expr);
-    end
+function printtobase(varargin)
+expr = sprintf(varargin{:});
+disp(expr);
+evalin('base', expr);
 end
 

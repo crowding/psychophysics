@@ -66,6 +66,7 @@ end
 %the real work: read the system for default values.
 if isnan(p.computer)
 	p.computer = Screen('Computer');
+    p.computer = rmfield(p.computer, 'location'); %changes when network settings change
     p.computer.kern = rmfield(p.computer.kern, 'hostname'); %this changes all the time
     p.computer.hw = rmfield(p.computer.hw, 'usermem'); %this changes all the time
 end

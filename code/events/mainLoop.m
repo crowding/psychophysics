@@ -28,8 +28,6 @@ nt_ = numel(triggers_);
 toDegrees_ = [];
 log_ = [];
 
-params_ = struct();
-
 badSampleCount_ = 0;
 missingSampleCount_ = 0;
 goodSampleCount_ = 0;
@@ -37,20 +35,20 @@ goodSampleCount_ = 0;
 %----- methods -----
 
     function params = go(varargin)
-        params_ = namedargs(params_, varargin{:});
+        params = namedargs(params_, varargin{:});
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
         %
         %Initializes the event managers and sets high CPU priority before
         %running.
-        params_ = require(...
-            triggerInitializer(params_)...
+        params = require(...
+            triggerInitializer(params)...
             ,graphicsInitializer()...
             ,listenChars()...
             ,highPriority()...
             ,@doGo...
             );
-        params = params_;
+        params_ = params;
     end
 
     function params = doGo(params)
@@ -70,7 +68,7 @@ goodSampleCount_ = 0;
             %triggers is passed in manually because, for whatever reason,
             %looking it up from lexical scope inside the function imposes
             %300% overhead.
-            pushEvents(lastVBL + interval);
+            pushEvents(params, lastVBL + interval);
 
             if ~go_
                 break;
@@ -158,7 +156,7 @@ goodSampleCount_ = 0;
         nt_ = nt_+1;
     end
 
-    function pushEvents(next)
+    function pushEvents(params, next)
         % Sample the eye and give to sample to all triggers.
         %
         % next: the scheduled next refresh.
@@ -171,7 +169,7 @@ goodSampleCount_ = 0;
         if ~go_
             error('mainLoop:notOnline', 'must start spaceEvents before recording');
         end
-        [x, y, t] = sample();
+        [x, y, t] = sample(params);
         [x, y] = toDegrees_(x, y); %convert to degrees (native units)
 
         %send the sample to each trigger and the triggers will fire if they
@@ -182,13 +180,13 @@ goodSampleCount_ = 0;
         end
     end
 
-    function [x, y, t] = sample()
+    function [x, y, t] = sample(params)
         %Takes a sample from the eye, or mouse if the eyelink is not
         %connected. Returns x and y == NaN if the sample has invalid
         %coordinates.
 
-        if params_.dummy
-            [x, y, buttons] = GetMouse(params_.window);
+        if params.dummy
+            [x, y, buttons] = GetMouse(params.window);
             t = GetSecs();
             if any(buttons) %simulate blinking
                 x = NaN;
@@ -209,12 +207,12 @@ goodSampleCount_ = 0;
                 % frame. Profile this call?
                 eye = Eyelink('EyeAvailable');
                 switch eye
-                    case params_.el.BINOCULAR
+                    case params.el.BINOCULAR
                         error('eyeEvents:binocular',...
                             'don''t know which eye to use for events');
-                    case params_.el.LEFT_EYE
+                    case params.el.LEFT_EYE
                         eyeidx = 1;
-                    case params_.el.RIGHT_EYE
+                    case params.el.RIGHT_EYE
                         eyeidx = 2;
                 end
 
@@ -229,7 +227,7 @@ goodSampleCount_ = 0;
                     goodSampleCount_ = goodSampleCount_ + 1;
                 end
 
-                t = (sample.time - params_.clockoffset) / 1000;
+                t = (sample.time - params.clockoffset) / 1000;
             end
         end
     end
@@ -281,7 +279,6 @@ goodSampleCount_ = 0;
 
 
     function [release, params] = initSampleCounts(params)
-        params_ = params;
         release = @printSampleCounts;
 
         badSampleCount_ = 0;
@@ -305,7 +302,7 @@ goodSampleCount_ = 0;
         % See also Trigger>draw.
 
         for i = 1:nt_ %ideal, middle
-            triggers_(i).draw(window, toPixels_); %middle
+            triggers_(i).draw(window, toPixels);
         end
     end
 

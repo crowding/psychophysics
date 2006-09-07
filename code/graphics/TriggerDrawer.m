@@ -1,13 +1,14 @@
-function this = TriggerDrawer(main)
+function this = TriggerDrawer()
 
-this = final(@draw, @getVisible, @setVisible, @update, @init);
+this = final(@draw, @getVisible, @setVisible, @update, @init, @set);
 
     visible_ = 0;
     toPixels_ = [];
+    main_ = [];
 
     function draw(window)
         if visible_
-            events_.drawTriggers(window, this.toPixels);
+            main_.drawTriggers(window, toPixels_);
         end
     end
 
@@ -20,6 +21,10 @@ this = final(@draw, @getVisible, @setVisible, @update, @init);
     end
 
     function update()
+    end
+    
+    function set(m)
+        main_ = m;
     end
 
     function [release, params] = init(params)

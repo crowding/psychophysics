@@ -93,20 +93,20 @@ p = namedargs(...
         if p.diagnostics
             %----- visible state and gaze indicator (development feedback) ----
             state = Text([-5 -5], '', [0 0 params.whiteIndex]);
-            main.addGraphic(state);
             state.setVisible(1);
 
             gaze = FilledDisk([0 0], 0.1, [params.whiteIndex 0 0]);
             gazeupdate = UpdateTrigger(@(x, y, t, next) gaze.setLoc([x y]));
             gaze.setVisible(1);
             
-            outlines = TriggerDrawer(main);
+            outlines = TriggerDrawer();
             outlines.setVisible(1);
             
             main = mainLoop(...
                 {fixation, target, state, gaze, outlines}...
                 ,{nearTrigger, farTrigger, timeTrigger, insideTrigger, gazeupdate}...
                 );
+            outlines.set(main);
         else
             main = mainLoop(...
                 {fixation, target}...
@@ -128,7 +128,7 @@ p = namedargs(...
         disp(sprintf('cue at %g s (%g deg)', ...
             p.cueTime, p.target.center(1) + p.target.dx/p.target.dt*p.cueTime));
 
-        main.go(params);
+        params = main.go(params);
 
         %----- state functions -----
         

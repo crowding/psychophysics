@@ -184,4 +184,9 @@ function this = testObject()
         b = repmat(a, 1, 1);
     end
 
+    %fuck you, matlab! it makes the equivalent of this impossible:
+    %a = {struct('a', 1); struct('b', 1)}
+    %a{1}.a %can't do this wil cell references of Object, no way - the
+    %subsref on Object will never be called. WTF.
+
 end

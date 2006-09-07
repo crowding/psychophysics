@@ -10,8 +10,7 @@ params = namedargs(varargin{:});
         ,'instructions', sprintf([...
 'Fixate at the dot. A moving stimulus will appear. When the dot \n'...
 'disappears, make a saccade to the moving stimulus. During a trial, press'... 
-'''q'' to abort the experiment.'...
-]);
+'''q'' to abort the experiment.'])...
         ,params);
     
     e.run();
@@ -31,6 +30,7 @@ params = namedargs(varargin{:});
             'cueWindow', [-3 1]...
             ,'cueRatePerDegree', 0.4 ...
             ,'err', [] ...
+            ,'numLeft', 200 ...
             );
         
         this = Object(...
@@ -43,7 +43,7 @@ params = namedargs(varargin{:});
         function has = hasNext()
             %in this paradigm I always have a next trial
             %we may want to put rest periods, trial blocks, etc. in here
-            has = 1;
+            has = this.numLeft > 0;
         end
 
         
@@ -99,6 +99,9 @@ params = namedargs(varargin{:});
         function result(last)
             %trials are drawn from a distribution -- I
             %don't care about reshuffling failed trials
+            if last.successful
+                this.numLeft = this.numLeft - 1;
+            end
             if ~isempty(last.err)
                 rethrow(last.err);
             end

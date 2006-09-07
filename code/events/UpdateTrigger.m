@@ -3,7 +3,7 @@ function this = UpdateTrigger(fn_)
 %
 %See also Trigger.
 
-this = final(@check, @set, @unset, @setLog);
+this = final(@check, @set, @unset, @setLog, @draw);
 
 if (nargin < 1)
     set_ = 0;
@@ -32,5 +32,8 @@ log_ = [];
 
     function setLog(log)
         log_ = log;
+    end
+
+    function draw(window, toPixels)
     end
 end
