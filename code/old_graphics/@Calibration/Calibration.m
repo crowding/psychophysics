@@ -41,7 +41,8 @@ if length(args) > 0 && isa(args{1}, classname)
 	args = args(2:end);
 else
 	%default values to be IGNORED
-	p.machine = NaN;
+	p.computer = NaN;
+    p.ptb = NaN;
 	p.screenNumber = NaN;
 	p.distance = NaN;
 	p.spacing = NaN;
@@ -49,10 +50,8 @@ else
 	p.pixelSize = NaN;
 	p.interval = NaN;
 	p.gamma = NaN;
-	p.calibration_rect = NaN;
-    p.location = NaN;
-    p.measurement = NaN;
-	p.measured = NaN;
+	p.calibrated = NaN;
+    p.calibration = NaN;
 	p.bitdepth = NaN;
 	p.date = NaN;
 	 
@@ -65,10 +64,17 @@ if length(args) >= 2
 end
 
 %the real work: read the system for default values.
-if isnan(p.machine)
-	mac = Screen('Computer');
-	p.machine = mac.machineName;
+if isnan(p.computer)
+	p.computer = Screen('Computer');
+    p.computer.kern = rmfield(p.computer.kern, 'hostname'); %this changes all the time
+    p.computer.hw = rmfield(p.computer.hw, 'usermem'); %this changes all the time
 end
+
+if isnan(p.ptb)
+	p.ptb = Screen('Version');
+    p.ptb = rmfield(p.ptb, 'authors'); %too long to dump out in our saved file
+end
+
 if isnan(p.screenNumber)
 	p.screenNumber = max(Screen('screens'));
 end
@@ -107,8 +113,8 @@ if ~found
 	if isnan(p.gamma)
 		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
 	end
-	if isnan(p.measured)
-		p.measured = 0;
+	if isnan(p.calibrated)
+		p.calibrated = 0;
 	end
 	if isnan(p.bitdepth)
 		p.bitdepth = 8;

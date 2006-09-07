@@ -6,7 +6,7 @@ function [this, found] = load(this)
 % found, the present calibration is returned unchanged.
 
 found = 0;
-filename = strcat(this.machine, '.mat');
+filename = strcat(this.computer.machineName, '.mat');
 dirs = env;
 file = fullfile(dirs.calibrationdir, filename);
 

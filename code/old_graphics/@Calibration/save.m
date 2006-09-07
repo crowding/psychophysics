@@ -3,7 +3,7 @@ function this = save(this);
 %
 % Saves this calibration to a known location so that it can be recalled.
 
-filename = strcat(this.machine, '.mat');
+filename = strcat(this.computer.machineName, '.mat');
 dirs = env;
 file = fullfile(dirs.calibrationdir, filename);
 

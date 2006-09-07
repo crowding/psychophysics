@@ -48,7 +48,7 @@ dumpit(prefix, obj);
                 error('dump:multiDimensional', 'could not dump multidimensional array.');
             end
             
-            printer('%s = logical(%s)', prefix, mat2str(logical(obj))
+            printer('%s = logical(%s)', prefix, mat2str(logical(obj)));
         end
 
         if numel(obj) ~= 1

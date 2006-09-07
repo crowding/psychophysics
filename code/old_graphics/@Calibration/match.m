@@ -6,7 +6,8 @@ function r = match(this, that);
 % frame rate.
 
 r = 1;
-r = r && strcmp(this.machine, that.machine);
+r = r && isequal(this.computer, that.computer);
+r = r && isequal(this.ptb, that.ptb);
 r = r && this.screenNumber == that.screenNumber;
 r = r && all(this.rect == that.rect);
 r = r && this.interval == that.interval;
