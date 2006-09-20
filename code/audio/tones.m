@@ -9,8 +9,16 @@ if ~exist('samplingrate', 'var')
 end
 
 params = reshape(format, 3, []);
-params = num2cell(params, [2]); %each row into a cell
+
+%matla has no idea about how to behave consistently with zero-dimension
+%inputs. This breks:
+%params = num2cell(params, [2]); %each row into a cell
+params = mat2cell(params, [1 1 1]); %each row into a cell
+
 tones = arrayfun(@tone, params{:}, 'UniformOutput', 0);
+if isempty(tones)
+    tones = {0};
+end
 player = audioplayer(cat(2, tones{:}), samplingrate);
 
     function r = tone(freq, duration, amplitude)

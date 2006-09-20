@@ -26,7 +26,8 @@ defaults = namedargs(...
 %ExperimentRun object.
 
 this = Object(...
-    propertiesfromdefaults(defaults, 'params', varargin{:})...
+    Identifiable()...
+    , propertiesfromdefaults(defaults, 'params', varargin{:})...
     , public(@run)...
     );
 
@@ -116,8 +117,10 @@ this = Object(...
             this.params = require(...
                 openLog(this.params),...
                 setupEyelinkExperiment(),...
-                logEnclosed('EXPERIMENT_RUN'),...
+                logEnclosed('EXPERIMENT_RUN %s', this.id),...
                 @doRun);
+            
+            
             function params = doRun(params)
                 done = trialsDone_;
                 n = numel(done);
@@ -127,29 +130,33 @@ this = Object(...
                     dump(this, params.log, 'beforeRun');
                     
                     while this.trials.hasNext()
-                        trial = this.trials.next(params);
-                        params.log('BEGIN TRIAL');
-                        try
-                            trial.run();
-                        catch
-                            trial.err = lasterror;
-                        end
-
-                        done = {trial done};
-                        n = n + 1;
-
-                        %no exception handling around dump: if there's a
-                        %problem with dumping data, end the experiment,
-                        %please
-                        dump(trial, params.log);
-
-                        params.log('END TRIAL');
-
-                        this.trials.result(trial);
+                        next = this.trials.next;
+                        trial = next(params);
+                        
+                        %handle keyboard exceptions here?
+                        require(initparams(params), logEnclosed('TRIAL %s', trial.getId()), @runTrial);
                     end
                 catch
                     e = lasterror; %we still want to store the trials done
                     this.err = e;
+                end
+                   
+                function runTrial(params)
+                    try
+                        trial.run();
+                    catch
+                        trial.err = lasterror;
+                    end
+
+                    done = {trial done};
+                    n = n + 1;
+
+                    %no exception handling around dump: if there's a
+                    %problem with dumping data, end the experiment,
+                    %please
+                    dump(trial, params.log);
+
+                    this.trials.result(trial);
                 end
                 
                 trialsDone_ = flattenlinkedlist(done, n);
@@ -159,9 +166,11 @@ this = Object(...
                 dump(this, params.log, 'afterRun');
                 
                 if ~isempty(e)
-                    rethrow(e);
+                    rethrow(e); %rethrow errors after logging
                 end
             end
+            
+            
         end
     end %-----ExperimentRun-----
 end

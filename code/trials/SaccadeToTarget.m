@@ -16,8 +16,14 @@ defaults = namedargs(...
 
 %we like Object access syntax/saving but want fast access to the struct
 [this, props] = Object(...
-    propertiesfromdefaults(defaults, 'params', varargin{:}), ...
-    public(@getTrialParams, @setTrialParams, @run));
+      propertiesfromdefaults(defaults, 'params', varargin{:}) ...
+    , Identifiable()...
+    , public(@getTrialParams, @setTrialParams, @run));
+
+%right now, the clock offset is the only reason i need all the params for
+%all the trials? Need a more efficient way of recording environment
+%parameters. Forwards compatibility can use a script which filters out
+%non-changes between contexts.
 
 %we use the trial params struct a lot, so take it into a local struct
 p = props.getTrialParams();
@@ -28,6 +34,8 @@ if isequal(p.timeDilation, '__auto__')
         p.timeDilation = 1;
     end
 end
+
+
 
 p = namedargs(...
 %{
