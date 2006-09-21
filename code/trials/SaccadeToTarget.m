@@ -194,7 +194,7 @@ p = namedargs(...
             %wait for settling, then average fixation
             accumX = 0;
             accumY = 0;
-            nAveragingSamples = 0;
+            nSamples = 0;
             timeTrigger.set(t + p.fixationSettlingTime, @averagingFixation, 1);
         end
 
@@ -306,7 +306,7 @@ p = namedargs(...
             target.setVisible(0);
             fixation.setVisible(0);
 
-            %give feedback at next refresh
+            %give feedback after next refresh
             nearTrigger.unset();
             farTrigger.unset();
             timeTrigger.set(t + params.cal.interval, @finishBadTrial);
