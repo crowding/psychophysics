@@ -33,6 +33,8 @@ if ~isempty(yspacing)
     this.spacing(2) = yspacing;
 end
 
+this.date = date();
+
 %----- perform stage one measurements -----
 %measure white foregrounds, black foregrounds, and full fields
 fore = [zeros(1, params.stage1_points) ones(1, params.stage1_points) linspace(0, 1,params.stage1_points)]';
