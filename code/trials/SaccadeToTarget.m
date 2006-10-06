@@ -163,7 +163,7 @@ p = namedargs(...
             p.cueTime, p.target.center(1) + p.target.dx/p.target.dt*p.cueTime));
 
         params = main.go(params);
-
+        
         %----- state functions -----
         
         function waitingForFixation(x, y, t, next)

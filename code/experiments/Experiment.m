@@ -122,8 +122,8 @@ this = Object(...
             
             
             function params = doRun(params)
-                done = trialsDone_;
-                n = numel(done);
+                %done = trialsDone_;
+                %n = numel(done);
 
                 e = [];
                 try
@@ -143,13 +143,16 @@ this = Object(...
                    
                 function runTrial(params)
                     try
-                        trial.run();
+                        params = trial.run(params);
                     catch
                         trial.err = lasterror;
                     end
+                    
+                    %record aux. info the trial gave back to us
+                    trial.params = params;
 
-                    done = {trial done};
-                    n = n + 1;
+                    %done = {trial done};
+                    %n = n + 1;
 
                     %no exception handling around dump: if there's a
                     %problem with dumping data, end the experiment,
@@ -159,7 +162,7 @@ this = Object(...
                     this.trials.result(trial);
                 end
                 
-                trialsDone_ = flattenlinkedlist(done, n);
+                %trialsDone_ = flattenlinkedlist(done, n);
 
                 %finally dump information about this run
                 this.params = params;

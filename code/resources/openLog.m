@@ -38,10 +38,10 @@ init = currynamedargs(@initLog, defaults, varargin{:});
             %logs the message to the eyelink.
             str = sprintf(varargin{:});
 
-            chunksize = 200;
-            %the eyelink logs mesages with a maximum length of 200 chars,
+            chunksize = 128;
+            %the eyelink logs mesages with a maximum length of 139 chars,
             %so we should wrap longer messages (placing a backslash at the
-            %end of message as reminder) into 299 char blocks.
+            %end of message as reminder) into 139 char blocks.
             stop = 0;
             for i = 1:chunksize-1:numel(str)
                 if numel(str) > i + chunksize-1
