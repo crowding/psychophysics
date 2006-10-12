@@ -8,29 +8,19 @@ function p = Patch(varargin)
 % x, y, t values.
 % 
 % Properties:
-% 'Center' the location [x, y, t] of the function. Default value [ 0 0 0 ].
+% 'center' the location [x, y, t] of the stimulus. Default value [ 0 0 0 ].
 %
 % Methods:
 % [x, y, t] = extent(p) returns the bounds over which the function is non-zero.
 % z = evaluate(p, x, y, t) evaluates the function over the grid formed by 
-% vectors x y and t.
+%                          vectors x y and t.
 
 classname = mfilename('class');
-args = varargin;
 
-if length(args) > 0 && isa(args{1}, classname)
-	%copy constructor
-	p = args{1};
-	args = args(2:end);
-else
-	%default values
-	p.center = [0 0 0];
-        p.svn = svninfo(fileparts(mfilename('fullpath')));
-	p = class(p, classname, PropertyObject);
-end
+defaults = struct ...
+	( 'center', [0 0 0] ...
+    , 'svn', svninfo(fileparts(mfilename('fullpath'))) ...
+	);
+p = class(defaults, classname, PropertyObject);
 
-
-%other initialization arguments
-if length(args) >= 2
-	p = set(p, args{:});
-end
+p = namedargs(p, varargin{:});

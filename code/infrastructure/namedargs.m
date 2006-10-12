@@ -3,8 +3,13 @@ function o = namedargs(varargin)
 %into a one struct
 
 checknamedargs(varargin{:});
-o = struct();
-skip = 0;
+if (isstruct(varargin{1}) | isobject(varargin{1}))
+    o = varargin{1};
+    skip = 1;
+else
+    o = struct();
+    skip = 0;
+end
 
 for i = 1:nargin
     if skip
@@ -14,7 +19,7 @@ for i = 1:nargin
 
     switch class(varargin{i})
         case 'char'
-            %we also support dotted strings to make substructs...
+            %we support dotted strings to implicitly make substructs...
             subs = splitstr('.', varargin{i});
             value = varargin{i+1};
             
@@ -24,6 +29,12 @@ for i = 1:nargin
         case 'struct'
             for assignment = cat(2, fieldnames(varargin{i}), struct2cell(varargin{i}))'
                 assign(assignment{:});
+            end
+        otherwise
+            if isobject(varargin{i})
+                for assignment = cat(2, fieldnames(varargin{i}), struct2cell(varargin{i}))'
+                    assign(assignment{:});
+                end
             end
     end
 end

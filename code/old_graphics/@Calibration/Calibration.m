@@ -88,7 +88,7 @@ end
 if isnan(p.interval)
 	fr = Screen('FrameRate', p.screenNumber);
 	if (fr == 0)
-		warning('Unable to determine frame rate');
+		warning('Calibration:noFrameRate', 'Unable to determine frame rate');
 		fr=60;
 	end
 		

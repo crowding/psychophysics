@@ -26,10 +26,15 @@ for i = 1:n
 
         case 'struct'
             if ~isscalar(arg)
-                error('namedargs:structArray', 'Nonscalar struct arrays as named arguments ar not permitted.')
+                error('namedargs:structArray', 'Nonscalar struct arrays as named arguments are not permitted.')
             end
         otherwise
-            clear Screen;
-            error('namedargs:badArgumentType', 'Bad argument type for named arugments.')
+            if ~isobject(arg)
+                error('namedargs:badArgumentType', 'Bad argument type for named arugments.')
+            end
+            if ~isscalar(arg)
+                error('namedargs:objectArray', 'Nonscalar object arrays as named arguments are not permitted.')
+            end
+            
     end
 end

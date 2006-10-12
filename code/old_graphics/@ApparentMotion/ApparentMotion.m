@@ -1,6 +1,6 @@
 function this = ApparentMotion(varargin)
 % function c = ApparentMotion([CauchyPatch], 'propname', value, ...)
-% Constructor for apparent motion simuli. The stimulus is composed of a 
+% Constructor for apparent motion simuli. The stimulus is composed of a
 % Patch that is repeated while moving over intervals of dx and dt.
 %
 % Inherits from Patch.
@@ -12,23 +12,15 @@ function this = ApparentMotion(varargin)
 % 'n' the number of frames
 
 classname = mfilename('class');
-args = varargin;
 
-if length(args) > 0 && isa(args{1}, classname)
-	%copy constructor
-	this = args{1};
-	args = args(2:end);
-else
-	%default values
-	this.primitive = Bar;
-	this.dx = 1;
-	this.dt = 0.1;
-	this.n = 10;
-	this.svn = svninfo(fileparts(mfilename('fullpath')));
-	this = class(this, classname, Patch);
-end
+%default values
+defaults = struct ...
+    ( 'primitive',  Bar ...
+    , 'dx', 1 ...
+    , 'dt', 0.1 ...
+    , 'n', 10 ...
+    , 'svn', svninfo(fileparts(mfilename('fullpath'))) ...
+    );
+this = class(defaults, classname, Patch);
 
-%other initialization arguments
-if length(args) >= 2
-	this = set(this, args{:});
-end
+this = namedargs(this, varargin{:});
