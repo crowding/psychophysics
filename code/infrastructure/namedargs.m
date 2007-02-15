@@ -2,6 +2,10 @@ function o = namedargs(varargin)
 %combine all given named arguments (scalar structs or named arugments)
 %into a one struct
 
+if (nargin == 0)
+    o = struct();
+    return;
+end
 checknamedargs(varargin{:});
 if (isstruct(varargin{1}) | isobject(varargin{1}))
     o = varargin{1};
