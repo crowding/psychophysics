@@ -122,8 +122,7 @@ this = Object(...
             
             
             function params = doRun(params)
-                %done = trialsDone_;
-                %n = numel(done);
+                this.params = params; %to log initialization information
 
                 e = [];
                 try
@@ -144,13 +143,24 @@ this = Object(...
                 function runTrial(params)
                     try
                         params = trial.run(params);
+                        
+                        %record aux. info the trial gave back to us
+                    
+                        %FIXME: BASTARD HACK
+                        %I believe I have a new scheme for parameter logging
+                        %that will solve this....
+                        %but for now we extract the fields that we KNOW the
+                        %trial gave back, so as not to record the
+                        %screen calibration data for each and every
+                        %trial...
+                        for i = {'clockoffset', 'clockoffsetmeasured', 'priority', 'oldpriority'};
+                            trial.params.(i{:}) = params.(i{:});
+                        end
+                        
                     catch
                         trial.err = lasterror;
                     end
                     
-                    %record aux. info the trial gave back to us
-                    trial.params = params;
-
                     %done = {trial done};
                     %n = n + 1;
 

@@ -1,6 +1,8 @@
 function play(this, w, cal);
 % function play(this, window, calibration);
 % render the patch and present it using psych toolbox.
+%
+% OBSOLETE - use for testing purposes only.
 
 if ~exist('cal', 'var') || ~exist('w', 'var')
 	[w, cal, oldgamma] = open_window();

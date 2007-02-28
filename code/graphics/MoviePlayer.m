@@ -6,13 +6,18 @@ function this = MoviePlayer(patch_)
 %
 %Will count off frames without having to draw each one.
 
+%constants
+GL_BLEND_EQUATION = hex2dec('8009');
+GL_BLEND_DST = hex2dec('0BE0');
+GL_BLEND_SRC = hex2dec('0BE1');
+
 this = final(...
         @init, @update, @draw, ...
         @bounds, @getVisible, @setVisible, @finishTime);
 
 textures_ = [];
-frameIndex_ = 1; %whcih frame we are about to show
-frameCounter_ = 1; %the index into the teture array (may be different from frame index
+refreshCount_ = 1; %whcih frame we are about to show
+frameIndex_ = 1; %the index into the teture array (may be different from frame index
 visible_ = 0;
 prepared_ = 0;
 toDegrees_ = [];
@@ -43,16 +48,16 @@ toDegrees_ = [];
             %any one fails. Thus we place each cleanup item into a function
             %handle and pass the whole mess to tryAll.
 
-            %following does not work because of a bug in matlab where anonymous
-            %functions are not bound to separate instances of anonymous function
-            %workspaces.
+            %The following snippet does not work because of a bug in matlab
+            % where anonymous functions are not bound to separate instances
+            % of anonymous function workspaces.
             %
-            %totry = arrayfun(@(t)@() Screen('Close', t.texture), textures_,...
-            %    'UniformOutput', 0);
+            % totry = arrayfun(@(t)@() Screen('Close', t.texture), textures_,...
+            %     'UniformOutput', 0);
             %
             %we have to do this instead:
             totry = {};
-            for t = textures_'
+            for t = textures_(:)'
                 totry{end+1} = @() Screen('Close', t.texture);
             end
 
@@ -78,8 +83,8 @@ toDegrees_ = [];
         %are skipped.
         
         if visible_
-            frameCounter_ = frameCounter_ + 1;
-            if textures_(frameIndex_).frame < frameCounter_
+            refreshCount_ = refreshCount_ + 1;
+            while frameIndex_ <= numel(textures_) && textures_(frameIndex_).frame < refreshCount_
                 frameIndex_ = frameIndex_ + 1;
             end
             if frameIndex_ > numel(textures_)
@@ -92,17 +97,31 @@ toDegrees_ = [];
 
     function draw(window)
         if visible_
-            t = textures_(frameIndex_);
-            if (t.frame == frameCounter_)
+            beq = glGetIntegerv(GL_BLEND_EQUATION);
+            [src, dst] = Screen('BlendFunction', window);
+
+            
+            fi = frameIndex_;
+            while fi <= numel(textures_) && textures_(fi).frame == refreshCount_
+                t = textures_(fi);
+
+                glBlendEquation(t.blendEquation);
+                Screen('BlendFunction', window, t.sourceFactor, t.destFactor);
                 Screen('DrawTexture', window, t.texture, [], t.playrect);
+
+                fi = fi + 1;
             end
+
+            %undo our compositing settings
+            glBlendEquation(beq);
+            Screen('BlendFunction', window, src, dst);
         end
     end
 
     function b = bounds
         %Gives the current bounds of the object, i.e. the bounds of
         %the next frame to be shown.
-            b = toDegrees_(textures_(frameIndex_).playrect);
+        b = toDegrees_(textures_(frameIndex_).playrect);
     end
 
     function v = getVisible();
@@ -123,8 +142,8 @@ toDegrees_ = [];
             %start at the first frame
             %(update is called right after draw; first frame shown
             %should be the first frame)
-            frameIndex_ = 1;
-            frameCounter_ = textures_(1).frame;
+            refreshCount_ = 1;
+            frameIndex_ = textures_(1).frame;
             
             if exist('next', 'var');
                 onset = next - textures_(1).time;

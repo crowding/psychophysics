@@ -1,5 +1,6 @@
 function this = mainLoop(graphics, triggers, varargin)
-params_ = namedargs(varargin{:});
+defaults = struct('log', @noop, 'skipFrames', 1);
+params_ = namedargs(defaults, varargin{:});
 %The main loop which controls presentation of a trial. There are three
 %output arguments, main, drawing, and events, which used to be separate
 %objects in separate files, but were tied together for speed.
@@ -84,21 +85,25 @@ goodSampleCount_ = 0;
                 graphics_(i).draw(window);
             end
                     
-            [VBL] = Screen('Flip', window, 0, 0); %was 20.00    3458
+            [VBL] = Screen('Flip', window, 0, 0);
             hitcount = hitcount + 1;
 
             %count the number of frames advanced and do the
             %appropriate number of drawing.update()s
-            frames = round((VBL - lastVBL) / interval);
-            skipcount = skipcount + frames - 1;
+            if (params.skipFrames)
+                frames = round((VBL - lastVBL) / interval);
+                skipcount = skipcount + frames - 1;
 
-            if frames > 1
-                log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
-            end
+                if frames > 1
+                    log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
+                end
 
-            if frames > 60
-                error('mainLoop:drawingStuck', ...
-                    'got stuck doing frame updates...');
+                if frames > 60
+                    error('mainLoop:drawingStuck', ...
+                        'got stuck doing frame updates...');
+                end
+            else
+                frames = 1;
             end
 
             for i = 1:frames
@@ -241,7 +246,7 @@ goodSampleCount_ = 0;
         %
         %See also require.
 
-        init = currynamedargs(JoinResource(graphics_.init), varargin{:});
+        init = currynamedargs(joinResource(graphics_.init), varargin{:});
     end
 
     function i = triggerInitializer(varargin)
@@ -262,6 +267,7 @@ goodSampleCount_ = 0;
     end
 
     function [release, params] = initLog(params)
+        
         toDegrees_ = transformToDegrees(params.cal);
 
         %now that we are starting an experiment, tell each trigger where to

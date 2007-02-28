@@ -86,7 +86,7 @@ catch
     %log the error if a logger is among the parameters
     try
         if isfield(output, 'log')
-            output.log.logMessage('ERROR %s', err.identifier);
+            output.log('ERROR %s', err.identifier);
         end
     catch
     end

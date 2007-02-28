@@ -1,4 +1,4 @@
-function e = delayedSaccade(varargin)
+function e = ApparentValocityCompensation(varargin)
 
 params = namedargs(varargin{:});
 
@@ -53,7 +53,7 @@ params = namedargs(varargin{:});
         
         function trial = next(params)
             %----- construct and return the next trial -----
-            trial = SaccadeToTarget(this.params, params);
+            trial = SaccadeToTarget(this.params); %trial = SaccadeToTarget(this.params, params);
             
             %basic randomization of directions and local motion agreement
             p = trial.trialParams;
