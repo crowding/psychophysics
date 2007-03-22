@@ -12,7 +12,7 @@ function this = Text(loc_, text_, color_)
         @init, @update...
         );
 
-    function draw(window)
+    function draw(window, next)
         loc = toPixels_(loc_);
         Screen('DrawText', window, text_, loc(1), loc(2), color_);
     end

@@ -65,10 +65,7 @@ goodSampleCount_ = 0;
         lastVBL = Screen('Flip', params.window);
         %the main loop
         while(1)
-            %take a sample from the eyetracker and react to it
-            %triggers is passed in manually because, for whatever reason,
-            %looking it up from lexical scope inside the function imposes
-            %300% overhead.
+            % take a sample from the eyetracker and react to it.
             pushEvents(params, lastVBL + interval);
 
             if ~go_
@@ -82,7 +79,7 @@ goodSampleCount_ = 0;
 
             %draw all the objects
             for i = 1:ng_
-                graphics_(i).draw(window);
+                graphics_(i).draw(window, lastVBL + interval);
             end
                     
             [VBL] = Screen('Flip', window, 0, 0);
@@ -307,7 +304,7 @@ goodSampleCount_ = 0;
         %
         % See also Trigger>draw.
 
-        for i = 1:nt_ %ideal, middle
+        for i = 1:nt_
             triggers_(i).draw(window, toPixels);
         end
     end

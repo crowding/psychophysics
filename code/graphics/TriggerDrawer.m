@@ -6,7 +6,7 @@ this = final(@draw, @getVisible, @setVisible, @update, @init, @set);
     toPixels_ = [];
     main_ = [];
 
-    function draw(window)
+    function draw(window, next)
         if visible_
             main_.drawTriggers(window, toPixels_);
         end

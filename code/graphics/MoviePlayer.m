@@ -95,7 +95,7 @@ toDegrees_ = [];
         end
     end
 
-    function draw(window)
+    function draw(window, next)
         if visible_
             beq = glGetIntegerv(GL_BLEND_EQUATION);
             [src, dst] = Screen('BlendFunction', window);

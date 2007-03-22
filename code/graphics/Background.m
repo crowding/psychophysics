@@ -18,7 +18,7 @@ this = finalize(inherit(...
 %for a calling convention.
 %Inheritance/mixins wouldn't hurt either.
 
-    function draw(window)
+    function draw(window, next)
         if this.getVisible()
             Screen('FillRect', window, this.getColor());
         end

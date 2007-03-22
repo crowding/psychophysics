@@ -12,7 +12,7 @@ this = inherit(...
         %skippage).
     end
 
-    function draw()
+    function draw(window, next)
         %this will be called once per drawn frame
     end
 

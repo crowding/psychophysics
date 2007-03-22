@@ -20,7 +20,7 @@ toPixels_ = [];
 visible_ = 0;
 
 %----- methods -----
-    function draw(window)
+    function draw(window, next)
         if visible_
             center = toPixels_(loc_);
             corner = toPixels_(loc_ + repmat(radius_, 1, 2));
