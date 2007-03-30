@@ -124,9 +124,12 @@ frameCounts_ = []; %index into this array with the refresh number
             if ref >= 1 && ref <= numel(frameIndex_)
                 %draw the textures
                 for t = textures_(frameIndex_(ref):frameIndex_(ref)+frameCounts_(ref) - 1)
-                    
+
+                    %these two lines are taking an inordinately long amount
+                    %of time.
                     glBlendEquation(t.blendEquation);
                     Screen('BlendFunction', window, t.sourceFactor, t.destFactor);
+                    
                     Screen('DrawTexture', window, t.texture, [], t.playrect + [xPos yPos xPos yPos]);
                 end
             elseif ref > numel(frameIndex_)
@@ -140,6 +143,9 @@ frameCounts_ = []; %index into this array with the refresh number
         %new sprite (repeat as necessary)
         while maxRefreshOnset - refreshCount_ < 1
             [x, y, t] = process_.next();
+            if isnan(t)
+                break;
+            end
             
             %convert coords
             [x, y] = toPixels_(x, y);

@@ -32,6 +32,7 @@ log_ = [];
 badSampleCount_ = 0;
 missingSampleCount_ = 0;
 goodSampleCount_ = 0;
+skipFrameCount_ = 0;
 
 %----- methods -----
 
@@ -90,7 +91,9 @@ goodSampleCount_ = 0;
             if (params.skipFrames)
                 frames = round((VBL - lastVBL) / interval);
                 skipcount = skipcount + frames - 1;
+                skipFrameCount_ = skipFrameCount_ + frames - 1;
 
+                
                 if frames > 1
                     log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
                 end
@@ -287,10 +290,11 @@ goodSampleCount_ = 0;
         badSampleCount_ = 0;
         missingSampleCount_ = 0;
         goodSampleCount_ = 0;
-
+        skipFrameCount_ = 0;
+        
         function printSampleCounts
-            disp(sprintf('%d good samples, %d bad, %d missing', ...
-                goodSampleCount_, badSampleCount_, missingSampleCount_));
+            disp(sprintf('%d good samples, %d bad, %d missing, %d frames skipped', ...
+                goodSampleCount_, badSampleCount_, missingSampleCount_, skipFrameCount_));
         end
     end
 
