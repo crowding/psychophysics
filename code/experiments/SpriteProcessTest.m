@@ -14,13 +14,22 @@ params = namedargs(defaults, varargin{:});
 
 require(setupEyelinkExperiment(params), @runDemo);
     function runDemo(details)
-
+        %{
         patch1 = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
         patch2 = CauchyPatch('velocity', -10, 'size', [1 1.5 0.1]);
         
-        process1 = DotProcess([-15 -10 15 10], 0.0015);
-        process2 = DotProcess([-15 -10 15 10], 0.0015);
+        process1 = DotProcess([-15 -10 15 10], 0.015);
+        process2 = DotProcess([-15 -10 15 10], 0.015);
         process3 = MotionProcess([-5 -5 5 5], 2, 0.2, 5, 2);
+        %}
+        
+        patch1 = CauchyPatch('velocity', 5, 'size', [1 1.5 0.2]);
+        patch2 = CauchyPatch('velocity', -5, 'size', [1 1.5 0.2]);
+        
+        process1 = DotProcess([-15 -10 15 10], 0.2);
+        process2 = DotProcess([-15 -10 15 10], 0.2);
+        process3 = MotionProcess([-5 -5 5 5], 1, 0.2, 10, 2);
+        
         
         player1 = SpritePlayer(patch1, process1, @noop);
         player2 = SpritePlayer(patch2, process2, @noop);

@@ -14,6 +14,21 @@ frameix = min(numel(st), i + frameno);
 frame = st(frameix);
 
 persistent cache;
+persistent svnloc;
+if isempty(svnloc)
+    [a, s] = system('which svn');
+    if exist(s, 'file');
+        svnloc = a;
+    elseif exist('/sw/bin/svn', 'file');
+        svnloc = '/sw/bin/svn';
+    elseif exist('/usr/local/bin/svn', 'file');
+        svnloc = 'usr/local/bin/svn';
+    else
+        warning('getversion:svn', 'SVN not found!');
+        v = struct('function', frame.name, 'url', '', 'revision', NaN);
+        return;
+    end
+end 
 
 % use a struct as pretend associative array by cleaning the file names (hackish)
 
@@ -42,7 +57,7 @@ if isfield(cache, fieldname)
 else
 
     %actually grab the version information
-    [status, info] = system(sprintf('/usr/local/bin/svn info %s', frame.file));
+    [status, info] = system(sprintf('%s info %s', svnloc, frame.file));
     if status ~= 0
         warning('getversion:svn', 'couldn''t call svn on %s', frame.file);
         v = struct('function', frame.name, 'url', '', 'revision', NaN);
