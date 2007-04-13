@@ -1,0 +1,1043 @@
+// !$*UTF8*$!
+{
+	0E92E860095726FE002687D9 /* Eyelink_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A80BCB4904000FDFB7 /* Eyelink_OLD */,
+		);
+	};
+	29B97313FDCFA39411CA2CEA /* Project object */ = {
+		activeBuildConfigurationName = Development;
+		activeExecutable = D077448F0BCB4904000FDFB7 /* CocoaEventBridge_OLD */;
+		activeTarget = D02B7CED0BCEEBD700757F74 /* All */;
+		codeSenseManager = D07744CC0BCB4927000FDFB7 /* Code sense */;
+		executables = (
+			D077448F0BCB4904000FDFB7 /* CocoaEventBridge_OLD */,
+			D07744900BCB4904000FDFB7 /* DoNothing_OLD */,
+			D07744910BCB4904000FDFB7 /* FontInfo_OLD */,
+			D07744920BCB4904000FDFB7 /* Gestalt_OLD */,
+			D07744930BCB4904000FDFB7 /* GetBusFrequencyMex_OLD */,
+			D07744940BCB4904000FDFB7 /* GetBusTicks_OLD */,
+			D07744950BCB4904000FDFB7 /* GetPID_OLD */,
+			D07744960BCB4904000FDFB7 /* GetSecs_OLD */,
+			D07744970BCB4904000FDFB7 /* GetSecsMex_OLD */,
+			D07744980BCB4904000FDFB7 /* GetSecsTick_OLD */,
+			D07744990BCB4904000FDFB7 /* GetTicks_OLD */,
+			D077449A0BCB4904000FDFB7 /* IOPort_OLD */,
+			D077449B0BCB4904000FDFB7 /* MachGetPriorityMex_OLD */,
+			D077449C0BCB4904000FDFB7 /* MachPriority_OLD */,
+			D077449D0BCB4904000FDFB7 /* MachSetPriorityMex_OLD */,
+			D077449E0BCB4904000FDFB7 /* MachAbsoluteTimeClockFrequency_OLD */,
+			D077449F0BCB4904000FDFB7 /* PsychHID_OLD */,
+			D07744A00BCB4904000FDFB7 /* PsychSound_OLD */,
+			D07744A10BCB4904000FDFB7 /* Rush_OLD */,
+			D07744A20BCB4904000FDFB7 /* Screen_OLD */,
+			D07744A30BCB4904000FDFB7 /* StoreBit_OLD */,
+			D07744A40BCB4904000FDFB7 /* SysBeep_OLD */,
+			D07744A50BCB4904000FDFB7 /* TestPriorityMex_OLD */,
+			D07744A60BCB4904000FDFB7 /* WaitSecs_OLD */,
+			D07744A70BCB4904000FDFB7 /* WaitSecsMex_OLD */,
+			D07744A80BCB4904000FDFB7 /* Eyelink_OLD */,
+		);
+		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXExecutablesDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXExecutablesDataSource_NameID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					22,
+					300,
+					400,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXExecutablesDataSource_ActiveFlagID,
+					PBXExecutablesDataSource_NameID,
+					PBXExecutablesDataSource_CommentsID,
+				);
+			};
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					989,
+					20,
+					48,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXConfiguration.PBXTargetDataSource.PBXTargetDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					200,
+					653,
+					20,
+					48,
+					43,
+					43,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXTargetDataSource_PrimaryAttribute,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 198109068;
+			PBXWorkspaceStateSaveDate = 198109068;
+		};
+		sourceControlManager = D07744CB0BCB4927000FDFB7 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	2F0B166107788BB500359736 /* IOPort_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449A0BCB4904000FDFB7 /* IOPort_OLD */,
+		);
+	};
+	2F0B17D50778976600359736 /* IOPORTInit.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {806, 924}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {806, 247}}";
+		};
+	};
+	2F543326090431DC0051D6CC /* DoNothing_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744900BCB4904000FDFB7 /* DoNothing_OLD */,
+		);
+	};
+	2F57E34B08CEB64200A5CF85 /* StoreBit_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A30BCB4904000FDFB7 /* StoreBit_OLD */,
+		);
+	};
+	2FACA4C00764D9E400A159D3 /* Gestalt_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744920BCB4904000FDFB7 /* Gestalt_OLD */,
+		);
+	};
+	2FB35E44073065570070ABEC /* GetSecsMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744970BCB4904000FDFB7 /* GetSecsMex_OLD */,
+		);
+	};
+	2FD6148B07306666008DA6B4 /* FontInfo_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744910BCB4904000FDFB7 /* FontInfo_OLD */,
+		);
+	};
+	2FD614CB07306666008DA6B4 /* GetBusFrequencyMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744930BCB4904000FDFB7 /* GetBusFrequencyMex_OLD */,
+		);
+	};
+	2FD614DF07306666008DA6B4 /* GetBusTicks_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744940BCB4904000FDFB7 /* GetBusTicks_OLD */,
+		);
+	};
+	2FD6151507306666008DA6B4 /* CocoaEventBridge_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077448F0BCB4904000FDFB7 /* CocoaEventBridge_OLD */,
+		);
+	};
+	2FD6154F07306666008DA6B4 /* GetPID_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744950BCB4904000FDFB7 /* GetPID_OLD */,
+		);
+	};
+	2FD6158707306666008DA6B4 /* GetSecs_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744960BCB4904000FDFB7 /* GetSecs_OLD */,
+		);
+	};
+	2FD615D107306667008DA6B4 /* GetSecsTick_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744980BCB4904000FDFB7 /* GetSecsTick_OLD */,
+		);
+	};
+	2FD6160707306667008DA6B4 /* GetTicks_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744990BCB4904000FDFB7 /* GetTicks_OLD */,
+		);
+	};
+	2FD6163E07306667008DA6B4 /* MachGetPriorityMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449B0BCB4904000FDFB7 /* MachGetPriorityMex_OLD */,
+		);
+	};
+	2FD6165307306667008DA6B4 /* MachPriority_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449C0BCB4904000FDFB7 /* MachPriority_OLD */,
+		);
+	};
+	2FD6168907306667008DA6B4 /* MachSetPriorityMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449D0BCB4904000FDFB7 /* MachSetPriorityMex_OLD */,
+		);
+	};
+	2FD6169E07306668008DA6B4 /* PsychHID_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449F0BCB4904000FDFB7 /* PsychHID_OLD */,
+		);
+	};
+	2FD616E107306668008DA6B4 /* Rush_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A10BCB4904000FDFB7 /* Rush_OLD */,
+		);
+	};
+	2FD6171707306668008DA6B4 /* Screen_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A20BCB4904000FDFB7 /* Screen_OLD */,
+		);
+	};
+	2FD617E707306669008DA6B4 /* SysBeep_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A40BCB4904000FDFB7 /* SysBeep_OLD */,
+		);
+	};
+	2FD618210730666A008DA6B4 /* TestPriorityMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A50BCB4904000FDFB7 /* TestPriorityMex_OLD */,
+		);
+	};
+	2FD618350730666A008DA6B4 /* WaitSecs_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A60BCB4904000FDFB7 /* WaitSecs_OLD */,
+		);
+	};
+	2FD6186B0730666B008DA6B4 /* WaitSecsMex_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A70BCB4904000FDFB7 /* WaitSecsMex_OLD */,
+		);
+	};
+	2FEBA43009885B4700F4165F /* DoNothing */ = {
+		activeExec = 0;
+	};
+	2FEBA4600988613400F4165F /* FontInfo */ = {
+		activeExec = 0;
+	};
+	2FEBA482098861FB00F4165F /* CocoaEventBridge */ = {
+		activeExec = 0;
+	};
+	2FEBA4A30988620100F4165F /* Gestalt */ = {
+		activeExec = 0;
+	};
+	2FEBA4C40988620800F4165F /* GetBusFrequencyMex */ = {
+		activeExec = 0;
+	};
+	2FEBA4E50988621900F4165F /* GetBusTicks */ = {
+		activeExec = 0;
+	};
+	2FEBA5060988622700F4165F /* GetPID */ = {
+		activeExec = 0;
+	};
+	2FEBA5270988623200F4165F /* GetSecs */ = {
+		activeExec = 0;
+	};
+	2FEBA5480988623C00F4165F /* GetSecsMex */ = {
+		activeExec = 0;
+	};
+	2FEBA5690988624800F4165F /* GetSecsTick */ = {
+		activeExec = 0;
+	};
+	2FEBA58A0988625400F4165F /* GetTicks */ = {
+		activeExec = 0;
+	};
+	2FEBA5AB0988626300F4165F /* IOPort */ = {
+		activeExec = 0;
+	};
+	2FEBA5CC0988627100F4165F /* MachGetPriorityMex */ = {
+		activeExec = 0;
+	};
+	2FEBA5ED0988627E00F4165F /* MachPriority */ = {
+		activeExec = 0;
+	};
+	2FEBA612098862C400F4165F /* MachSetPriorityMex */ = {
+		activeExec = 0;
+	};
+	2FEBA633098862CE00F4165F /* MachAbsoluteTimeClockFrequency */ = {
+		activeExec = 0;
+	};
+	2FEBA654098862D800F4165F /* PsychHID */ = {
+		activeExec = 0;
+	};
+	2FEBA675098862E300F4165F /* PsychSound */ = {
+		activeExec = 0;
+	};
+	2FEBA696098862FE00F4165F /* Rush */ = {
+		activeExec = 0;
+	};
+	2FEBA6B70988630A00F4165F /* Screen */ = {
+		activeExec = 0;
+	};
+	2FEBA6D80988631600F4165F /* StoreBit */ = {
+		activeExec = 0;
+	};
+	2FEBA6F90988632100F4165F /* SysBeep */ = {
+		activeExec = 0;
+	};
+	2FEBA71A0988632D00F4165F /* TestPriorityMex */ = {
+		activeExec = 0;
+	};
+	2FEBA73B0988633B00F4165F /* WaitSecs */ = {
+		activeExec = 0;
+	};
+	2FEBA75C0988634800F4165F /* WaitSecsMex */ = {
+		activeExec = 0;
+	};
+	2FEBA77D0988635400F4165F /* Eyelink */ = {
+		activeExec = 0;
+	};
+	2FEBA79E0988641C00F4165F /* GenericMexTarget */ = {
+		activeExec = 0;
+	};
+	832CE5F5094CE8C300578C09 /* PsychSound_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D07744A00BCB4904000FDFB7 /* PsychSound_OLD */,
+		);
+	};
+	833C1EEB0BB19D0100FB9B4F /* PsychPortAudio Intel */ = {
+		activeExec = 0;
+	};
+	83C8025F0B8CB29300097021 /* MirrorFaceCore Intel */ = {
+		activeExec = 0;
+	};
+	83CBD6350BC01FB0007CB68C /* moglcore Intel */ = {
+		activeExec = 0;
+	};
+	CF29B1CB080333DC00723921 /* MachAbsoluteTimeClockFrequency_OLD */ = {
+		activeExec = 0;
+		executables = (
+			D077449E0BCB4904000FDFB7 /* MachAbsoluteTimeClockFrequency_OLD */,
+		);
+	};
+	D02B7CED0BCEEBD700757F74 /* All */ = {
+		activeExec = 0;
+	};
+	D077448F0BCB4904000FDFB7 /* CocoaEventBridge_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = CocoaEventBridge_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744900BCB4904000FDFB7 /* DoNothing_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = DoNothing_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744910BCB4904000FDFB7 /* FontInfo_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = FontInfo_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744920BCB4904000FDFB7 /* Gestalt_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = Gestalt_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744930BCB4904000FDFB7 /* GetBusFrequencyMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetBusFrequencyMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744940BCB4904000FDFB7 /* GetBusTicks_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetBusTicks_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744950BCB4904000FDFB7 /* GetPID_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetPID_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744960BCB4904000FDFB7 /* GetSecs_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetSecs_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744970BCB4904000FDFB7 /* GetSecsMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetSecsMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744980BCB4904000FDFB7 /* GetSecsTick_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetSecsTick_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744990BCB4904000FDFB7 /* GetTicks_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = GetTicks_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449A0BCB4904000FDFB7 /* IOPort_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = IOPort_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449B0BCB4904000FDFB7 /* MachGetPriorityMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = MachGetPriorityMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449C0BCB4904000FDFB7 /* MachPriority_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = MachPriority_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449D0BCB4904000FDFB7 /* MachSetPriorityMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = MachSetPriorityMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449E0BCB4904000FDFB7 /* MachAbsoluteTimeClockFrequency_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = MachAbsoluteTimeClockFrequency_OLD;
+		sourceDirectories = (
+		);
+	};
+	D077449F0BCB4904000FDFB7 /* PsychHID_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = PsychHID_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A00BCB4904000FDFB7 /* PsychSound_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = PsychSound_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A10BCB4904000FDFB7 /* Rush_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = Rush_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A20BCB4904000FDFB7 /* Screen_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = Screen_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A30BCB4904000FDFB7 /* StoreBit_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = StoreBit_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A40BCB4904000FDFB7 /* SysBeep_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = SysBeep_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A50BCB4904000FDFB7 /* TestPriorityMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = TestPriorityMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A60BCB4904000FDFB7 /* WaitSecs_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = WaitSecs_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A70BCB4904000FDFB7 /* WaitSecsMex_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = WaitSecsMex_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744A80BCB4904000FDFB7 /* Eyelink_OLD */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = Eyelink_OLD;
+		sourceDirectories = (
+		);
+	};
+	D07744CB0BCB4927000FDFB7 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 1;
+		scmConfiguration = {
+		};
+		scmType = scm.subversion;
+	};
+	D07744CC0BCB4927000FDFB7 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	F07432050AD465B400602397 /* MachSetPriorityMex Intel */ = {
+		activeExec = 0;
+	};
+	F089BC7E0AD42DF500663D86 /* Screen Intel */ = {
+		activeExec = 0;
+	};
+	F14A27AD0AD48A2A00BFB68F /* MachGetPriorityMex Intel */ = {
+		activeExec = 0;
+	};
+	F14A27CA0AD48C1200BFB68F /* PsychHID Intel */ = {
+		activeExec = 0;
+	};
+	F14A28000AD48DDF00BFB68F /* Eyelink Intel */ = {
+		activeExec = 0;
+	};
+	F14A284D0AD48FCE00BFB68F /* WaitSecsMex Intel */ = {
+		activeExec = 0;
+	};
+	F14A28680AD4933000BFB68F /* SysBeep Intel */ = {
+		activeExec = 0;
+	};
+	F14A28940AD4943E00BFB68F /* WaitSecs Intel */ = {
+		activeExec = 0;
+	};
+	F14A28CB0AD4971100BFB68F /* StoreBit Intel */ = {
+		activeExec = 0;
+	};
+	F14A28F80AD4984300BFB68F /* TestPriorityMex Intel */ = {
+		activeExec = 0;
+	};
+	F14A29190AD49B9400BFB68F /* Rush Intel */ = {
+		activeExec = 0;
+	};
+	F14A29420AD49C2900BFB68F /* PsychSound Intel */ = {
+		activeExec = 0;
+	};
+	F14A29790AD49D4F00BFB68F /* DoNothing Intel */ = {
+		activeExec = 0;
+	};
+	F14A299E0AD49E4300BFB68F /* FontInfo Intel */ = {
+		activeExec = 0;
+	};
+	F14A29D00AD49F3F00BFB68F /* GetPID Intel */ = {
+		activeExec = 0;
+	};
+	F14A29F70AD4A02B00BFB68F /* Gestalt Intel */ = {
+		activeExec = 0;
+	};
+	F14A2A1E0AD4A0D400BFB68F /* GetBusFrequencyMex Intel */ = {
+		activeExec = 0;
+	};
+	F14A2A580AD4A15C00BFB68F /* GetBusTicks Intel */ = {
+		activeExec = 0;
+	};
+	F14A2A7D0AD4A1E200BFB68F /* GetSecs Intel */ = {
+		activeExec = 0;
+	};
+	F14A2AA30AD4A26B00BFB68F /* GetSecsMex Intel */ = {
+		activeExec = 0;
+	};
+	F14A2ABF0AD4AAD600BFB68F /* GetSecsTick Intel */ = {
+		activeExec = 0;
+	};
+	F14A2AE40AD4AB5200BFB68F /* GetTicks Intel */ = {
+		activeExec = 0;
+	};
+	F14A2B0B0AD4ABB500BFB68F /* IOPort Intel */ = {
+		activeExec = 0;
+	};
+	F14A2B380AD4AC8000BFB68F /* MachPriority Intel */ = {
+		activeExec = 0;
+	};
+	F14A2B5F0AD4ACE700BFB68F /* MachAbsoluteTimeClockFrequency Intel */ = {
+		activeExec = 0;
+	};
+}
