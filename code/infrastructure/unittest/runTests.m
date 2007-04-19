@@ -37,8 +37,9 @@ end
             result = struct('test', testname, 'result', [], 'details', []);
 
             try
-                obj.setUp();
-                testfn();
+                %note that the param struct is not passed into the test function
+                %(capture it in your init if needed
+                require(obj.init(), @(x)testfn); 
                 result.result = 'PASS';
             catch
                 handlers(...
@@ -52,12 +53,6 @@ end
             function default(err)
                 result.result = 'ERR';
                 result.details = err;
-            end
-            try
-                obj.tearDown();
-            catch
-                result.result = 'ERR';
-                result.details(end+1) = lasterror;
             end
         end
     end

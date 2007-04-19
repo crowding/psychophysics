@@ -22,7 +22,7 @@ if isempty(svnloc)
     elseif exist('/sw/bin/svn', 'file');
         svnloc = '/sw/bin/svn';
     elseif exist('/usr/local/bin/svn', 'file');
-        svnloc = 'usr/local/bin/svn';
+        svnloc = '/usr/local/bin/svn';
     else
         warning('getversion:svn', 'SVN not found!');
         v = struct('function', frame.name, 'url', '', 'revision', NaN);

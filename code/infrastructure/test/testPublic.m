@@ -2,7 +2,7 @@ function this = testPublic
     %tests the creation of 'public' objects (that can be inherited)
     
     %create myself using final
-    this = final(@setUp, @tearDown, ...
+    this = final(@init, ...
         @testMethodNaming, @testVersion, ...
         @testMethodGetting, @testMethodSetting, @testMethod);
     
@@ -19,6 +19,12 @@ function this = testPublic
         assertEquals('testobj', o.calltestfun());
     end
 
+    function i = init
+        i = @noinit;
+        function [r, p] = noinit(p)
+            r = @noop;
+        end
+    end
 
     function testVersion
         %all objects get a version__ field that gives the SVN path, function
