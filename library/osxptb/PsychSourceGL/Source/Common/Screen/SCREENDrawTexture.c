@@ -4,6 +4,7 @@
 	AUTHORS:
 	
 		Allen.Ingling@nyu.edu		awi 
+		Peter Meilstrup peterm@shadlen.org  pm
 
 	PLATFORMS:
 
@@ -23,6 +24,7 @@
                 5/13/05         mk              Support for rotated drawing of textures.
                 7/23/05         mk              New options filterMode and globalAlpha. 
                 9/30/05         mk              Remove size check for texturesize <= windowsize. This restriction doesn't apply anymore for new texture mapping code.
+				4/13/07         pm              New options SourceFactor and DestFactor for alpha blending.
  
 	DESCRIPTION:
 
@@ -49,20 +51,24 @@
 #include "Screen.h"
 
 // If you change useString then also change the corresponding synopsis string in ScreenSynopsis.c
-static char useString[] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha]);";
-//                                               1              2                3             4                5                6              7
+static char useString[] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha] [, sourceFactor] [, destFactor]);";
+//                                               1              2                3             4                5                6              7               8                9
 static char synopsisString[] = 
 	"Draw the texture specified via 'texturePointer' into the target window specified via 'windowPointer'. "
 	"In the the OS X Psychtoolbox textures replace offscreen windows for fast drawing of images during animation."
+	""
         "'sourceRect' specifies a rectangular subpart of the texture to be drawn (Defaults to full texture). "
         "'destinationRect' defines the rectangular subpart of the window where the texture should be drawn. This defaults"
-        "to centered on the screen. "
+        "    to centered on the screen. "
         "'rotationAngle' Specifies a rotation angle in degree for rotated drawing of the texture (Defaults to 0 deg. = upright). "
         "'filterMode' How to compute the pixel color values when the texture is drawn magnified, minified or drawn shifted, e.g., "
-        "if sourceRect and destinationRect do not have the same size or if sourceRect specifies fractional pixel values. 0 = Nearest "
-        "neighbour filtering, 1 = Bilinear filtering - this is the default. 'globalAlpha' A global alpha transparency value to apply "
-        "to the whole texture for blending. Range is 0 = fully transparent to 1 = fully opaque, defaults to one. If both, an alpha-channel "
-        "and globalAlpha are provided, then the final alpha is the product of both values.";
+        "    if sourceRect and destinationRect do not have the same size or if sourceRect specifies fractional pixel values. 0 = Nearest "
+        "    neighbour filtering, 1 = Bilinear filtering - this is the default. 'globalAlpha' A global alpha transparency value to apply "
+        "    to the whole texture for blending. Range is 0 = fully transparent to 1 = fully opaque, defaults to one. If both, an alpha-channel "
+        "    and globalAlpha are provided, then the final alpha is the product of both values."
+		"'sourceFactor' Which source alpha blending factor to use. Takes a string argument similar to Screen('BlendFunction') or the raw "
+		"    integer value. Defaults to the present setting; if a new source factor is given, restores the old setting when finished."
+		"'destinationFactor' Which destination alpha blending factor to use.";
 	  
 static char seeAlsoString[] = "MakeTexture";
 
@@ -71,16 +77,19 @@ PsychError SCREENDrawTexture(void)
 	PsychWindowRecordType		*source, *target;
 	PsychRectType			sourceRect, targetRect, tempRect;
 	double rotationAngle = 0;   // Default rotation angle is zero deg. = upright.
-        int filterMode = 1;         // Default filter mode is bilinear filtering.
-        double globalAlpha = 1.0;   // Default global alpha is 1 == no effect.
-        
+	int filterMode = 1;         // Default filter mode is bilinear filtering.
+	double globalAlpha = 1.0;   // Default global alpha is 1 == no effect.
+	boolean changeSrcFactor = false; // Defaults to using the existing blend setting.
+	boolean changeDstFactor = false;
+	GLenum newSrc, newDst, oldSrc, oldDst;
+	
     //all subfunctions should have these two lines.  
     PsychPushHelp(useString, synopsisString, seeAlsoString);
     if(PsychIsGiveHelp()){PsychGiveHelp();return(PsychError_none);};
     
     //Get the window structure for the onscreen window.  It holds the onscreein GL context which we will need in the
     //final step when we copy the texture from system RAM onto the screen.
-    PsychErrorExit(PsychCapNumInputArgs(7));   	
+    PsychErrorExit(PsychCapNumInputArgs(9));   	
     PsychErrorExit(PsychRequireNumInputArgs(2)); 	
     PsychErrorExit(PsychCapNumOutputArgs(0)); 
 	
@@ -121,6 +130,46 @@ PsychError SCREENDrawTexture(void)
     if (globalAlpha<0 || globalAlpha>1) {
         PsychErrorExitMsg(PsychError_user, "globalAlpha needs to be in range 0 for fully transparent to 1 for fully opaque.");    
     }
+	
+	if (PsychGetArgType(8) & PsychArgType_char ) {
+		char *string;
+		if ( PsychAllocInCharArg(8, kPsychArgOptional, &string) ) {
+			PsychGetAlphaBlendingFactorConstantFromString(string, &newSrc);
+			changeSrcFactor = true;
+		} else {
+			PsychErrorExitMsg(PsychError_user, "Invalid string for sourceFactor.");    
+		}
+	} else if (PsychArgReallyPresent(PsychArgIn, 8)) {
+		int tmp = -1;
+		if (PsychCopyInIntegerArg(8, kPsychArgOptional, &tmp)) {
+			newSrc = tmp;
+			changeSrcFactor = true;
+		}
+	}
+	
+	if ( changeSrcFactor && !PsychValidateBlendingConstantForSource(newSrc) ) {
+		PsychErrorExitMsg(PsychError_user, "sourceFactor needs to be a string or numeric source factor");
+	}
+	
+	if ( PsychGetArgType(9) & PsychArgType_char ) {
+		char *string;
+		if ( PsychAllocInCharArg(9, kPsychArgOptional, &string) ) {
+			PsychGetAlphaBlendingFactorConstantFromString(string, &newDst);
+			changeDstFactor = true;
+		} else {
+			PsychErrorExitMsg(PsychError_user, "Invalid string for destFactor.");    
+		}
+	} else if (PsychArgReallyPresent(PsychArgIn, 9)) {
+		int tmp = -1;
+		if (PsychCopyInIntegerArg(9, kPsychArgOptional, &tmp)) {
+			newDst = tmp;
+			changeDstFactor = true;
+		}
+	}
+	
+	if ( changeDstFactor && !PsychValidateBlendingConstantForDest(newDst) ) {
+		PsychErrorExitMsg(PsychError_user, "destFactor needs to be a valid string or numeric destination factor");
+	}
     
     PsychSetGLContext(target); 
     PsychUpdateAlphaBlendingFactorLazily(target);

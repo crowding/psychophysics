@@ -18,7 +18,7 @@ function this = testFinalize
             end
         end
         
-        assertEquals('publicize/reassignableFunction/invoke', func2str(r.foo));
+        assertEquals('reassignableFunction/invoke', func2str(r.foo));
         
         r = finalize(r);
         assertEquals('testFinalize/testFinalize/TestObj/foo', func2str(r.foo));

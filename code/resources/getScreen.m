@@ -12,30 +12,34 @@ function initializer = GetScreen(varargin)
 %input structure fields:
 %   backgroundcolor - the normalized background color to use. default 0.5
 %   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
+%   preferences - the screen preferences to be set, as a structure. Default
+%                       is preferences.SkipSyncTests = 0.
 %
 %output structure fields:
 %   screenNumber - the screen number of the display
 %   window - the PTB window handle
 %   rect - the screen rectangle coordinates
 %   cal - the calibration being used
-%   black
-%   white
-%   gray - indexes into the colortable
+%   blackIndex
+%   whiteIndex
+%   grayIndex - indexes into the colortable
 %   foregroundIndex
 %   backgroundIndex
 
 %some defaults
-defaults = struct(...
-    'backgroundColor', 0.5, ...
-    'foregroundColor', 0);
+defaults = namedargs ...
+    ( 'backgroundColor', 0.5 ...
+    , 'foregroundColor', 0 ...
+    , 'preferences.SkipSyncTests', 0 ...
+    );
 
 %curry arguments given now onto the initializer function
 initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
-
+    
     function [release, details] = doGetScreen(details)
         
         %The initializer is composed of sub-initializers.
-        initializer = joinResource(@checkOpenGL, @setGamma, @openScreen, @blankScreen);
+        initializer = joinResource(@checkOpenGL, @setPreferences, @setGamma, @openScreen, @blankScreen);
         [release, details] = initializer(details);
 
         %Now we define the sub-initializers. Each one is set up and torn down
@@ -52,6 +56,27 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
             end
         end
 
+        %Step 0.5: Set all screen preferences given.
+        function [release, details] = setPreferences(details)
+            %construct and run a chain of sub-initializers
+            initializers = cellfun ...
+                ( @preferenceSetter ...
+                , fieldnames(details.preferences) ...
+                , 'UniformOutput', 0);
+            
+            function init = preferenceSetter(name)
+                init = @setPreference;
+                function [r, params] = setPreference(params)
+                    oldval = Screen('Preference', name, params.preferences.(name));
+                    r = @()Screen('Preference', name, oldval);
+                end
+            end
+            
+            initializer = joinResource(initializers{:});
+            
+            [release, details] = initializer(details);
+        end
+        
         %Step 1: Pick the screen, and set the gamma to a calibrated value.
         function [release, details] = setGamma(details)
 

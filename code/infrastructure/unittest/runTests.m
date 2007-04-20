@@ -39,7 +39,7 @@ end
             try
                 %note that the param struct is not passed into the test function
                 %(capture it in your init if needed
-                require(obj.init(), @(x)testfn); 
+                require(obj.init(), @(x)testfn()); 
                 result.result = 'PASS';
             catch
                 handlers(...

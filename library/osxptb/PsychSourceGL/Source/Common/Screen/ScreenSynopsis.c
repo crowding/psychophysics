@@ -5,6 +5,7 @@
   
 		Allen.Ingling@nyu.edu               awi
                 mario.kleiner at tuebingen.mpg.de   mk
+				Peter Meilstrup peterm@shadlen.org  pm
   
 	PLATFORMS: 
 	
@@ -24,6 +25,7 @@
                 5/30/05         mk              Added synopsis for "SkipSyncTests" - preference setting.
                 7/23/05         mk              Added synopsis for new arguments filterMode and globalAlpha of "DrawTexture"
                 9/30/05         mk              Added synopsis for "VisualDebugLevel" - preference setting.
+				4/14/07			pm				Added synopsis for "blendFunction" and "blendEquation" arguments to drawTexture.
 	
         DESCRIPTION:
   
@@ -120,7 +122,7 @@ void InitializeSynopsis()
 	// Copy an image, very quickly, between textures and onscreen windows
 	synopsis[i++] = "\n% Copy an image, very quickly, between textures, offscreen windows and onscreen windows.";
         synopsis[i++] = "[resident [texidresident]] = Screen('PreloadTextures', windowPtr [, texids]);";
-	synopsis[i++] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha]);";	
+	synopsis[i++] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha] [, glBlendFunction] [, glBlendEquation]);";	
         synopsis[i++] = "Screen('CopyWindow', srcWindowPtr, dstWindowPtr, [srcRect], [dstRect], [copyMode])";
 
 	// Copy an image, slowly, between matrices and windows
