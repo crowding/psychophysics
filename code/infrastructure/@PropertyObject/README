@@ -1,0 +1,25 @@
+This class contains methods that make MATLAB's object orientation slightly 
+less sucky (IT REMAINS VERY SUCKY!!)
+
+Inherit this class when defining new classes. Then copy the single-line 
+methods 'getfield' and 'setfield' into your new class. Then you have:
+
+Default implementations of get/set e.g.
+	obj = set(obj, 'prop_name', value) and value = get(obj, prop_name)
+ 	By default these just set the appropriate fields in the class or its
+	parent,
+	but if you implement methods such as get_prop_name and set_prop_name
+	it will delegate to those methods.
+
+	You can also delegate to set in the class constructor 
+	(TODO: factor out common code for class constructors into this class)
+
+Default subsref and subsasgn -- synonyms for get/set so that instead of
+	obj = set(obj, 'prop_name', value) 
+you can write
+	obj.prop_name = value
+	
+and instead of
+	value = get(obj, 'prop_name')
+you can write
+	value = obj.prop_name
