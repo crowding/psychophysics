@@ -139,7 +139,7 @@ PsychError SCREENDrawTexture(void)
 		} else {
 			PsychErrorExitMsg(PsychError_user, "Invalid string for sourceFactor.");    
 		}
-	} else if (PsychArgReallyPresent(PsychArgIn, 8)) {
+	} else if (PsychIsArgReallyPresent(PsychArgIn, 8)) {
 		int tmp = -1;
 		if (PsychCopyInIntegerArg(8, kPsychArgOptional, &tmp)) {
 			newSrc = tmp;
@@ -159,7 +159,7 @@ PsychError SCREENDrawTexture(void)
 		} else {
 			PsychErrorExitMsg(PsychError_user, "Invalid string for destFactor.");    
 		}
-	} else if (PsychArgReallyPresent(PsychArgIn, 9)) {
+	} else if (PsychIsArgReallyPresent(PsychArgIn, 9)) {
 		int tmp = -1;
 		if (PsychCopyInIntegerArg(9, kPsychArgOptional, &tmp)) {
 			newDst = tmp;
