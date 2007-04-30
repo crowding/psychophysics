@@ -58,7 +58,13 @@ toDegrees_ = [];
             %we have to do this instead:
             totry = {};
             for t = textures_(:)'
-                totry{end+1} = @() Screen('Close', t.texture);
+                totry{end+1} = @()closer(t.texture);
+            end
+
+            function closer(tex)
+                if any(Screen('Windows') == params.window)
+                    Screen('Close', tex);
+                end
             end
 
             %mark us unprepared

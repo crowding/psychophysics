@@ -20,6 +20,7 @@ this = inherit(...
         @testFailedBody,...
         @testFailedRelease,...
         @testFailedReleaseAfterFailedBody,...
+        @testFailedReleaseLogsAdditionalError,...
         @testOutputCollection,...
         @testBodyOutput,...
         ...
@@ -95,7 +96,6 @@ this = inherit(...
         
         function r = init
             r = @release;
-            o = struct();
             
             function release
                 rflag = 1;
@@ -154,7 +154,6 @@ this = inherit(...
         %when init fails, the main body is not executed, and
         %the exception is propagated
         
-        runflag = 0;
         try
             require(@init, @body)
             fail('expected error');
@@ -164,6 +163,7 @@ this = inherit(...
         
         function [r, o] = init(o)
             error('testRequire:test', 'test');
+            r = @noop;
         end
         
         function body
@@ -176,7 +176,6 @@ this = inherit(...
         %the exception propagated.
         
         releaseflag = 0;
-        runflag = 0;
         try
             require(@init, @body)
             fail('expected error');
@@ -222,7 +221,7 @@ this = inherit(...
             fail('expected an error');
         catch
             assertLastError('testRequire:expectedError');
-            assert(bflag)
+            assert(bflag);
         end
         
         function [r, o] = init(o)
@@ -236,6 +235,43 @@ this = inherit(...
         function body
             bflag = 1;
             error('testRequire:unexpectedError', 'test');
+        end
+    end
+
+    function testFailedReleaseLogsAdditionalError
+        %when the release fails after the body fails, the ORIGINAL
+        %exception is rethrown.
+        
+        try
+            require(@init, @body)
+            fail('expected an error');
+        catch
+            assertLastError('testRequire:expectedError');
+            %at the appropriate stack frame, the additional error should be
+            %logged (since in MATALB's errors we can apparently plug in
+            %fields to the stack trace but not to the error structure)
+            e = lasterror();
+            found = 0;
+            for i = e.stack(:)'
+                if ~isempty(i.additional) 
+                    if strcmp(i.additional.identifier, 'testRequire:additionalError');
+                        found = 1;
+                    end
+                end
+            end
+            assert(found, 'didn''t find attached exception');
+        end
+        
+        function [r, o] = init(o)
+            r = @release;
+            
+            function release
+                error('testRequire:expectedError', 'test');
+            end
+        end
+
+        function body
+            error('testRequire:additionalError', 'test');
         end
     end
 
@@ -371,7 +407,6 @@ this = inherit(...
             r = @release;
             
             function release
-                rflag1 = 1; 
             end
         end
         
@@ -379,7 +414,6 @@ this = inherit(...
             r = @release;
             
             function release
-                rflag2 = 1; 
             end
         end
         
@@ -391,8 +425,6 @@ this = inherit(...
     function testFailedChainBodyRelease
         %when a body fails, AND THEN a release fails, preceding resources
         %are released, and the releaser's exception is propagated.
-        %unfortunately, I don't have a way to chain exceptions with their
-        %antecedent causes. 
         rflag1 = 0;
         rflag2 = 0;
         
@@ -400,7 +432,7 @@ this = inherit(...
             require(@init1, @init2, @body);
             fail('expected an error');
         catch
-            assertLastError('testRequire:expected');
+            assertLastError('testRequire:releaser');
             assert(rflag1);
             assert(rflag2);
         end
@@ -418,12 +450,12 @@ this = inherit(...
             
             function release
                 rflag2 = 1;
-                error('testRequire:expected', 'test');
+                error('testRequire:releaser', 'test');
             end
         end
         
         function body
-            error('testRequire:unexpected', 'test');
+            error('testRequire:body', 'test');
         end
     end
 
@@ -556,7 +588,6 @@ this = inherit(...
             r = @release;
             
             function release
-                rflag1 = 1; 
             end
         end
         
@@ -564,7 +595,6 @@ this = inherit(...
             r = @release;
             
             function release
-                rflag2 = 1; 
             end
         end
         
@@ -586,7 +616,7 @@ this = inherit(...
             require(r, @body);
             fail('expected an error');
         catch
-            assertLastError('testRequire:expected');
+            assertLastError('testRequire:releaser');
             assert(rflag1);
             assert(rflag2);
         end
@@ -604,12 +634,12 @@ this = inherit(...
             
             function release
                 rflag2 = 1;
-                error('testRequire:expected', 'test');
+                error('testRequire:releaser', 'test');
             end
         end
         
         function body
-            error('testRequire:unexpected', 'test');
+            error('testRequire:body', 'test');
         end
     end
 

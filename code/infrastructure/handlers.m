@@ -56,8 +56,16 @@ end
 
 for pair = {fragments{:}; handlers{:}}
     if errormatch(pair{1}, err.identifier)
-        [varargout{1:nargout}] = pair{2}(err);
-        return; %dispatch to the handler, and done
+        %dispatch to the handler, and done
+        try
+            [varargout{1:nargout}] = pair{2}(err);
+        catch
+            e = lasterror;
+            if (~isequal(e, err))
+                rethrow(adderror(e, err));
+            end
+        end
+        return;
     end
 end
 

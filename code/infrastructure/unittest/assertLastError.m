@@ -5,13 +5,19 @@ function assertLastError(fragment)
 %fragment (as in ERRORMATCH.)
 err = lasterror;
 
-%TODO: capture and propagate 'caused by' information?
-%until then, just concatenate stack traces
+
+
 
 if ~errormatch(fragment, err.identifier)
-    newerr.identifier = 'assert:assertionFailed';
-    newerr.message = sprintf('expected error "%s", got "%s"',...
-        fragment, err.identifier);
-    newerr.stack = [err.stack; dbstack];
-    error(newerr);
+    %we want to throw, but also want to attach the improper exception.
+    %since dbstack() produces different output than error(), we will have
+    %to use error().
+    try
+        error('assert:assertionFailed', 'expected error "%s", got "%s"', fragment, err.identifier);
+    catch
+        newerr = lasterror;
+    end
+    
+    %attach the failed error
+    error(adderror(newerr, err));
 end

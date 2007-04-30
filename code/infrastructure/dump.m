@@ -1,19 +1,27 @@
 function dump(obj, printer, prefix)
-    %I was going to save all my data in matlab files, but this meant that
-    %i would have to do all my analysis in matlab, or some matlab-compatible
-    %thing. Since i have grown to dislike matlab and with the long-term goal
-    %of banishing it it, I decided to output to plain text files instead. This
-    %has the added benefit that neat functional programming tricks can be done
-    %when reading a file back in data analysis (e.g. substitute an analysis
-    %function for the constructor in the right context, and analysis is as
-    %simple as reading and evaluating all lines.)
-    %
-    %
+    % function dump(obj, printer, prefix)
     %
     %dumps the object out using the printer (a handle to a sprintf()-like
-    %function.) The idea is that rumin eval() on all the strings should
+    %function.) The idea is that running eval() on all the strings should
     %recreate the data (for objects, this presupposes that the object's nature
     %is determined by its properties.)
+    %
+    % Example:
+    %   >> printf = @(varargin) disp(sprintf(varargin{:}));     
+    %   >> dump(struct('field', {{1, 2, 3}}), printf, 'name')  
+    %   name.field = cell(1,3);
+    %   name.field{1,1} = 1 ;
+    %   name.field{1,2} = 2 ;
+    %   name.field{1,3} = 3 ;
+    %
+    % I was going to save all my data in matlab files, but this meant that
+    % i would have to do all my analysis in matlab, or some matlab-compatible
+    % thing. Since i have grown to dislike matlab and with the long-term goal
+    % of banishing it, I decided to output to plain text files instead. This
+    % has the added benefit that neat functional programming tricks can be done
+    % when reading a file back in data analysis (e.g. substitute an analysis
+    % function for the constructor in the right context, and analysis is as
+    % simple as reading and evaluating all lines.)
     if ~exist('prefix', 'var')
         prefix = inputname(1);
         if isempty(prefix)

@@ -79,7 +79,13 @@ frameCounts_ = []; %index into this array with the refresh number
             %encountered.
             totry = {};
             for t = textures_(:)'
-                totry{end+1} = @() Screen('Close', t.texture);
+                totry{end+1} = @()closer(t.texture);
+            end
+
+            function closer(tex)
+                if any(Screen('Windows') == params.window)
+                    Screen('Close', tex);
+                end
             end
 
             %mark us unprepared

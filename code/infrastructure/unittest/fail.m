@@ -1,5 +1,7 @@
-function fail(message)
-%assertion failed
+function fail(message, varargin)
+%What to call to fail a test. Takes arguments like sprintf();
 e.identifier = 'assert:assertionFailed';
-e.message = message;
+if exist('message', 'var')
+    e.message = sprintf(message, varargin{:});
+end
 error(e);

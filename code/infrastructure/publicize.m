@@ -10,7 +10,9 @@ function this = publicize(this)
 %replace 'this' with a dereferenced implementation and a shadow full of
 %mutators.
 
-names = this.method__();
+names = fieldnames(this);
+names = names(~boolean(cellfun('prodofsize', regexp(names, '__$'))));
+
 for i = names'
     [this.(i{:}), shadow.(i{:})] = reassignableFunction(this.(i{:}));
 end

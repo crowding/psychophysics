@@ -167,7 +167,7 @@ PsychError SCREENDrawTexture(void)
 		}
 	}
 	
-	if ( changeDstFactor && !PsychValidateBlendingConstantForDest(newDst) ) {
+	if ( changeDstFactor && !PsychValidateBlendingConstantForDestination(newDst) ) {
 		PsychErrorExitMsg(PsychError_user, "destFactor needs to be a valid string or numeric destination factor");
 	}
     
@@ -181,10 +181,3 @@ PsychError SCREENDrawTexture(void)
     return(PsychError_none);
 
 }
-
-
-
-
-
-
-

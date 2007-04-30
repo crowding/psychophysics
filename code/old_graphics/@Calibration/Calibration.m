@@ -100,7 +100,6 @@ end
 [p, found] = load(p);
 
 if ~found
-	warning('no saved calibration found, using defaults');
 	%if not, continue with initialization.
 	if isnan(p.date)
 		p.date = date();

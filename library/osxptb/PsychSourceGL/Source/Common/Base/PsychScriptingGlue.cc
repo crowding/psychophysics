@@ -906,7 +906,7 @@ EXP octave_value_list octFunction(const octave_value_list& prhs, const int nlhs)
 			if(isArgFunction[0]){
 				nameFirstGLUE = TRUE;
 				(*(fArg[0]))();
-			}else{ //when we receive a first argument  wich is a string and it is  not recognized as a function name then call the default function 
+			}else{ //when we receive a first argument which is a string and it is  not recognized as a function name then call the default function 
 			/*
                         else
 				PrintfExit("Unknown or invalid subfunction name - Typo? Check spelling of the function name.  (error state E)");

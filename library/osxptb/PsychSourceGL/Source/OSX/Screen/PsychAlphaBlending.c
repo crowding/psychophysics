@@ -91,7 +91,7 @@ Boolean PsychValidateBlendingConstantForSource(GLenum sourceFactor)
 
 
 /* 
-	PsychValidateBlendingConstantForSource()
+	PsychValidateBlendingConstantForDestination()
 	
 	Constants are specified for both the source and destination.  Not all constants are available for both.  This function checks
 	a constant to see if it may be specified for the destination.

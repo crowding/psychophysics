@@ -14,6 +14,7 @@ function initializer = GetScreen(varargin)
 %   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
 %   preferences - the screen preferences to be set, as a structure. Default
 %                       is preferences.SkipSyncTests = 0.
+%   requireCalibration - whether to require calibration (answer 
 %
 %output structure fields:
 %   screenNumber - the screen number of the display
@@ -31,6 +32,7 @@ defaults = namedargs ...
     ( 'backgroundColor', 0.5 ...
     , 'foregroundColor', 0 ...
     , 'preferences.SkipSyncTests', 0 ...
+    , 'requireCalibration', 1 ...
     );
 
 %curry arguments given now onto the initializer function
@@ -83,6 +85,11 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
             screenNumber = max(Screen('Screens'));
             cal = Calibration(screenNumber);
 
+            if (details.requireCalibration && ~cal.calibrated)
+                error('getScreen:noCalibration'...
+                    , 'No calibration was found for this system setup.' );
+            end
+
             details.screenNumber = screenNumber;
             details.cal = cal;
 
@@ -121,10 +128,18 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
             end
             
             release = @closeWindow;
+
             function closeWindow
-                message(details, 'Closing screen');
-                pause(0.5);
-                Screen('Close', details.window);
+                % close the window, if it's still open (it may have closed due
+                % to a psychtoolbox error, because they think it's convenient to
+                % close down the entire operation if you get an invalid argument
+                % to DrawTexture)
+                windows = Screen('Windows');
+                if any(windows == details.window)
+                    %message(details, 'Closing screen');
+                    %pause(0.5);
+                    Screen('Close', details.window);
+                end
             end
         end
 

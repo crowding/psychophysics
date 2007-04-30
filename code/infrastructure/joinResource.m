@@ -20,7 +20,7 @@ function f = joinResource(first, varargin)
 %require(joinResource(openFile, resizeFile))
 %function [close, fid] = openFile:
 %   fid = fopen(filename);
-%   close = close(fid);
+%   close = @() close(fid);
 %end
 
     %Recursively define a joined initializer out of the 2-initializer join
@@ -62,8 +62,12 @@ function f = joinResource(first, varargin)
         try
             [release2, details] = rest(pass);
         catch
-            e = lasterror; %FIXME - this path not exercised by unit tests?
-            release1(); %FIXME - may need chaining
+            e = lasterror;
+            try
+                release1();
+            catch
+                e = adderror(lasterror, e); %chain the exception
+            end
             rethrow(e);
         end
         
@@ -76,19 +80,11 @@ function f = joinResource(first, varargin)
             catch
                 err = lasterror;
                 try
-                    if isfield(output, 'log')
-                        output.log.logMessage('ERROR %s', err.identifier);
-                    end
+                    release1();
                 catch
+                    err = adderror(lasterror, err); %chain exception
                 end
 
-                %stacktrace(err);  %FIXME - chained errors
-                %try
-                release1();
-                %catch
-                %    %stacktrace(err);  %FIXME - chained errors
-                %    err = lasterror;
-                %end
                 rethrow(err);
             end
             release1();

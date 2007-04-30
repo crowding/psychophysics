@@ -89,13 +89,13 @@ catch
             output.log('ERROR %s', err.identifier);
         end
     catch
+        err = adderror(lasterror, err);
     end
-    %    try    %TODO--chained errors
-    releaser();
-    %    catch
-    %        stacktrace(err);
-    %        err = lasterror;
-    %    end
+    try
+        releaser();
+    catch
+        err = adderror(lasterror, err);
+    end
     rethrow(err);
 end
 

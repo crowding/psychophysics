@@ -44,9 +44,9 @@ function this = testFinalize
             end
         end
         
-        assertEquals('publicize/reassignableFunction/invoke', func2str(r.foo));
-        assertEquals('publicize/reassignableFunction/invoke', func2str(r.bar));
-        assertEquals('publicize/reassignableFunction/invoke', func2str(r.baz));
+        assertEquals('reassignableFunction/invoke', func2str(r.foo));
+        assertEquals('reassignableFunction/invoke', func2str(r.bar));
+        assertEquals('reassignableFunction/invoke', func2str(r.baz));
         
         r = finalize(r);
         
