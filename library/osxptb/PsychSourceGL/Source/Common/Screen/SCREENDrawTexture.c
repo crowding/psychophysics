@@ -170,11 +170,22 @@ PsychError SCREENDrawTexture(void)
 	if ( changeDstFactor && !PsychValidateBlendingConstantForDestination(newDst) ) {
 		PsychErrorExitMsg(PsychError_user, "destFactor needs to be a valid string or numeric destination factor");
 	}
-    
-    PsychSetGLContext(target); 
+	
+	// save previous blend factors
+	if (changeSrcFactor || changeDstFactor) {
+		PsychGetAlphaBlendingFactorsFromWindow(target, &oldSrc, &oldDst);
+		newSrc = changeSrcFactor ? newSrc : oldSrc;
+		newDst = changeDstFactor ? newDst : oldDst;
+		PsychStoreAlphaBlendingFactorsForWindow(target, newSrc, newDst);
+	}
+	
+    PsychSetGLContext(target);
     PsychUpdateAlphaBlendingFactorLazily(target);
     PsychBlitTextureToDisplay(source, target, sourceRect, targetRect, rotationAngle, filterMode, globalAlpha);	
 
+	if (changeSrcFactor || changeDstFactor) { // restore blend factors
+		PsychStoreAlphaBlendingFactorsForWindow(target, oldSrc, oldDst);
+	}
     // Mark end of drawing op. This is needed for single buffered drawing:
     PsychFlushGL(target);
 

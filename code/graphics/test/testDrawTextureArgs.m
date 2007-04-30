@@ -69,23 +69,22 @@ function this = testDrawTextureArgs()
     function testChangeDstFactorOnly
         Screen('DrawTexture', params_.window, params_.tex1 ...
               , [], [], [], [], [], [], 1); %GL_ONE
-        Screen('Flip', params_.window);
         Screen('DrawTexture', params_.window, params_.tex2 ...
               , [], [], [], [], [], [], 'GL_SRC_COLOR');
         Screen('Flip', params_.window);
         %should draw bumps on top of stripes
+        WaitSecs(0.5);
     end
 
     function testChangeBothFactors
         Screen('DrawTexture', params_.window, params_.tex1 ...
               , [], [], [], [], [], 'GL_ONE', 1);
-        Screen('Flip', params_.window);
         Screen('DrawTexture', params_.window, params_.tex2 ...
               , [], [], [], [], [], 1, 'GL_ONE');
         Screen('Flip', params_.window);
         %should draw a plaid
+        WaitSecs(0.5);
     end
-
 
 
     function invalidSrcFactorTestGen(srcfactor)
