@@ -1815,6 +1815,7 @@
 		CFA99A27080732BC00E1D3DC /* RegisterProject.c in Sources */ = {isa = PBXBuildFile; fileRef = CFA99A23080732BC00E1D3DC /* RegisterProject.c */; };
 		CFA99A28080732BC00E1D3DC /* RegisterProject.h in Headers */ = {isa = PBXBuildFile; fileRef = CFA99A24080732BC00E1D3DC /* RegisterProject.h */; };
 		CFE5132807E2642900D55D72 /* SCREENTextBackgroundColor.c in Sources */ = {isa = PBXBuildFile; fileRef = CFE5132707E2642900D55D72 /* SCREENTextBackgroundColor.c */; };
+		D09BA5570BE6B5BD00C5F2CE /* SCREENBlendEquation.c in Sources */ = {isa = PBXBuildFile; fileRef = D09BA5560BE6B5BD00C5F2CE /* SCREENBlendEquation.c */; };
 		F07432070AD465B400602397 /* MachPriorityCommonMex.c in Sources */ = {isa = PBXBuildFile; fileRef = 2F95012904E85245007A7274 /* MachPriorityCommonMex.c */; };
 		F07432080AD465B400602397 /* MachSetPriorityMex.c in Sources */ = {isa = PBXBuildFile; fileRef = 2F95014604E8A2EB007A7274 /* MachSetPriorityMex.c */; };
 		F07432090AD465B400602397 /* mexversion.c in Sources */ = {isa = PBXBuildFile; fileRef = 2F26E8BD04343B30007A7274 /* mexversion.c */; };
@@ -3859,6 +3860,7 @@
 		CFA99A23080732BC00E1D3DC /* RegisterProject.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = RegisterProject.c; path = ../../../Source/Common/MachAbsoluteTimeClockFrequency/RegisterProject.c; sourceTree = "<group>"; };
 		CFA99A24080732BC00E1D3DC /* RegisterProject.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = RegisterProject.h; path = ../../../Source/Common/MachAbsoluteTimeClockFrequency/RegisterProject.h; sourceTree = "<group>"; };
 		CFE5132707E2642900D55D72 /* SCREENTextBackgroundColor.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = SCREENTextBackgroundColor.c; path = ../../../Source/Common/Screen/SCREENTextBackgroundColor.c; sourceTree = SOURCE_ROOT; };
+		D09BA5560BE6B5BD00C5F2CE /* SCREENBlendEquation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SCREENBlendEquation.c; sourceTree = "<group>"; };
 		F074321A0AD465B400602397 /* MachSetPriorityMex.mexmaci */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.objfile"; includeInIndex = 0; path = MachSetPriorityMex.mexmaci; sourceTree = BUILT_PRODUCTS_DIR; };
 		F089BD090AD42DF500663D86 /* Screen.mexmaci */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.objfile"; includeInIndex = 0; path = Screen.mexmaci; sourceTree = BUILT_PRODUCTS_DIR; };
 		F111E6570AD4BDD60090A83E /* libHIDUtilities-Intel.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libHIDUtilities-Intel.a"; sourceTree = "<group>"; };
@@ -5574,6 +5576,7 @@
 				2FC8979607D04F700042BE63 /* SCREENWindowSize.c */,
 				F5E3BE5803E1148601A80168 /* SCREENWindows.c */,
 				F5E3BE5603E10BA801A80168 /* SCREENWindowScreenNumber.c */,
+				D09BA5560BE6B5BD00C5F2CE /* SCREENBlendEquation.c */,
 			);
 			name = Subcommands;
 			sourceTree = "<group>";
@@ -11113,6 +11116,7 @@
 				0F6B34390B6969D20000A951 /* SCREENOpenProxy.c in Sources */,
 				0F6B343E0B696A0D0000A951 /* SCREENTransformTexture.c in Sources */,
 				837A6DC20BBB106E003AB0BE /* SCREENNull.c in Sources */,
+				D09BA5570BE6B5BD00C5F2CE /* SCREENBlendEquation.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

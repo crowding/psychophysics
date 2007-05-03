@@ -368,6 +368,8 @@ boolean PsychOpenOnscreenWindow(PsychScreenSettingsType *screenSettings, PsychWi
 		  printf("PTB-INFO: Psychtoolbox root folder for a copy of the GPL license.\n\n");
 		
 		  printf("\n\nOpenGL-Extensions are: %s\n\n", glGetString(GL_EXTENSIONS));
+		  
+		  //TODO check for presence of GL_ARB_imaging within GL_EXTENSIONS -- pbm
 	}
 	
 	if (PsychPrefStateGet_EmulateOldPTB() && PsychPrefStateGet_Verbosity()>1) {

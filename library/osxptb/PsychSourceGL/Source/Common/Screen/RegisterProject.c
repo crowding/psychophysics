@@ -164,6 +164,7 @@ PsychError PsychModuleInit(void)
 	PsychErrorExit(PsychRegister("GetTimeList", &SCREENGetTimeList));
 	PsychErrorExit(PsychRegister("ClearTimeList", &SCREENClearTimeList));
 	PsychErrorExit(PsychRegister("BlendFunction", &SCREENBlendFunction));
+	PsychErrorExit(PsychRegister("BlendEquation", &SCREENBlendEquation));
 	PsychErrorExit(PsychRegister("WindowSize", &SCREENWindowSize));
 	PsychErrorExit(PsychRegister("GetMouseHelper", &SCREENGetMouseHelper));
 	PsychErrorExit(PsychRegister("TextBackgroundColor", &SCREENTextBackgroundColor));

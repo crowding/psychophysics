@@ -138,6 +138,15 @@ void InitPsychAuthorList(void)
 		"chrg@sas.upenn.edu",
 		"http://color.psych.upenn.edu/lab/"
 	);
+	PsychAddAuthor(
+	// DrawTexture alpha blending, vectorization and BlendFunction
+		"Peter",
+		"B",
+		"Meilstrup",
+		"pbm",
+		"peterm@shadlen.org",
+		"http://www.shadlen.org/~peterm/"
+	);
 }
 
 

@@ -17,37 +17,32 @@ require(setupEyelinkExperiment(params), @runDemo);
     function runDemo(details)
         %{
         patch1 = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
-        patch2 = CauchyPatch('velocity', -10, 'size', [1 1.5 0.1]);
         
-        process1 = DotProcess([-15 -10 15 10], 0.015);
-        process2 = DotProcess([-15 -10 15 10], 0.015);
-        process3 = MotionProcess([-5 -5 5 5], 2, 0.2, 5, 2);
+        process1 = DotProcess([-15 -10 15 10], 0.030);
+        process2 = MotionProcess([-5 -5 5 5], 1, 0.1, 5, 0.5);
         %}
         
+        %
         patch1 = CauchyPatch('velocity', 5, 'size', [1 1.5 0.2]);
-        patch2 = CauchyPatch('velocity', -5, 'size', [1 1.5 0.2]);
         
-        process1 = DotProcess([-15 -10 15 10], 0.2);
-        process2 = DotProcess([-15 -10 15 10], 0.2);
-        process3 = MotionProcess([-5 -5 5 5], 1, 0.2, 10, 2);
-        
+        process1 = DotProcess([-15 -10 15 10], 0.4);
+        process2 = MotionProcess([-5 -5 5 5], 1, 0.2, 10, 2);
+        %
         
         player1 = SpritePlayer(patch1, process1, @noop);
-        player2 = SpritePlayer(patch2, process2, @noop);
-        player3 = SpritePlayer(patch1, process3.getRight(), @noop);
-        player4 = SpritePlayer(patch2, process3.getLeft(), @noop);
+        player2 = SpritePlayer(patch1, process2, @noop);
         
         startTrigger = UpdateTrigger(@start);
         
         main = mainLoop ...
-            ( {player1, player2, player3, player4} ...
+            ( {player1, player2} ...
             , {startTrigger} ...
             );
         
         % ----- the main loop. -----
         details = main.go(details);
 
-        %----- the event handlers functions -----
+        %----- the event handler functions -----
 
         function start(x, y, t, next)
             player1.setVisible(1, next);

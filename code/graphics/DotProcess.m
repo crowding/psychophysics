@@ -6,13 +6,14 @@ function this = DotProcess(bounds_, density_)
     this = final(@next, @getBounds, @setBounds, @getDensity, @setDensity);
     t_ = 0;
 
-    function [x, y, t] = next(s)
+    function [x, y, t, a] = next(s)
         rate = (bounds_(3) - bounds_(1)) * (bounds_(4) - bounds_(2)) * density_;
         interval = -log(rand) / rate;
         t = t_ + interval;
         t_ = t;
         x = bounds_(1) + rand * (bounds_(3) - bounds_(1));
         y = bounds_(2) + rand * (bounds_(4) - bounds_(2));
+        a = rand * 360;
     end
 
     function bounds = getBounds()

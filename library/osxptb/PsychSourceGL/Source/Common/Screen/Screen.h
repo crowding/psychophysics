@@ -146,6 +146,7 @@ PsychError	SCREENDrawDots(void);
 PsychError	SCREENGetTimeList(void);
 PsychError	SCREENClearTimeList(void);
 PsychError	SCREENBlendFunction(void);
+PsychError	SCREENBlendEquation(void);
 PsychError      SCREENWindowSize(void); 
 PsychError	SCREENTextBackgroundColor(void); 
 PsychError      SCREENLineStipple(void);

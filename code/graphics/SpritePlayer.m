@@ -1,6 +1,11 @@
 function this = SpritePlayer(patch_, process_, log_)
 % function this = SpritePlayer(patch_, process_, log_)
 % 
+% % 4556 9.132 s 3.466 s %before removing extraneous save/restore
+% % 6840 6.591 s 3.943 s %after removal, woot!
+% % 15324 14.937 s 9.094 %after adding rotation.
+% % 3064 824.031 s 18.187 s %without the rotation
+%
 % Working from a Patch and a location process, displays many concurrent,
 % overlapping copies of the movie shown in the Patch. the sprite is based
 % on the same set of frames, so it is played at the closest frame and pixel
@@ -114,15 +119,12 @@ frameCounts_ = []; %index into this array with the refresh number
     end
 
     function draw(window, next)
-        beq = glGetIntegerv(GL_BLEND_EQUATION);
-        [src, dst] = Screen('BlendFunction', window);
-        
         %move through the linked list of sprites.
         nqueue = {};
         queue = queue_;
         maxRefreshOnset = -Inf;
         while(numel(queue) > 1)
-            [refreshOnset xPos yPos queue] = queue{:};
+            [refreshOnset xPos yPos angle queue] = queue{:};
             maxRefreshOnset = max(maxRefreshOnset, refreshOnset);
             
             ref = refreshCount_ - refreshOnset + 1;
@@ -131,24 +133,20 @@ frameCounts_ = []; %index into this array with the refresh number
                 %draw the textures
                 for t = textures_(frameIndex_(ref):frameIndex_(ref)+frameCounts_(ref) - 1)
 
-                    %these two lines are taking an inordinately long amount
-                    %of time.
-                    glBlendEquation(t.blendEquation);
-                    Screen('BlendFunction', window, t.sourceFactor, t.destFactor);
-                    
-                    Screen('DrawTexture', window, t.texture, [], t.playrect + [xPos yPos xPos yPos]);
+                    Screen('DrawTexture', window, t.texture, [], t.playrect + [xPos yPos xPos yPos] ...
+                        , angle, [], [], t.sourceFactor, t.destFactor, t.blendEquation);
                 end
             elseif ref > numel(frameIndex_)
                 continue;
             end
 
-            nqueue = {refreshOnset xPos yPos nqueue};
+            nqueue = {refreshOnset xPos yPos angle nqueue};
         end
         
         %If the maxOnset is too small in relation to the window, request a
         %new sprite (repeat as necessary)
         while maxRefreshOnset - refreshCount_ < 1
-            [x, y, t] = process_.next();
+            [x, y, t, a] = process_.next();
             if isnan(t)
                 break;
             end
@@ -164,11 +162,9 @@ frameCounts_ = []; %index into this array with the refresh number
             
             %TODO log the scheduled, (& discretized) stimulus onset here
 
-            nqueue = {refresh x y nqueue};
+            nqueue = {refresh x y a nqueue};
         end
         
-        glBlendEquation(beq);
-        Screen('BlendFunction', window, src, dst);
         queue_ = nqueue;
     end
 

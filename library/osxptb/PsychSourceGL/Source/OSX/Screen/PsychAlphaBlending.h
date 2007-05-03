@@ -8,10 +8,12 @@ PLATFORMS:
 AUTHORS:
 	
 	Allen Ingling		awi		Allen.Ingling@nyu.edu
+	Peter Meilstrup		pbm		peterm@shadlen.org
 
 HISTORY:
 	
 	1/7/04		awi		Wrote it 
+	5/2/04		pbm		added blend equation
 						
 DESCRIPTION:
 
@@ -35,6 +37,12 @@ Boolean PsychValidateBlendingConstantForDestination(GLenum destinationFactor);
 void PsychGetAlphaBlendingFactorsFromWindow(PsychWindowRecordType *winRec, GLenum *oldSource, GLenum *oldDestination);
 void PsychStoreAlphaBlendingFactorsForWindow(PsychWindowRecordType *winRec, GLenum sourceBlendConstant, GLenum destinationBlendConstant);
 void PsychUpdateAlphaBlendingFactorLazily(PsychWindowRecordType *winRec);
+
+int PsychGetAlphaBlendingEquationFromWindow(PsychWindowRecordType *winRec, GLenum *oldEqn);
+int PsychGetAlphaBlendingEquationConstantFromString(char *blendString, GLenum *blendConstant);
+int PsychGetAlphaBlendingEquationStringFromConstant(GLenum blendConstant, char *blendString);
+int PsychGetAlphaBlendingEquationFromWindow(PsychWindowRecordType *winRec, GLenum *oldEqn);
+Boolean PsychValidateBlendEquation(GLenum blendEqn);
 
 //end include once
 #endif

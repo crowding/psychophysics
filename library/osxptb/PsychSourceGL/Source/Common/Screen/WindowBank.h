@@ -187,7 +187,8 @@ typedef struct _PsychWindowRecordType_{
 	GLenum					actualDestinationAlphaBlendingFactor;
 	GLenum					nextSourceAlphaBlendingFactor;
 	GLenum					nextDestinationAlphaBlendingFactor;
-	
+	GLenum					actualBlendEquation;
+	GLenum					nextBlendEquation;
 	
 	//Used only when this structure holds a texture:    
 	GLuint					*textureMemory;

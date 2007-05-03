@@ -51,7 +51,7 @@
 #include "Screen.h"
 
 // If you change useString then also change the corresponding synopsis string in ScreenSynopsis.c
-static char useString[] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha] [, sourceFactor] [, destFactor]);";
+static char useString[] = "Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] [,rotationAngle] [, filterMode] [, globalAlpha] [, sourceFactor] [, destFactor] [, blendEquation]);";
 //                                               1              2                3             4                5                6              7               8                9
 static char synopsisString[] = 
 	"Draw the texture specified via 'texturePointer' into the target window specified via 'windowPointer'. "
@@ -68,7 +68,10 @@ static char synopsisString[] =
         "    and globalAlpha are provided, then the final alpha is the product of both values."
 		"'sourceFactor' Which source alpha blending factor to use. Takes a string argument similar to Screen('BlendFunction') or the raw "
 		"    integer value. Defaults to the present setting; if a new source factor is given, restores the old setting when finished."
-		"'destinationFactor' Which destination alpha blending factor to use.";
+		"'destinationFactor' Which destination alpha blending factor to use."
+		"'destinationFactor' Which destination alpha blending equation to use. Takes a string argument similar to Screen('BlendEquation' or the"
+		"	raw integer value. Restores the previous setting after drawing the texture.";
+
 	  
 static char seeAlsoString[] = "MakeTexture";
 
@@ -82,6 +85,8 @@ PsychError SCREENDrawTexture(void)
 	boolean changeSrcFactor = false; // Defaults to using the existing blend setting.
 	boolean changeDstFactor = false;
 	GLenum newSrc, newDst, oldSrc, oldDst;
+	boolean changeBlendEqn = false;
+	GLenum oldEqn, newEqn;
 	
     //all subfunctions should have these two lines.  
     PsychPushHelp(useString, synopsisString, seeAlsoString);
@@ -89,7 +94,7 @@ PsychError SCREENDrawTexture(void)
     
     //Get the window structure for the onscreen window.  It holds the onscreein GL context which we will need in the
     //final step when we copy the texture from system RAM onto the screen.
-    PsychErrorExit(PsychCapNumInputArgs(9));   	
+    PsychErrorExit(PsychCapNumInputArgs(10));   	
     PsychErrorExit(PsychRequireNumInputArgs(2)); 	
     PsychErrorExit(PsychCapNumOutputArgs(0)); 
 	
@@ -171,12 +176,37 @@ PsychError SCREENDrawTexture(void)
 		PsychErrorExitMsg(PsychError_user, "destFactor needs to be a valid string or numeric destination factor");
 	}
 	
+	if ( PsychGetArgType(10) & PsychArgType_char ) {
+		char *string;
+		if ( PsychAllocInCharArg(10, kPsychArgOptional, &string) ) {
+			PsychGetAlphaBlendingEquationConstantFromString(string, &newEqn);
+			changeBlendEqn = true;
+		} else {
+			PsychErrorExitMsg(PsychError_user, "Invalid string for blendEquation.");    
+		}
+	} else if (PsychIsArgReallyPresent(PsychArgIn, 10)) {
+		int tmp = -1;
+		if (PsychCopyInIntegerArg(10, kPsychArgOptional, &tmp)) {
+			newEqn = tmp;
+			changeBlendEqn = true;
+		}
+	}
+		
+	if ( changeBlendEqn && !PsychValidateBlendEquation(newEqn) ) {
+		PsychErrorExitMsg(PsychError_user, "blendEquation needs to be a valid string or numeric destination factor");
+	}
+	
 	// save previous blend factors
 	if (changeSrcFactor || changeDstFactor) {
 		PsychGetAlphaBlendingFactorsFromWindow(target, &oldSrc, &oldDst);
 		newSrc = changeSrcFactor ? newSrc : oldSrc;
 		newDst = changeDstFactor ? newDst : oldDst;
 		PsychStoreAlphaBlendingFactorsForWindow(target, newSrc, newDst);
+	}
+	
+	if (changeBlendEqn) {
+		PsychGetAlphaBlendingEquationFromWindow(target, &oldEqn);
+		PsychStoreAlphaBlendingEquationForWindow(target, newEqn);
 	}
 	
     PsychSetGLContext(target);
@@ -186,6 +216,10 @@ PsychError SCREENDrawTexture(void)
 	if (changeSrcFactor || changeDstFactor) { // restore blend factors
 		PsychStoreAlphaBlendingFactorsForWindow(target, oldSrc, oldDst);
 	}
+	if (changeBlendEqn) {
+		PsychStoreAlphaBlendingEquationForWindow(target, oldEqn);
+	}
+	
     // Mark end of drawing op. This is needed for single buffered drawing:
     PsychFlushGL(target);
 

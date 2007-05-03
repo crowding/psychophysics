@@ -9,9 +9,12 @@ AUTHORS:
 	
 	Allen Ingling		awi		Allen.Ingling@nyu.edu
 
+	Peter Meilstrup		pbm		peterm@shadlen.org
+
 HISTORY:
 	
 	1/7/04		awi		Wrote it 
+	4/30/07		pbm		Added blend equation support
 						
 DESCRIPTION:
 
@@ -27,7 +30,7 @@ DESCRIPTION:
 #define DEFAULT_SRC_ALPHA_FACTOR		GL_SRC_ALPHA
 #define DEFAULT_DST_ALPHA_FACTOR		GL_ONE
 
-#define NUM_BLENDING_MODE_CONSTANTS		11
+#define NUM_BLENDING_MODE_CONSTANTS		(sizeof(blendingModeStrings) / sizeof(char*))
 
 char *blendingModeStrings[]={
 	"GL_ZERO",
@@ -56,6 +59,49 @@ GLenum blendingModeConstants[]={
 	GL_ONE_MINUS_DST_ALPHA,
 	GL_SRC_ALPHA_SATURATE 
 };
+
+#define NUM_BLEND_EQUATION_CONSTANTS		(sizeof(blendEquationStrings) / sizeof(char*))
+
+char *blendEquationStrings[]={
+	"GL_FUNC_ADD",
+	"GL_FUNC_SUBTRACT",
+	"GL_FUNC_REVERSE_SUBTRACT",
+	"GL_MIN",
+	"GL_MAX"
+};
+
+GLenum blendEquationConstants[]={
+	GL_FUNC_ADD,
+	GL_FUNC_SUBTRACT,
+	GL_FUNC_REVERSE_SUBTRACT,
+	GL_MIN,
+	GL_MAX
+};
+
+
+
+/* 
+	PsychValidateBlendEquation()
+	
+	Return TRUE if the choice if valid and false otherwise. (why is this here? In DrawTexture we may call directly with numbers.)
+  
+*/
+Boolean PsychValidateBlendEquation(GLenum blendEqn)
+{
+	Boolean isValid = FALSE;
+	
+	switch(blendEqn)
+	{
+	case GL_FUNC_ADD:						isValid=TRUE;  break;
+	case GL_FUNC_SUBTRACT:					isValid=TRUE;  break;
+	case GL_FUNC_REVERSE_SUBTRACT:			isValid=TRUE;  break;
+	case GL_MIN:							isValid=TRUE;  break;
+	case GL_MAX:							isValid=TRUE;  break;
+	default: PsychErrorExitMsg(PsychError_internal, "Failed to find alpha blending equation when validating");
+	}
+	return(isValid);
+}
+
 
 
 /* 
@@ -90,20 +136,11 @@ Boolean PsychValidateBlendingConstantForSource(GLenum sourceFactor)
 }
 
 
-/* 
-	PsychValidateBlendingConstantForDestination()
-	
-	Constants are specified for both the source and destination.  Not all constants are available for both.  This function checks
-	a constant to see if it may be specified for the destination.
-	
-	Return TRUE if the choice if valid and false otherwise.
-  
-*/
-Boolean PsychValidateBlendingConstantForDestination(GLenum destinationFactor)
+Boolean PsychValidateBlendingConstantForDestination(GLenum blendEqn)
 {
 	Boolean isValid;
 	
-	switch(destinationFactor)
+	switch(blendEqn)
 	{
 		case GL_ZERO:					isValid=TRUE;  break;
 		case GL_ONE:					isValid=TRUE;  break;	
@@ -122,8 +159,6 @@ Boolean PsychValidateBlendingConstantForDestination(GLenum destinationFactor)
 }
 
 
-
-
 /*  
 	PsychGetGLBlendConstantFromString()
 	
@@ -136,6 +171,24 @@ int PsychGetAlphaBlendingFactorConstantFromString(char *blendString, GLenum *ble
 	for(i=0;i<NUM_BLENDING_MODE_CONSTANTS;i++){
 		if(PsychMatch(blendingModeStrings[i], blendString)){
 			*blendConstant=blendingModeConstants[i];
+			return(TRUE);
+		}
+	}
+	return(FALSE);
+}
+
+/*  
+	PsychGetAlphaBlendingEquationConstantFromString()
+	
+	Lookup the constant from the string.  Return true if we find it.
+*/
+int PsychGetAlphaBlendingEquationConstantFromString(char *blendString, GLenum *blendConstant)
+{
+	int		i;
+	
+	for(i=0;i<NUM_BLEND_EQUATION_CONSTANTS;i++){
+		if(PsychMatch(blendEquationStrings[i], blendString)){
+			*blendConstant=blendEquationConstants[i];
 			return(TRUE);
 		}
 	}
@@ -171,6 +224,32 @@ int PsychGetAlphaBlendingFactorStringFromConstant(GLenum blendConstant, char *bl
 
 
 /*
+	stringSize	PsychGetAlphaBlendingEquationStringFromConstant(GLenum blendConstant, NULL);
+	foundIt		PsychGetAlphaBlendingEquationStringFromConstant(GLenum blendConstant, char *blendString)
+
+	Lookup the string from the constant.  The caller allocates the return string.
+	to find the length of the return string, first call lookup with NULL for the 
+	return.  Call a second time and pass the pointer to your allocated space.  
+	
+	PsychGetBlendStringFromConstant will always return 0 if it fails to find the 
+	constant.
+*/
+int PsychGetAlphaBlendingEquationStringFromConstant(GLenum blendConstant, char *blendString)
+{
+	int		i;
+	
+	for(i=0;i<NUM_BLEND_EQUATION_CONSTANTS;i++){
+		if(blendConstant==blendEquationConstants[i]){
+			if(blendString!=NULL)
+				strcpy(blendString, blendingModeStrings[i]);
+			return(strlen(blendingModeStrings[i]) + 1);
+		}
+	}
+	return(0);
+}
+
+
+/*
 	PsychInitWindowRecordAlphaBlendingFields()
 	
 	Called when we create a new window.
@@ -182,18 +261,29 @@ void PsychInitWindowRecordAlphaBlendingFactors(PsychWindowRecordType *winRec)
 	winRec->actualDestinationAlphaBlendingFactor=GL_ZERO;
 	winRec->nextSourceAlphaBlendingFactor=GL_ONE;
 	winRec->nextDestinationAlphaBlendingFactor=GL_ZERO;
-	
+	winRec->actualBlendEquation=GL_FUNC_ADD;
+	winRec->nextBlendEquation=GL_FUNC_ADD;
 }
 
 /*
-	PsychGetBlendConstantsFromWindow()
+	PsychGetAlphaBlendingFactorsFromWindow()
 	
-	Get the blending constants which will be used if we draw into the window.
+	Get the blending factors which will be used if we draw into the window.
 */
 void PsychGetAlphaBlendingFactorsFromWindow(PsychWindowRecordType *winRec, GLenum *oldSource, GLenum *oldDestination)
 {
 	*oldSource=winRec->nextSourceAlphaBlendingFactor;
 	*oldDestination=winRec->nextDestinationAlphaBlendingFactor;
+}
+
+/*
+	PsychGetAlphaBlendingEquationFromWindow()
+	
+	Get the blending factors which will be used if we draw into the window.
+*/
+int PsychGetAlphaBlendingEquationFromWindow(PsychWindowRecordType *winRec, GLenum *oldEqn)
+{
+	*oldEqn=winRec->nextBlendEquation;
 }
 
 
@@ -208,6 +298,18 @@ void PsychStoreAlphaBlendingFactorsForWindow(PsychWindowRecordType *winRec, GLen
 {
 	winRec->nextSourceAlphaBlendingFactor=sourceBlendConstant;
 	winRec->nextDestinationAlphaBlendingFactor=destinationBlendConstant;
+}
+
+/* 
+	PsychStoreAlphaBlendingFactorsForWindow()
+	
+	To avoid unnecessary context switching, only store the desired blending factors in the window record.  Defer calls to glBlendFunc()
+	until a drawing function, which must change context, invokes PsychUpdateAlphaBlendingFactorLazily() which in turn calls glBlendFunc()
+	the blending mode has changed.  
+*/
+void PsychStoreAlphaBlendingEquationForWindow(PsychWindowRecordType *winRec, GLenum blendEqn)
+{
+	winRec->nextBlendEquation=blendEqn;
 }
 
 
@@ -228,19 +330,26 @@ void PsychUpdateAlphaBlendingFactorLazily(PsychWindowRecordType *winRec)
 	// GL contexts are born with blending disabled.  We choose the alternative which results in the fewest GL calls:
 	// GL_BLEND disabled until the first change from GL_ONE, GL_ZERO, and thereafter leave GL_BLEND enabled.   
 	
-	Boolean		changeSetting, setEnable;
+	Boolean		changeFactors, changeEquation, setEnable;
 	
-	changeSetting= winRec->actualSourceAlphaBlendingFactor != winRec->nextSourceAlphaBlendingFactor || winRec->actualDestinationAlphaBlendingFactor != winRec->nextDestinationAlphaBlendingFactor;
-	setEnable= (winRec->nextSourceAlphaBlendingFactor != GL_ONE || winRec->nextDestinationAlphaBlendingFactor != GL_ZERO) && !winRec->actualEnableBlending;
+	changeFactors = winRec->actualSourceAlphaBlendingFactor != winRec->nextSourceAlphaBlendingFactor || winRec->actualDestinationAlphaBlendingFactor != winRec->nextDestinationAlphaBlendingFactor;
+	changeEquation = winRec->nextBlendEquation != winRec->actualBlendEquation;
+	setEnable = (winRec->nextSourceAlphaBlendingFactor != GL_ONE || winRec->nextDestinationAlphaBlendingFactor != GL_ZERO || winRec->nextBlendEquation != GL_FUNC_ADD) && !winRec->actualEnableBlending;
 	if(setEnable){
 		winRec->actualEnableBlending=TRUE;	
 		glEnable(GL_BLEND);
 	}
-	if(changeSetting){
+	if(changeFactors){
 		winRec->actualSourceAlphaBlendingFactor=winRec->nextSourceAlphaBlendingFactor;
 		winRec->actualDestinationAlphaBlendingFactor = winRec->nextDestinationAlphaBlendingFactor;
-		glBlendFunc(winRec->actualSourceAlphaBlendingFactor, winRec->actualDestinationAlphaBlendingFactor);
+ 		glBlendFunc(winRec->actualSourceAlphaBlendingFactor, winRec->actualDestinationAlphaBlendingFactor);
 	}
+	if(changeEquation){
+		//TODO -- defer this again???
+		winRec->actualBlendEquation=winRec->nextBlendEquation;
+		glBlendEquation(winRec->nextBlendEquation);
+	}
+
 }
 
 
