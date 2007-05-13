@@ -52,7 +52,8 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
             %just check for openGL and OSX.
             AssertOpenGL;
             AssertOSX;
-
+            InitializeMatlabOpenGL;
+            
             [release, details] = deal(@noop, details);
             function noop
             end

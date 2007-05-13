@@ -1,4 +1,4 @@
-function [x, y, t] = sampling(dispatch, this, cal)
+function [x, y, t] = sampling(dispatch, this, cal, pot)
 %function [x, y, t] = sampling(dispatch, this, cal)
 % Compute appropriate points for sampling this function when computing a movie.
 % You can override this for more speed in e.g. a bar stimulus so that the 
@@ -33,6 +33,23 @@ xi = xi/spac(1);
 yi = yi/spac(2);
 ti = ti/spac(3);
 
-x = (floor(xi(1)):ceil(xi(2)))*spac(1);
-y = (floor(yi(1)):ceil(yi(2)))*spac(2);
-t = (floor(ti(1)):ceil(ti(2)))*spac(3);
+xi = [floor(xi(1)) ceil(xi(2))];
+yi = [floor(yi(1)) ceil(yi(2))];
+ti = [floor(ti(1)) ceil(ti(2))];
+
+if exist('pot', 'var') && pot
+    xi = makepot(xi);
+    yi = makepot(yi);
+end
+    
+x = (xi(1):xi(2))*spac(1);
+y = (yi(1):yi(2))*spac(2);
+t = (ti(1):ti(2))*spac(3);
+
+function i = makepot(i)
+    potdiff = round(2.^ceil(log2(i(2) - i(1))) - i(2) + i(1)) - 1;
+    i(1) = i(1) - floor(potdiff/2);
+    i(2) = i(2) + ceil(potdiff/2);
+end
+
+end

@@ -11,6 +11,8 @@ params_ = namedargs(defaults, varargin{:});
 %
 %The main loop allows you to start and stop.
 
+java_ = psychusejava('jvm');
+
 %----- constructed objects -----
 this = public(@go, @stop, @drawTriggers);
 
@@ -74,8 +76,10 @@ skipFrameCount_ = 0;
             end
 
             %check for the quit key
-            if CharAvail() && lower(GetChar()) == 'q'
-                error('mainLoop:userCanceled', 'user escaped from main loop.');
+            if java_
+                if CharAvail() && lower(GetChar()) == 'q'
+                    error('mainLoop:userCanceled', 'user escaped from main loop.');
+                end
             end
 
             %draw all the objects

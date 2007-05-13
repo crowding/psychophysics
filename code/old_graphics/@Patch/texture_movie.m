@@ -20,10 +20,6 @@ FUNC_REVERSE_SUBTRACT_EXT = hex2dec('800B');
 %the playrect in pixels
 center = floor(get(cal, 'rect') * [0.5 0; 0 0.5; 0.5 0; 0 0.5]);
 native = [spacing(cal) cal.interval];
-rect = round([x(1) y(1) x(end) y(end)] ./ native([1 2 1 2]));
-rect = rect + center([1 2 1 2]);
-
-interval = get(cal, 'interval');
 
 black = BlackIndex(w);
 white = WhiteIndex(w);

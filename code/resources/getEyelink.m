@@ -105,7 +105,7 @@ initializer = currynamedargs(initializer, varargin{:});
         end
         
         if details.dummy
-            message(details, 'Operating in dummy mode!');
+            message(details, 'Eyelink unattached, using mouse mode');
         else
             message(details, 'Do tracker setup now');
             status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);

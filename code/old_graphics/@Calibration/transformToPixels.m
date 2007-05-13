@@ -17,11 +17,13 @@ function f = transformToDegrees(this)
             y = loc(2);
         else
             %both coords are in x
-            if all(size(x) == [1 2])
+            if isequal(size(x), [1 2])
                 x = x .* multiplier + center;
             else
-                x = x .* repmat(multiplier, size(x, 1), size(x,2)/2)...
-                         + repmat(center, size(x, 1), size(x, 2)/2);
+                x = x .* reshape(repmat(multiplier, 1, numel(x) / 2), size(x)) ...
+                      +  reshape(repmat(center, 1, numel(x) / 2), size(x));
+%                x = x .* repmat(multiplier, numel(x, 1), size(x,2)/2)...
+%                         + repmat(center, size(x, 1), size(x, 2)/2);
             end
         end
     end

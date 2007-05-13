@@ -6,7 +6,9 @@ function init = listenChars(varargin);
     function [release, params] = doListen(params)
         %flush buffer
         ListenChar(1);
-        FlushEvents();
+        if psychusejava('jvm')
+            FlushEvents();
+        end
         
         release = @()ListenChar(0);
     end
