@@ -18,7 +18,7 @@ require(setupEyelinkExperiment(params), @runDemo);
         %
         patch1 = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
         
-        process1 = DotProcess([-16 -12 16 12], 8.0);
+        process1 = DotProcess([-16 -12 16 12], 4);
         %process2 = MotionProcess([-5 -5 5 5], 1, 0.1, 5, 0.5);
         %
         

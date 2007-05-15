@@ -98,14 +98,14 @@ end
 
 function maketexture(name, tx)
     glBindTexture(GL.TEXTURE_2D, name);
-    tx = permute(repmat(tx, [1 1 3]), [3 2 1]);
+    tx = permute(tx, [2 1]);
     
-    glTexImage2D(GL.TEXTURE_2D,0,GL.RGB,size(tx,2),size(tx,3),0,GL.RGB,GL.UNSIGNED_BYTE,tx);
+    glTexImage2D(GL.TEXTURE_2D,0,GL.LUMINANCE8,size(tx,1),size(tx,2),0,GL.LUMINANCE,GL.UNSIGNED_BYTE,tx);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_WRAP_S,GL.CLAMP);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_WRAP_T,GL.CLAMP);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_MAG_FILTER,GL.LINEAR);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_MIN_FILTER,GL.LINEAR);
-    glTexEnvfv(GL.TEXTURE_ENV, GL.TEXTURE_ENV_MODE, GL.REPLACE);
+    glTexEnvfv(GL.TEXTURE_ENV, GL.TEXTURE_ENV_MODE, GL.MODULATE);
 end
 
 function xx = pot(x)
