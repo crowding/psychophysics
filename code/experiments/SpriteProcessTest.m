@@ -6,6 +6,7 @@ defaults = struct...
     , 'duration',   20 ...
     , 'interval',   5  ...
     , 'requireCalibration', 0 ...
+    , 'density', 0.5 ...
     );
 params = namedargs(defaults, varargin{:});
 % a simple graphics demo that shows a movie.
@@ -17,8 +18,7 @@ require(setupEyelinkExperiment(params), @runDemo);
     function runDemo(details)
         %
         patch1 = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
-        
-        process1 = DotProcess([-16 -12 16 12], 4);
+        process1 = DotProcess([-16 -12 16 12], params.density);
         %process2 = MotionProcess([-5 -5 5 5], 1, 0.1, 5, 0.5);
         %
         

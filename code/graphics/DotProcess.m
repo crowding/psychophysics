@@ -17,7 +17,7 @@ function this = DotProcess(bounds_, density_)
         
         %the 'color' is an RGBA column vector, here chosen with random RBG
         %and full alpha.
-        color = [rand(3, 1); 1];
+        color = [1;1;1; rand];
     end
 
     function bounds = getBounds()
