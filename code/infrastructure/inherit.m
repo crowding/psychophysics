@@ -127,7 +127,7 @@ this.property__ = makeproperty();
         %orient its output
         propnames = propnames(:);
         
-        %pull otu getter and setter methods.
+        %pull out getter and setter methods.
         %i'd do this with a cellfun but it adds an inexplicable 0.4
         %seconds, thanks to matlab's incredibly slow use of structs and
         %cells in lexical scope

@@ -43,8 +43,8 @@ texvertices_ = zeros(8, max_sprites_); %the texture vertices
 screenvertices_ = zeros(8, max_sprites_); %the screen vertices
 refreshes_ = zeros(1, max_sprites_); %which refresh we are on
 
-%colors_ = zeros(12, max_sprites_) + 0.5; %the colors
-%colors_([4 8 12 16], :) = 1;
+colors_ = zeros(12, max_sprites_) + 0.5; %the colors
+%colors_([4 8 12], :) = 1;
 
 head_ = max_sprites_; %matlab index to where the newest IS.
 tail_ = max_sprites_; %matlab index to where the oldest WAS.
@@ -88,7 +88,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %set up vertex array state
             glEnableClientState(GL.TEXTURE_COORD_ARRAY);
             glEnableClientState(GL.VERTEX_ARRAY);
-            %glEnableClientState(GL.COLOR_ARRAY);
+            glEnableClientState(GL.COLOR_ARRAY);
             
         end
         
@@ -187,16 +187,18 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %    + reshape([x;y] * [1 1 1 1], 8, 1)); %2.71    8487
             
             refreshes_(head_) = round((t + onset_) / interval_);
-            %colors_(:,head_) = color;
+            %colors_(:,head_) = [color;color;color;color]; %  3.45   25144
+            ccolor = (color(:) * [1 1 1 1]);
+            colors_(:,head_) = ccolor(:);
 
             %TODO log the scheduled, (& discretized) stimulus onset here
         end
         %visible indicator of buffer fill
-        if h2 == tail_
-            color = [1;0;0];
-        else
-            color = [0.5;0.5;0.5];
-        end
+        %if h2 == tail_
+        %    color = [1;0;0];
+        %else
+        %    color = [0.5;0.5;0.5];
+        %end
         
         %select the portion of hte buffer that will be drawn - in two
         %intervals, one of which may be empty.
@@ -222,8 +224,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             
             glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
             glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
-            glColor3dv(color);
-%            glColorPointer( 3, GL.DOUBLE, 0, colors_);
+            glColorPointer( 3, GL.DOUBLE, 0, colors_);
             
             %draw first the added textures, then the subtracted
             glBindTexture(GL.TEXTURE_2D,addtex_);

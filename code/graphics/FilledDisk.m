@@ -1,4 +1,5 @@
 function this = FilledDisk(loc_, radius_, color_)
+%function this = FilledDisk(loc_, radius_, color_)
 %A graphics object that draws a disk at a specified location.
 %
 %loc_ : the coordinates (in degrees) of the center of the disk.

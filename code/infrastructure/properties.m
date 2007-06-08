@@ -65,7 +65,6 @@ this.method__ = @method__;
     end
 
 this.version__ = getversion(2);
-
 this = publicize(this);
 
 end
