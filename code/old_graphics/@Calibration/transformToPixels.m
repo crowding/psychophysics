@@ -8,23 +8,15 @@ function f = transformToDegrees(this)
     multiplier = 1./spacing(this);
     f = @transform;
 
-    function [x, y] = transform(x, y)
+    function [x, y] = transform(x, y) %(8438 calls, 0.576 sec)
         %support 1- and 2-argument calling styles
         if (nargin == 2)
-            loc = [x y];
-            loc = loc .* multiplier + center;
-            x = loc(1);
-            y = loc(2);
+            x = x * multiplier(1) * center(1);
+            y = y * multiplier(2) + center(2);
         else
             %both coords are in x
-            if isequal(size(x), [1 2])
-                x = x .* multiplier + center;
-            else
-                x = x .* reshape(repmat(multiplier, 1, numel(x) / 2), size(x)) ...
-                      +  reshape(repmat(center, 1, numel(x) / 2), size(x));
-%                x = x .* repmat(multiplier, numel(x, 1), size(x,2)/2)...
-%                         + repmat(center, size(x, 1), size(x, 2)/2);
-            end
+            x(1:2:numel(x)) = x(1:2:numel(x)) * multiplier(1) + center(1);
+            x(2:2:numel(x)) = x(2:2:numel(x)) * multiplier(2) + center(2);
         end
     end
 end

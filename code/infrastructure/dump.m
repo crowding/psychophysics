@@ -157,7 +157,7 @@ end
 
 function dumpobject(prefix, propmethod, printer)
     for p = propmethod()'
-        %random debugging note: matlab will not how you the difference
+        %random debugging note: matlab will not show you the difference
         %in disp() between a char array and a singleton cell containing
         %a char array, even though the distinction ALWAYS MATTERS.
         dumpit([prefix '.' p{:}], propmethod(p{:}), printer);

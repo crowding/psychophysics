@@ -1,18 +1,29 @@
-function this = DotProcess(bounds_, density_, color_)
+function this = AnnularDotProcess(bounds_, density_, color_)
 
-    %the dot process generates events within a rectangular window with a
+    %the dot process generates events within an annular window with a
     %certain density of events per second per square degree. 
+    %the annular sindow is specified as a center and radius: [x y inner
+    %outer].
 
     this = final(@next, @getBounds, @setBounds, @getDensity, @setDensity, @getColor, @setColor);
     t_ = 0;
 
     function [x, y, t, a, c] = next()
-        rate = (bounds_(3) - bounds_(1)) * (bounds_(4) - bounds_(2)) * density_;
+        rate = pi * (bounds_(4)*bounds_(4) - bounds_(3)*bounds_(3)) * density_;
         interval = -log(rand) / rate;
         t = t_ + interval;
         t_ = t;
-        x = bounds_(1) + rand * (bounds_(3) - bounds_(1));
-        y = bounds_(2) + rand * (bounds_(4) - bounds_(2));
+        
+        %if events are uniformly distributed within the annulus, then here
+        %is a random radius:
+        r = sqrt(rand()*(bounds_(4).^2-bounds_(3).^2) + bounds_(3).^2);
+        
+        %and here a random angle:
+        w = rand*2*pi;
+        
+        x = r * cos(w) + bounds_(1);
+        y = r * sin(w) + bounds_(2);
+        
         a = rand * 360;
         
         %the 'color' is an RGBA column vector, here chosen with random RBG

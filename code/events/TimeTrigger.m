@@ -1,6 +1,6 @@
 function this = TimeTrigger(varargin)
 % Constructs a trigger that calls a function after a certain time has passed.
-% Constructor arguments are the same as for <a href="matlab:helps TimeTrigger/set">set</a>.
+% Constructor arguments are the same as for <a href="matlab:help TimeTrigger/set">set</a>.
 
 set_ = 0;
 time_ = 0;

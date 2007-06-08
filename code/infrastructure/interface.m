@@ -9,11 +9,12 @@ function [out, extra] = interface(prototype, in)
 %lot. Extract the interface and you can use a struct array, which is faster
 %than a cell array of structs.
 
-if iscell(in)
-    [out, extra] = cellfun(@extract_interface, in);
-else
-    [out, extra] = extract_interface(in);
-end
+    if iscell(in)
+        [out, extra] = cellfun(@extract_interface, in, 'UniformOutput', 0);
+        out = cell2mat(out);
+    else
+        [out, extra] = extract_interface(in);
+    end
 
     function [out, extra] = extract_interface(s)
         names = fieldnames(prototype);

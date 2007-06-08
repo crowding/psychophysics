@@ -62,6 +62,9 @@ visible_ = 0;
     end
 
     function c = setColor(c)
+        if ~exist('c', 'var')
+            noop;
+        end
         color_ = c;
     end
 

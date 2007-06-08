@@ -1,6 +1,12 @@
 function this = mainLoop(graphics, triggers, varargin)
-defaults = struct('log', @noop, 'skipFrames', 1);
+
+defaults = struct...
+    ( 'log', @noop ...
+    , 'skipFrames', 1 ...
+    , 'dontsync', 0 ...
+    , 'slowmo', 0 );
 params_ = namedargs(defaults, varargin{:});
+
 %The main loop which controls presentation of a trial. There are three
 %output arguments, main, drawing, and events, which used to be separate
 %objects in separate files, but were tied together for speed.
@@ -11,8 +17,6 @@ params_ = namedargs(defaults, varargin{:});
 %
 %The main loop allows you to start and stop.
 
-java_ = psychusejava('jvm');
-
 %----- constructed objects -----
 this = public(@go, @stop, @drawTriggers);
 
@@ -22,6 +26,9 @@ go_ = 0; % flags whether the main loop is running
 %the list of graphics components, restricted to the interface we use
 graphics_ = interface(struct('draw', {}, 'update', {}, 'init', {}), graphics);
 ng_ = numel(graphics_);
+
+
+%java_ = psychusejava('jvm');
 
 %Our list of triggers.
 triggers_ = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
@@ -36,6 +43,10 @@ missingSampleCount_ = 0;
 goodSampleCount_ = 0;
 skipFrameCount_ = 0;
 
+windowLeft_ = 0;
+windowTop_ = 0;
+
+
 %----- methods -----
 
     function params = go(varargin)
@@ -48,10 +59,10 @@ skipFrameCount_ = 0;
         params = require(...
             triggerInitializer(params)...
             ,graphicsInitializer()...
-            ,listenChars()...
             ,highPriority()...
             ,@doGo...
             );
+%            ,listenChars()...
         params_ = params;
     end
 
@@ -60,6 +71,7 @@ skipFrameCount_ = 0;
         interval = params.cal.interval;
         hitcount = 0;
         skipcount = 0;
+        dontsync = params.dontsync;
 
         %for better speed in the loop, eschew struct access?
         log = params.log;
@@ -75,19 +87,26 @@ skipFrameCount_ = 0;
                 break;
             end
 
+            %check for the button press to quit (getChar is useless now!)
+            [x, y, buttons] = GetMouse();
+            if (buttons(1))
+                error('mainLoop:userCanceled', 'user escaped from main loop.');
+            end
+            %{
             %check for the quit key
             if java_
                 if CharAvail() && lower(GetChar()) == 'q'
                     error('mainLoop:userCanceled', 'user escaped from main loop.');
                 end
             end
+            %}
 
             %draw all the objects
             for i = 1:ng_
                 graphics_(i).draw(window, lastVBL + interval);
             end
-                    
-            [VBL] = Screen('Flip', window, 0, 0);
+            
+            [VBL] = Screen('Flip', window, 0, 0, dontsync);
             hitcount = hitcount + 1;
 
             %count the number of frames advanced and do the
@@ -108,6 +127,9 @@ skipFrameCount_ = 0;
                 end
             else
                 frames = 1;
+                if params.slowmo
+                    WaitSecs(params.slowmo);
+                end
             end
 
             for i = 1:frames
@@ -195,7 +217,10 @@ skipFrameCount_ = 0;
         %coordinates.
 
         if params.dummy
-            [x, y, buttons] = GetMouse(params.window);
+            [x, y, buttons] = GetMouse();
+            x = x - windowLeft_;
+            y = y - windowTop_;
+            
             t = GetSecs();
             if any(buttons) %simulate blinking
                 x = NaN;
@@ -263,7 +288,7 @@ skipFrameCount_ = 0;
         i = currynamedargs(...
                 joinResource(...
                     @initLog...
-                    ,@initSampleCounts...
+                    ,@initVars...
                     ,RecordEyes()...
                 )...
                 ,varargin{:}...
@@ -288,13 +313,17 @@ skipFrameCount_ = 0;
     end
 
 
-    function [release, params] = initSampleCounts(params)
+    function [release, params] = initVars(params)
         release = @printSampleCounts;
 
         badSampleCount_ = 0;
         missingSampleCount_ = 0;
         goodSampleCount_ = 0;
         skipFrameCount_ = 0;
+        
+        rect = Screen('GlobalRect', params.window);
+        windowLeft_ = rect(1);
+        windowTop_ = rect(2);
         
         function printSampleCounts
             disp(sprintf('%d good samples, %d bad, %d missing, %d frames skipped', ...

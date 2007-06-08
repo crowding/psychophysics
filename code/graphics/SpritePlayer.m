@@ -19,18 +19,15 @@ this = final(...
         @init, @update, @draw, ...
         @bounds, @getVisible, @setVisible, @finishTime);
 
-queue_ = {}; %a linked list of the sprite instances that are presently being shown
-
 visible_ = 0;
 prepared_ = 0;
 
 toPixels_ = [];
 
-refreshCount_ = 1; %which refresh we are about to do.
-stimOnset_ = 0; %the time at which setVisible_ was called
-onset_ = 0; %the time to show the first frame
-            %(if displaying a sprite on refresh t=0)
-interval_ = 0; %the frame interval
+refreshCount_ = 1;  %which refresh we are about to do.
+onset_ = 0;         %the time to show the first frame
+                    %(if displaying a sprite on refresh t=0)
+interval_ = 0;      %the frame interval
 
 addtex_ = []; % the openGL texture names
 subtex_ = []; % the openGL texture names
@@ -40,21 +37,20 @@ to_coords_ = [];
 
 %How many sprites will we anticipate at one time? This can be a
 %surprisingly large number.
-max_sprites_ = 16384;
+max_sprites_ = 4096;
 
 texvertices_ = zeros(8, max_sprites_); %the texture vertices
 screenvertices_ = zeros(8, max_sprites_); %the screen vertices
 refreshes_ = zeros(1, max_sprites_); %which refresh we are on
-colors_ = ones(16, max_sprites_); %the colors
-indices_ = 1:max_sprites_; %Matlab indices into the circular buffer
-head_ = 1; %the head, or where the next will be placed (matlab index, not C)
-tail_ = 1; %the tail, or where the next will be removed (matlab index, not C)
 
-rect_ = [];
-n_ = 0; %running count of how may sprites are "in play"
+%colors_ = zeros(12, max_sprites_) + 0.5; %the colors
+%colors_([4 8 12 16], :) = 1;
 
-    function [releaser, params] =  init(params)
-        %Prepares the sprite frames.
+head_ = max_sprites_; %matlab index to where the newest IS.
+tail_ = max_sprites_; %matlab index to where the oldest WAS.
+
+    function [releaser, params] = init(params)
+        %Renders the sprite frames; prepares for drawing.
         %
         %drawing: the Drawing object that manages the display.
 
@@ -72,38 +68,54 @@ n_ = 0; %running count of how may sprites are "in play"
         
         n_frames_ = size(from_coords_, 2);
         
-        rect_ = params.rect;
-        
-        head_ = max_sprites_; %the head, a matlab index to where the newest is.
-        tail_ = max_sprites_; %the tail, a matlab index to where the oldest was.
-        
-        %this expression selects all indices which are 'in play'
-        % xor(xor(indices_ <= head_, indices_ <= tail_), head < tail);
-        
         prepared_ = 1;
 
         releaser = @release;
+        
+        require(screenGL(params.window), @initglparams);
+        function initglparams(dummy)
+            global GL;
+            glDisable(GL.DEPTH_TEST);
+            glMatrixMode(GL.PROJECTION);
+            glLoadIdentity;
+            glOrtho(params.rect(1), params.rect(3), params.rect(4), params.rect(2), -10, 10);
+            glEnable(GL.TEXTURE_2D);
+            glEnable(GL.BLEND);
+
+            %use the same blend function both times
+            glBlendFunc(GL.SRC_ALPHA, GL.ONE);
+
+            %set up vertex array state
+            glEnableClientState(GL.TEXTURE_COORD_ARRAY);
+            glEnableClientState(GL.VERTEX_ARRAY);
+            %glEnableClientState(GL.COLOR_ARRAY);
+            
+        end
+        
         function release()
             %Deallocates all textures, etc. associated with the prepared
             %movie.
 
             visible_ = 0;
+            prepared_ = 0;
 
             toPixels_ = [];
             interval_ = 0;
-            n_ = 0;
             addtex_ = 0;
             subtex_ = 0;
 
-            head_ = 1;
-            tail_ = 1;
+            head_ = max_sprites_;
+            tail_ = max_sprites_;
 
+            
             %unallocate the textures
             if any(Screen('Windows') == params.window)
                 require(screenGL(params.window), @() glDeleteTextures(2, [addtex_ subtex_]));
+            else
+                %try it anyway?
+                glDeleteTextures(2, [addtex_ subtex_]);
             end
 
-            prepared_ = 0;
         end
 
     end
@@ -116,17 +128,29 @@ n_ = 0; %running count of how may sprites are "in play"
         siz = size(points);
         points = reshape(points, 2, numel(points)/2);
         angle = angle * pi / 180;
-        points = [cos(angle) sin(angle); -sin(angle) cos(angle)] * points;
+        rot = sin([pi/2-angle, angle; -angle, pi/2-angle]);
+        points = rot * points;
         points = reshape(points, siz);
     end
 
     function draw(window, next)
+        % was (1938 calls, 8.300 sec) with colors
+        % was (2665 calls, 11.071 sec) still with colors
+        if head_ > tail_
+            l1 = tail_ + 1; r1 = head_ - 1;
+            l2 = 1; r2 = 0;
+        else
+            l1 = tail_ + 1; r1 = max_sprites_;
+            l2 = 1; r2 = head_ - 1;
+        end
+        
         global GL;
         
         latestShown = refreshCount_;
         earliestShown = refreshCount_ - n_frames_ + 1;
         
-        %advance the tail of the queue:
+        %advance the tail of the queue to drop all sprites we are finished
+        %with
         t2 = mod (tail_, max_sprites_) + 1;
         while (tail_ ~= head_) && (refreshes_(t2) < earliestShown)
             tail_ = t2;
@@ -134,6 +158,7 @@ n_ = 0; %running count of how may sprites are "in play"
         end
         
         %advance the head of the queue:
+        h2 = head_;
         while refreshes_(head_) <= latestShown || head_ == tail_
             h2 = mod(head_, max_sprites_) + 1;
             if h2 == tail_
@@ -141,8 +166,11 @@ n_ = 0; %running count of how may sprites are "in play"
             end
             head_ = h2;
             
-            %TODO I need to deal with clock skew on this one, and use the
-            %next() operation.
+            %NOTE: Despite the possibility of clock skew, I use the number
+            %of refreshes to determine which sprite to show when, and not
+            %the clock value. This is so that identical frame sewuences are
+            %shown for identical stimuli.
+
             [x, y, t, a, color] = process_.next();
             
             if isnan(t)
@@ -150,59 +178,64 @@ n_ = 0; %running count of how may sprites are "in play"
             end
             
             %convert coords to screen location (discretize? or no bother?)
-            screenvertices_(:,head_) = toPixels_(rotate(to_coords_, a) + repmat([x;y], 4, 1));
+            s = rotate(to_coords_, a);
+            s = s + [x;y;x;y;x;y;x;y];
+            s = toPixels_(s);
+            screenvertices_(:,head_) = s;
+            
+            %screenvertices_(:,head_) = toPixels_(rotate(to_coords_, a) ...
+            %    + reshape([x;y] * [1 1 1 1], 8, 1)); %2.71    8487
+            
             refreshes_(head_) = round((t + onset_) / interval_);
-            color(4) = color(4) / 2;
-            colors_(:,head_) = repmat(color, 4, 1);
+            %colors_(:,head_) = color;
 
             %TODO log the scheduled, (& discretized) stimulus onset here
         end
+        %visible indicator of buffer fill
+        if h2 == tail_
+            color = [1;0;0];
+        else
+            color = [0.5;0.5;0.5];
+        end
         
-        %select the slots that will be played
-        in_play = xor(xor(indices_ <= head_, indices_ <= tail_), head_ < tail_) ...
-                & refreshes_ <= latestShown;
+        %select the portion of hte buffer that will be drawn - in two
+        %intervals, one of which may be empty.
+        %Note by construction the head always points to ONE TOO MANY
+        %(FIXME - except when the underlying process returned NaN!)
+        if head_ > tail_
+            l1 = tail_ + 1; r1 = head_ - 1;
+            l2 = 1; r2 = 0;
+        else
+            l1 = tail_ + 1; r1 = max_sprites_;
+            l2 = 1; r2 = head_ - 1;
+        end
             
-        %look up the texture coordinates to use
-        texvertices_(:,in_play) = from_coords_(:, refreshCount_ + 1 - refreshes_(in_play));        
-        
-        which_play = uint32(find(repmat(in_play, 4, 1)) - 1);
+        %look up the texture coordinates to use. 
+        texvertices_(:,l1:r1) = from_coords_(:, refreshCount_ + 1 - refreshes_(l1:r1));
+        texvertices_(:,l2:r2) = from_coords_(:, refreshCount_ + 1 - refreshes_(l2:r2));
         
         require(screenGL(window), @doDraw);
         function params = doDraw(params)
             %set up the drawing context.
             %can most of these be done just once? Is PTB smart enough to
             %save our context?
-            glDisable(GL.DEPTH_TEST);
-            glMatrixMode(GL.PROJECTION);
-            glLoadIdentity;
-            glOrtho(rect_(1), rect_(3), rect_(4), rect_(2), -10, 10);
-            glEnable(GL.TEXTURE_2D);
-            glEnable(GL.BLEND);
-
-            %The real work of drawing begins here.
-            
-            %use the same blend function both times
-            glBlendFunc(GL.SRC_ALPHA, GL.ONE);
-
-            %set up our vertex arrays
-            glEnableClientState(GL.TEXTURE_COORD_ARRAY);
-            glEnableClientState(GL.VERTEX_ARRAY);
-            glEnableClientState(GL.COLOR_ARRAY);
             
             glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
             glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
-            glColorPointer( 4, GL.DOUBLE, 0, colors_);
-
+            glColor3dv(color);
+%            glColorPointer( 3, GL.DOUBLE, 0, colors_);
+            
             %draw first the added textures, then the subtracted
             glBindTexture(GL.TEXTURE_2D,addtex_);
             glBlendEquation(GL.FUNC_ADD);
-            %glDrawArrays( GL.QUADS, 0, n*4 );
-            glDrawElements(GL.QUADS, length(which_play), GL.UNSIGNED_INT, which_play);
+            glDrawArrays( GL.QUADS, (l1-1)*4, (r1-l1 + 1)*4 );
+            glDrawArrays( GL.QUADS, (l2-1)*4, (r2-l2 + 1)*4 );
             
             glBindTexture(GL.TEXTURE_2D,subtex_);
             glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
-            glDrawElements(GL.QUADS, length(which_play), GL.UNSIGNED_INT, which_play);
-            %glDrawArrays( GL.QUADS, 0, n*4 );
+            glDrawArrays( GL.QUADS, (l1-1)*4, (r1-l1 + 1)*4 );
+            glDrawArrays( GL.QUADS, (l2-1)*4, (r2-l2 + 1)*4 );
+            glFlush();
         end
     end
 
@@ -211,7 +244,7 @@ n_ = 0; %running count of how may sprites are "in play"
         b = [-1 -1 1 1];
     end
 
-    function v = getVisible();
+    function v = getVisible()
         v = visible_;
     end
 
@@ -227,12 +260,11 @@ n_ = 0; %running count of how may sprites are "in play"
         
         if v
             %start at the first frame
-            %(update is called right after draw; first frame shown
-            %should be the first frame)
+            %(update is called after draw; first frame shown
+            %should be the first frame) -- TODO: check this!!!
             refreshCount_ = 1;
             
             if exist('next', 'var');
-                stimOnset_ = next;
                 stimOnset = next;
             end
         end
