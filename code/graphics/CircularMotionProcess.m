@@ -34,11 +34,11 @@ function this = CircularMotion(varargin)
             x = xx(counter);
             y = yy(counter);
             a = aa(counter);
+            t = t_(counter);
             
-            t = t_;
             c = color_;
 
-            if counter >= max([ numel(xx), numel(yy), numel(aa) ]);
+            if counter >= max([ numel(xx), numel(yy), numel(aa), numel(t) ]);
                 phase_ = phase_ + dphase_;
                 angle_ = angle_ + dphase_ * 180 / pi;
                 n_ = n_ - 1;
