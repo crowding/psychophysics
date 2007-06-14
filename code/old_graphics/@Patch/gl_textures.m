@@ -32,7 +32,7 @@ z = evaluate(this, x, y, t);
 maxtex = 0;
 require(screenGL(w), @getmaxtex);
     function getmaxtex(x)
-        maxtex = double(glgetIntegerv(GL.MAX_TEXTURE_SIZE));
+        maxtex = double(glGetIntegerv(GL.MAX_TEXTURE_SIZE));
     end
 
 %we will be using a large texture as a sort of offscreen pixmap.

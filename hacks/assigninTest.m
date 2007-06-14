@@ -1,11 +1,14 @@
 function this = assigninTest
 
-this = final(...
-    @testAssignIn...
-    ,@testMakeFunctionIn...
-    ,@testAssignInClosure...
-    ,@testAutomaticAccessor...
-    ,@testAutomaticMutator...
+this = inherit(TestCase(), ...
+    public ...
+        ( @testAssignIn...
+        , @testMakeFunctionIn...
+        , @testAssignInClosure...
+        , @testAutomaticAccessor...
+        , @testAutomaticMutator...
+        , @testFileLoader...
+        ) ...
     );
 
     function testAssignIn
@@ -67,17 +70,22 @@ this = final(...
         end
         
         function acc = makeAccessor(var)
+            %vs = evalin('caller', 'who()')
             %this works via an eval for every access
-            acc = evalin('caller', ['@()eval(''' inputname(1) ''')']);
+            %acc = evalin('caller', ['@()eval(''' inputname(1) ''')']);
             
             %%this works, and no direct eval during access, but uses
             %%functions().
-            %acc = evalin('caller', '@()0');
-            %subs = substruct('.', 'workspace', '{}', {2}, '.', inputname(1));
-            %acc = @()subsref(functions(acc), subs);
+            acc = evalin('caller', '@()0');
+            subs = substruct('.', 'workspace', '{}', {2}, '.', inputname(1));
+            acc = @()subsref(functions(acc), subs);
         end
     end
-        
+
+    function assign(varname, x)
+        assignin('caller', varname, x);
+    end
+
     function testAutomaticMutator
         %can we make the mutator automatically?
         [accessor, mutator] = makeClosure();
@@ -88,35 +96,60 @@ this = final(...
         
         function [accessor, mutator] = makeClosure
             a = 5;
-            tmp = []
+            b = 3;
+            
+            function do(x)
+                %a = [];
+                b = [];
+                assign('b', x);
+                x();
+            end
+            
             accessor = @get;
             function v = get
                 v = a;
             end
-            mutator = makeMutator(a);
+            mutator = makeMutator(a, @do);
         end
         
-        function mut = makeMutator(var)
+        function mut = makeMutator(var, do)
             varname = inputname(1);
-
-            %To mutate, we want this:
-            
-            %assign = @(x) assignin('caller', varname, x);
-            %to be evaluated by a function in caller's lexical context.
-            
-            %So:
-            %push this handle into the caller's namespace via a tmp
-            %variable (todo-- we have a perfectly good variable name to
-            %use...)
-            %assignin('caller', 'tmp', @(x) assignin('caller', varname, x));
-            
-            assignin('caller', 'tmp', @(x) eval([varname '=' mat2str(x)]));
-
-            
-            %now have the caller capture it inside a function handle
-            %(giving it context)
-            mut = evalin('caller', '@(x) tmp(x)');
+            mut = evalin('caller', ['@(v) eval(''' varname '=v'')']);
         end
+    end
+
+    function testFileLoader()
+        loader = [];
+        getter = [];
+        function h = makeloader()
+            h = evalin('caller', '@(x)load(x)')
+        end
+        
+        function closure()
+            var1 = 'foo';
+            var2 = 'bar';
+            
+            getter = @get;
+            function [a, b] = get()
+                a = var1;
+                b = var2;
+            end
+            
+            loader = makeloader();
+        end
+        
+        closure();
+        
+        [a, b] = getter();
+        assertEquals('foo', a); assertEquals('bar', b);
+        
+        file = struct('var1', 'baz', 'var2', 'quux');
+        name = tempname;
+        save(name, '-struct', 'file');
+        
+        loader(name);
+        [a, b] = getter();
+        assertEquals('baz', a); assertEquals('quux', b);
     end
 end
 %{

@@ -1,51 +1,46 @@
-function this = CircularMotion(varargin)
+function this = CircularMotionProcess(varargin)
 %Cenerates the motion of one or many objects appearing circularly in
 %apparent motion.
 
-    %object properties
-    x_ = 0; %the center around which the sprite rotates
-    y_ = 0;
-    radius_ = 0; %the radius of the circle it moves on
-    phase_ = 0; %the initial phase
-    angle_ = 0;
-    color_ = [1 1 1 1];
+    x = 0; %the center around which the sprite rotates
+    y = 0;
+    radius = 0; %the radius of the circle it moves on
+    phase = 0; %the initial phase
+    angle = 0;
+    color = [1 1 1 1];
 
-    dphase_ = 0; %the phase angle change per appearance
-    dt_ = 0.1; %the number fo seconds per appearance
-    n_ = Inf; %the number of appearances left to show
+    dphase = 0; %the phase angle change per appearance
+    dt = 0.1; %the number fo seconds per appearance
+    n = Inf; %the number of appearances left to show
 
-    t_ = 0; %time of the first appearance
+    t = 0; %time of the first appearance
 
-    %Shows a patch (or patches) moving around in a circle.
+    this = finalize ( inherit( autoprops(varargin{:}), automethods() ) );
 
-    this = finalize ( inherit ...
-        ( autoprops(varargin{:}) ...
-        , public( @next ) ...
-    ) );
-
-    counter = 1;
+%-----
+    counter_ = 1;
     
-    function [x, y, t, a, c] = next()
-        if (n_ > 0)
-            xx = x_ + radius_ .* cos(phase_);
-            yy = y_ - radius_ .* sin(phase_);
-            aa = angle_;
+    function [xx, yy, tt, aa, cc] = next()
+        if (n > 0)
+            xx = x + radius .* cos(phase);
+            yy = y - radius .* sin(phase);
+            aa = angle;
             
-            x = xx(counter);
-            y = yy(counter);
-            a = aa(counter);
-            t = t_(counter);
+            xx = xx(counter_);
+            yy = yy(counter_);
+            aa = aa(counter_);
+            tt = t(counter_);
             
-            c = color_;
+            cc = color;
 
-            if counter >= max([ numel(xx), numel(yy), numel(aa), numel(t) ]);
-                phase_ = phase_ + dphase_;
-                angle_ = angle_ + dphase_ * 180 / pi;
-                n_ = n_ - 1;
-                t_ = t_ + dt_;
-                counter = 1;
+            if counter_ >= max([ numel(xx), numel(yy), numel(aa), numel(tt) ]);
+                phase = phase + dphase;
+                angle = angle + dphase * 180 / pi;
+                n = n - 1;
+                t = t + dt;
+                counter_ = 1;
             else
-                counter = counter + 1;
+                counter_ = counter_ + 1;
             end
         end
     end

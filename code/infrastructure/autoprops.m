@@ -4,14 +4,12 @@ function this = autoprops(varargin)
     %If named arguments are given, assempts to set them.
     
     %grab the calling function's declared variables sneakily
-    f = functions(evalin('caller', '@() eval(''0'')'));
+    f = functions(evalin('caller', '@(v) eval(v)'));
     prop_names = fieldnames(f.workspace{2});
     
-    %this give us the variable names. THe ones ending with underscore are
-    %the properties we want.
-    prop_names = regexp(prop_names, '(.*)_$', 'tokens');
-    prop_names = cat(1, {}, prop_names{:});
-    prop_names = cat(1, {}, prop_names{:});
+    %This give us the variable names. Matlab only gives up variable names
+    %if they are used before the 
+    prop_names = prop_names(~cellfun('prodofsize', regexp(prop_names, '(^varargin|_)$', 'start')));
     getter_names = cellfun(@getterName, prop_names, 'UniformOutput', 0);
     setter_names = cellfun(@setterName, prop_names, 'UniformOutput', 0);
     
@@ -20,11 +18,10 @@ function this = autoprops(varargin)
     setters = cell(size(getter_names));
     for ii = cat(1, prop_names(:)', num2cell(1:length(prop_names)))
         [prop_name, i] = ii{:};
-        var_name = [prop_name '_'];
         acc = evalin('caller', '@()0');
         subs = substruct('.', 'workspace', '{}', {2}, '.', prop_name);
         getters{i} = @()subsref(functions(acc), subs);
-        setters{i} = evalin('caller', ['@(v) eval(''' var_name ' = v;'')']);
+        setters{i} = evalin('caller', ['@(v) eval(''' prop_name ' = v;'')']);
     end
         
     arglist = cat(2, getter_names(:), getters(:), setter_names(:), setters(:))';
@@ -42,17 +39,7 @@ function this = autoprops(varargin)
         end
     end
 
-    %this only exists to be used by publicize....
-    function value = method__(name, value)
-        switch nargin
-            case 0
-                value = {getter_names{:}, setter_names{:}}';
-            case 1
-                value = this.(name);
-            otherwise
-                error('autoprops:cannotModify', 'cannot override auto-prop methods?');
-        end
-    end
+    this = publicize(this);
     
     %now do some assignment.
     init = namedargs(varargin{:});
