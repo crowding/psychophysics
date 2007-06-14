@@ -22,18 +22,18 @@ function this = CircularMotionProcess(varargin)
     
     function [xx, yy, tt, aa, cc] = next()
         if (n > 0)
-            xx = x + radius .* cos(phase);
-            yy = y - radius .* sin(phase);
-            aa = angle;
+            xxx = x + radius .* cos(phase);
+            yyy = y - radius .* sin(phase);
+            aaa = angle;
             
-            xx = xx(counter_);
-            yy = yy(counter_);
-            aa = aa(counter_);
+            xx = xxx(counter_);
+            yy = yyy(counter_);
+            aa = aaa(counter_);
             tt = t(counter_);
             
             cc = color;
 
-            if counter_ >= max([ numel(xx), numel(yy), numel(aa), numel(tt) ]);
+            if counter_ >= max([ numel(xxx), numel(yyy), numel(aaa)]);
                 phase = phase + dphase;
                 angle = angle + dphase * 180 / pi;
                 n = n - 1;

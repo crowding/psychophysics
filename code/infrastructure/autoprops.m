@@ -18,9 +18,7 @@ function this = autoprops(varargin)
     setters = cell(size(getter_names));
     for ii = cat(1, prop_names(:)', num2cell(1:length(prop_names)))
         [prop_name, i] = ii{:};
-        acc = evalin('caller', '@()0');
-        subs = substruct('.', 'workspace', '{}', {2}, '.', prop_name);
-        getters{i} = @()subsref(functions(acc), subs);
+        getters{i} = evalin('caller', ['@()eval(''' prop_name ''')']);
         setters{i} = evalin('caller', ['@(v) eval(''' prop_name ' = v;'')']);
     end
         
