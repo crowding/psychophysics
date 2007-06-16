@@ -1,4 +1,4 @@
-function f = transformToDegrees(this)
+function f = transformToPixels(this)
     %return a function handle to a transform obejct, which transforms spatial
     %coordinates (in pixels) to screen coordinate(in degrees) assuming the 
     %center of the screen is at [0,0] in spaital coordinates.
@@ -11,7 +11,7 @@ function f = transformToDegrees(this)
     function [x, y] = transform(x, y) %(8438 calls, 0.576 sec)
         %support 1- and 2-argument calling styles
         if (nargin == 2)
-            x = x * multiplier(1) * center(1);
+            x = x * multiplier(1) + center(1);
             y = y * multiplier(2) + center(2);
         else
             %both coords are in x

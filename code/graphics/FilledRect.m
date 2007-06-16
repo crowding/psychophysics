@@ -1,23 +1,30 @@
-function this = FilledRect(rect__, color__)
+function this = FilledRect(rect, color)
 
-%A filled rectangle object that is part of displays.
-
-%----- public interface -----
-this = inherit(...
-    Drawer(),...
-    properties('visible', 0, 'rect', rect__, 'color', color__),...
-    public(@draw, @bounds)...
-    );
-
+    %A filled rectangle object that is part of displays.
+    visible = 0;
+    
+    this = finalize(inherit(autoprops(), automethods()));
+    
+    toPixels_ = @noop;
 %----- methods -----
 
-    function draw(window)
-        if this.getVisible()
-            Screen('FillRect', window, this.getColor(), this.toPixels(this.getRect()));
+    function draw(window, next)
+        if visible
+            Screen('FillRect', window, color, toPixels_(rect));
         end
     end
 
     function b = bounds
-        b = this.getRect();
+        b = rect;
     end
+
+    function [release, params] = init(params)
+        toPixels_ = transformToPixels(params.cal);
+        release = @noop;
+    end
+
+    function update()
+        %nothing
+    end
+
 end

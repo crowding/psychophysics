@@ -24,7 +24,7 @@ prepared_ = 0;
 
 toPixels_ = [];
 
-refreshCount_ = 1;  %which refresh we are about to do.
+refreshCount_ = 0;  %which refresh we are about to do.
 onset_ = 0;         %the time to show the first frame
                     %(if displaying a sprite on refresh t=0)
 interval_ = 0;      %the frame interval
@@ -65,6 +65,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %the textures...
         [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
             gl_textures(patch_, params.window, params.cal);
+        onset_
         
         n_frames_ = size(from_coords_, 2);
         
@@ -263,7 +264,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %start at the first frame
             %(update is called after draw; first frame shown
             %should be the first frame) -- TODO: check this!!!
-            refreshCount_ = 1;
+            refreshCount_ = 0;
             
             if exist('next', 'var');
                 stimOnset = next;

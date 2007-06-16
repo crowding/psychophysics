@@ -23,7 +23,9 @@ function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w,
 
 global GL;
 
-[x, y, t] = sampling(this, this, cal);
+[x, y, t, xi, yi, ti] = sampling(this, this, cal);
+toPixels = transformToPixels(cal);
+[xip, yip] = toPixels(xi, yi);
 
 onset = t(1);
 
@@ -60,9 +62,14 @@ th = size(add, 2);              %texture to be added
 
 %initialize arrays for the quad coordinates
 texcoords = zeros(8,n); %to be filled in below
-screencoords = [x(1), y(1), x(end), y(1), x(end), y(end), x(1), y(end)]';
+screencoords = ...
+    [ xi(1), yi(1) ...
+    , xi(2), yi(1) ...
+    , xi(2), yi(2) ...
+    , xi(1), yi(2)]';
+%screencoords = [x(1), y(1), x(end), y(1), x(end), y(end), x(1), y(end)]';
 
-%stuff each frame into the image matrices
+%stuff each frame into the image matrix
 for i = 0:n-1
     hslot = mod(i, nh);
     vslot = floor(i/nh);
@@ -75,16 +82,16 @@ for i = 0:n-1
     add(t:b, l:r) = uint8(z(:,:,i+1) * 255);
     sub(t:b, l:r) = uint8(-z(:,:,i+1) * 255);
     
-    %normalized texture coordinates -- need to check the alignment on these
+    %Texture coordinates -- Note the adjustment for pixel alignemnt
     l_n = (l-1)/th;
-    r_n = (r-1)/th;
+    r_n = (r)/th;
     t_n = (t-1)/tv;
-    b_n = (b-1)/tv;
+    b_n = (b)/tv;
 
     texcoords(:,i+1) = [l_n t_n, r_n t_n, r_n b_n, l_n b_n]';
 end
 
-%make the image matrixes into GL textures.
+%make the image matrix into GL textures.
 require(screenGL(w), @maketextures);
 function maketextures(params)
     glEnable(GL.TEXTURE_2D);

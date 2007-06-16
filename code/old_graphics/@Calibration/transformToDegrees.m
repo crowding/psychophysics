@@ -11,10 +11,8 @@ function f = transformToDegrees(this)
     function [x, y] = transform(x, y)
         %support 1- and 2-argument calling styles
         if (nargin == 2)
-            loc = [x y];
-            loc = (loc - center) .* multiplier;
-            x = loc(1);
-            y = loc(2);
+            x = (x - center(1)) .* multiplier(1);
+            y = (y - center(2)) .* multiplier(2);
         else
             %both coords are in x
             if all(size(x) == [1 2])

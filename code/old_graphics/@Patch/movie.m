@@ -1,4 +1,4 @@
-function [z, x, y, t] = movie(this, cal)
+function [z, x, y, t, xi, yi, ti] = movie(this, cal)
 % function [z, x, y, t] = movie(this, cal)
 % 
 % evaluates the patch at appropriate points.
@@ -8,6 +8,8 @@ if ~exist('cal', 'var')
 	cal = Calibration();
 end
 
-[x, y, t] = sampling(this, this, cal);
+[x, y, t, xi, yi, ti] = sampling(this, this, cal);
+
+%try evaluating the patch at pixel centers:
 
 z = evaluate(this, x, y, t);

@@ -1,14 +1,15 @@
-function [x, y, t] = sampling(dispatch, this, cal, pot)
-%function [x, y, t] = sampling(dispatch, this, cal)
+function [x, y, t, xi, yi, ti] = sampling(dispatch, this, cal, oversample)
+%function [x, y, t, xi, yi, ti] = sampling(dispatch, this, cal)
+%
 % Compute appropriate points for sampling this function when computing a movie.
 % You can override this for more speed in e.g. a bar stimulus so that the 
-% function is only computed at its edges.
+% function is only computed near its edges.
 %
 % The 'dispatch' argument is required due to yet another fundamental failing in 
-% how MATLAB implements classes. I need to implement thisclasses that 
+% how MATLAB implements classes. I need to implement subclasses that 
 % both overload 'sampling' and call this base class's 'sampling'. But this 
 % base class's 'sampling' depends on 'extent' and 'resolution' which are
-% implemented by thisclasses. Therefore the following:
+% implemented by subclasses. Therefore the following:
 %
 % sampling(this.Patch, cal)
 %
@@ -17,39 +18,76 @@ function [x, y, t] = sampling(dispatch, this, cal, pot)
 %
 % sampling(dispatch.Patch, this, cal)
 %
-% in thisclasses.
+% in subclasses.
+%
+% Now all the outputs. "xi, yi, ti" give the boundaries of the region over
+% which the things is sampled. 'x', 'y', 't' gove the actual locations you
+% should take a sample at. This usually means that x, y, are halfway
+% between pixels,  while xi and yi are at the pixel boundaries (See this
+% diagram of the screen pixels:
+%
+%    0--------*--------*
+%    |        |        |
+%    |        |        |
+%    |        |        |
+%    *--------*--------*
+%    |        |        |
+%    |        |        |
+%    |        |        |
+%    *--------*--------*
+%
+% If the point marked 0 is the origin, and we want to evaluate over the
+% region shown, then xi = [0, 2], yi = [0, 2], x = [0.5, 1.5], yi = [0.5,
+% 1.5] (i.e. we evaluate at the centers of pixel squares. Do you get it? It's a
+% fencepost thing.
+%
+% Since 'time' is assumed to flash each frame instantaneously as a pulse,
+% we can ignore such subtleties.
+%
+% If you provide the 'oversample' parameter and set it to a whole number,
+% we will pretend the display has more pixels than it does (this may come in
+% handy for more accurate display of rotated or scaled sprites.)
 
 [xi, yi, ti] = extent(this);
 
-%everything should be evaluated at integer multiples of pixels and frames.
-%calibration gives physical space between pixels, we want degrees (at center)
-native = [spacing(cal) cal.interval];
-minspac = max(resolution(this), native);
-skips = round(minspac ./ native);
+%Calibration gives the pixel locations...
+toPixels = transformToPixels(cal);
+toDegrees = transformToDegrees(cal);
+[xip, yip] = toPixels(xi, yi);
 
-spac = native .* skips; %skip integer numbers of pixels and frames
+%assume t=0 always falls on a frame boundary.
+tif = ti ./ cal.interval;
 
-xi = xi/spac(1);
-yi = yi/spac(2);
-ti = ti/spac(3);
+%A patch can have a 'resolution' parameter that says how finely to
+%sample. The sample spacing is then the worst of: a whole number multiple
+%of the sampling resolution, or the device resolution.(multiples for
+%antialiasing purposes.)
 
-xi = [floor(xi(1)) ceil(xi(2))];
-yi = [floor(yi(1)) ceil(yi(2))];
-ti = [floor(ti(1)) ceil(ti(2))];
+nativeSpacing = [spacing(cal) cal.interval];
+desiredSpacing = resolution(this);
+desiredSpacing = nativeSpacing .* floor(desiredSpacing./nativeSpacing);
+sampleSpacing = max(desiredSpacing, nativeSpacing);
 
-if exist('pot', 'var') && pot
-    xi = makepot(xi);
-    yi = makepot(yi);
-end
+%Bring xi, yi, ti to the pixel/frame boundaries in any case.
+xip(1) = floor(xip(1));
+yip(1) = floor(yip(1));
+tif(1) = floor(tif(1));
+
+%go back to degree/second units...
+[xi, yi] = toDegrees(xip, yip);
+ti = tif .* cal.interval;
+
+%now bring the upper bounds to the sampling-resolution-determined
+%boundaries
+xi(2) = xi(1) + ceil((xi(2)-xi(1)) / sampleSpacing(1)) * sampleSpacing(1);
+yi(2) = yi(1) + ceil((yi(2)-yi(1)) / sampleSpacing(2)) * sampleSpacing(2);
+ti(2) = ti(1) + ceil((ti(2)-ti(1)) / sampleSpacing(3)) * sampleSpacing(3);
+
+%sampling! now sample things. The samples fall in the middle of boundaries
+%established by the spacing. Except for temporam sampling, which is
+%instantaneous.
+x = linspace(xi(1) + sampleSpacing(1)/2, xi(2) - sampleSpacing(1)/2, round((xi(2)-xi(1)) / sampleSpacing(1)));
+y = linspace(yi(1) + sampleSpacing(2)/2, yi(2) - sampleSpacing(2)/2, round((yi(2)-yi(1)) / sampleSpacing(2)));
+t = linspace(ti(1), ti(2), round((ti(2)-ti(1)) / sampleSpacing(3)) + 1);
     
-x = (xi(1):xi(2))*spac(1);
-y = (yi(1):yi(2))*spac(2);
-t = (ti(1):ti(2))*spac(3);
-
-function i = makepot(i)
-    potdiff = round(2.^ceil(log2(i(2) - i(1))) - i(2) + i(1)) - 1;
-    i(1) = i(1) - floor(potdiff/2);
-    i(2) = i(2) + ceil(potdiff/2);
-end
-
 end
