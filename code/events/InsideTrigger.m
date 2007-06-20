@@ -1,7 +1,7 @@
 function this = InsideTrigger(bounds_, range_, offset_, fn_)
 %An object that fires a trigger when x and y are inside the bounds of a
 %graphics 
-if nargin == 3
+if nargin == 4
     set_ = 1;
 else
     set_ = 0;

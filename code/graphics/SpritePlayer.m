@@ -65,7 +65,6 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %the textures...
         [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
             gl_textures(patch_, params.window, params.cal);
-        onset_
         
         n_frames_ = size(from_coords_, 2);
         
@@ -137,6 +136,10 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     function draw(window, next)
         % was (1938 calls, 8.300 sec) with colors
         % was (2665 calls, 11.071 sec) still with colors
+        if ~visible_
+            return
+        end
+        
         if head_ > tail_
             l1 = tail_ + 1; r1 = head_ - 1;
             l2 = 1; r2 = 0;
@@ -165,11 +168,10 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             if h2 == tail_
                 break;
             end
-            head_ = h2;
             
             %NOTE: Despite the possibility of clock skew, I use the number
             %of refreshes to determine which sprite to show when, and not
-            %the clock value. This is so that identical frame sewuences are
+            %the clock value. This is so that identical frame sequences are
             %shown for identical stimuli.
 
             [x, y, t, a, color] = process_.next();
@@ -177,6 +179,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             if isnan(t)
                 break;
             end
+
+            head_ = h2;
             
             %convert coords to screen location (discretize? or no bother?)
             s = rotate(to_coords_, a);
@@ -184,11 +188,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             s = toPixels_(s);
             screenvertices_(:,head_) = s;
             
-            %screenvertices_(:,head_) = toPixels_(rotate(to_coords_, a) ...
-            %    + reshape([x;y] * [1 1 1 1], 8, 1)); %2.71    8487
-            
             refreshes_(head_) = round((t + onset_) / interval_);
-            %colors_(:,head_) = [color;color;color;color]; %  3.45   25144
             ccolor = (color(:) * [1 1 1 1]);
             colors_(:,head_) = ccolor(:);
 
@@ -201,21 +201,26 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %    color = [0.5;0.5;0.5];
         %end
         
-        %select the portion of hte buffer that will be drawn - in two
+        %select the portion of the buffer that will be drawn - in two
         %intervals, one of which may be empty.
         %Note by construction the head always points to ONE TOO MANY
-        %(FIXME - except when the underlying process returned NaN!)
-        if head_ > tail_
-            l1 = tail_ + 1; r1 = head_ - 1;
-            l2 = 1; r2 = 0;
-        else
-            l1 = tail_ + 1; r1 = max_sprites_;
-            l2 = 1; r2 = head_ - 1;
-        end
+        %(FIXME - even when the underlying process returned NaN!)
+        try
+            if head_ >= tail_
+                l1 = tail_ + 1; r1 = head_ - 1;
+                l2 = 1; r2 = 0;
+            else
+                l1 = tail_ + 1; r1 = max_sprites_;
+                l2 = 1; r2 = head_ - 1;
+            end
+
             
         %look up the texture coordinates to use. 
-        texvertices_(:,l1:r1) = from_coords_(:, refreshCount_ + 1 - refreshes_(l1:r1));
-        texvertices_(:,l2:r2) = from_coords_(:, refreshCount_ + 1 - refreshes_(l2:r2));
+        texvertices_(:,[l1:r1 l2:r2]) = from_coords_(:, refreshCount_ + 1 - refreshes_([l1:r1 l2:r2]));
+
+        catch
+            noop();
+        end
         
         require(screenGL(window), @doDraw);
         function params = doDraw(params)
@@ -230,13 +235,13 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %draw first the added textures, then the subtracted
             glBindTexture(GL.TEXTURE_2D,addtex_);
             glBlendEquation(GL.FUNC_ADD);
-            glDrawArrays( GL.QUADS, (l1-1)*4, (r1-l1 + 1)*4 );
-            glDrawArrays( GL.QUADS, (l2-1)*4, (r2-l2 + 1)*4 );
+            glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
+            glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4,0) );
             
             glBindTexture(GL.TEXTURE_2D,subtex_);
             glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
-            glDrawArrays( GL.QUADS, (l1-1)*4, (r1-l1 + 1)*4 );
-            glDrawArrays( GL.QUADS, (l2-1)*4, (r2-l2 + 1)*4 );
+            glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
+            glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
             glFlush();
         end
     end
@@ -265,6 +270,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %(update is called after draw; first frame shown
             %should be the first frame) -- TODO: check this!!!
             refreshCount_ = 0;
+            head_ = max_sprites_; %matlab index to where the newest IS.
+            tail_ = max_sprites_; %matlab index to where the oldest WAS.
             
             if exist('next', 'var');
                 stimOnset = next;

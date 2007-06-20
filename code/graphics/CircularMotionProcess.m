@@ -1,5 +1,5 @@
 function this = CircularMotionProcess(varargin)
-%Cenerates the motion of one or many objects appearing circularly in
+%Generates the motion of one or many objects appearing circularly in
 %apparent motion.
 
     x = 0; %the center around which the sprite rotates
@@ -42,6 +42,8 @@ function this = CircularMotionProcess(varargin)
             else
                 counter_ = counter_ + 1;
             end
+        else
+            [xx, yy, tt, aa, cc] = deal(NaN);
         end
     end
 end

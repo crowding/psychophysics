@@ -21,6 +21,8 @@ function PixelTest(varargin)
         patch2 = TestGrating('size', [1 1 2], 'spacing', [4 4 60], 'center', [0.5 0.5 0]);
         rect1 = FilledRect([0 -1 1 0], 0);
         rect2 = FilledRect([-1 0 0 1], 0);
+        bar1 = FilledBar('color', params.blackIndex, 'X', 2+sqrt(2)/2,  'Y', 0, 'angle', 135, 'width', 1, 'length', 3+4*sqrt(2), 'visible', 1);
+        bar2 = FilledBar('color', params.whiteIndex, 'X', -2-sqrt(2)/2, 'Y', 0,   'angle', 45,  'width', 1, 'length', 3+4*sqrt(2), 'visible', 1);
         
         %we need a movie player, that fires off once a second.
         movie = MoviePlayer(patch1);
@@ -81,7 +83,7 @@ function PixelTest(varargin)
         end
 
         main = mainLoop ...
-            ( {rect1, rect2, movie, sprites} ...
+            ( {bar1, bar2, rect1, rect2, movie, sprites} ...
             , {startTrigger, movieTrigger, offTrigger} ...
             );
         

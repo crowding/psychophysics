@@ -21,8 +21,8 @@ require(setupEyelinkExperiment(params), @runDemo);
         %patch = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
         patch = CauchyPatch('velocity', 5, 'size', [0.5 0.75 0.1]);
         
-        noise = AnnularDotProcess([0 0 7 12], params.density, 0.5);
-        motion = AnnularMotionProcess([0 0 10 10], 0.5, 0.1, 10, 2, 2, 0.5);
+        noise = AnnularDotProcess([0 0 7 12], params.density, [0.5 0.5 0.5]);
+        motion = AnnularMotionProcess([0 0 10 10], 0.5, 0.1, 10, 2, 2, [0.5 0.5 0.5]);
         
         gaze = FilledDisk([0 0], 0.1, [0 0 0]);
         

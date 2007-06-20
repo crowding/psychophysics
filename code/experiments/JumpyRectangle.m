@@ -1,49 +1,48 @@
-function JumpyRectangle
+function JumpyRectangle(varargin)
+
+defaults = struct ...
+    ( 'edfname', '' ...
+    );
+
+params = namedargs(defaults, varargin{:});
+
 % a simple gaze-contingent graphics demo. Demonstrates the use of triggers.
 
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
-require(setupEyelinkExperiment(struct('edfname', '')), @runDemo);
+require(setupEyelinkExperiment(params), @runDemo);
     function runDemo(details)
-        [main, canvas, events] = mainLoop(details);
-
         indegrees = transformToDegrees(details.cal);
 
         patch = MoviePlayer(CauchyPatch);
         rect = FilledRect([-2 -2 2 2], details.blackIndex);
         disk = FilledDisk([-2 2], 0.5, details.whiteIndex);
         text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
-
-        canvas.add(patch);
-        canvas.add(rect);
-        canvas.add(disk);
-        canvas.add(text);
-
-        rect.setVisible(1);
-        disk.setVisible(1);
-        text.setVisible(1);
-
+        triggers = TriggerDrawer();
+        
         go = 1;
 
+        moveTrigger = InsideTrigger(rect.bounds, 0, [0 0], @moveRect);
+        followTrigger = UpdateTrigger(@followDisk);
         startTrigger = UpdateTrigger(@start);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
-
-        events.add(InsideTrigger(rect.bounds, 0, @moveRect));
-        events.add(UpdateTrigger(@followDisk));
-        events.add(startTrigger);
-        events.add(playTrigger);
-        events.add(stopTrigger);
         
+        rect.setVisible(1);
+        disk.setVisible(1);
+        text.setVisible(1);
+        triggers.setVisible(1);
         
         % ----- the main loop. -----
-        details = main.go(details);
+        main = mainLoop ...
+            ( {rect, disk, text, patch, triggers} ...
+            , {moveTrigger, followTrigger, startTrigger, playTrigger, stopTrigger} ...
+            );
+        
+        triggers.set(main);
 
-        % ----- clean up -----
-        canvas.clear();
-        events.clear();
-
+        main.go(details);
         %----- thet event reaction functions -----
 
         function start(x, y, t, next)
