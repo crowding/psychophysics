@@ -28,7 +28,11 @@ barDuration = 1/30; %duration of bar presentation
 barPhase = dx/radius*2;
 barOnset = dt*2;
 
+simulate = 0;
+
 this = autoobject(varargin{:});
+
+%------ methods ------
 
     function result = run(params)
         frameInterval = params.cal.interval;
@@ -62,7 +66,7 @@ this = autoobject(varargin{:});
         fixation = FilledDisk([0 0], 0.1, params.blackIndex, 'visible', 1);
 
         startTrigger = UpdateTrigger(@start);
-        timer = TimeTrigger();
+        timer = RefreshTrigger();
 
         onset = 0;
 
@@ -76,35 +80,36 @@ this = autoobject(varargin{:});
         %event handler functions
         function start(s)
             startTrigger.unset();
-            timer.set(s.t + 1, @showMotion);
+            timer.set(s.refresh + 1/frameInterval, @showMotion);
         end
 
         function showMotion(s)
-            onset = sprites.setVisible(1, s.next);
-            timer.set(onset + barOnset - frameInterval/2, @showBars);
+            sprites.setVisible(1, s.next); %will be recorded as a trigger
+            
+            timer.set(s.refresh + round(barOnset/frameInterval), @showBars);
         end
 
         function showBars(s)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
-            timer.set(s.t + barDuration - frameInterval/2, @hideBars);
+            timer.set(s.triggerRefresh + round(barDuration/frameInterval), @hideBars);
         end
 
         function hideBars(s)
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
 
-            timer.set(onset + dt * (n + 2) , @hideMotion);
+            timer.set(s.triggerRefresh + (dt * (n + 2))/frameInterval, @hideMotion);
         end
 
         function hideMotion(s)
             sprites.setVisible(0);
             fixation.setVisible(0);
-            timer.set(onset + (n+2)*dt, main.stop);
+            %now wait for a keystroke...
+            timer.set(s.refresh + 1/frameInterval, main.stop);
         end
 
         %the result will eventually give something of the subject's
         %response
-        result = NaN;
     end
 end

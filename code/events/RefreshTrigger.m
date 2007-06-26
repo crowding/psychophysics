@@ -26,7 +26,7 @@ this = autoobject(varargin{:});
             %if it must be a valid sample, check then forward
             if ~valid || all(~isnan([x y]))
                 s.triggerRefresh = refresh;
-                log('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+                log('TRIGGER %s %s', func2str(fn),  'foo'); % struct2str(s));
                 fn(s);
             end
         end
@@ -56,14 +56,14 @@ this = autoobject(varargin{:});
     end
 
     function draw(window, toPixels)
-        % Draw the number of seconds remaining in the upper right corner of
+        % Draw the number of frames remaining in the upper right corner of
         % the screen.
         %
         % window: the window number.
         % toPixels: a transform from degrees to pixels
         if set_
-            t = time_ - GetSecs();
-            Screen('DrawText', window, sprintf('%0.3f', t), 20, 20, [0 255 0] );
+            t = refresh;
+            Screen('DrawText', window, sprintf('%d', t), 20, 20, [0 255 0] );
         end
     end
         
