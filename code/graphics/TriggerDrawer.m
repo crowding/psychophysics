@@ -20,7 +20,7 @@ this = final(@draw, @getVisible, @setVisible, @update, @init, @set);
         visible_ = v;
     end
 
-    function update()
+    function update(frames)
     end
     
     function set(m)

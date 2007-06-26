@@ -6,7 +6,7 @@ this = inherit(...
     public(@init, @update, @draw, @bounds)...
     );
 
-    function update()
+    function update(frames)
         %this will be called once per notional frame regardless fo how many
         %actual frames are shown (use when you need to compensate for
         %skippage).
@@ -16,7 +16,7 @@ this = inherit(...
         %this will be called once per drawn frame
     end
 
-    function bounds
+    function bounds()
         %this should return the object bounds (in degrees);
     end
 

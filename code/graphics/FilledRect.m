@@ -23,7 +23,7 @@ function this = FilledRect(rect, color)
         release = @noop;
     end
 
-    function update()
+    function update(frames)
         %nothing
     end
 

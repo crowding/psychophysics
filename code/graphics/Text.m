@@ -55,6 +55,6 @@ function this = Text(loc_, text_, color_)
         release = @noop;
     end
 
-    function update()
+    function update(frames)
     end
 end

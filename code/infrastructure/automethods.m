@@ -9,7 +9,9 @@ fpath = splitstr('/', st(2).name);
 
 %Use mlint to parse the m-file and print a list of all functions. (evalc it
 %to capture the printout.)
-a = @()mlint(st(2).file, '-calls');
+filepath = st(2).file;
+[tmp, filename, tmp, tmp] = fileparts(filepath);
+a = @()mlint(filename, '-calls');
 funs = splitstr(sprintf('\n'), evalc('a()'));
 
 %parse the function call list into structs
@@ -26,7 +28,12 @@ for i = [funinfo{:}]
     
     if j < numel(fpath)
         %Walking into where the calling function is defined in the file...
-        if (j == lev) && (i.type == 'N' || i.type == 'M') && (strcmp(i.name, fpath{j+1}))
+        if (j == 0) && (lev == 0) && (i.type=='M') && strcmp(filename, fpath{1})
+            %Special case -- MATLAB says that the file name takes precedence
+            %over the function name, but the function name is what mlint
+            %reads out.
+            j = j + 1;
+        elseif (j == lev) && (i.type == 'N' || i.type == 'M') && (strcmp(i.name, fpath{j+1}))
             %we found the calling function or a parent, we're one step
             %closer
             j = j + 1;
@@ -49,14 +56,16 @@ end
 %Exclude any method that ends in an underscore (those are private)
 methodNames = methodNames(~cellfun('prodofsize', regexp(methodNames, '_$', 'start')));
 %double it for struct
-methodNames = {methodNames{:}; methodNames{:}};
 
 %Capture handles to the enclosed methods as a struct (including version
 %information). Here I build the string to evaluate in the caller:
-evalstr = [...
-    'eval(''@(getversion__) struct(' ...
-    sprintf('''''%s'''', @%s, ', methodNames{:}) ...
-    ' ''''version__'''', getversion__(1))'')'];
+evalargs = cellfun...
+    ( @(x)sprintf('''''%s'''', @%s, ', x, x)...
+    , methodNames, 'UniformOutput', 0 ...
+    );
+evalargs = cat(2, evalargs{:});
+
+evalstr = ['eval(''@(getversion__) struct(' evalargs ' ''''version__'''', getversion__(1))'')'];
 %It returns a function which I invoke to get the struct.
 structmaker = evalin('caller', evalstr);
 struct = structmaker(@getversion);

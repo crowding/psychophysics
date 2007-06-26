@@ -9,7 +9,7 @@ function this = FilledBar(varargin)
     visible = 0;
     angle = 0;
 
-    this = finalize( inherit(autoprops(varargin{:}), automethods()) );
+    this = autoobject(varargin{:});
 
     toPixels_ = @noop;
     pixelsPerDegree_ = [0 0];
@@ -53,7 +53,7 @@ function this = FilledBar(varargin)
         b = [x-length/2 y-length/2 x+length/2 y+length/2];
     end
 
-    function update()
+    function update(frames)
     end
 
 end

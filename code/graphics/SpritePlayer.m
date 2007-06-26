@@ -120,8 +120,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
 
     end
 
-    function update
-        refreshCount_ = refreshCount_ + 1;
+    function update(frames)
+        refreshCount_ = refreshCount_ + frames;
     end
 
     function points = rotate(points, angle)

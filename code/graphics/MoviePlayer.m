@@ -82,14 +82,14 @@ toDegrees_ = [];
     end
 
 
-    function update
+    function update(frames)
         %advance 1 frame forward in the movie. Should be called by a main
         %loop which is responsible for keeping track of whether drawing is
         %occurring on schedule, and giving extra update() calls if frames
         %are skipped.
         
         if visible_
-            refreshCount_ = refreshCount_ + 1;
+            refreshCount_ = refreshCount_ + frames;
             while frameIndex_ <= numel(textures_) && textures_(frameIndex_).frame < refreshCount_
                 frameIndex_ = frameIndex_ + 1;
             end

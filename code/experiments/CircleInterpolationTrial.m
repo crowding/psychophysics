@@ -28,7 +28,7 @@ barDuration = 1/30; %duration of bar presentation
 barPhase = dx/radius*2;
 barOnset = dt*2;
 
-this = inherit(autoprops(varargin{:}), automethods());
+this = autoobject(varargin{:});
 
     function result = run(params)
 

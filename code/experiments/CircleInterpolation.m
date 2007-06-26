@@ -6,11 +6,8 @@ function CircleInterpolation(varargin)
         , 'requireCalibration', 0 ...
         );
     params = namedargs(params, varargin{:});
-
-    e = Experiment();
     
     require(setupEyelinkExperiment(params), @run)
-    
     function params = run(params)
         e = InterpolationTrialGenerator();
         while (e.hasNext())
@@ -31,7 +28,7 @@ function CircleInterpolation(varargin)
             , 'size', [0.5 0.75 0.1]...
             );
         
-        this = finalize(inherit(autoprops(varargin{:}), automethods));
+        this = autoobject(varargin{:});
         
         function has = hasNext()
             has = 1;

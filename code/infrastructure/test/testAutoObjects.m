@@ -4,14 +4,19 @@ function this = testAutoObjects()
         ( TestCase() ...
         , public ...
             ( @testAutoSetters ...
+            , @testAutoSetV ...
             , @testAutoGetters ...
             , @testAutoProperties ...
             , @testAutoRoundTrip ...
-            , @testAutoPropsExcludesUnderscoreAndVarargin ...
+            , @testNoAutoProperties...
+            , @testAutoObjectExcludesUnderscoreAnsAndVarargin ...
+            , @testAutoObjectVarsDefinedBefore ...
+            , @testAutoObjectVarsUndefined ...
             , @testVarargin ...
             , @testBadVarargin ...
             , @testAutoMethods ...
             , @testAutoMethodsExcludesUnderscore ...
+            , @testNoAutoMethods ...
             , @testOverrideSetter ...
             , @testOverrideGetter ...
             ) ...
@@ -21,7 +26,7 @@ function this = testAutoObjects()
     function testAutoSetters()
         function [this, getter] = obj()
             propA = 1;
-            this = autoprops();
+            this = autoobject();
             getter = @get;
 
             
@@ -36,13 +41,30 @@ function this = testAutoObjects()
         assertEquals(4, get());
     end
 
+    function testAutoSetV()
+        function [this, getter] = obj()
+            v = 1;
+            this = autoobject();
+            getter = @get;
+
+            function a = get()
+                a = v;
+            end
+        end
+        
+        [o, get] = obj();
+        assertEquals(1, get());
+        o.setV(4);
+        assertEquals(4, get());
+    end
+
 
     function testAutoGetters()
         function [this, setter] = obj()
             
             propA = 1;
 
-            this = autoprops(); %the call to autoProps must happen AFTER all variables...
+            this = autoobject(); %the call to autoobject must happen AFTER all variables...
 
             setter = @set;
 
@@ -61,7 +83,7 @@ function this = testAutoObjects()
     function testAutoProperties()
         function this = obj();
             propA = 1;
-            this = autoprops();
+            this = autoobject();
         end
         
         o = obj();
@@ -72,12 +94,22 @@ function this = testAutoObjects()
         assertEquals(6, o.getPropA());
     end
 
+    function testNoAutoProperties()
+        function this = obj()
+            this = autoobject();
+        end
+        
+        o = obj();
+        
+        assert(isempty(o.property__()));
+    end
 
-    function testAutoPropsExcludesUnderscoreAndVarargin()
+
+    function testAutoObjectExcludesUnderscoreAnsAndVarargin()
         function this = obj(varargin)
-            propA = 1;
             propB_ = 2;
-            this = autoprops();
+            propA = 1;
+            this = autoobject();
         end
         
         o = obj();
@@ -87,7 +119,10 @@ function this = testAutoObjects()
         assert(~isfield('setPropB_', o));
         assert(~isfield('getPropB', o));
         assert(~isfield('setPropB', o));
-        assert(~isfield('varargin', o));
+        assert(~isfield('getVarargin', o));
+        assert(~isfield('setVarargin', o));
+        assert(~isfield('getAns', o));
+        assert(~isfield('setAns', o));
         
         try
             o.property__('propB');
@@ -100,13 +135,65 @@ function this = testAutoObjects()
             fail();
         catch
         end
+        
+        try
+            o.property__('ans');
+            fail();
+        catch
+        end
     end
 
+    function testAutoObjectVarsDefinedBefore()
+        %Only gets variables that have been defined before the call to make
+        %an object.
+        function this = obj(varargin)
+            propA = 1;
+            this = autoobject(varargin{:});
+            propB = 2;
+        end
+        
+        o = obj();
+        assertEquals(1, o.getPropA());
+        assertEquals(1, o.property__('propA'));
+        vars = o.property__();
+        assert(strmatch('propA', vars));
+        assert(~strmatch('propB', vars))
+        try
+            o.getPropB();
+            fail();
+        catch
+        end
+    end
+
+    function testAutoObjectVarsUndefined()
+        %Doesn't grab variables that are undefined (!)
+        function this = obj(propA, varargin)
+            this = autoobject(varargin{:});
+        end
+        
+        o1 = obj();
+        o2 = obj(1);
+        try
+            o1.getPropA()
+        catch
+        end
+        assertEquals(1, o2.getPropA())
+        
+        assert(~strmatch('propA', o1.property__()));
+        assert(strmatch('propA', o2.property__()));
+        
+        try
+            o1.property__('propA');
+            fail();
+        catch
+        end
+        assertEquals(1, o2.property__('propA'));
+    end
 
     function testAutoRoundTrip()
         function this = obj()
             propA = 1;
-            this = autoprops();
+            this = autoobject();
         end
 
         o = obj();
@@ -120,7 +207,7 @@ function this = testAutoObjects()
     function testVarargin()
         function this = obj(varargin)
             propA = 1;
-            this = autoprops(varargin{:});
+            this = autoobject(varargin{:});
         end
         
         o = obj('propA', 3);
@@ -131,7 +218,7 @@ function this = testAutoObjects()
     function testBadVarargin()
         function this = obj(varargin)
             propA = 1;
-            this = autoprops(varargin{:});
+            this = autoobject(varargin{:});
         end
         
         try
@@ -145,7 +232,7 @@ function this = testAutoObjects()
     
     function testAutoMethods()
         function this = obj()
-            this = automethods();
+            this = autoobject();
             
             function f = foobar()
                  f = 5;
@@ -156,10 +243,18 @@ function this = testAutoObjects()
         assertEquals(5, o.foobar());
     end
 
+    function testNoAutoMethods()
+        function this = obj()
+            this = autoobject();
+        end
+        
+        o = obj();
+        assert(isempty(o.method__()));
+    end
 
     function testAutoMethodsExcludesUnderscore()
         function this = obj()
-            this = automethods();
+            this = autoobject();
             
             function f = baz_()
                 f = 6;
@@ -191,7 +286,8 @@ function this = testAutoObjects()
         function this = obj()
             testProp = 3;
             
-            this = inherit(autoprops(), automethods());
+            %this = inherit(autoobject(), autoobject());
+            this = autoobject();
             
             function setTestProp(n)
                 testProp = n + 1;
@@ -209,7 +305,8 @@ function this = testAutoObjects()
         function this = obj()
             testProp = 3;
             
-            this = inherit(autoprops(), automethods());
+            %this = inherit(autoobject(), autoobject());
+            this = autoobject();
             
             function n = getTestProp(n)
                 n = testProp + 1;

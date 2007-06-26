@@ -11,7 +11,7 @@ function this = FilledDisk(loc, radius, color, varargin)
 dotType = 1;
 visible = 0;
 
-this = finalize(inherit(autoprops(varargin{:}), automethods()));
+this = autoobject(varargin{:});
 
 toPixels_ = [];
 
@@ -45,7 +45,7 @@ toPixels_ = [];
         end
     end
 
-    function update
+    function update(frames)
     end
 
 %manually declare accessors, for speed inside the function.

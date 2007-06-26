@@ -15,7 +15,7 @@ function this = CircularMotionProcess(varargin)
 
     t = 0; %time of the first appearance
 
-    this = finalize ( inherit( autoprops(varargin{:}), automethods() ) );
+    this = autoobject(varargin{:});
 
 %-----
     counter_ = 1;

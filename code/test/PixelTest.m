@@ -22,7 +22,7 @@ function PixelTest(varargin)
         rect1 = FilledRect([0 -1 1 0], 0);
         rect2 = FilledRect([-1 0 0 1], 0);
         bar1 = FilledBar('color', params.blackIndex, 'X', 2+sqrt(2)/2,  'Y', 0, 'angle', 135, 'width', 1, 'length', 3+4*sqrt(2), 'visible', 1);
-        bar2 = FilledBar('color', params.whiteIndex, 'X', -2-sqrt(2)/2, 'Y', 0,   'angle', 45,  'width', 1, 'length', 3+4*sqrt(2), 'visible', 1);
+        bar2 = FilledBar('color', params.whiteIndex, 'X', -2-sqrt(2)/2, 'Y', 0, 'angle', 45,  'width', 1, 'length', 3+4*sqrt(2), 'visible', 1);
         
         %we need a movie player, that fires off once a second.
         movie = MoviePlayer(patch1);
@@ -40,7 +40,7 @@ function PixelTest(varargin)
             %play so that its stimulus onset is at the same time as the
             %movie player's.
             onset = movie.setVisible(1, next);
-            spriteTime = (onset - next)
+            spriteTime = (onset - next);
             process.setT(spriteTime);
             
             rect1.setVisible(1);
@@ -48,11 +48,12 @@ function PixelTest(varargin)
             
             %The sprite player should start now also, onset
             %aligned with the movie player's onset...
+            sprites.setVisible(1);
             
             % Now we arringe it so that the movi player should repeat the
             % movie 2 seconds later -- aligned with the sprite player,
             % should be.
-            
+
             % Note the 0.5 frame offset - the time trigger only triggers
             % AFTER a transition is past, not the the most appropriate
             % approximation to the transition. Be careful of this sort of
@@ -101,7 +102,7 @@ function PixelTest(varargin)
         color = [0.5 0.5 0.5];
         dt = 1;
         
-        this = finalize(inherit(autoprops(varargin{:}), automethods));
+        this = autoobject(varargin(:));
         
         function [xx, yy, tt, aa, cc] = next();
             xx = x;

@@ -1,57 +1,54 @@
-function this = mainLoop(graphics, triggers, varargin)
-%function this = mainLoop(graphics, triggers, varargin)
-
-defaults = struct...
-    ( 'log', @noop ...
-    , 'skipFrames', 1 ...
-    , 'dontsync', 0 ...
-    , 'slowmo', 0 );
-params_ = namedargs(defaults, varargin{:});
-
+function this = mainLoop(graphics, triggers)
+%function this = mainLoop(graphics, triggers)
+%
 %The main loop which controls presentation of a trial. There are three
 %output arguments, main, drawing, and events, which used to be separate
 %objects in separate files, but were tied together for speed.
 %
-%It also used ot let you dynamically add and remove drawing objects and
+%It also used to let you dynamically add and remove drawing objects and
 %triggers, but this has been disable due to massive speed problems with
 %matlab's nested functions.
 %
 %The main loop allows you to start and stop.
 
+defaults_ = struct...
+    ( 'log', @noop ...
+    , 'skipFrames', 1 ...
+    , 'dontsync', 0 ...
+    , 'slowmo', 0 );
+
+if ~exist('graphics', 'var')
+    graphics = {};
+end
+if ~exist('triggers', 'var')
+    triggers = {};
+end
+
+this = autoobject();
+
 %----- constructed objects -----
-this = public(@go, @stop, @drawTriggers);
 
 %instance variables
 go_ = 0; % flags whether the main loop is running
-
-%the list of graphics components, restricted to the interface we use
-graphics_ = interface(struct('draw', {}, 'update', {}, 'init', {}), graphics);
-ng_ = numel(graphics_);
-
+nt_ = 0;
+toDegrees_ = [];
 
 %java_ = psychusejava('jvm');
 
-%Our list of triggers.
-triggers_ = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
-nt_ = numel(triggers_);
-
 %values used while running in the main loop
-toDegrees_ = [];
-log_ = [];
 
-badSampleCount_ = 0;
-missingSampleCount_ = 0;
-goodSampleCount_ = 0;
-skipFrameCount_ = 0;
+badSampleCount = 0;
+missingSampleCount = 0;
+goodSampleCount = 0;
+skipFrameCount = 0;
 
 windowLeft_ = 0;
 windowTop_ = 0;
 
-
 %----- methods -----
 
     function params = go(varargin)
-        params = namedargs(params_, varargin{:});
+        params = namedargs(defaults_, varargin{:});
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
         %
@@ -64,10 +61,11 @@ windowTop_ = 0;
             ,@doGo...
             );
 %            ,listenChars()...
-        params_ = params;
     end
 
     function params = doGo(params)
+        ng = numel(graphics);
+        nt_ = numel(triggers);
         go_ = 1;
         interval = params.cal.interval;
         hitcount = 0;
@@ -103,8 +101,8 @@ windowTop_ = 0;
             %}
 
             %draw all the objects
-            for i = 1:ng_
-                graphics_(i).draw(window, lastVBL + interval);
+            for i = 1:ng
+                graphics(i).draw(window, lastVBL + interval);
             end
             
             [VBL] = Screen('Flip', window, 0, 0, dontsync);
@@ -115,9 +113,8 @@ windowTop_ = 0;
             if (params.skipFrames)
                 frames = round((VBL - lastVBL) / interval);
                 skipcount = skipcount + frames - 1;
-                skipFrameCount_ = skipFrameCount_ + frames - 1;
+                skipFrameCount = skipFrameCount + frames - 1;
 
-                
                 if frames > 1
                     log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
                 end
@@ -133,15 +130,9 @@ windowTop_ = 0;
                 end
             end
 
-            for i = 1:frames
-                %may accumulate error if
-                %interval differs from the actual interval...
-                %but we're screwed in that case.
-
-                %step forward the frame on all objects
-                for i = 1:ng_
-                    graphics_(i).update()
-                end
+            %update the graphics objects for having played a frame
+            for i = 1:ng
+                graphics(i).update(frames);
             end
 
             lastVBL = VBL;
@@ -156,36 +147,6 @@ windowTop_ = 0;
         %
         %See also mainLoop>go.
         go_ = 0;
-    end
-
-    function addGraphic(drawer)
-        %Add a graphics object to the display. The object must support the
-        %'draw', 'update', and 'init' methods. Objects cannot be added
-        %while the main loop is running for performance reasons.
-        %
-        %Aee also Drawer.
-        if go_
-            error('mainLoop:modificationWhileRunning',...
-                ['adding graphics objects while in the display'...
-                'is not supported.']);
-        end
-
-        graphics_(ng_+1) = interface(graphics_, finalize(drawer)); %was 15.71/24
-        ng_ = ng_ + 1;
-    end
-
-    function addTrigger(trigger)
-        %Adds a trigger object. Each trigger object is called when an eye
-        %movement sample is received.
-        %
-        %See also Trigger.
-        if go_
-            error('mainLoop:modification_while_running',...
-                'Can''t add triggers while running the main loop. Matlab is too slow. Try again in a different language.');
-        end
-
-        triggers_(nt_+1) = interface(triggers_, finalize(trigger));
-        nt_ = nt_+1;
     end
 
     function pushEvents(params, next)
@@ -208,7 +169,7 @@ windowTop_ = 0;
         %match
 
         for i = 1:nt_
-            triggers_(i).check(x, y, t, next);
+            triggers(i).check(x, y, t, next);
         end
     end
 
@@ -226,9 +187,9 @@ windowTop_ = 0;
             if any(buttons) %simulate blinking
                 x = NaN;
                 y = NaN;
-                badSampleCount_ = badSampleCount_ + 1;
+                badSampleCount = badSampleCount + 1;
             else
-                goodSampleCount_ = goodSampleCount_ + 1;
+                goodSampleCount = goodSampleCount + 1;
             end
         else
             %obtain a new sample from the eye.
@@ -236,7 +197,7 @@ windowTop_ = 0;
                 x = NaN;
                 y = NaN;
                 t = GetSecs();
-                missingSampleCount_ = missingSampleCount_ + 1;
+                missingSampleCount = missingSampleCount + 1;
             else
                 % Probably don't need to do this eyeAvailable check every
                 % frame. Profile this call?
@@ -255,11 +216,11 @@ windowTop_ = 0;
                 x = sample.gx(eyeidx);
                 y = sample.gy(eyeidx);
                 if x == -32768 %no position -- blinking?
-                    badSampleCount_ = badSampleCount_ + 1;
+                    badSampleCount = badSampleCount + 1;
                     x = NaN;
                     y = NaN;
                 else
-                    goodSampleCount_ = goodSampleCount_ + 1;
+                    goodSampleCount = goodSampleCount + 1;
                 end
 
                 t = (sample.time - params.clockoffset) / 1000;
@@ -268,16 +229,8 @@ windowTop_ = 0;
     end
 
 
-    function init = graphicsInitializer(varargin)
-        %Produces an initializer to be called as we enter the main loop.
-        %
-        %The initializer prepares all the graphics objects. On completion,
-        %the graphics %objects are released.
-        %
-        %See also require.
 
-        init = currynamedargs(joinResource(graphics_.init), varargin{:});
-    end
+
 
     function i = triggerInitializer(varargin)
         %at the beginning of a trial, the initializer will be called. It will
@@ -285,7 +238,8 @@ windowTop_ = 0;
         %where the log file is.
         %
         %See also require.
-
+        
+        triggers = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
         i = currynamedargs(...
                 joinResource(...
                     @initLog...
@@ -297,30 +251,27 @@ windowTop_ = 0;
     end
 
     function [release, params] = initLog(params)
-        
-        toDegrees_ = transformToDegrees(params.cal);
-
         %now that we are starting an experiment, tell each trigger where to
         %log to.
-        for i = 1:nt_
-            triggers_(i).setLog(params.log);
+        for i = triggers(:)'
+            i.setLog(params.log);
         end
 
         release = @stop;
 
         function stop
-            online_ = 0;
         end
     end
-
 
     function [release, params] = initVars(params)
         release = @printSampleCounts;
 
-        badSampleCount_ = 0;
-        missingSampleCount_ = 0;
-        goodSampleCount_ = 0;
-        skipFrameCount_ = 0;
+        toDegrees_ = transformToDegrees(params.cal);
+        
+        badSampleCount = 0;
+        missingSampleCount = 0;
+        goodSampleCount = 0;
+        skipFrameCount = 0;
         
         rect = Screen('GlobalRect', params.window);
         windowLeft_ = rect(1);
@@ -328,8 +279,20 @@ windowTop_ = 0;
         
         function printSampleCounts
             disp(sprintf('%d good samples, %d bad, %d missing, %d frames skipped', ...
-                goodSampleCount_, badSampleCount_, missingSampleCount_, skipFrameCount_));
+                goodSampleCount, badSampleCount, missingSampleCount, skipFrameCount));
         end
+    end
+
+
+    function init = graphicsInitializer(varargin)
+        %Produces an initializer to be called as we enter the main loop.
+        %
+        %The initializer prepares all the graphics objects. On completion,
+        %the graphics %objects are released.
+        %
+        %See also require.
+        graphics = interface(struct('draw', {}, 'update', {}, 'init', {}), graphics);
+        init = currynamedargs(joinResource(graphics.init), varargin{:});
     end
 
 
@@ -343,7 +306,7 @@ windowTop_ = 0;
         % See also Trigger>draw.
 
         for i = 1:nt_
-            triggers_(i).draw(window, toPixels);
+            triggers(i).draw(window, toPixels);
         end
     end
 
