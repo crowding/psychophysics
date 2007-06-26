@@ -43,34 +43,9 @@ function this = CircleInterpolationTrialGenerator(varargin)
         end
     end
 
-    function interpret(last, result)
-        %TODO: Interpret a mixed up clockwise and counter; leftward and rightward.
-
-        %This is probably the har way to do it... backing out the
-        %rights data from the raw stimulus (when I could have just
-        %saved the raw data... but it makes sure that the data I save
-        %is sufficient & my task is unambiguous.
-        
-        %find the right quest and update it
-        %THIS ISN'T QUITE RIGHT...
-        %which target was nearest the bar when the bar blinked?
-        targetPhasesAtOnset = last.getPhases() + last.getDx()/last.getRadius()*last.getBarOnset();
-        [tmp, targetIndex] = min(abs(last.getBarPhase() - targetPhasesAtOnset));
-        targetPhaseDisplacement = last.getBarPhase() - last.getPhases(); %dsplacement for initial target appearance.
-        targetPhaseDisplacement = targetPhaseDisplacement(targetIndex);
-        targetDisplacement = targetPhaseDisplacement * last.getRadius();
-        
-        asynch = last.getBarOnset() - last.getOnsets();
-        asynch = asynch(targetIndex);
-
-        [tmp, questIndex] = min(abs(asynch - onsetAsynchronies));
-        if isnan(result.ahead)
-            return;
-        end
-
-        printf('got a trial: %f asynchrony, %f displacement, response %d', asynch, targetDisplacement, result.ahead);
-
-        quests{questIndex} = QuestUpdate(quests{questIndex}, targetDisplacement, result.ahead);
+    function has = hasNext()
+        %posssibly this will stop when all staircases have converged
+        has = 1;
     end
 
     function trial = next(params, last, result)
@@ -125,6 +100,36 @@ function this = CircleInterpolationTrialGenerator(varargin)
             , 'barOnset', onsets(targetIndex) + barAsynchrony ...
             , 'patch', p ...
             );
+    end
+
+    function interpret(last, result)
+        %TODO: Interpret a mixed up clockwise and counter; leftward and rightward.
+
+        %This is probably the har way to do it... backing out the
+        %rights data from the raw stimulus (when I could have just
+        %saved the raw data... but it makes sure that the data I save
+        %is sufficient & my task is unambiguous.
+        
+        %find the right quest and update it
+        %THIS ISN'T QUITE RIGHT...
+        %which target was nearest the bar when the bar blinked?
+        targetPhasesAtOnset = last.getPhases() + last.getDx()/last.getRadius()*last.getBarOnset();
+        [tmp, targetIndex] = min(abs(last.getBarPhase() - targetPhasesAtOnset));
+        targetPhaseDisplacement = last.getBarPhase() - last.getPhases(); %dsplacement for initial target appearance.
+        targetPhaseDisplacement = targetPhaseDisplacement(targetIndex);
+        targetDisplacement = targetPhaseDisplacement * last.getRadius();
+        
+        asynch = last.getBarOnset() - last.getOnsets();
+        asynch = asynch(targetIndex);
+
+        [tmp, questIndex] = min(abs(asynch - onsetAsynchronies));
+        if isnan(result.ahead)
+            return;
+        end
+
+        printf('got a trial: %f asynchrony, %f displacement, response %d', asynch, targetDisplacement, result.ahead);
+
+        quests{questIndex} = QuestUpdate(quests{questIndex}, targetDisplacement, result.ahead);
     end
 
 end

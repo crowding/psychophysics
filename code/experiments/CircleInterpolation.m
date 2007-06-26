@@ -9,9 +9,9 @@ function CircleInterpolation(varargin)
     
     require(setupEyelinkExperiment(params), @run)
     function params = run(params)
-        e = InterpolationTrialGenerator();
-        while (e.hasNext())
-            t = e.next(params);
+        g = CircleInterpolationTrialGenerator();
+        while (g.hasNext())
+            t = g.next(params);
             t.run(params);
         end
     end
