@@ -72,6 +72,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
 
         releaser = @release;
         
+        advanceQueue(); %preload for the stimulus onset
+        
         require(screenGL(params.window), @initglparams);
         function initglparams(dummy)
             global GL;
@@ -90,6 +92,9 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             glEnableClientState(GL.VERTEX_ARRAY);
             glEnableClientState(GL.COLOR_ARRAY);
             
+            glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
+            glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
+            glColorPointer( 3, GL.DOUBLE, 0, colors_);
         end
         
         function release()
@@ -121,7 +126,9 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     end
 
     function update(frames)
-        refreshCount_ = refreshCount_ + frames;
+        if visible_
+            refreshCount_ = refreshCount_ + frames;
+        end
     end
 
     function points = rotate(points, angle)
@@ -133,13 +140,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         points = reshape(points, siz);
     end
 
-    function draw(window, next)
-        % was (1938 calls, 8.300 sec) with colors
-        % was (2665 calls, 11.071 sec) still with colors
-        if ~visible_
-            return
-        end
-        
+    function advanceQueue()
         if head_ > tail_
             l1 = tail_ + 1; r1 = head_ - 1;
             l2 = 1; r2 = 0;
@@ -147,8 +148,6 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             l1 = tail_ + 1; r1 = max_sprites_;
             l2 = 1; r2 = head_ - 1;
         end
-        
-        global GL;
         
         latestShown = refreshCount_;
         earliestShown = refreshCount_ - n_frames_ + 1;
@@ -194,6 +193,20 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
 
             %TODO log the scheduled, (& discretized) stimulus onset here
         end
+    end
+
+    function draw(window, next)
+        % was (1938 calls, 8.300 sec) with colors
+        % was (2665 calls, 11.071 sec) still with colors
+        if ~visible_
+            return
+        end
+
+        global GL;
+        
+        advanceQueue(); %Works here. But shouldn't this be done afterwards
+        %(since it is done once already at init() time).
+        
         %visible indicator of buffer fill
         %if h2 == tail_
         %    color = [1;0;0];
@@ -205,50 +218,40 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %intervals, one of which may be empty.
         %Note by construction the head always points to ONE TOO MANY
         %(FIXME - even when the underlying process returned NaN!)
-        try
-            if head_ >= tail_
-                l1 = tail_ + 1; r1 = head_ - 1;
-                l2 = 1; r2 = 0;
-            else
-                l1 = tail_ + 1; r1 = max_sprites_;
-                l2 = 1; r2 = head_ - 1;
-            end
+        if head_ >= tail_
+            l1 = tail_ + 1; r1 = head_ - 1;
+            l2 = 1; r2 = 0;
+        else
+            l1 = tail_ + 1; r1 = max_sprites_;
+            l2 = 1; r2 = head_ - 1;
+        end
 
-            
-        %look up the texture coordinates to use. 
+        %look up the texture coordinates to use.
         texvertices_(:,[l1:r1 l2:r2]) = from_coords_(:, refreshCount_ + 1 - refreshes_([l1:r1 l2:r2]));
 
-        catch
-            noop();
-        end
-        
-        require(screenGL(window), @doDraw);
-        function params = doDraw(params)
-            %set up the drawing context.
-            %can most of these be done just once? Is PTB smart enough to
-            %save our context?
-            
-            glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
-            glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
-            glColorPointer( 3, GL.DOUBLE, 0, colors_);
-            
-            %draw first the added textures, then the subtracted
-            glBindTexture(GL.TEXTURE_2D,addtex_);
-            glBlendEquation(GL.FUNC_ADD);
-            glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
-            glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4,0) );
-            
-            glBindTexture(GL.TEXTURE_2D,subtex_);
-            glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
-            glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
-            glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
-            glFlush();
-        end
+        %set up the drawing context.
+        %this section was in a require(screenGL(window) but was made
+        %stupid for speed
+        Screen('BeginOpenGL', window);
+
+        %draw first the added textures, then the subtracted
+        glBindTexture(GL.TEXTURE_2D,addtex_);
+        glBlendEquation(GL.FUNC_ADD);
+        glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
+        glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4,0) );
+
+        glBindTexture(GL.TEXTURE_2D,subtex_);
+        glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
+        glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
+        glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
+        glFlush();
+        Screen('EndOpenGL', window);
     end
 
-    function b = bounds
-        %TODO: give something meaningful?
-        b = [-1 -1 1 1];
+    function b = bounds()
+        %Give something meaningful. How about the bounds as reported by
+        %the motion process, as a function of time.
+        b = process_.bounds(refreshCount_ * interval_);
     end
 
     function v = getVisible()
@@ -268,12 +271,12 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         if v
             %start at the first frame
             %(update is called after draw; first frame shown
-            %should be the first frame) -- TODO: check this!!!
+            %should be the first frame) -- this is checked using PixelTest.
             refreshCount_ = 0;
-            head_ = max_sprites_; %matlab index to where the newest IS.
-            tail_ = max_sprites_; %matlab index to where the oldest WAS.
+            head_ = max_sprites_; %matlab 1-based index to where the newest IS.
+            tail_ = max_sprites_; %matlab 1-based index to where the oldest WAS.
             
-            if exist('next', 'var');
+            if nargin >= 2 %bah, 'exist' takes too long.
                 stimOnset = next;
             end
         end

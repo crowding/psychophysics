@@ -32,6 +32,8 @@ this = autoobject(varargin{:});
 
     function result = run(params)
 
+        frameInterval = params.cal.interval;
+        
         motion = CircularMotionProcess ...
             ( 'radius', radius ...
             , 'n', n ...
@@ -80,13 +82,13 @@ this = autoobject(varargin{:});
 
         function showMotion(x, y, t, next)
             onset = sprites.setVisible(1, next);
-            timer.set(onset + barOnset - params.cal.interval/2, @showBars);
+            timer.set(onset + barOnset - frameInterval/2, @showBars);
         end
 
         function showBars(x, y, t, next)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
-            timer.set(t + barDuration - params.cal.interval/2, @hideBars);
+            timer.set(t + barDuration - frameInterval/2, @hideBars);
         end
 
         function hideBars(x, y, t, next)

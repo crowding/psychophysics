@@ -56,4 +56,11 @@ function this = FilledBar(varargin)
     function update(frames)
     end
 
+    function setVisible(v)
+        visible = v;
+    end
+
+    function v = getVisible()
+        v = visible;
+    end
 end

@@ -48,6 +48,14 @@ toPixels_ = [];
     function update(frames)
     end
 
+    function v = getVisible
+        v = visible;
+    end
+
+    function v = setVisible(v)
+        visible = v;
+    end
+
 %manually declare accessors, for speed inside the function.
 %{
 function l = getLoc
@@ -76,14 +84,6 @@ function l = getLoc
         end
         color_ = c;
     end
-
-    function v = getVisible
-        v = visible_;
-    end
-
-    function v = setVisible(v)
-        visible_ = v;
-end
 %}
 
 end

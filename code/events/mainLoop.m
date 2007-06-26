@@ -81,7 +81,7 @@ windowTop_ = 0;
         while(1)
             % take a sample from the eyetracker and react to it.
             pushEvents(params, lastVBL + interval);
-
+            
             if ~go_
                 break;
             end

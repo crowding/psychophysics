@@ -17,7 +17,7 @@ function CircleInterpolation(varargin)
     end
 
     function this = InterpolationTrialGenerator(varargin)
-        nDistractors = 1;
+        nDistractors = 5;
         radius = 10;
         dx = 0.75;
         dt = 0.15;
