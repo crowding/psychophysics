@@ -4,7 +4,7 @@ function this = Trigger
     %see also SpaceEvents.
     this = public(@check, @draw);
     
-    function check(x, y, t, next)
+    function check(s)
         %Implementors check if the arguments meet some criteria, and
         %perform some action if true.
         %

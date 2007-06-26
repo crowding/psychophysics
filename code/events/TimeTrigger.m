@@ -10,10 +10,10 @@ log_ = 0;
 set(varargin{:})
 
 %----- public interface -----
-this = final(@check, @set, @unset, @draw, @setLog);
+this = final(@check, @set, @unset, @draw, @setLog, @getFn);
 
 %----- methods -----
-    function check(x, y, t, next)
+    function check(s)
         % Checks the sample and if the time is at or after the trigger's set
         % time, calls the trigger function. If a valid sample is required,
         % checks that x any y are not NaN before calling the trigger
@@ -22,11 +22,12 @@ this = final(@check, @set, @unset, @draw, @setLog);
         % If the requested time has been exceeded, calls the trigger
         % function, but gives the trigger function the requested time, not
         % the actual time.
-        if set_ && (t >= time_)
+        if set_ && (s.t >= time_)  %was 0.13    4396
             %if it must be a valid sample, check then forward
-            if ~valid_ || all(~isnan([x y]))
-                log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
-                fn_(x, y, time_, next); %pretend it was triggered on the exact time
+            if ~valid_ || all(~isnan([s.x s.y]))
+                s.triggerTime = time_; %note the trigger time in addition to the sample time
+                log_('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+                fn_(s); %pretend it was triggered on the exact time
             end
         end
     end
@@ -43,7 +44,7 @@ this = final(@check, @set, @unset, @draw, @setLog);
         else
             time_ = time;
             fn_ = fn;
-            valid_ = exist('valid', 'var') && valid;
+            valid_ = (nargin >= 3) && valid; %'exist' takes too long
             
             set_ = 1;
         end
@@ -70,4 +71,7 @@ this = final(@check, @set, @unset, @draw, @setLog);
         log_ = log;
     end
         
+    function fn = getFn()
+        fn = fn_;
+    end
 end

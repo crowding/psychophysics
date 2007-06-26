@@ -5,6 +5,7 @@ function this = RefreshTrigger(varargin)
 
 isSet = 0;
 refresh = 0;
+valid = 0;
 fn = @noop;
 log = @noop;
 
@@ -12,7 +13,7 @@ log = @noop;
 this = autoobject(varargin{:});
 
 %----- methods -----
-    function check(x, y, t, next, r)
+    function check(s)
         % Checks the sample and if the time is at or after the trigger's set
         % time, calls the trigger function. If a valid sample is required,
         % checks that x any y are not NaN before calling the trigger
@@ -21,11 +22,12 @@ this = autoobject(varargin{:});
         % If the requested time has been exceeded, calls the trigger
         % function, but gives the trigger function the requested time, not
         % the actual time.
-        if set && (r >= refresh)
+        if isSet && (s.refresh >= refresh)
             %if it must be a valid sample, check then forward
-            if ~valid_ || all(~isnan([x y]))
-                log('TRIGGER %f, %f, %f, %f, %f, %s', x, y, t, next, r, func2str(fn_));
-                fn(x, y, t, next, r);
+            if ~valid || all(~isnan([x y]))
+                s.triggerRefresh = refresh;
+                log('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+                fn(s);
             end
         end
     end
@@ -40,7 +42,7 @@ this = autoobject(varargin{:});
         if nargin < 2
             isSet = 0;
         else
-            time = time_;
+            refresh = refresh_;
             fn = fn_;
             valid = exist('valid_', 'var') && valid_;
             
@@ -63,10 +65,6 @@ this = autoobject(varargin{:});
             t = time_ - GetSecs();
             Screen('DrawText', window, sprintf('%0.3f', t), 20, 20, [0 255 0] );
         end
-    end
-
-    function setLog(log)
-        log_ = log;
     end
         
 end

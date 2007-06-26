@@ -31,9 +31,8 @@ barOnset = dt*2;
 this = autoobject(varargin{:});
 
     function result = run(params)
-
         frameInterval = params.cal.interval;
-        
+
         motion = CircularMotionProcess ...
             ( 'radius', radius ...
             , 'n', n ...
@@ -75,37 +74,33 @@ this = autoobject(varargin{:});
         params = main.go(params);
 
         %event handler functions
-        function start(x, y, t, next)
+        function start(s)
             startTrigger.unset();
-            timer.set(t + 1, @showMotion);
+            timer.set(s.t + 1, @showMotion);
         end
 
-        function showMotion(x, y, t, next)
-            onset = sprites.setVisible(1, next);
+        function showMotion(s)
+            onset = sprites.setVisible(1, s.next);
             timer.set(onset + barOnset - frameInterval/2, @showBars);
         end
 
-        function showBars(x, y, t, next)
+        function showBars(s)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
-            timer.set(t + barDuration - frameInterval/2, @hideBars);
+            timer.set(s.t + barDuration - frameInterval/2, @hideBars);
         end
 
-        function hideBars(x, y, t, next)
+        function hideBars(s)
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
 
             timer.set(onset + dt * (n + 2) , @hideMotion);
         end
 
-        function hideMotion(x, y, t, next)
+        function hideMotion(s)
             sprites.setVisible(0);
             fixation.setVisible(0);
-            timer.set(onset + (n+2)*dt, @stop);
-        end
-
-        function stop(x, y, t, next)
-            main.stop();
+            timer.set(onset + (n+2)*dt, main.stop);
         end
 
         %the result will eventually give something of the subject's

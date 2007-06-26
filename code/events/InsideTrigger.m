@@ -9,14 +9,14 @@ end
 
 log_ = [];
 
-this = final(@check, @draw, @set, @unset, @setLog);
+this = final(@check, @draw, @set, @unset, @setLog, @getFn);
 
-    function check(x, y, t, next)
+    function check(s)
         if set_ && inRect(...
                 bounds_() + range_ .* [-1 -1 1 1] + [offset_, offset_],...
-                x, y)
-            log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
-            fn_(x, y, t, next); %call function when eye is inside
+                s.x, s.y)
+            log_('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+            fn_(s); %call function when eye is inside
         end
     end
 
@@ -41,5 +41,9 @@ this = final(@check, @draw, @set, @unset, @setLog);
 
     function setLog(log)
         log_ = log;
+    end
+
+    function fn = getFn()
+        fn = fn_;
     end
 end

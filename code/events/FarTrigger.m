@@ -2,7 +2,7 @@ function this = FarTrigger(loc_, threshold_, fn_)
 %An object that fires a trigger when x and y is a certain distance away
 %from a point.
 
-this = final(@check, @draw, @set, @unset, @setLog);
+this = final(@check, @draw, @set, @unset, @setLog, @getFn);
 
 if (nargin == 0)
     set_ = 0;
@@ -12,10 +12,10 @@ end
 
 log_ = [];
 
-    function check(x, y, t, next)
-        if set_ && (norm([x y] - loc_) > threshold_)
-            log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
-            fn_(x, y, t, next); %call function when eye is inside
+    function check(s)
+        if set_ && (norm([s.x s.y] - loc_) > threshold_)
+            log_('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+            fn_(s); %call function when eye is inside
         end
     end
     
@@ -40,5 +40,9 @@ log_ = [];
 
     function setLog(log)
         log_ = log;
+    end
+
+    function fn = getFn()
+        fn = fn_;
     end
 end

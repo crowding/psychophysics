@@ -3,7 +3,7 @@ function this = UpdateTrigger(fn_)
 %
 %See also Trigger.
 
-this = final(@check, @set, @unset, @setLog, @draw);
+this = final(@check, @set, @unset, @setLog, @draw, @getFn);
 
 if (nargin < 1)
     set_ = 0;
@@ -14,10 +14,10 @@ end
 log_ = [];
 
     %methods
-    function check(x, y, t, next)
+    function check(s)
         if set_
-            log_('TRIGGER %f, %f, %f, %f, %s', x, y, t, next, func2str(fn_));
-            fn_(x, y, t, next); %call function always
+            log_('TRIGGER %s %s', func2str(fn_), 'foo'); % struct2str(s));
+            fn_(s); %call function always
         end
     end
 
@@ -32,6 +32,10 @@ log_ = [];
 
     function setLog(log)
         log_ = log;
+    end
+
+    function fn = getFn()
+        fn = fn_;
     end
 
     function draw(window, toPixels)

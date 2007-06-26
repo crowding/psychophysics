@@ -79,8 +79,10 @@ windowTop_ = 0;
         lastVBL = Screen('Flip', params.window);
         %the main loop
         while(1)
-            % take a sample from the eyetracker and react to it.
-            pushEvents(params, lastVBL + interval);
+            %before the change to structs, this line was 9.3% of the main
+            %loop.
+            %pushEvents(params, lastVBL + interval);
+            pushEvents(params, lastVBL + interval, hitcount+skipcount)
             
             if ~go_
                 break;
@@ -141,7 +143,7 @@ windowTop_ = 0;
         disp(sprintf('hit %d frames, skipped %d', hitcount, skipcount));
     end
 
-    function stop(x, y, t, next)
+    function stop(s)
         %Stops the main loop. Takes arguments compatible with being called
         %from a trigger.
         %
@@ -149,8 +151,9 @@ windowTop_ = 0;
         go_ = 0;
     end
 
-    function pushEvents(params, next)
-        % Sample the eye and give to sample to all triggers.
+    function pushEvents(params, next, refresh)
+        % Send information about the present state of the world to all 
+        % triggers and allow them to fire if they wish.
         %
         % next: the scheduled next refresh.
         % triggers: the triggers to check. you'd think this would be passed
@@ -162,14 +165,23 @@ windowTop_ = 0;
         if ~go_
             error('mainLoop:notOnline', 'must start spaceEvents before recording');
         end
+        
         [x, y, t] = sample(params);
         [x, y] = toDegrees_(x, y); %convert to degrees (native units)
 
+        %at the outset the datra contains these values:
+        %'x', the last recorded eye x-position.
+        %'y', the last recorded eye y-position.
+        %'t', the time that the eye position was recorded
+        %'next', the scheduled time of the next eye refresh.
+        %'refresh', which counts the screen refreshes that have occurred
+        %(including those skipped.)
+        s = struct('x', x, 'y', y, 't', t, 'next', next, 'refresh', refresh);
         %send the sample to each trigger and the triggers will fire if they
-        %match
+        %match.
 
         for i = 1:nt_
-            triggers(i).check(x, y, t, next);
+            triggers(i).check(s);
         end
     end
 
@@ -227,9 +239,6 @@ windowTop_ = 0;
             end
         end
     end
-
-
-
 
 
     function i = triggerInitializer(varargin)
