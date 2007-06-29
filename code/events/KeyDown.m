@@ -41,12 +41,16 @@ function check(k)
     end
 end
 
-function set(char, fn)
+function set(fn, char)
     %sets a particular character as handler
-    if ischar(char) | iscell(char) | islogical(char)
-        evtable{KbName(char)} = deal(fn);
-    elseif isnumeric(char)
-        evtable{char} = deal(fn);
+    if nargin >= 2
+        if ischar(char) | iscell(char) | islogical(char)
+            evtable{KbName(char)} = deal(fn);
+        elseif isnumeric(char)
+            evtable{char} = deal(fn);
+        end
+    else
+        [evtable{:}] = deal(fn);
     end
 end
 

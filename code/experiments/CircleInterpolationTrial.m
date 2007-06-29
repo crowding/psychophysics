@@ -69,23 +69,33 @@ this = autoobject(varargin{:});
             , 'length', barLength, 'width', barWidth, 'angle', barPhase * 180/pi...
             , 'color', params.whiteIndex);
 
+        barOffset = 0;
+        
+        comparisonBar = FilledBar ...
+            ( 'x', radius * cos(barPhase), 'y', -radius * sin(barPhase) ...
+            , 'length', barGap - 0.5, 'width', barWidth ...
+            , 'angle', barPhase * 180 / pi ...
+            );
+
         fixation = FilledDisk([0 0], 0.1, params.blackIndex, 'visible', 1);
 
         startTrigger = UpdateTrigger(@start);
         timer = RefreshTrigger();
 
-        onset = 0;
-
-        keys = KeyDown();
-        keys.set('q', @stopExperiment);
+        keydown = KeyDown();
+        keydown.set(@stopExperiment, 'q');
+        
+        mousedown = MouseDown();
+        mousemove = MouseMove();
         
         main = mainLoop ...
-            ( {sprites, fixation, insideBar, outsideBar} ...
+            ( {sprites, fixation, insideBar, outsideBar, comparisonBar} ...
             , {startTrigger, timer} ...
-            , 'keyboard', keys ...
+            , 'keyboard', keydown ...
+            , 'mouse', {mousedown, mousemove} ...
             );
 
-        params = main.go(params);
+        main.go(params);
 
         %event handler functions
         
@@ -95,8 +105,7 @@ this = autoobject(varargin{:});
         end
 
         function showMotion(s)
-            sprites.setVisible(1, s.next); %will be recorded as a trigger
-            
+            sprites.setVisible(1, s.next); %onset recorded in the trigger.
             timer.set(s.refresh + round(barOnset/frameInterval), @showBars);
         end
 
@@ -110,17 +119,36 @@ this = autoobject(varargin{:});
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
 
-            timer.set(s.triggerRefresh + (dt * (n + 2))/frameInterval, @hideMotion);
+            timer.set(s.triggerRefresh + 1/frameInterval, @showComparison);
         end
-
-        function hideMotion(s)
+        
+        function showComparison(s)
             sprites.setVisible(0);
-            fixation.setVisible(0);
-            %now wait for a keystroke...
-            timer.set(s.refresh + 1/frameInterval, main.stop);
+            insideBar.setVisible(1);
+            outsideBar.setVisible(1);
+            comparisonBar.setVisible(1);
+            timer.unset();
+            mousemove.set(@moveComparisonBar);
+            mousedown.set(@accept);
         end
-
-        %the result will eventually give something of the subject's
-        %response
+        
+        function moveComparisonBar(s)
+            %use the y-axis for now...
+            comparisonBar.setX();
+            comparisonBar.setY();
+            comparisonBar.setAngle()
+        end
+        
+        function accept(s)
+            comparisonBar.setVisible(0);
+            insideBar.setVisible(0);
+            outsideBar.setVisible(0);
+            fixation.setVisible(0);
+            
+            %TODO set the result
+            
+            %push the blank frame to the screen, then stop
+            timer.set(s.refresh+1, main.stop);
+        end
     end
 end

@@ -63,4 +63,16 @@ function this = FilledBar(varargin)
     function v = getVisible()
         v = visible;
     end
+
+    function x_ = setX(x_);
+        x = x_;
+    end
+
+    function y_ = setY(y_);
+         y = y_;
+    end
+
+    function a_ = setAngle(a_);
+         angle = a_;
+    end
 end
