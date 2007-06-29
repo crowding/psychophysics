@@ -13,25 +13,38 @@ function m = smallmat2str(mat, c)
 %What the hell kind of language has data types that can't possibly be
 %filled in from source literals, even in principle?
 %
-
-m = sprintf('%.15g ', mat');
-spaceix = find(m == ' ');
-
-if numel(mat) ~= 1
-    %FIXME: weird-zero-size-arrays
-
-    ncols = size(mat, 2);
-    m(spaceix(ncols:ncols:end-1)) = ';';
-
-    if nargin > 1
-        m = [class(mat), '([', m, '])'];
-    else
-        m = ['[', m, ']'];
+if iscell(mat)
+    m = mat;
+    for i = 1:numel(m)
+        if nargin > 1
+            m{i} = smallmat2str(m{i}, c);
+        else
+            m{i} = smallmat2str(m{i});
+        end
     end
 else
-    if nargin > 1
-        m = [class(mat), '(', m, ')'];
+
+    if numel(mat) ~= 1
+        m = sprintf('%.15g ', mat');
+        %FIXME: weird-zero-size-arrays
+
+        ncols = size(mat, 2);
+        if(ncols > 1)
+            spaceix = find(m == ' ');
+            m(spaceix(ncols:ncols:end-1)) = ';';
+        end
+
+        if nargin > 1
+            m(end) = ']';
+            m = [class(mat), '([', m, ')'];
+        else
+            m = ['[', m];
+            m(end) = ']';
+        end
     else
-        %m = m(1:end-1);
+        m = sprintf('%.15g', mat');
+        if nargin > 1
+            m = [class(mat), '(', m, ')'];
+        end
     end
 end

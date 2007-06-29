@@ -26,7 +26,7 @@ this = final(@check, @set, @unset, @draw, @setLog, @getFn);
             %if it must be a valid sample, check then forward
             if ~valid_ || all(~isnan([s.x s.y]))
                 s.triggerTime = time_; %note the trigger time in addition to the sample time
-                log_('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+                log_('TRIGGER %s %s', func2str(fn_), struct2str(s));
                 fn_(s); %pretend it was triggered on the exact time
             end
         end

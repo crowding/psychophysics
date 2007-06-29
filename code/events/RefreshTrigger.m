@@ -26,7 +26,7 @@ this = autoobject(varargin{:});
             %if it must be a valid sample, check then forward
             if ~valid || all(~isnan([x y]))
                 s.triggerRefresh = refresh;
-                log('TRIGGER %s %s', func2str(fn),  'foo'); % struct2str(s));
+                log('TRIGGER %s %s', func2str(fn), struct2str(s));
                 fn(s);
             end
         end

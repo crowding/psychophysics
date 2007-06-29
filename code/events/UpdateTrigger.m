@@ -16,7 +16,7 @@ log_ = [];
     %methods
     function check(s)
         if set_
-            log_('TRIGGER %s %s', func2str(fn_), 'foo'); % struct2str(s));
+            log_('TRIGGER %s %s', func2str(fn_), struct2str(s));
             fn_(s); %call function always
         end
     end

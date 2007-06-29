@@ -1,4 +1,4 @@
-function this = mainLoop(graphics, triggers)
+function this = mainLoop(graphics, triggers, varargin)
 %function this = mainLoop(graphics, triggers)
 %
 %The main loop which controls presentation of a trial. There are three
@@ -24,7 +24,10 @@ if ~exist('triggers', 'var')
     triggers = {};
 end
 
-this = autoobject();
+keyboard = {};
+mouse = {};
+
+this = autoobject(varargin{:});
 
 %----- constructed objects -----
 
@@ -33,7 +36,7 @@ go_ = 0; % flags whether the main loop is running
 nt_ = 0;
 toDegrees_ = [];
 
-%java_ = psychusejava('jvm');
+java_ = psychusejava('jvm');
 
 %values used while running in the main loop
 
@@ -71,76 +74,115 @@ windowTop_ = 0;
         hitcount = 0;
         skipcount = 0;
         dontsync = params.dontsync;
-
+        frames = 1;
+        
         %for better speed in the loop, eschew struct access?
         log = params.log;
         window = params.window;
 
-        lastVBL = Screen('Flip', params.window);
+        VBL = Screen('Flip', params.window);
+        prevVBL = VBL - interval; %meaningles fakery
+        refresh = 1;    %the first refresh we draw is refresh 1.
+        
         %the main loop
-        while(1)
-            %before the change to structs, this line was 9.3% of the main
-            %loop.
-            %pushEvents(params, lastVBL + interval);
-            pushEvents(params, lastVBL + interval, hitcount+skipcount)
+        while(go_)
+            %The loop is: Draw, Update, run Events, and Flip.
+            %Draw happens right after Flip, to give as much time
+            %to the graphics card as possible. This minimizes frame
+            %skipping but has a downside:
+            %event handlers are preparing things for frame X+2 while frame
+            %X is at the display. It also takes one extra frame to recover
+            %from a drop.
             
-            if ~go_
-                break;
-            end
-
-            %check for the button press to quit (getChar is useless now!)
-            [x, y, buttons] = GetMouse();
-            if (buttons(1))
-                error('mainLoop:userCanceled', 'user escaped from main loop.');
-            end
-            %{
-            %check for the quit key
-            if java_
-                if CharAvail() && lower(GetChar()) == 'q'
-                    error('mainLoop:userCanceled', 'user escaped from main loop.');
-                end
-            end
-            %}
-
-            %draw all the objects
+            %-----Draw phase: Draw all the objects for the next refresh.
             for i = 1:ng
-                graphics(i).draw(window, lastVBL + interval);
+                graphics(i).draw(window, VBL + interval);
             end
+
+            Screen('DrawingFinished', window);
             
-            [VBL] = Screen('Flip', window, 0, 0, dontsync);
-            hitcount = hitcount + 1;
-
-            %count the number of frames advanced and do the
-            %appropriate number of drawing.update()s
+            %-----Update phase: 
+            %reacts to the difference in VBL times, and updates
+            %the number of refreshes.
             if (params.skipFrames)
-                frames = round((VBL - lastVBL) / interval);
-                skipcount = skipcount + frames - 1;
-                skipFrameCount = skipFrameCount + frames - 1;
+                steps = round((VBL - prevVBL) / interval);
+                skipcount = skipcount + steps - 1;
 
-                if frames > 1
-                    log('FRAME_SKIP %d %f %f', frames-1, lastVBL, VBL);
+                if steps > 1
+                    %The log entry notes that the refresh X, intended for
+                    %time T, was actually shown at refresh X', T'. Because 
+                    %we've already drawn the next frame, refresh (X+1, T+dt)
+                    %will probably be shown as the slot (X'+1, T'+dt). But
+                    %following that we will catch up and refresh
+                    %X'+2,t'+2dt should happen on schedule. (This is mostly
+                    %academic: before collecting data 
+                    %you will optimize your code until there are
+                    %no frame skips under normal conditions.
+                    log('FRAME_SKIP %d %d %f %f %d %d', steps-1, prevVBL, VBL);
                 end
 
-                if frames > 60
+                if steps > 60
                     error('mainLoop:drawingStuck', ...
                         'got stuck doing frame updates...');
                 end
             else
-                frames = 1;
+                %pretend there are not skips.
+                %TODO: be even more faking about this -- in the events and
+                %with the option to produce a quicktime rendering.
+                steps = 1;
+                
                 if params.slowmo
                     WaitSecs(params.slowmo);
                 end
             end
-
-            %update the graphics objects for having played a frame
+            
+            %tell each graphic object how far to step.
             for i = 1:ng
                 graphics(i).update(frames);
             end
 
-            lastVBL = VBL;
+            %Events phase:
+            %
+            %Having finished drawing this refresh, Starting with these
+            %Event handlers we are now working on the next
+            %refresh.
+            refresh = refresh + steps;
+
+            %We currently take events from eye movements, keyboard and the
+            %mouse; each event type calls up its own list of event checkers.
+            %This may be generalised to a variety of event sources.
+
+            %Eye movement events...
+            pushEvents(params, VBL + 2*interval, refresh)
+            
+            %Mouse events...
+            if ~isempty(mouse)
+                [m.x, m.y, m.buttons] = GetMouse();
+                m.t = GetSecs();
+                m.next = VBL + 2*interval;
+                m.refresh = refresh;
+                for i = mouse(:)'
+                    i.check(m);
+                end
+            end
+            
+            %Keyboard events...
+            if ~isempty(keyboard)
+                [k.keyIsDown, k.t, k.keyCode] = KbCheck();
+                k.next = VBL + 2*interval;
+                k.refresh = refresh;
+                for i = keyboard(:)'
+                    i.check(k);
+                end
+            end
+
+            %-----Flip phase: Flip the screen buffers and note the time at
+            %which the change occurred.
+            prevVBL = VBL;
+            VBL = Screen('Flip', params.window);
         end
-        log('FRAME_COUNT %d SKIPPED %d', hitcount, skipcount);
-        disp(sprintf('hit %d frames, skipped %d', hitcount, skipcount));
+        log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
+        disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
     end
 
     function stop(s)
@@ -248,7 +290,6 @@ windowTop_ = 0;
         %
         %See also require.
         
-        triggers = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
         i = currynamedargs(...
                 joinResource(...
                     @initLog...
@@ -262,7 +303,19 @@ windowTop_ = 0;
     function [release, params] = initLog(params)
         %now that we are starting an experiment, tell each trigger where to
         %log to.
+        triggers = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
+        keyboard = interface(struct('check', {}, 'setLog', {}), keyboard);
+        mouse = interface(struct('check', {}, 'setLog', {}), mouse);
+        
         for i = triggers(:)'
+            i.setLog(params.log);
+        end
+
+        for i = keyboard(:)'
+            i.setLog(params.log);
+        end
+
+        for i = mouse(:)'
             i.setLog(params.log);
         end
 
@@ -273,23 +326,12 @@ windowTop_ = 0;
     end
 
     function [release, params] = initVars(params)
-        release = @printSampleCounts;
+        release = @noop;
 
         toDegrees_ = transformToDegrees(params.cal);
-        
-        badSampleCount = 0;
-        missingSampleCount = 0;
-        goodSampleCount = 0;
-        skipFrameCount = 0;
-        
         rect = Screen('GlobalRect', params.window);
         windowLeft_ = rect(1);
         windowTop_ = rect(2);
-        
-        function printSampleCounts
-            disp(sprintf('%d good samples, %d bad, %d missing, %d frames skipped', ...
-                goodSampleCount, badSampleCount, missingSampleCount, skipFrameCount));
-        end
     end
 
 

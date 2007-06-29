@@ -12,7 +12,10 @@ function CircleInterpolation(varargin)
         g = CircleInterpolationTrialGenerator();
         while (g.hasNext())
             t = g.next(params);
-            t.run(params);
+            result = t.run(params);
+            if isfield(result, 'abort') && result.abort
+                break;
+            end
         end
     end
 end

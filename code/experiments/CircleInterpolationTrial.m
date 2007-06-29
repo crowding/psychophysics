@@ -21,14 +21,12 @@ phases = 0;
 n = 3;
 
 barGap = 1.5; %gap between inside and outside bars
-barLength = 1; %length of inside and outside bars
+barLength = 5; %length of inside and outside bars
 barWidth = 0.1; %width of bars
 barDuration = 1/30; %duration of bar presentation
 
 barPhase = dx/radius*2;
 barOnset = dt*2;
-
-simulate = 0;
 
 this = autoobject(varargin{:});
 
@@ -36,6 +34,14 @@ this = autoobject(varargin{:});
 
     function result = run(params)
         frameInterval = params.cal.interval;
+        
+        result = struct();
+
+        function stopExperiment(s)
+            main.stop();
+            result.abort = 1;
+        end
+
 
         motion = CircularMotionProcess ...
             ( 'radius', radius ...
@@ -70,14 +76,19 @@ this = autoobject(varargin{:});
 
         onset = 0;
 
+        keys = KeyDown();
+        keys.set('q', @stopExperiment);
+        
         main = mainLoop ...
             ( {sprites, fixation, insideBar, outsideBar} ...
             , {startTrigger, timer} ...
+            , 'keyboard', keys ...
             );
 
         params = main.go(params);
 
         %event handler functions
+        
         function start(s)
             startTrigger.unset();
             timer.set(s.refresh + 1/frameInterval, @showMotion);

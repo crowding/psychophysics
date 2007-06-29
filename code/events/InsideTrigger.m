@@ -15,7 +15,7 @@ this = final(@check, @draw, @set, @unset, @setLog, @getFn);
         if set_ && inRect(...
                 bounds_() + range_ .* [-1 -1 1 1] + [offset_, offset_],...
                 s.x, s.y)
-            log_('TRIGGER %s %s', func2str(fn_),  'foo'); % struct2str(s));
+            log_('TRIGGER %s %s', func2str(fn_), struct2str(s));
             fn_(s); %call function when eye is inside
         end
     end
