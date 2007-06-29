@@ -15,11 +15,12 @@ this = autoobject(varargin{:});
 
     function [release, params] = init(params)
         window_ = params.window;
-        degreesToPixels = transformToPixels(params.cal) * 2;
-        center_px_ = degreesToPixels([0 0]);
+        degreesToPixels = transformToPixels(params.cal);
+        center_ = degreesToPixels([0 0]);
+%        SetMouse(center_(1), center_(2), window_);
         
         %For the move distance all we need is a linear scaling
-        release = @unhide;
+        release = @noop;
     end
 
     function check(m)

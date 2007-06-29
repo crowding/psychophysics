@@ -73,8 +73,9 @@ this = autoobject(varargin{:});
         
         comparisonBar = FilledBar ...
             ( 'x', radius * cos(barPhase), 'y', -radius * sin(barPhase) ...
-            , 'length', barGap - 0.5, 'width', barWidth ...
+            , 'length', barGap - 2*barWidth, 'width', barWidth ...
             , 'angle', barPhase * 180 / pi ...
+            , 'color', params.whiteIndex ...
             );
 
         fixation = FilledDisk([0 0], 0.1, params.blackIndex, 'visible', 1);
@@ -91,7 +92,7 @@ this = autoobject(varargin{:});
         main = mainLoop ...
             ( {sprites, fixation, insideBar, outsideBar, comparisonBar} ...
             , {startTrigger, timer} ...
-            , 'keyboard', keydown ...
+            , 'keyboard', {keydown} ...
             , 'mouse', {mousedown, mousemove} ...
             );
 
@@ -101,25 +102,25 @@ this = autoobject(varargin{:});
         
         function start(s)
             startTrigger.unset();
-            timer.set(s.refresh + 1/frameInterval, @showMotion);
+            timer.set(@showMotion, s.refresh + 1/frameInterval);
         end
 
         function showMotion(s)
             sprites.setVisible(1, s.next); %onset recorded in the trigger.
-            timer.set(s.refresh + round(barOnset/frameInterval), @showBars);
+            timer.set(@showBars, s.refresh + round(barOnset/frameInterval));
         end
 
         function showBars(s)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
-            timer.set(s.triggerRefresh + round(barDuration/frameInterval), @hideBars);
+            timer.set(@hideBars, s.triggerRefresh + round(barDuration/frameInterval));
         end
 
         function hideBars(s)
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
 
-            timer.set(s.triggerRefresh + 1/frameInterval, @showComparison);
+            timer.set(@showComparison, s.triggerRefresh + 0.5/frameInterval);
         end
         
         function showComparison(s)
@@ -133,10 +134,17 @@ this = autoobject(varargin{:});
         end
         
         function moveComparisonBar(s)
-            %use the y-axis for now...
-            comparisonBar.setX();
-            comparisonBar.setY();
-            comparisonBar.setAngle()
+            %Project the mouse movement onto the vector tangent to the
+            %circle and move according to that distance.
+            thisPhase = barPhase + barOffset/radius;
+            move = - s.movex_deg * sin(thisPhase) - s.movey_deg * cos(thisPhase);
+            barOffset = barOffset + move;
+            
+            thisPhase = barPhase + barOffset/radius;
+            
+            comparisonBar.setX(radius * cos(thisPhase));
+            comparisonBar.setY(-radius * sin(thisPhase));
+            comparisonBar.setAngle(thisPhase * 180/pi);
         end
         
         function accept(s)
@@ -144,11 +152,14 @@ this = autoobject(varargin{:});
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
             fixation.setVisible(0);
-            
+          
+            mousemove.unset();
+            mousedown.unset();
             %TODO set the result
+            result.barOffset = barOffset;
             
             %push the blank frame to the screen, then stop
-            timer.set(s.refresh+1, main.stop);
+            timer.set(main.stop, s.refresh+1);
         end
     end
 end

@@ -32,7 +32,7 @@ this = autoobject(varargin{:});
         end
     end
 
-    function set(refresh_, fn_, valid_)
+    function set(fn_, refresh_, valid_)
         % function set([refresh, fn, [valid]])
         %
         % refresh:  the time after which to call 'fn'.
@@ -52,7 +52,7 @@ this = autoobject(varargin{:});
 
     function unset()
         % Inactivates the trigger.
-        set = 0;
+        isSet = 0;
     end
 
     function draw(window, toPixels)

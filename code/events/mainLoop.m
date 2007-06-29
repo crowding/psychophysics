@@ -36,8 +36,6 @@ go_ = 0; % flags whether the main loop is running
 nt_ = 0;
 toDegrees_ = [];
 
-java_ = psychusejava('jvm');
-
 %values used while running in the main loop
 
 badSampleCount = 0;
@@ -159,6 +157,7 @@ windowTop_ = 0;
             if ~isempty(mouse)
                 [m.x, m.y, m.buttons] = GetMouse();
                 m.t = GetSecs();
+                [m.x_deg, m.y_deg] = toDegrees_(m.x, m.y);
                 m.next = VBL + 2*interval;
                 m.refresh = refresh;
                 for i = mouse(:)'
@@ -303,9 +302,6 @@ windowTop_ = 0;
     function [release, params] = initLog(params)
         %now that we are starting an experiment, tell each trigger where to
         %log to.
-        triggers = interface(struct('check', {}, 'draw', {}, 'setLog', {}), triggers);
-        keyboard = interface(struct('check', {}, 'setLog', {}), keyboard);
-        mouse = interface(struct('check', {}, 'setLog', {}), mouse);
         
         for i = triggers(:)'
             i.setLog(params.log);
@@ -342,8 +338,12 @@ windowTop_ = 0;
         %the graphics %objects are released.
         %
         %See also require.
-        graphics = interface(struct('draw', {}, 'update', {}, 'init', {}), graphics);
-        init = currynamedargs(joinResource(graphics.init), varargin{:});
+        graphics = interface(struct('draw',  {}, 'update', {}, 'init',   {}), graphics);
+        triggers = interface(struct('check', {}, 'draw',   {}, 'setLog', {}), triggers);
+        keyboard = interface(struct('check', {}, 'setLog', {}, 'init',   {}), keyboard);
+        mouse    = interface(struct('check', {}, 'setLog', {}, 'init',   {}), mouse);
+        
+        init = currynamedargs(joinResource(graphics.init, keyboard.init, mouse.init), varargin{:});
     end
 
 

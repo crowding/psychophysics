@@ -1,14 +1,17 @@
 function this = MouseDown(varargin)
 %Mouse trigger fires when a mouse button is depressed.
 
-this = autoobject(varargin{:});
+log = @noop;
 fntable = {};
+
+this = autoobject(varargin{:});
 
 lastButtons_ = [];
 
+%------methods
     function [release, params] = init(params)
         [tmp1, tmp2, lastButtons_] = GetMouse(params.window);
-        fntable = cell(size(lastButtons));
+        fntable = cell(size(lastButtons_));
         release = @noop;
     end
 
@@ -18,6 +21,7 @@ lastButtons_ = [];
             m.buttonsDown = b;
             for i = fntable(b)
                 if ~isempty(i{1})
+                    log('MOUSE_DOWN %s %s', func2str(i{1}), struct2str(m));
                     i{1}(m);
                 end
             end
