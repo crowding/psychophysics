@@ -113,11 +113,11 @@ initializer = currynamedargs(initializer, varargin{:});
                 error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
             end
         end
+        HideCursor();
+        [release, details] = deal(@show, details);
         
-        [release, details] = deal(@noop, details);
-        
-        function noop
-            %nothing to undo
+        function show
+            ShowCursor()
         end
     end
 

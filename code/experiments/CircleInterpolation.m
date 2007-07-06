@@ -1,4 +1,4 @@
-function CircleInterpolation(varargin)
+function e = CircleInterpolation(varargin)
     params = struct...
         ( 'edfname',    '' ...
         , 'dummy',      1  ...
@@ -7,15 +7,5 @@ function CircleInterpolation(varargin)
         );
     params = namedargs(params, varargin{:});
     
-    require(setupEyelinkExperiment(params), @run)
-    function params = run(params)
-        g = CircleInterpolationTrialGenerator();
-        while (g.hasNext())
-            t = g.next(params);
-            result = t.run(params);
-            if isfield(result, 'abort') && result.abort
-                break;
-            end
-        end
-    end
+    e = Experiment('trials', CircleInterpolationTrialGenerator(), params);
 end

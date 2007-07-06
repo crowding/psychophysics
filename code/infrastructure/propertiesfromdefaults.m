@@ -10,7 +10,7 @@ function props = propertiesfromdefaults(defaults, extraname, varargin)
 
 defaults = namedargs(struct(extraname, struct()), defaults);
 [args, extras] = interface(defaults, namedargs(defaults,varargin{:}));
-args = namedargs(args, scalarstruct(extraname, extras));
+args = namedargs(args, struct(extraname, extras));
 
 arglist = struct2arglist(args);
 props = properties(arglist{:});

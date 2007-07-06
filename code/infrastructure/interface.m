@@ -35,8 +35,8 @@ function [out, extras] = interface(proto, in)
     
     if nargout >= 2
         extras = cell(size(in));
-        for i = i:numel(in);
-            extras{i} = rmfield(in{i}, fn)
+        for i = 1:numel(in);
+            extras{i} = rmfield(in{i}, fn);
         end
     end
 end

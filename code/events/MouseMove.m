@@ -17,10 +17,14 @@ this = autoobject(varargin{:});
         window_ = params.window;
         degreesToPixels = transformToPixels(params.cal);
         center_ = degreesToPixels([0 0]);
-%        SetMouse(center_(1), center_(2), window_);
+        SetMouse(center_(1), center_(2), window_);
+        HideCursor;
         
         %For the move distance all we need is a linear scaling
-        release = @noop;
+        release = @unhide;
+        function unhide
+            ShowCursor;
+        end
     end
 
     function check(m)

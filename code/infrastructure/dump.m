@@ -156,7 +156,8 @@ function dumpstr(prefix, str, printer)
 end
 
 function dumpobject(prefix, propmethod, printer)
-    for p = propmethod()'
+    props = propmethod();
+    for p = props(:)'
         %random debugging note: matlab will not show you the difference
         %in disp() between a char array and a singleton cell containing
         %a char array, even though the distinction ALWAYS MATTERS.

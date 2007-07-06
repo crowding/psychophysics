@@ -1,5 +1,4 @@
 function this = CircleInterpolationTrial(varargin)
-%TODO re-cast this in terms of number of refreshes seen.
 
 %A circular motion with multiple spokes is generated; it is played
 %for a short time and then a comaprison bar is flashed.
@@ -21,7 +20,7 @@ phases = 0;
 n = 3;
 
 barGap = 1.5; %gap between inside and outside bars
-barLength = 5; %length of inside and outside bars
+barLength = 3; %length of inside and outside bars
 barWidth = 0.1; %width of bars
 barDuration = 1/30; %duration of bar presentation
 
@@ -32,7 +31,7 @@ this = autoobject(varargin{:});
 
 %------ methods ------
 
-    function result = run(params)
+    function [params, result] = run(params)
         frameInterval = params.cal.interval;
         
         result = struct();
@@ -40,6 +39,8 @@ this = autoobject(varargin{:});
         function stopExperiment(s)
             main.stop();
             result.abort = 1;
+            result.responseDisplacement = NaN;
+            result.accepted = 0;
         end
 
 
@@ -96,7 +97,7 @@ this = autoobject(varargin{:});
             , 'mouse', {mousedown, mousemove} ...
             );
 
-        main.go(params);
+        params = main.go(params);
 
         %event handler functions
         
@@ -131,6 +132,7 @@ this = autoobject(varargin{:});
             timer.unset();
             mousemove.set(@moveComparisonBar);
             mousedown.set(@accept);
+            keydown.set(@decline, 'space');
         end
         
         function moveComparisonBar(s)
@@ -155,8 +157,24 @@ this = autoobject(varargin{:});
           
             mousemove.unset();
             mousedown.unset();
-            %TODO set the result
-            result.barOffset = barOffset;
+            
+            result.responseDisplacement = barOffset;
+            result.accepted = 1;
+            
+            %push the blank frame to the screen, then stop
+            timer.set(main.stop, s.refresh+1);
+        end
+        
+        function decline(s)
+            comparisonBar.setVisible(0);
+            insideBar.setVisible(0);
+            outsideBar.setVisible(0);
+            fixation.setVisible(0);
+            
+            mousemove.unset();
+            mousedown.unset();
+            result.barOffset = NaN;
+            result.accepted = 0;
             
             %push the blank frame to the screen, then stop
             timer.set(main.stop, s.refresh+1);

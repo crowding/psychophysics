@@ -120,7 +120,6 @@ this = Object(...
                 logEnclosed('EXPERIMENT_RUN %s', this.id),...
                 @doRun);
             
-            
             function params = doRun(params)
                 this.params = params; %to log initialization information
 
@@ -133,46 +132,45 @@ this = Object(...
                         trial = next(params);
                         
                         %handle keyboard exceptions here?
-                        require(initparams(params), logEnclosed('TRIAL %s', trial.getId()), @runTrial);
+                        %I forget why I needed ID. It isn't referenced in
+                        %the analysis I have.
+                        %require(initparams(params), logEnclosed('TRIAL %s', trial.getId()), @runTrial);
+                        result = require(initparams(params), logEnclosed('TRIAL'), @runTrial);
+                        if isfield(result, 'abort') && result.abort
+                            break;
+                        end
                     end
                 catch
                     e = lasterror; %we still want to store the trials done
                     this.err = e;
                 end
                    
-                function runTrial(params)
+                function result = runTrial(params)
+                    newParams = params;
                     try
-                        params = trial.run(params);
+                        [newParams, result] = trial.run(params);
                         
-                        %record aux. info the trial gave back to us
-                    
-                        %FIXME: BASTARD HACK
-                        %I believe I have a new scheme for parameter logging
-                        %that will solve this....
-                        %but for now we extract the fields that we KNOW the
-                        %trial gave back, so as not to record the
-                        %screen calibration data for each and every
-                        %trial...
-                        for i = {'clockoffset', 'clockoffsetmeasured', 'priority', 'oldpriority'};
-                            trial.params.(i{:}) = params.(i{:});
+                        %Strip out unchanging stuff form the trial
+                        %parameters.
+                        for i = fieldnames(newParams)'
+                            if isfield(params, i{1}) && isequalwithequalnans(newParams.(i{1}), params.(i{1}))
+                                newParams = rmfield(newParams, i{1});
+                            end
                         end
                         
                     catch
-                        trial.err = lasterror;
+                        result.err = lasterror;
                     end
                     
-                    %done = {trial done};
-                    %n = n + 1;
-
                     %no exception handling around dump: if there's a
                     %problem with dumping data, end the experiment,
                     %please
                     dump(trial, params.log);
+                    dump(newParams, params.log, 'params');
+                    dump(result, params.log)
 
-                    this.trials.result(trial);
+                    this.trials.result(trial, result);
                 end
-                
-                %trialsDone_ = flattenlinkedlist(done, n);
 
                 %finally dump information about this run
                 this.params = params;

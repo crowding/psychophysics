@@ -16,50 +16,7 @@ function this = autoobject(varargin)
     
     this = evalin('caller', this);
     this = this(@property__, @method__, getversion(2));
-    
-    %WTF matlab: there's no easy way to extract more than one field of a
-    %struct at a time. The best way I can come up with is
-    %cellfun-dependent:
-
-    %{
-    setters = cat(1, prop_names(:)', cellfun(@(x)this.(x), setters(:)', 'UniformOutput', 0));
-    setters = struct(setters{:});
-	getters = cat(1, prop_names(:)', cellfun(@(x)this.(x), getters(:)', 'UniformOutput', 0));
-    getters = struct(getters{:});
-    function value = property__(name, value)
-        switch(nargin)
-            case 0
-                value = prop_names;
-            case 1
-                if isfield(getters, name)
-                    value = getters.(name)();
-                else
-                    error('object:noSuchProperty', 'no such property %s', name);
-                end
-            case 2
-                if isfield(setters, name)
-                    setters.(name)(value);
-                else
-                    error('object:noSuchProperty', 'no such property %s', name);
-                end
-        end
-    end
-
-    function method = method__(name, value)
-        switch(nargin)
-            case 0
-                method = method_names;
-            case 1
-                method = this.(name);
-            case 2
-                %reverse translate method names, argh?
-                %y'know, it's getting to be a drag, this getter-setter
-                %distinction.
-                this.(name) = value;
-        end
-    end
-    %}
-    
+  
     %convert prop_names into a struct for speed in property access?
     doAssignments(varargin);
     
@@ -77,7 +34,7 @@ function this = autoobject(varargin)
             case 0
                 value = prop_names;
             case 1
-                if isfield(setters, name)
+                if strmatch(name, prop_names)
                     value = this.(getterName(name))();
                 else
                     error('object:noSuchProperty', 'no such property %s', name);
@@ -201,5 +158,49 @@ function this = autoobject(varargin)
         method_names = cat(1, getter_names(:), setter_names(:), method_names(:));
     end
 
-
 end
+
+    
+    %WTF matlab: there's no easy way to extract more than one field of a
+    %struct at a time. The best way I can come up with is
+    %cellfun-dependent:
+
+    %{
+    setters = cat(1, prop_names(:)', cellfun(@(x)this.(x), setters(:)', 'UniformOutput', 0));
+    setters = struct(setters{:});
+	getters = cat(1, prop_names(:)', cellfun(@(x)this.(x), getters(:)', 'UniformOutput', 0));
+    getters = struct(getters{:});
+    function value = property__(name, value)
+        switch(nargin)
+            case 0
+                value = prop_names;
+            case 1
+                if isfield(getters, name)
+                    value = getters.(name)();
+                else
+                    error('object:noSuchProperty', 'no such property %s', name);
+                end
+            case 2
+                if isfield(setters, name)
+                    setters.(name)(value);
+                else
+                    error('object:noSuchProperty', 'no such property %s', name);
+                end
+        end
+    end
+
+    function method = method__(name, value)
+        switch(nargin)
+            case 0
+                method = method_names;
+            case 1
+                method = this.(name);
+            case 2
+                %reverse translate method names, argh?
+                %y'know, it's getting to be a drag, this getter-setter
+                %distinction.
+                this.(name) = value;
+        end
+    end
+    %}
+  
