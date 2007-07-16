@@ -14,7 +14,7 @@ function this = DoubleSaccadeTrial(varargin)
         );
 
     onset = 0.5; %time to onset of stimulus after fixation is established
-    cue = 0.5; %default value gives 1 second of tracking
+    cue = 1.0; %default value gives 1 second of tracking
 
     %the origin
     %basic randomization (do this in the trial generator for reals.)
@@ -90,7 +90,6 @@ function this = DoubleSaccadeTrial(varargin)
         averagedFixation = [0 0];
 
         function awaitFixation(s)
-            
             fixationSamples = 0;
             fixationTotal = [0 0];
             in.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @settleFixation);
@@ -104,7 +103,8 @@ function this = DoubleSaccadeTrial(varargin)
             in.unset();
             out.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @awaitFixation);
             timer1.set(@averageFixation ...
-                , s.refresh + round(fixationSettleTime / interval));
+                , s.refresh + round(fixationSettleTime / interval)
+                , 1);
             timer2.set(@beginTrial ...
                 , s.refresh + round((fixationSettleTime + fixationAverageTime) / interval) );
         end
@@ -122,7 +122,7 @@ function this = DoubleSaccadeTrial(varargin)
             sprites1.setVisible(1);
             sprites2.setVisible(1); %onset is counted from now...
 
-            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation, @awaitFixation);
+            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation, @failed);
             timer1.set(@cueSaccade, s.refresh + round(cue / interval));
             timer2.unset();
         end
@@ -136,7 +136,7 @@ function this = DoubleSaccadeTrial(varargin)
             jump = (where - l);
             jump = jump / norm(jump) * cueJump;
             fixationPoint.setLoc(l + jump);
-            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation - jump, @saccadeTransit1);
+            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation - jump, @saccadeTransit1, 0);
             timer1.set(@failed, s.refresh + round(saccadeMaxLatency / interval) );
             timer2.set(@fixationOff, s.refresh + round(cueJumpDuration / interval) );
         end
@@ -165,7 +165,7 @@ function this = DoubleSaccadeTrial(varargin)
             sprites2.setDrawn(1);
             in.unset();
             timer1.set(@done, s.refresh + round(saccadeTrackDuration/interval));
-            out.set(sprites2.bounds, targetWindow, [0 0], @failed);
+            out.set(sprites2.bounds, targetWindow, [0 0], @failed, 1);
         end
            
         function failed(s)
