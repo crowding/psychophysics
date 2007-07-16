@@ -1,6 +1,6 @@
 function this = InsideTrigger(bounds_, range_, offset_, fn_)
 %An object that fires a trigger when x and y are inside the bounds of a
-%graphics 
+%graphics object.
 if nargin == 4
     set_ = 1;
 else
@@ -34,8 +34,11 @@ this = final(@check, @draw, @set, @unset, @setLog, @getFn);
 
     function draw(window, toPixels)
         if set_
+            bounds = bounds_();
             Screen('FrameRect', window, [0 255 0],...
-                toPixels(bounds_() + range_ .*[-1 -1 1 1] + [offset_, offset_]));
+                toPixels(bounds + range_ .*[-1 -1 1 1] + [offset_, offset_]));
+            ll = toPixels(bounds([1 4]) + range_ .* [-1 1] + offset_);
+            Screen('DrawText', window, func2str(fn_), ll(1), ll(2), [0 255 0], 0);
         end
     end
 

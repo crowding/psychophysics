@@ -56,16 +56,16 @@ toPixels_ = [];
         visible = v;
     end
 
-%manually declare accessors, for speed inside the function.
-%{
-function l = getLoc
-        l = loc_;
+    function l = getLoc
+        l = loc;
     end
 
     function l = setLoc(l)
-        loc_ = l;
+        loc = l;
     end
 
+%manually declare accessors, for speed inside the function.
+%{
     function r = getRadius
         r = radius_;
     end

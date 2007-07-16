@@ -16,10 +16,11 @@ function this = SpritePlayer(patch_, process_, log_)
 % actual, based on the pixel and time grid) is counted.
 
 this = final(...
-        @init, @update, @draw, ...
-        @bounds, @getVisible, @setVisible, @finishTime);
+        @init, @update, @draw, @bounds, ...
+        @getVisible, @setVisible, @getDrawn, @setDrawn, @finishTime);
 
-visible_ = 0;
+visible_ = 0; % a misnomer: setting visible means "start playing"
+drawn_ = 1; %by default, is drawn.
 prepared_ = 0;
 
 toPixels_ = [];
@@ -91,10 +92,6 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             glEnableClientState(GL.TEXTURE_COORD_ARRAY);
             glEnableClientState(GL.VERTEX_ARRAY);
             glEnableClientState(GL.COLOR_ARRAY);
-            
-            glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
-            glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
-            glColorPointer( 3, GL.DOUBLE, 0, colors_);
         end
         
         function release()
@@ -226,6 +223,10 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             l2 = 1; r2 = head_ - 1;
         end
 
+        if ~drawn_
+            return;
+        end
+        
         %look up the texture coordinates to use.
         texvertices_(:,[l1:r1 l2:r2]) = from_coords_(:, refreshCount_ + 1 - refreshes_([l1:r1 l2:r2]));
 
@@ -235,6 +236,10 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         Screen('BeginOpenGL', window);
 
         %draw first the added textures, then the subtracted
+        glTexCoordPointer( 2, GL.DOUBLE, 0, texvertices_ );
+        glVertexPointer( 2, GL.DOUBLE, 0, screenvertices_ );
+        glColorPointer( 3, GL.DOUBLE, 0, colors_);
+        
         glBindTexture(GL.TEXTURE_2D,addtex_);
         glBlendEquation(GL.FUNC_ADD);
         glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
@@ -246,12 +251,6 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
         glFlush();
         Screen('EndOpenGL', window);
-    end
-
-    function b = bounds()
-        %Give something meaningful. How about the bounds as reported by
-        %the motion process, as a function of time.
-        b = process_.bounds(refreshCount_ * interval_);
     end
 
     function v = getVisible()
@@ -269,16 +268,36 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         visible_ = v;
         
         if v
-            %start at the first frame
+            %starts at the first frame -- should already be initialized to
+            %do so
             %(update is called after draw; first frame shown
             %should be the first frame) -- this is checked using PixelTest.
-            refreshCount_ = 0;
-            head_ = max_sprites_; %matlab 1-based index to where the newest IS.
-            tail_ = max_sprites_; %matlab 1-based index to where the oldest WAS.
-            
             if nargin >= 2 %bah, 'exist' takes too long.
                 stimOnset = next;
             end
+        else
+            %reset to show at the next appearance.
+            
+            head_ = max_sprites_; %matlab 1-based index to where the newest IS.
+            tail_ = max_sprites_; %matlab 1-based index to where the oldest WAS.
+            advanceQueue();
+            refreshCount_ = 0;
         end
     end
+
+    function setDrawn(s);
+        drawn_ = s;
+    end
+
+    function d = getDrawn()
+        d = drawn_;
+    end
+
+    function b = bounds()
+        %ask the process for a "bounds" based on what refresh count we're
+        %on. This depends on whether the motion process has a notion of
+        %bounds.
+        b = process_.bounds(refreshCount_ * interval_);
+    end
+    
 end

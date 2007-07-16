@@ -15,7 +15,7 @@ defaults_ = struct...
     ( 'log', @noop ...
     , 'skipFrames', 1 ...
     , 'dontsync', 0 ...
-    , 'slowmo', 0 );
+    , 'slowdown', 1 );
 
 if ~exist('graphics', 'var')
     graphics = {};
@@ -73,13 +73,14 @@ windowTop_ = 0;
         skipcount = 0;
         dontsync = params.dontsync;
         frames = 1;
+        slowdown = params.slowdown;
         
         %for better speed in the loop, eschew struct access?
         log = params.log;
         window = params.window;
 
-        VBL = Screen('Flip', params.window);
-        prevVBL = VBL - interval; %meaningles fakery
+        VBL = Screen('Flip', params.window) / slowdown;
+        prevVBL = VBL - interval; %meaningless fakery
         refresh = 1;    %the first refresh we draw is refresh 1.
         
         %the main loop
@@ -128,10 +129,6 @@ windowTop_ = 0;
                 %TODO: be even more faking about this -- in the events and
                 %with the option to produce a quicktime rendering.
                 steps = 1;
-                
-                if params.slowmo
-                    WaitSecs(params.slowmo);
-                end
             end
             
             %tell each graphic object how far to step.
@@ -156,7 +153,7 @@ windowTop_ = 0;
             %Mouse events...
             if ~isempty(mouse)
                 [m.x, m.y, m.buttons] = GetMouse();
-                m.t = GetSecs();
+                m.t = GetSecs() / slowdown;
                 [m.x_deg, m.y_deg] = toDegrees_(m.x, m.y);
                 m.next = VBL + 2*interval;
                 m.refresh = refresh;
@@ -168,6 +165,7 @@ windowTop_ = 0;
             %Keyboard events...
             if ~isempty(keyboard)
                 [k.keyIsDown, k.t, k.keyCode] = KbCheck();
+                k.t = k.t / slowdown;
                 k.next = VBL + 2*interval;
                 k.refresh = refresh;
                 for i = keyboard(:)'
@@ -178,7 +176,7 @@ windowTop_ = 0;
             %-----Flip phase: Flip the screen buffers and note the time at
             %which the change occurred.
             prevVBL = VBL;
-            VBL = Screen('Flip', params.window);
+            VBL = Screen('Flip', params.window, (VBL + interval) * slowdown - interval/2) / slowdown;
         end
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
@@ -221,7 +219,7 @@ windowTop_ = 0;
         %send the sample to each trigger and the triggers will fire if they
         %match.
 
-        for i = 1:nt_
+        for i = 1:numel(triggers)
             triggers(i).check(s);
         end
     end
@@ -236,7 +234,7 @@ windowTop_ = 0;
             x = x - windowLeft_;
             y = y - windowTop_;
             
-            t = GetSecs();
+            t = GetSecs() / params.slowdown;
             if any(buttons) %simulate blinking
                 x = NaN;
                 y = NaN;
@@ -249,7 +247,7 @@ windowTop_ = 0;
             if Eyelink('NewFloatSampleAvailable') == 0;
                 x = NaN;
                 y = NaN;
-                t = GetSecs();
+                t = GetSecs() / params.slowdown;
                 missingSampleCount = missingSampleCount + 1;
             else
                 % Probably don't need to do this eyeAvailable check every
@@ -276,7 +274,7 @@ windowTop_ = 0;
                     goodSampleCount = goodSampleCount + 1;
                 end
 
-                t = (sample.time - params.clockoffset) / 1000;
+                t = (sample.time - params.clockoffset) / 1000 / params.slowdown;
             end
         end
     end

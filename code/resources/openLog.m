@@ -2,12 +2,12 @@ function init = openLog(varargin)
 %produces a log file initializer.
 [tempdir, filename] = fileparts(tempname());;
 
-defaults = struct('logfile', filename);
+defaults = struct('logfile', filename, 'log', []);
 
 init = currynamedargs(@initLog, defaults, varargin{:});
 
     function [release, params] = initLog(params)
-        if ~isempty(params.logfile)
+        if ~isempty(params.logfile) && isempty(params.log)
             fname = fullfile(env('datadir'), params.logfile);
             file_ = fopen(fname, 'a');
             if (file_ <= 0)
@@ -17,7 +17,9 @@ init = currynamedargs(@initLog, defaults, varargin{:});
             file_ = -1;
         end
         
-        params.log = @logMessage;
+        if isempty(params.log)
+            params.log = @logMessage;
+        end
         
         %test line breaking (FIXME: should be a unit test)
         %logMessage([repmat('1234567890', 1, 22) '12']);

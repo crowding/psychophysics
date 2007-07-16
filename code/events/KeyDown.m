@@ -1,4 +1,4 @@
-function this = KeyPress(varargin);
+function this = KeyDown(fn, char, varargin);
 %Reacts to keys being pressed down.
 last_ = false(size(getOutput(3, @kbCheck)));
 
@@ -7,6 +7,10 @@ evtable = cell(size(last_));
 log = @noop;
 
 this = autoobject(varargin{:});
+
+if nargin >= 2
+    set(fn, char);
+end
 
 %------methods------
 
@@ -48,6 +52,8 @@ this = autoobject(varargin{:});
                 evtable{KbName(char)} = deal(fn);
             elseif isnumeric(char)
                 evtable{char} = deal(fn);
+            else
+                error('KeyDown:badarg', 'bad argument');
             end
         else
             [evtable{:}] = deal(fn);

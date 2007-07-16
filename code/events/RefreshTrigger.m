@@ -5,6 +5,7 @@ function this = RefreshTrigger(varargin)
 
 isSet = 0;
 refresh = 0;
+last = 0;
 valid = 0;
 fn = @noop;
 log = @noop;
@@ -22,6 +23,7 @@ this = autoobject(varargin{:});
         % If the requested time has been exceeded, calls the trigger
         % function, but gives the trigger function the requested time, not
         % the actual time.
+        last = s.refresh;
         if isSet && (s.refresh >= refresh)
             %if it must be a valid sample, check then forward
             if ~valid || all(~isnan([x y]))
@@ -61,9 +63,9 @@ this = autoobject(varargin{:});
         %
         % window: the window number.
         % toPixels: a transform from degrees to pixels
-        if set_
+        if isSet
             t = refresh;
-            Screen('DrawText', window, sprintf('%d', t), 20, 20, [0 255 0] );
+            Screen('DrawText', window, sprintf('%d %s', t - last, func2str(fn)), 20, 20, [0 255 0] );
         end
     end
         

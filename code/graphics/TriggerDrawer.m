@@ -1,10 +1,13 @@
-function this = TriggerDrawer()
+function this = TriggerDrawer(main_)
+%function this = TriggerDrawer(main_)
+%
+%Draws the triggers.
+%Make sure to call set() after creation to point it mack to the main loop.
 
 this = final(@draw, @getVisible, @setVisible, @update, @init, @set);
 
     visible_ = 0;
     toPixels_ = [];
-    main_ = [];
 
     function draw(window, next)
         if visible_

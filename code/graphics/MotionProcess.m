@@ -1,8 +1,8 @@
 function this = MotionProcess(bounds_, dx_, dt_, n_, delay_, tau_, color_)
-
-    %every so often (interval exponentially distributed governed by tau)
-    %the motion process generates a moving object within the specified
-    %bounds. THe object moves in a random direction, at some speed.
+%function this = MotionProcess(bounds_, dx_, dt_, n_, delay_, tau_, color_)
+%every so often (interval exponentially distributed governed by tau)
+%the motion process generates a moving object within the specified
+%bounds. THe object moves in a random direction, at some speed.
 
     this = final...
         ( @next ...

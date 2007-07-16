@@ -20,6 +20,7 @@ defaults = namedargs(...
     ,'description', ''...
     ,'caller', caller...
     ,'params.logfile', '__auto__'...
+    ,'params.hideCursor', 1 ...
     );
 
 %note the Experiment object is not dumped to the edf-file, only the
@@ -31,7 +32,14 @@ this = Object(...
     , public(@run)...
     );
 
-    function run
+    function run(params)
+        if exist('params', 'var')
+            params = namedargs(this.params, params);
+            this.params = params;
+        else
+            params = this.params;
+        end
+        
         if isempty(this.subject)
             this.subject = input('Enter subject initials: ', 's');
         end
@@ -51,14 +59,15 @@ this = Object(...
                 this.subject, floor(clock), fname);
         end
 
-        if isequal(this.params.logfile, '__auto__')
+        if isequal(params.logfile, '__auto__')
             this.params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
         end
+        
 
         %TODO: perhaps see if there's a per-subject config?
 
         %an total experiment can have many runs. Each run will be saved.
-        theRun = ExperimentRun(this.params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
+        theRun = ExperimentRun(params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
         e = [];
         try
             theRun.run();
@@ -109,7 +118,10 @@ this = Object(...
             done = trialsDone_;
         end
 
-        function run()
+        function run(params)
+            if exist('params', 'var');
+                this.params = namedargs(this.params, params);
+            end
             this.startDate = clock();
 
             %experimentRun params get to know information about the
@@ -139,6 +151,9 @@ this = Object(...
                         if isfield(result, 'abort') && result.abort
                             break;
                         end
+                        if isfield(result, 'err') && ~isempty(result.err);
+                            rethrow(result.err);
+                        end
                     end
                 catch
                     e = lasterror; %we still want to store the trials done
@@ -150,7 +165,7 @@ this = Object(...
                     try
                         [newParams, result] = trial.run(params);
                         
-                        %Strip out unchanging stuff form the trial
+                        %Strip out unchanging stuff from the trial
                         %parameters.
                         for i = fieldnames(newParams)'
                             if isfield(params, i{1}) && isequalwithequalnans(newParams.(i{1}), params.(i{1}))
@@ -159,7 +174,8 @@ this = Object(...
                         end
                         
                     catch
-                        result.err = lasterror;
+                        e = lasterror;
+                        result.err = e;
                     end
                     
                     %no exception handling around dump: if there's a

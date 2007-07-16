@@ -29,7 +29,7 @@ else
         %FIXME: weird-zero-size-arrays
 
         ncols = size(mat, 2);
-        if(ncols > 1)
+        if(size(mat, 1) > 1)
             spaceix = find(m == ' ');
             m(spaceix(ncols:ncols:end-1)) = ';';
         end
