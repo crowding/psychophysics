@@ -35,8 +35,8 @@ function i = getswitchbox(varargin)
         function [r, params] = init(params)
             params = namedargs(defaults, params);
             
-            machine = getresponse(params, 61, 1, 0);
-            version = getresponse(params, 61, 3, 0);
+            machine = getresponse(params, 61, 1, 0)
+            version = getresponse(params, 61, 3, 0)
             
             if ~(issame(machine, [61, 0, 44]) && issame(version, [61, 1, 0]))
                 error('switchscreen:serial', 'no serial device, or wrong serial device');
@@ -47,7 +47,7 @@ function i = getswitchbox(varargin)
             %functions to switch to/from the desired screen
             params.switchin = @switchin;
             params.switchout = @switchout;
-
+            
             r = @noop;
             
             function switchin()
