@@ -16,10 +16,6 @@ if (exist(toolbox, 'dir') == 7)
    addpath(cleanpath(genpath(toolbox)));
 end
 
-[s, w] = system('hostname');
-if strfind(w, 'pastorianus')
-    addpath('/Users/peterm/work/eyetracking/trunk/switchbox/shadow', '/Users/peterm/work/eyetracking/trunk/switchbox');
-end
 
 %and then run the per-user config script
 if (exist(startupfile, 'file') == 2) || (exist(startupfile, 'file') == 6) 
@@ -33,6 +29,11 @@ if (exist(startupfile, 'file') == 2) || (exist(startupfile, 'file') == 6)
        %initial directory
        cd(olddir);
    end
+end
+
+[s, w] = system('hostname');
+if strfind(w, 'pastorianus')
+    addpath('/Users/peterm/work/eyetracking/trunk/switchbox/shadow', '/Users/peterm/work/eyetracking/trunk/switchbox');
 end
 
 function p = cleanpath(p)

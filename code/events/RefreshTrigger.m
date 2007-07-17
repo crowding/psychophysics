@@ -26,7 +26,7 @@ this = autoobject(varargin{:});
         last = s.refresh;
         if isSet && (s.refresh >= refresh)
             %if it must be a valid sample, check then forward
-            if ~valid || all(~isnan([x y]))
+            if ~valid || all(~isnan([s.x s.y]))
                 s.triggerRefresh = refresh;
                 log('TRIGGER %s %s', func2str(fn), struct2str(s));
                 fn(s);

@@ -72,7 +72,6 @@ windowTop_ = 0;
         hitcount = 0;
         skipcount = 0;
         dontsync = params.dontsync;
-        frames = 1;
         slowdown = params.slowdown;
         
         %for better speed in the loop, eschew struct access?
@@ -133,7 +132,7 @@ windowTop_ = 0;
             
             %tell each graphic object how far to step.
             for i = 1:ng
-                graphics(i).update(frames);
+                graphics(i).update(steps);
             end
 
             %Events phase:

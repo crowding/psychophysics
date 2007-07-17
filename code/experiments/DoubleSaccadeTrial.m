@@ -14,7 +14,7 @@ function this = DoubleSaccadeTrial(varargin)
         );
 
     onset = 0.5; %time to onset of stimulus after fixation is established
-    cue = 1.0; %default value gives 1 second of tracking
+    cue = 1.25; %default value gives 1 second of tracking
 
     %the origin
     %basic randomization (do this in the trial generator for reals.)
@@ -22,16 +22,16 @@ function this = DoubleSaccadeTrial(varargin)
     %apart on the circle.
 
     dir1_ = rand() * 360;
-    dir2_ = dir1_ + 180 + (rand()-0.5)*180;
+    dir2_ = dir1_ + 180 + (rand()-0.5)*90;
     radius_ = 10;
     
-    angle1 = rand()*360;
-    angle2 = rand()*360;
+    angle1 = dir1_ + sign(rand() - 0.5)*90;
+    angle2 = dir2_ + sign(rand() - 0.5)*90;
     
     origin1 = [cos(dir1_ * pi/180) -sin(dir1_ *pi/180)] * radius_;
     origin2 = [cos(dir2_ * pi/180) -sin(dir2_ *pi/180)] * radius_;
-    origin1 = origin1 - (dx/dt) * (onset-cue) * [cos(angle1*pi/180) -sin(angle1*pi/180)];
-    origin2 = origin2 - (dx/dt) * (onset-cue) * [cos(angle2*pi/180) -sin(angle2*pi/180)];
+    origin1 = origin1 - (dx/dt) * (cue-onset) * [cos(angle1*pi/180) -sin(angle1*pi/180)];
+    origin2 = origin2 - (dx/dt) * (cue-onset) * [cos(angle2*pi/180) -sin(angle2*pi/180)];
         
     complementary1 = round(rand);
     complementary2 = round(rand);
@@ -39,17 +39,24 @@ function this = DoubleSaccadeTrial(varargin)
     %basic randomization of origin
     
     %eye tracking parameters
-    fixationSettleTime = 0.050;
+    fixationSettleTime = 0.35;
     fixationAverageTime = 0.1;
-    coarseFixationWindow = 2;
-    fineFixationWindow = 0.5;
-    targetWindow = 3;
+    coarseFixationWindow = 3;
+    fineFixationWindow = 1.5; %why must it be so large?
+    targetWindow1 = 3;
+    targetWindow2 = 5;
     cueJump = 1;
-    cueJumpDuration = 0.05;
-    saccadeMaxLatency = 0.3;
+    cueJumpDuration = 0.1;
+    saccadeMaxLatency = 0.5;
     saccadeMaxTransit1 = 0.3;
     saccadeMaxTransit2 = 0.4;
-    saccadeTrackDuration = 0.3;
+    saccadeTrackDuration = 0.5;
+    
+    successTones = [750 0.05 0 750 0.2 0.9]
+    successSound_ = tones(successTones);
+    
+    failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3)
+    failureSound_ = tones(failureTones);
     
     this = autoobject(varargin{:});
     
@@ -103,7 +110,7 @@ function this = DoubleSaccadeTrial(varargin)
             in.unset();
             out.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @awaitFixation);
             timer1.set(@averageFixation ...
-                , s.refresh + round(fixationSettleTime / interval)
+                , s.refresh + round(fixationSettleTime / interval) ...
                 , 1);
             timer2.set(@beginTrial ...
                 , s.refresh + round((fixationSettleTime + fixationAverageTime) / interval) );
@@ -136,9 +143,12 @@ function this = DoubleSaccadeTrial(varargin)
             jump = (where - l);
             jump = jump / norm(jump) * cueJump;
             fixationPoint.setLoc(l + jump);
-            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation - jump, @saccadeTransit1, 0);
+            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation - jump, @saccadeTransit1);
             timer1.set(@failed, s.refresh + round(saccadeMaxLatency / interval) );
             timer2.set(@fixationOff, s.refresh + round(cueJumpDuration / interval) );
+            %hide the visual stimuli, await the saccades
+            sprites1.setDrawn(0);
+            sprites2.setDrawn(0);
         end
 
         function fixationOff(s)
@@ -147,10 +157,10 @@ function this = DoubleSaccadeTrial(varargin)
         end
 
         function saccadeTransit1(s)
-            %hide the visual stimuli, await the destination
-            sprites1.setDrawn(0);
-            sprites2.setDrawn(0);
-            in.set(sprites1.bounds, targetWindow, [0 0], @saccadeTransit2);
+            
+            %sprites1.setDrawn(0);
+            %sprites2.setDrawn(0);
+            in.set(sprites1.bounds, targetWindow1, averagedFixation, @saccadeTransit2);
             out.unset();
             timer1.set(@failed, s.refresh + round(saccadeMaxTransit1/interval));
         end
@@ -158,24 +168,26 @@ function this = DoubleSaccadeTrial(varargin)
         function saccadeTransit2(s)
             sprites1.setDrawn(1);
             timer1.set(@failed, s.refresh + round(saccadeMaxTransit2/interval));
-            in.set(sprites2.bounds, targetWindow, [0 0], @saccadeTransitDone);
+            in.set(sprites2.bounds, targetWindow2, averagedFixation, @saccadeTransitDone);
         end
         
         function saccadeTransitDone(s)
             sprites2.setDrawn(1);
             in.unset();
             timer1.set(@done, s.refresh + round(saccadeTrackDuration/interval));
-            out.set(sprites2.bounds, targetWindow, [0 0], @failed, 1);
+            out.set(sprites2.bounds, targetWindow2, averagedFixation, @failed);
         end
            
         function failed(s)
             %FAIL
             stop(s);
+            play(failureSound_);
         end
 
         function done(s)
             %WIN
             result.success = 1;
+            play(successSound_);
             stop(s);
         end
 

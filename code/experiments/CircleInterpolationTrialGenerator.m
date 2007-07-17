@@ -6,8 +6,8 @@ function this = CircleInterpolationTrialGenerator(varargin)
     dx = 0.75;
     dt = 0.15;
     nStations = 5;
-    onsetAsynchronies = linspace(-5/9 * dt, 13/9*dt, 10); %default value.
-    flashDisplacements = linspace( -dx, 2*dx, 10 ); %default value.
+    onsetAsynchronies = linspace(0, 2*dt, 10); %default value.
+    flashDisplacements = linspace( -dx/2, 2.5*dx, 10 ); %default value.
     
     patch = CauchyPatch...
         ( 'velocity', 5 ...
