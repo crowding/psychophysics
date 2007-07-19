@@ -46,6 +46,9 @@ initializer = currynamedargs(initializer, varargin{:});
             catch
                 %There is no rhyme or reason as to why eyelink throws
                 %an error and not a status code here
+                status = -1;
+            end
+            if (status < 0)
                 warning('GetEyelink:dummyMode', 'Using eyelink in dummy mode');
                 status = Eyelink('InitializeDummy');
                 details.dummy = 1;
@@ -56,18 +59,20 @@ initializer = currynamedargs(initializer, varargin{:});
             else
                 status = Eyelink('Initialize');
             end
+            if status < 0
+                error('getEyelink:initFailed',...
+                    'Initialization status %d', status);
+            end
         end
-                
+
         
-        if status < 0
-            error('getEyelink:initFailed',...
-                'Initialization status %d', status);
-        end
 
         release = @close;
         
         function close
-            Eyelink('Shutdown'); %no output argument
+            if (status >= 0)
+                Eyelink('Shutdown'); %no output argument
+            end
         end
     end
 

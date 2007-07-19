@@ -1,6 +1,6 @@
 function this = KeyDown(fn, char, varargin);
 %Reacts to keys being pressed down.
-last_ = false(size(getOutput(3, @kbCheck)));
+last_ = false(size(getOutput(3, @KbCheck)));
 
 evtable = cell(size(last_));
 

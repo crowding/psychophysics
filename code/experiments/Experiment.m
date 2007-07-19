@@ -23,6 +23,45 @@ defaults = namedargs(...
     ,'params.hideCursor', 1 ...
     );
 
+params = namedargs(defaults, varargin{:}); %htis is only used for the file check
+
+if isempty(params.subject)
+    params.subject = input('Enter subject initials: ', 's');
+end
+
+if ~isvarname(params.subject)
+    error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
+end
+
+%if there is a previous unfinished experiment, load it.
+pattern = [params.subject '*' params.caller.function '.mat'];
+last = dir(fullfile(env('datadir'),pattern));
+if ~isempty(last) && (~isfield(params, 'continue') || params.continue)
+    last = last(end).name;
+    disp (['checking last saved file... ' last]);
+    x = load(fullfile(env('datadir'), last));
+
+    if isfield(x.this, 'beginBlock')
+        x.this.beginBlock();
+
+        if x.this.hasNext()
+            if ~isfield(params, 'continue');
+                answer = '';
+                while (~strcmp(answer,'n') || ~strcmp(answer,'y'))
+                    answer = input('Continue last session?', 's');
+                end
+                params.continue = strcmp(answer, 'y');
+                defaults.continue = defaults.continue;
+            end
+            if (params.continue)
+                this = x.this; %the block is begun...
+                return;
+            end
+        end
+    end
+    x = [];
+end
+
 %note the Experiment object is not dumped to the edf-file, only the
 %ExperimentRun object.
 
@@ -31,7 +70,7 @@ this = Object(...
     , propertiesfromdefaults(defaults, 'params', varargin{:})...
     , public(@run)...
     );
-
+    
     function run(params)
         if exist('params', 'var')
             params = namedargs(this.params, params);
@@ -39,15 +78,11 @@ this = Object(...
         else
             params = this.params;
         end
+
+        if isfield(this.trials, 'startBlock')
+            this.trials.startBlock(); %IT ARE BEING CALLD TWICE IF CONTINUED
+        end
         
-        if isempty(this.subject)
-            this.subject = input('Enter subject initials: ', 's');
-        end
-
-        if ~isvarname(this.subject)
-            error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
-        end
-
         if isequal(this.filename, '__auto__')
             fname = this.caller.function;
             if ~isvarname(fname)
@@ -63,11 +98,10 @@ this = Object(...
             this.params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
         end
         
-
         %TODO: perhaps see if there's a per-subject config?
 
         %an total experiment can have many runs. Each run will be saved.
-        theRun = ExperimentRun(params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
+        theRun = ExperimentRun(this.params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
         e = [];
         try
             theRun.run();
