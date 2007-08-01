@@ -36,7 +36,7 @@ end
 %if there is a previous unfinished experiment, load it.
 pattern = [params.subject '*' params.caller.function '.mat'];
 last = dir(fullfile(env('datadir'),pattern));
-if ~isempty(last) && (~isfield(params, 'continue') || params.continue)
+if ~isempty(last) && (~isfield(params, 'continuing') || params.continuing)
     last = last(end).name;
     disp (['checking last saved file... ' last]);
     x = load(fullfile(env('datadir'), last));
@@ -45,15 +45,15 @@ if ~isempty(last) && (~isfield(params, 'continue') || params.continue)
         x.this.beginBlock();
 
         if x.this.hasNext()
-            if ~isfield(params, 'continue');
+            if ~isfield(params, 'continuing');
                 answer = '';
                 while (~strcmp(answer,'n') || ~strcmp(answer,'y'))
                     answer = input('Continue last session?', 's');
                 end
-                params.continue = strcmp(answer, 'y');
-                defaults.continue = defaults.continue;
+                params.continuing = strcmp(answer, 'y');
+                defaults.continuing = defaults.continuing;
             end
-            if (params.continue)
+            if (params.continuing)
                 this = x.this; %the block is begun...
                 return;
             end
@@ -104,9 +104,18 @@ this = Object(...
         theRun = ExperimentRun(this.params, 'trials', this.trials, 'subject', this.subject, 'description', this.description, 'caller', this.caller);
         e = [];
         try
-            theRun.run();
+            [stat, host] = system('hostname');
+            if strfind(host, 'pastorianus')
+                switchscreen('videoIn', 2, 'videoOut', 1, 'immediate', 1);
+                theRun.run();
+            else
+                theRun.run();
+            end
         catch
             theRun.err = lasterror;
+            if strfind(host, 'pastorianus')
+                switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
+            end
         end
         
         this.runs{end+1} = theRun;

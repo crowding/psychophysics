@@ -4,12 +4,18 @@ function i = switchscreen(varargin)
     params = struct ...
         ( 'videoOut', 1 ...
         , 'videoIn', 1 ...
+        , 'immediate', 0 ...
         , 'port', 2 ...
         , 'portconfig', '9600,n,8,1' ...
         , 'machineNumber', 1 ...
         );
     
     params = namedargs(params, varargin{:});
+    
+    if(params.immediate)
+        require(openPort(params), verify(), switchScreen());
+        return;
+    end
     
     i = joinResource(openPort(params), verify(), switchScreen());
     
@@ -20,7 +26,6 @@ function i = switchscreen(varargin)
         function [r, params] = init(params)
             params = namedargs(defaults, varargin{:});
             comm('open', params.port, params.portconfig);
-            
             r = @release;
             function release()
                 comm('close', params.port);

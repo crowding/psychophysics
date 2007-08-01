@@ -6,8 +6,8 @@ function this = CircleInterpolationTrial(varargin)
 %eye tracking parameters
 fixationSettleTime = 0.35;
 fixationAverageTime = 0.1;
-coarseFixationWindow = 3;
-fineFixationWindow = 1.5; %why must it be so large?
+coarseFixationWindow = 5;
+fineFixationWindow = 3; %why must it be so large?
 nFixationSamples = 10;
 
 %basic motion parameters (these are passed to circularMotion itself)
@@ -37,7 +37,7 @@ barOnset = dt*2;
 
 comparisonBarDelay = 0.5;
 
-failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3)
+failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
     
 this = autoobject(varargin{:});
 
