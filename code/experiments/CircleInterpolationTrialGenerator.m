@@ -15,7 +15,7 @@ function this = CircleInterpolationTrialGenerator(varargin)
     numInBlock = 50;
     
     %the "onset asynchrony" is the time 
-    onsetAsynchronies = linspace(-0.5*dt, (nStations+0.5)*dt, 3*(nStations+1) + 1); %four per target appearance.
+    onsetAsynchronies = linspace(-0.5*dt, (nStations-0.5)*dt, 3*(nStations+1) + 1); %four per target appearance.
     
     %the "normal displacement" is the linear offset of the flash ahead of
     %the target's linearly interpolated position.

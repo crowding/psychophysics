@@ -72,7 +72,7 @@ windowTop_ = 0;
         hitcount = 0;
         skipcount = 0;
         dontsync = params.dontsync;
-        slowdown = params.slowdown;
+        slowdown = max(params.slowdown, 1);
         
         %for better speed in the loop, eschew struct access?
         log = params.log;
@@ -116,7 +116,11 @@ windowTop_ = 0;
                     %academic: before collecting data 
                     %you will optimize your code until there are
                     %no frame skips under normal conditions.
-                    log('FRAME_SKIP %d %d %f %f %d %d', steps-1, prevVBL, VBL);
+                    %Logged fields: Number of skipped frames, VBL of last
+                    %frame before skip, VBL of frame just delivered,
+                    %refresh index of... the frame that has been delayed
+                    %(work out what it means later.)
+                    log('FRAME_SKIP %d %f %f %d', steps-1, prevVBL, VBL, refresh);
                 end
 
                 if steps > 60

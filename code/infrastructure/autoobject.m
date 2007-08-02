@@ -21,7 +21,9 @@ function this = autoobject(varargin)
     doAssignments(varargin);
     
     function doAssignments(what)
+        %this needs to be made much faster for clone()...
         r = namedargs(what{:});
+        
         for i = fieldnames(r)'
             property__(i{:}, r.(i{:}));
         end

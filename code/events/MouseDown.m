@@ -21,7 +21,7 @@ lastButtons_ = [];
             m.buttonsDown = b;
             for i = fntable(b)
                 if ~isempty(i{1})
-                    log('MOUSE_DOWN %s %s', func2str(i{1}), struct2str(m));
+                    log('TRIGGER %s %s', func2str(i{1}), struct2str(m));
                     i{1}(m);
                 end
             end
