@@ -1,4 +1,4 @@
-function CirclesTest(varargin)
+function WheelsDemo(varargin)
     params = struct...
         ( 'edfname',    '' ...
         , 'dummy',      1  ...
@@ -17,9 +17,9 @@ function CirclesTest(varargin)
         base = 14; %base of triangle
         radius = 2.5; %approximate radius
         n = 5; %number in each wheel
-        dx = 0.375; %translation per appearance
-        dt = 0.075; %time interval between appearances
-        contrast = 0.375; %contrast of each appearance (they superpose)
+        dx = 0.75; %translation per appearance
+        dt = 0.150; %time interval between appearances
+        contrast = 1; %contrast of each appearance (they superpose)
         
         %To make a looped movie, the radius should be adjusted so that a
         %whole number of transpations brings the spot back exactly.
@@ -38,7 +38,7 @@ function CirclesTest(varargin)
         %spatiotemporal structure of each appearance:
         patch = CauchyPatch...
             ( 'velocity', 5 ... %velocity of peak spatial frequency
-            , 'size', [0.75 0.75 0.15]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
+            , 'size', [0.75 0.5 0.10]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
             , 'order', 4 ... %order of cauchy function
             );
          %i.e. temporal frequency of stimulus is 5 deg/sec * (0.5 cycles /

@@ -11,14 +11,16 @@ function this = autoobject(varargin)
     %property__ and method__ carry around. Thus the subfunction and the
     %one-liner-ism here.
     
-    [this, method_names] = makeObjString(prop_names, method_names);
+    [this, method_names] = makeObjString(prop_names, method_names, namedargs(varargin{:}));
     %[this, method_names, setters, getters] = makeObjString(prop_names, method_names);
     
     this = evalin('caller', this);
-    this = this(@property__, @method__, getversion(2));
-  
+    this{2} = this{2}(@property__, @method__, getversion(2));
+    this{1}(namedargs(varargin{:}), this{2});
+    this = this{2};
+
     %convert prop_names into a struct for speed in property access?
-    doAssignments(varargin);
+    %doAssignments(varargin);
     
     function doAssignments(what)
         %this needs to be made much faster for clone()...
@@ -36,13 +38,13 @@ function this = autoobject(varargin)
             case 0
                 value = prop_names;
             case 1
-                if strmatch(name, prop_names)
+                if any(strcmp(name, prop_names))
                     value = this.(getterName(name))();
                 else
                     error('object:noSuchProperty', 'no such property %s', name);
                 end
             case 2
-                if strmatch(name, prop_names)
+                if any(strcmp(name, prop_names))
                     this.(setterName(name))(value);
                 else
                     error('object:noSuchProperty', 'no such property %s', name);
@@ -79,7 +81,7 @@ function this = autoobject(varargin)
         names = names(~cellfun('prodofsize', regexp(names, '_$', 'start')));
     end
     
-    function [string, method_names, setters, getters] = makeObjString(prop_names, method_names);
+    function [string, method_names, setters, getters] = makeObjString(prop_names, method_names, assignments);
         %matlab insanity: once again, it fails to do anything consistent
         %with empty arrays. cellfun() insists that
         %empty array inputs be of exactly the same size. This wouldn't be
@@ -128,9 +130,16 @@ function this = autoobject(varargin)
         setter_names = cellfun(@setterName, prop_names, 'UniformOutput', 0);
         setters = setter_names;
         [setter_names, setteri] = setdiff(setter_names, method_names);
-                
+        
+        %assignments to the new obejct can be made directly, or by the
+        %setters we are using...
+        assigned = fieldnames(assignments);
+        varsetters = cellfun(@setterName, assigned, 'UniformOutput', 0);
+        [settersused, settersusedix] = intersect(varsetters, method_names);
+        varsset = assigned; varsset(settersusedix) = [];
+          
         %to create the object, we evaluate in the caller a string built like so: 
-        %evalin('caller', '@() struct('method', @method, 
+        %setOtherVar(assignments__.otherVar) evalin('caller', '@() struct('method', @method, ..., property__, method__, version__)
         %consisting of:
         %example getter: 'getProp', @()eval('prop'), 
         %example setter: 'setProp', @(prop_)eval('prop = prop_'), 
@@ -155,8 +164,21 @@ function this = autoobject(varargin)
             , method_names(:) ...
             , 'UniformOutput', 0 ...
             );
-            
-        string = cat(2, '@(property__, method__, version__) struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', property__, ''method__'', method__, ''version__'', version__)');
+
+        %There is also a setter string; when evaluated in the 
+        assignmentstrings = cellfun ...
+            ( @(variable_name) sprintf('%s = assignments__.%s; ', variable_name, variable_name) ...
+            , varsset...
+            , 'UniformOutput', 0 ...
+            );
+        
+        settingstrings = cellfun ...
+            ( @(setter_name, variable_name) sprintf('this__.%s(assignments__.%s); ', setter_name, variable_name)...
+            , settersused(:), assigned(settersusedix(:)) ...
+            , 'UniformOutput', 0 ...
+            );
+        
+        string = cat(2, '{@(assignments__, this__) eval(''', assignmentstrings{:}, settingstrings{:}, '''), @(property__, method__, version__) struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', property__, ''method__'', method__, ''version__'', version__)}');
         method_names = cat(1, getter_names(:), setter_names(:), method_names(:));
     end
 

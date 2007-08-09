@@ -5,7 +5,9 @@ function f = transformToDegrees(this)
     
     center = this.rect;
     center = ( center([1 2]) + center([3 4]) ) / 2;
-    multiplier = spacing(this);
+    multiplier = spacing(this); %centimeters per pixel
+    multiplier = multiplier / this.distance * 180 / pi; %degrees per pixel
+    
     f = @transform;
 
     function [x, y] = transform(x, y)

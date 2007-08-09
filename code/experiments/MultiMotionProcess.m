@@ -11,8 +11,8 @@ dx = [0.75 0.0];
 dy = [0.0 0.75];
 dt = [0.15 0.15];
 orientation = [0 90];
-%color is universal (for now) 
-color = [0.5 0.5 0.5];
+%color is one column per object
+color = [0.5 0.5; 0.5 0.5; 0.5 0.5;];
 
 %one private variable...
 counter_ = [0 0];
@@ -31,7 +31,7 @@ this = autoobject(varargin{:});
         x = onsetX(i) + counter_(i) * dx(i);
         y = onsetY(i) + counter_(i) * dy(i);
         a = orientation(i);
-        c = color;
+        c = color(:,i);
         
         counter_(i) = counter_(i) + 1;
     end

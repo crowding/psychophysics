@@ -14,7 +14,8 @@ function initializer = GetScreen(varargin)
 %   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
 %   preferences - the screen preferences to be set, as a structure. Default
 %                       is preferences.SkipSyncTests = 0.
-%   requireCalibration - whether to require calibration (answer 
+%   requireCalibration - whether to require calibration (answer)
+%   cal -- optional input calibration to use
 %
 %output structure fields:
 %   screenNumber - the screen number of the display
@@ -84,7 +85,11 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
         function [release, details] = setGamma(details)
 
             screenNumber = max(Screen('Screens'));
-            cal = Calibration(screenNumber);
+            if ~isfield(details, 'cal') || isempty(details.cal)
+                cal = Calibration(screenNumber);
+            else
+                cal = details.cal;
+            end
 
             if (details.requireCalibration && ~cal.calibrated)
                 error('getScreen:noCalibration'...

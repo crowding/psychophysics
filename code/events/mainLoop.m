@@ -15,7 +15,10 @@ defaults_ = struct...
     ( 'log', @noop ...
     , 'skipFrames', 1 ...
     , 'dontsync', 0 ...
-    , 'slowdown', 1 );
+    , 'slowdown', 1 ...
+    , 'aviout', ''...
+    , 'avirect', [] ...
+    );
 
 if ~exist('graphics', 'var')
     graphics = {};
@@ -77,6 +80,10 @@ windowTop_ = 0;
         %for better speed in the loop, eschew struct access?
         log = params.log;
         window = params.window;
+        aviout_ = params.aviout;
+        if (aviout_)
+            aviobj = avifile(aviout_, 'fps', 1 / interval);
+        end
 
         VBL = Screen('Flip', params.window) / slowdown;
         prevVBL = VBL - interval; %meaningless fakery
@@ -130,7 +137,7 @@ windowTop_ = 0;
             else
                 %pretend there are not skips.
                 %TODO: be even more faking about this -- in the events and
-                %with the option to produce a quicktime rendering.
+                %with the option to produce a aviout rendering.
                 steps = 1;
             end
             
@@ -179,10 +186,19 @@ windowTop_ = 0;
             %-----Flip phase: Flip the screen buffers and note the time at
             %which the change occurred.
             prevVBL = VBL;
-            VBL = Screen('Flip', params.window, (VBL + interval) * slowdown - interval/2) / slowdown;
+            VBL = Screen('Flip', window, (VBL + interval) * slowdown - interval/2) / slowdown;
+            if (aviout_)
+                frame = Screen('GetImage', window);
+                size(frame)
+                class(frame)
+                aviobj = addframe(aviobj, Screen('GetImage', window));
+            end
         end
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
+        if (aviout_)
+            aviobj = close(aviobj); %TODO make this into a REQUIRE
+        end
     end
 
     function stop(s)

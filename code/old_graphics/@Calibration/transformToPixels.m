@@ -5,7 +5,11 @@ function f = transformToPixels(this)
     
     center = this.rect;
     center = ( center([1 2]) + center([3 4]) ) / 2;
-    multiplier = 1./spacing(this);
+    
+    %multiplier gives degrees per pixel
+    %spacing is 
+    multiplier = 1./spacing(this); %centimeters per pixel
+    multiplier = multiplier / (this.distance) * 180/pi; %centimeters per degree
     f = @transform;
 
     function [x, y] = transform(x, y) %(8438 calls, 0.576 sec)

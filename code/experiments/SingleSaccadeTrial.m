@@ -4,44 +4,36 @@ function this = SingleSaccadeTrial(varargin)
     %and going in all directions with random coherences. At some point the
     %fixation point jumps towards one of the objects. The subject must then
     %make a saccade toward that object and 
+
+    persistent defaultpatch_;
+    if isempty(defaultpatch_)
+        defaultpatch_ = CauchyPatch...
+            ( 'velocity', 5 ...
+            , 'size', [0.5 0.75 0.1]...
+            );
+    end
     
     %vvvvvvv randomization
     %private parameters for initial randomization
     
-    n_ = 3;
-    radius_ = 10;
-    interval_ = 1/60; %in the trial generator we will have access to the
-                      %actual frame interval
-    dx_ = .75;
-    dt_ = 0.15;
-    onset_ = 0.5;
-    %their angles of motion are utterly random
-    motionangle_ = rand(1, n_) * 360;
-    positions_  = (rand() + (0:n_-1)/n_ + 1/(2*n_)*rand(1, n_)) * 2 * pi;
-    
     %------ public parameters initialized with randomization ------
     
     %and their orientations are the same as the angles, or opposite
-    cue = 1.25; %default value gives 1.25 second of tracking
-    patch = CauchyPatch...
-        ( 'velocity', dx_/dt_ ...
-        , 'size', [0.5 0.75 0.1]...
-        );
+    cue = 1.0; %default value gives 1.10 second of tracking
+    patch = defaultpatch_;
 
-    dx = dx_ .* cos(motionangle_/180*pi); % zeros(1, n_); %
-    dy = - dx_ .* sin(motionangle_/180*pi); % zeros(1, n_); %
-    dt = zeros(1, n_) + dt_;
+    dx = [0.749992237028656 -0.342470727089352 -0.721387304278002];
+    dy = [-0.00341238871652169 -0.667243434652519 0.205183715792742];
+    dt = [0.15 0.15 0.15];
 
-    orientation = motionangle_ - 180 * round(rand(1, n_));
+    orientation = [0.260688194782513 117.169708195367 15.8773073008138];
 
-    onsetT = onset_ + round(rand(1, n_) .* dt / interval_) * interval_;    
-    onsetX = cos(positions_) * radius_;
-    onsetY = -sin(positions_) * radius_;
-        
+    onsetX = [-11.7210467078142 -1.64344195579843 9.90355462400871];
+    onsetY = [-4.87948877439386 12.5738121376389 -8.52499241118444];
+    onsetT = [0.65 0.55 0.55];
+
     %they should intercept the edge of the circle at cue time.
-    onsetX = onsetX - (cue - onsetT) .* dx./dt;
-    onsetY = onsetY - (cue - onsetT) .* dy./dt;
-    color = [0.5 0.5 0.5];
+    color = [0.5 0.5 0.5; 0.5 0.5 0.5; 0.5 0.5 0.5];
     
     %^^^^^^ randomization
     
@@ -54,7 +46,6 @@ function this = SingleSaccadeTrial(varargin)
     cueJump = 1;
     cueJumpDuration = 0.1;
     saccadeMaxLatency = 0.5;
-    saccadeMaxTransit = 0.3;
     saccadeTrackDuration = 1;
     successTones = [750 0.05 0 750 0.2 0.9];
     failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
