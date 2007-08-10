@@ -42,11 +42,13 @@ function this = SingleSaccadeTrial(varargin)
     fixationAverageTime = 0.1;
     coarseFixationWindow = 3;
     fineFixationWindow = 1.5; %why must it be so large?
+    targetSaccadeWindow = 5;
+    targetSaccadeSettle = 0.3;
     targetTrackingWindow = 3;
+    targetTrackingDuration = 0.7;
     cueJump = 1;
     cueJumpDuration = 0.1;
     saccadeMaxLatency = 0.5;
-    saccadeTrackDuration = 1;
     successTones = [750 0.05 0 750 0.2 0.9];
     failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
     
@@ -117,7 +119,7 @@ function this = SingleSaccadeTrial(varargin)
             sprites.setVisible(1); %onset is counted from now...
 
             out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation, @failed);
-            timer1.set(@cueSaccade, s.refresh + round(cue / interval));
+            timer1.set(@cueSaccade, s.refresh + round((cue + onsetT(1)) / interval));
             timer2.unset();
         end
 
@@ -135,6 +137,9 @@ function this = SingleSaccadeTrial(varargin)
             timer2.set(@fixationOff, s.refresh + round(cueJumpDuration / interval) );
             %hide the visual stimuli, await the saccades
             sprites.setDrawn(0);
+            newColor = color;
+            newColor(:,2:end) = 0;
+            motion.setColor(newColor);
         end
 
         function fixationOff(s)
@@ -143,15 +148,20 @@ function this = SingleSaccadeTrial(varargin)
         end
 
         function saccadeTransit(s)
-            in.set(sprites.bounds, targetTrackingWindow, averagedFixation, @tracking);
+            in.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @saccadeSettle);
             out.unset();
             timer1.set(@failed, s.refresh + round(saccadeMaxLatency/interval));
         end
         
-        function tracking(s)
+        function saccadeSettle(s)
             in.unset();
             sprites.setDrawn(1);
-            timer1.set(@done, s.refresh + round(saccadeTrackDuration/interval));
+            out.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @failed);
+            timer1.set(@tracking, s.refresh + round(targetSaccadeSettle/interval));
+        end
+            
+        function tracking(s)
+            timer1.set(@done, s.refresh + round(targetTrackingDuration/interval));
             out.set(sprites.bounds, targetTrackingWindow, averagedFixation, @failed);
         end
 

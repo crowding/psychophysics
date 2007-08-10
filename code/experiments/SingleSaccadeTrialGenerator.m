@@ -2,65 +2,98 @@ function this = SingleSaccadeTrialGenerator(varargin)
     
     %Use a 'base' object which contains the basic parameters that don't
     %change.
-    base = SingleSaccadeTrial...
-        ( 'patch', CauchyPatch ...
-            ( 'size', [1/3 0.5 0.1] ...
-            , 'velocity', 10/3 ... 
-            ) ...
-        );
+    base = SingleSaccadeTrial;
 
     %these are the parameters we randomize on
     n = 3;
-    radius = 6.66;
-    excluded = 3.33; %targets will not be less than this distance from the fixation point...
-    dx = 0.5;
+    radius = 10;
+    excluded = 5; %targets will not be anywhere less than this distance from the fixation point...
+    dx = 0.75;
     dt = 0.15;
     contrast = 1;
+    cueMin = 0.2;
+    cueMax = 1.0;
+    numInBlock = 50;
     
     this = autoobject(varargin{:});
-    
-    function h = hasNext()
-        h = 1;
-    end
 
     function result(last, result)
         %interpret the last result, if it needs interpretation
         %which it doesn't really
+        if (isfield(result, 'success') && result.success)
+            blockCounter_ = blockCounter_ - 1
+        end
+    end
+
+    blockCounter_ = 0;
+    function startBlock()
+        blockCounter_ = numInBlock
+    end
+
+    function has = hasNext()
+        %return 1 if there is a next.
+        if blockCounter_ > 0
+            has = 1;
+        else
+            has = 0;
+        end
     end
 
     function trial = next(params)
+        %randomize the trial...
+        
+        cue = (cueMax - cueMin) * rand() + cueMin;
 
         %Some sanity checking -- make sure the objects to not go off the
         %screen during the trial.
-        maxDistance = radius + dx + dx/dt * (base.getSaccadeMaxLatency() + base.getSaccadeTrackDuration())
         t = transformToDegrees(params.cal);
-        d = min(abs(t(params.cal.rect)))
+        d = min(abs(t(params.cal.rect))); %max usable eccentricity on screen
+
+        %which angle window do we need to exclude to keep the targets away
+        %from the fixation point at the beginning of the trial?
+        x = dx/dt * cue; %max. distance traversed before cue
+        if excluded > radius
+            error('SingleSaccadeTrialGenerator:params', 'excluded can''t be larger than radius');
+        elseif (x + excluded < radius)
+            excludedBeginning = 0;
+        elseif (x^2 > radius^2 - excluded^2)
+            excludedBeginning = asin(excluded/radius) * 360/pi;
+        else
+            excludedBeginning = acos((radius^2 + x^2 - excluded^2) / (2*radius * x)) * 360/pi;
+        end
         
+        %which angle window do we need to exclude to keep the target on
+        %screen at the end of the trial?
+        y = dx/dt * (base.getSaccadeMaxLatency() + base.getTargetSaccadeSettle() + base.getTargetTrackingDuration());
+        if radius + y < d
+            excludedEnd = 0;
+        elseif d + y < radius
+            error('SingleSaccadeTrialGenerator:params', 'screen is too small for these parameters');
+        else
+            excludedEnd = 360 - 180/pi * 2*acos(-(d^2-y^2-radius^2)/2/radius/y);
+        end
         
-        %note this is not quite the right calculation, since there is
-        %the excluded window, but it is an upper bound
-        if (maxDistance > d)
-            warning('singleSaccadeTrialGenerator:params', 'targets may track off screen with these parameters');
+        %which angle window to keep the target on screen at the beginning?
+        if radius + x < d
+            excludedBeginning = max(excludedBeginning, 0);
+        elseif d + x < radius
+            error('SingleSaccadeTrialGenerator:params', 'screen is too small for these parameters');
+        else
+            excludedBeginning = max(excludedBeginning, 360 - 180/pi * 2*acos(-(d^2-x^2-radius^2)/2/radius/x));
         end
 
-        %randomize the trial...
+        x
+        excludedBeginning
+        excludedEnd
         
-        cue = base.getCue();
-        
-        %which angle window do we need to exclude to keep the targets away
-        %from the fixation point?
-        x = dx/dt * cue; %max. distance traversed before cue
-        if (x + excluded < radius)
-            excludedMotionAngle = 0
-        elseif (x^2 > radius^2 - excluded^2)
-            excludedMotionAngle = asin(excluded/radius) * 360/pi
-        else
-            excludedMotionAngle = acos((radius^2 + x^2 - excluded^2) / (2*radius * x)) * 360/pi
+        if (excludedBeginning + excludedEnd > 360)
+            error('SingleSaccadeTrialGenerator:params', 'can''t keep target on screen with these params');
         end
         
         interval = params.cal.interval;
         positions  = (rand() + (0:n-1)/n + 1/(2*n)*rand(1, n)) * 2 * pi;
-        motionangle = positions * 180/pi + 180 + (rand(1, n) - 0.5) * (360 - excludedMotionAngle);
+        s = (round(rand) - 0.5)*2;
+        motionangle = positions*180/pi + s*(excludedEnd + rand(1,n)*(360-excludedEnd-excludedBeginning))/2
         
         ddx = dx .* cos(motionangle/180*pi);
         ddy = - dx .* sin(motionangle/180*pi);
@@ -72,15 +105,15 @@ function this = SingleSaccadeTrialGenerator(varargin)
         onsetX = cos(positions) * radius;
         onsetY = -sin(positions) * radius;
         
-        %they should intercept the edge of the circle at cue time.
-        onsetX = onsetX - (cue - onsetT) .* ddx./ddt;
-        onsetY = onsetY - (cue - onsetT) .* ddy./ddt;
+        %they should intercept the edge of the circle at cue time. Cue is
+        %beasured from onsetT(1).
+        onsetX = onsetX - (cue - onsetT + onsetT(1)) .* ddx./ddt;
+        onsetY = onsetY - (cue - onsetT + onsetT(1)) .* ddy./ddt;
         
-        color = zeros(3, n) + contrast/2;
-    
-        %TODO: make sure the targets to not go off the screen ...
+        color = zeros(3, n) + contrast/2;    
         
         trial = clone(base...
+            , 'cue', cue...
             , 'dx', ddx...
             , 'dy', ddy...
             , 'dt', ddt...

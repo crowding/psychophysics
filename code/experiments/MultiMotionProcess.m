@@ -25,6 +25,10 @@ this = autoobject(varargin{:});
         counter_ = zeros(size(o));
     end
 
+    function setColor(c)
+        color = c;
+    end
+
     function [x, y, t, a, c] = next()
         %pick the next one...
         [t,i] = min(onsetT + counter_.*dt);
