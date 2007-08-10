@@ -66,7 +66,7 @@ function i = getswitchbox(varargin)
             end
             
             function sw(input, output)
-                r = getresponse(params, 1, input, output);
+                r = getresponse(params, 1, input, output, 3)
                 if ~issame(r, [1 input output])
                     error('getswitchbox:switchFailed', 'Could not switch video');
                 end
@@ -74,7 +74,7 @@ function i = getswitchbox(varargin)
             
             function getCurrent()
                 %what is the output currently set to?
-                response = getresponse(params, 5, 0, params.videoOut);
+                response = getresponse(params, 5, 0, params.videoOut, 3);
                 if (length(response) ~= 3) || response(1) ~= 5 || response(2) ~= 0
                     error('switchscreen:readFailed', 'could not read current setting');
                 end
@@ -83,7 +83,10 @@ function i = getswitchbox(varargin)
         end
     end
 
-    function resp = getresponse(params, command, input, output)
+    function resp = getresponse(params, command, input, output, tries)
+        if ~exist('tries', 'var')
+            tries = 1;
+        end
         todevice = hex2dec(['00';'80';'80';'80'])';
         comm('purge', params.port);
         str = todevice + [command, input, output, params.machineNumber];
@@ -94,6 +97,8 @@ function i = getswitchbox(varargin)
         if length(resp) == 4
             resp = double(resp(:)') - [64 128 128 128];
             resp(end) = [];
+        elseif tries > 1
+            resp = getresponse(params, command, input, output, tries);
         end
     end
 
