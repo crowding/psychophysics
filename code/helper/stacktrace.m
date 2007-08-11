@@ -9,6 +9,8 @@ if ~exist('errors', 'var')
     errors = lasterror;
 end
 
+desktop = usejava('desktop');
+
 arrayfun(@printStackTrace, errors);
 
     function printStackTrace(theErr, indent)
@@ -23,8 +25,12 @@ arrayfun(@printStackTrace, errors);
         function traceframe(frame)
             %print out a stack frame with a helpful link.
             %The error URL is undocumented as far as I know.
-            disp(sprintf('%s  In <a href="error:%s,%d,1">%s at %d</a>',...
-                indent, frame.file, frame.line, frame.name, frame.line));
+            if desktop
+                disp(sprintf('%s  In <a href="error:%s,%d,1">%s at %d</a>',...
+                    indent, frame.file, frame.line, frame.name, frame.line));
+            else
+                disp(sprintf('%s  In %s at %d', indent, frame.name, frame.line));
+            end
             
             if isfield(frame, 'additional') && ~isempty(frame.additional)
                 disp(' ');
@@ -40,14 +46,13 @@ arrayfun(@printStackTrace, errors);
         function printErrorMessage(theErr)
             %some error messages are really parser messages, make it so I
             %can click in them
-            message = regexprep(...
-                theErr.message...
-                ,'File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
-                ,'<a href="error:$1,$2,$3">$0</a>');
-            message = regexprep(...
-                theErr.message...
-                ,'File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
-                ,'<a href="error:$1,$2,$3">$0</a>');
+            message = theErr.message;
+            if desktop
+                message = regexprep(...
+                    message...
+                    ,'File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
+                    ,'<a href="error:$1,$2,$3">$0</a>');
+            end
             message = regexprep(message, '[\r\n]+', ['$0' indent]);
             disp([indent '??? ' theErr.identifier ': ' message]);
         end

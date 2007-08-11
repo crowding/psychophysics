@@ -13,6 +13,7 @@ function this = SingleSaccadeTrialGenerator(varargin)
     contrast = 1;
     cueMin = 0.2;
     cueMax = 1.0;
+    cueJumpAmplitude = 0.1;
     numInBlock = 50;
     
     this = autoobject(varargin{:});
@@ -81,10 +82,6 @@ function this = SingleSaccadeTrialGenerator(varargin)
         else
             excludedBeginning = max(excludedBeginning, 360 - 180/pi * 2*acos(-(d^2-x^2-radius^2)/2/radius/x));
         end
-
-        x
-        excludedBeginning
-        excludedEnd
         
         if (excludedBeginning + excludedEnd > 360)
             error('SingleSaccadeTrialGenerator:params', 'can''t keep target on screen with these params');
@@ -92,8 +89,9 @@ function this = SingleSaccadeTrialGenerator(varargin)
         
         interval = params.cal.interval;
         positions  = (rand() + (0:n-1)/n + 1/(2*n)*rand(1, n)) * 2 * pi;
+        cueJump = cueJumpAmplitude * [cos(positions(1)) -sin(positions(1))];
         s = (round(rand) - 0.5)*2;
-        motionangle = positions*180/pi + s*(excludedEnd + rand(1,n)*(360-excludedEnd-excludedBeginning))/2
+        motionangle = positions*180/pi + s*(excludedEnd + rand(1,n)*(360-excludedEnd-excludedBeginning))/2;
         
         ddx = dx .* cos(motionangle/180*pi);
         ddy = - dx .* sin(motionangle/180*pi);
@@ -101,7 +99,10 @@ function this = SingleSaccadeTrialGenerator(varargin)
 
         orientation = motionangle - 180 * round(rand(1, n));
 
-        onsetT = round(rand(1, n) .* dt / params.cal.interval) * interval;
+        patchDuration = base.getPatch();
+        patchDuration = patchDuration.size(3);
+        
+        onsetT = round(rand(1, n) .* dt / params.cal.interval) * interval + patchDuration;
         onsetX = cos(positions) * radius;
         onsetY = -sin(positions) * radius;
         
@@ -114,6 +115,7 @@ function this = SingleSaccadeTrialGenerator(varargin)
         
         trial = clone(base...
             , 'cue', cue...
+            , 'cueJump', cueJump...
             , 'dx', ddx...
             , 'dy', ddy...
             , 'dt', ddt...

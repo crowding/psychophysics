@@ -19,7 +19,7 @@ function this = SingleSaccadeTrial(varargin)
     %------ public parameters initialized with randomization ------
     
     %and their orientations are the same as the angles, or opposite
-    cue = 1.0; %default value gives 1.10 second of tracking
+    cue = 1.0; %default value gives 1 second of tracking
     patch = defaultpatch_;
 
     dx = [0.749992237028656 -0.342470727089352 -0.721387304278002];
@@ -32,10 +32,7 @@ function this = SingleSaccadeTrial(varargin)
     onsetY = [-4.87948877439386 12.5738121376389 -8.52499241118444];
     onsetT = [0.65 0.55 0.55];
 
-    %they should intercept the edge of the circle at cue time.
     color = [0.5 0.5 0.5; 0.5 0.5 0.5; 0.5 0.5 0.5];
-    
-    %^^^^^^ randomization
     
     %eye tracking parameters
     fixationSettleTime = 0.35;
@@ -46,7 +43,7 @@ function this = SingleSaccadeTrial(varargin)
     targetSaccadeSettle = 0.3;
     targetTrackingWindow = 3;
     targetTrackingDuration = 0.7;
-    cueJump = 1;
+    cueJump = [-0.0872 -0.0489];
     cueJumpDuration = 0.1;
     saccadeMaxLatency = 0.5;
     successTones = [750 0.05 0 750 0.2 0.9];
@@ -124,15 +121,10 @@ function this = SingleSaccadeTrial(varargin)
         end
 
         function cueSaccade(s)
-            where = sprites.bounds();
-            where = (where([1 2]) + where([3 4]))/2;
-            
             %normalize the jump in fixation point
-            l = fixationPoint.getLoc();
-            jump = (where - l);
-            jump = jump / norm(jump) * cueJump;
-            fixationPoint.setLoc(l + jump);
-            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation - jump, @saccadeTransit);
+            fixationPoint.setLoc(cueJump);
+            in.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @saccadeSettle);
+            out.unset();
             timer1.set(@failed, s.refresh + round(saccadeMaxLatency / interval) );
             timer2.set(@fixationOff, s.refresh + round(cueJumpDuration / interval) );
             %hide the visual stimuli, await the saccades
@@ -145,12 +137,6 @@ function this = SingleSaccadeTrial(varargin)
         function fixationOff(s)
             fixationPoint.setVisible(0);
             timer2.unset();
-        end
-
-        function saccadeTransit(s)
-            in.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @saccadeSettle);
-            out.unset();
-            timer1.set(@failed, s.refresh + round(saccadeMaxLatency/interval));
         end
         
         function saccadeSettle(s)
@@ -174,8 +160,8 @@ function this = SingleSaccadeTrial(varargin)
         function done(s)
             %WIN
             result.success = 1;
-            play(successSound_);
             stop(s);
+            play(successSound_);
         end
 
         function abort(s) %these are so you have different things in the log file
@@ -220,6 +206,9 @@ function this = SingleSaccadeTrial(varargin)
         awaitFixation();
 
         params = main.go(params);
+    end
+
+    function noop 
     end
 
 end

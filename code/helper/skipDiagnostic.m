@@ -9,7 +9,7 @@ function skipDiagnostic(varargin)
     
     new = sprintf(varargin{:});
     if ~isempty(strmatch('FRAME_SKIP', new)) && isempty(strmatch('FRAME_SKIP', last))
-        disp([sprintf('split %f avg %f ', split, total/N) new ' ' last]);
+        disp([new ' ' last]); % sprintf('split %f avg %f ', split, total/N) 
     end
     last = new;
 end
