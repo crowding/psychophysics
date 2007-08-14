@@ -13,7 +13,7 @@ filename = getOutput(2, @fileparts, filepath);
 text = mlint(filepath, '-calls', '-string');
 
 %parse the function call list into structs
-funinfo = textscan(text, '%[MENU]%d %d %d %s');
+funinfo = textscan(text, '%[MEANU]%d%d%d%s', 'returnOnError', 0);
 funinfo = struct('type', funinfo{1}, 'level', num2cell(funinfo{2}), 'line', num2cell(funinfo{3}), 'name', funinfo{5});
 
 %We will collect method names here

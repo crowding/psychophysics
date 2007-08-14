@@ -45,4 +45,8 @@ this = autoobject(varargin{:});
         %FIRST point.
         b = [onsetX(1) onsetY(1) onsetX(1) onsetY(1)] + (t - onsetT(1)) * [dx(1) dy(1) dx(1) dy(1)] / dt(1);
     end
+
+    function l = loc(t)
+        l = [onsetX(1) onsetY(1)] + (t - onsetT(1)) * [dx(1) dy(1)] / dt(1);
+    end
 end

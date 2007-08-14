@@ -16,7 +16,7 @@ function this = SpritePlayer(patch_, process_, log_)
 % actual, based on the pixel and time grid) is counted.
 
 this = final(...
-        @init, @update, @draw, @bounds, ...
+        @init, @update, @draw, @bounds, @loc, ...
         @getVisible, @setVisible, @getDrawn, @setDrawn, @finishTime);
 
 visible_ = 0; % a misnomer: setting visible means "start playing"
@@ -285,7 +285,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         end
     end
 
-    function setDrawn(s);
+    function setDrawn(s)
         drawn_ = s;
     end
 
@@ -299,5 +299,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %bounds.
         b = process_.bounds(refreshCount_ * interval_);
     end
-    
+
+    function l = loc()
+        l = process_.loc(refreshCount_ * interval_);
+    end
 end

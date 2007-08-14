@@ -52,8 +52,8 @@ function this = SingleSaccadeTrial(varargin)
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)
-        successSound_ = tones(successTones);
-        failureSound_ = tones(failureTones);
+        successSound_ = makeBeeps(successTones, params.freq);
+        failureSound_ = makeBeeps(failureTones, params.freq);
 
         interval = params.cal.interval;
 
@@ -74,8 +74,8 @@ function this = SingleSaccadeTrial(varargin)
 
         %that's it for graphical elements. Now for the event structure:
 
-        in = InsideTrigger();
-        out= OutsideTrigger();
+        in = NearLoc();
+        out= FarLoc();
         timer1 = RefreshTrigger();
         timer2 = RefreshTrigger();
 
@@ -87,7 +87,7 @@ function this = SingleSaccadeTrial(varargin)
         function awaitFixation(s)
             fixationSamples = 0;
             fixationTotal = [0 0];
-            in.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @settleFixation);
+            in.set(@settleFixation, fixationPoint.getLoc, coarseFixationWindow, [0 0]);
             out.unset();
             timer1.unset();
             timer2.unset();
@@ -95,7 +95,7 @@ function this = SingleSaccadeTrial(varargin)
 
         function settleFixation(s)
             in.unset();
-            out.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @awaitFixation);
+            out.set(@awaitFixation, fixationPoint.getLoc, coarseFixationWindow, [0 0]);
             timer1.set(@averageFixation ...
                 , s.refresh + round(fixationSettleTime / interval) ...
                 , 1);
@@ -115,15 +115,14 @@ function this = SingleSaccadeTrial(varargin)
 
             sprites.setVisible(1); %onset is counted from now...
 
-            out.set(fixationPoint.bounds, fineFixationWindow, averagedFixation, @failed);
-            timer1.set(@cueSaccade, s.refresh + round((cue + onsetT(1)) / interval));
+            out.set(@failed, fixationPoint.getLoc, fineFixationWindow, averagedFixation);
+            timer1.set(@cueSaccade, s.refresh + round(cue / interval));
             timer2.unset();
         end
 
         function cueSaccade(s)
-            %normalize the jump in fixation point
             fixationPoint.setLoc(cueJump);
-            in.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @saccadeSettle);
+            in.set(@saccadeSettle, sprites.loc, targetSaccadeWindow, averagedFixation - cueJump);
             out.unset();
             timer1.set(@failed, s.refresh + round(saccadeMaxLatency / interval) );
             timer2.set(@fixationOff, s.refresh + round(cueJumpDuration / interval) );
@@ -142,26 +141,31 @@ function this = SingleSaccadeTrial(varargin)
         function saccadeSettle(s)
             in.unset();
             sprites.setDrawn(1);
-            out.set(sprites.bounds, targetSaccadeWindow, averagedFixation, @failed);
+            out.set(@failed, sprites.loc, targetSaccadeWindow, averagedFixation);
             timer1.set(@tracking, s.refresh + round(targetSaccadeSettle/interval));
         end
             
         function tracking(s)
             timer1.set(@done, s.refresh + round(targetTrackingDuration/interval));
-            out.set(sprites.bounds, targetTrackingWindow, averagedFixation, @failed);
+            out.set(@failed, sprites.loc, targetTrackingWindow, averagedFixation);
         end
 
         function failed(s)
             %FAIL
+            result.success = 0;
             stop(s);
-            play(failureSound_);
+            PsychPortAudio('Stop', params.pahandle);
+            PsychPortAudio('FillBuffer', params.pahandle, failureSound_, 0);
+            PsychPortAudio('Start', params.pahandle, 1, s.next);
         end
 
         function done(s)
             %WIN
             result.success = 1;
             stop(s);
-            play(successSound_);
+            PsychPortAudio('Stop', params.pahandle);
+            PsychPortAudio('FillBuffer', params.pahandle, successSound_, 0);
+            PsychPortAudio('Start', params.pahandle, 1, s.next);
         end
 
         function abort(s) %these are so you have different things in the log file

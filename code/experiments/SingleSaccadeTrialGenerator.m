@@ -52,7 +52,7 @@ function this = SingleSaccadeTrialGenerator(varargin)
 
         %which angle window do we need to exclude to keep the targets away
         %from the fixation point at the beginning of the trial?
-        x = dx/dt * cue; %max. distance traversed before cue
+        x = dx/dt * cue + dx; %max. distance traversed before cue
         if excluded > radius
             error('SingleSaccadeTrialGenerator:params', 'excluded can''t be larger than radius');
         elseif (x + excluded < radius)
@@ -88,16 +88,16 @@ function this = SingleSaccadeTrialGenerator(varargin)
         end
         
         interval = params.cal.interval;
-        positions  = (rand() + (0:n-1)/n + 1/(2*n)*rand(1, n)) * 2 * pi;
+        positions = mod((rand() + (0:n-1)/n + 1/(2*n)*rand(1, n)),1) * 2 * pi;
         cueJump = cueJumpAmplitude * [cos(positions(1)) -sin(positions(1))];
-        s = (round(rand) - 0.5)*2;
-        motionangle = positions*180/pi + s*(excludedEnd + rand(1,n)*(360-excludedEnd-excludedBeginning))/2;
+        s = (round(rand(1, n)) - 0.5)*2;
+        motionangle = mod(positions*180/pi + s.*(excludedBeginning + rand(1,n)*(360-excludedEnd-excludedBeginning))/2, 360);
         
         ddx = dx .* cos(motionangle/180*pi);
         ddy = - dx .* sin(motionangle/180*pi);
         ddt = zeros(1, n) + dt;
 
-        orientation = motionangle - 180 * round(rand(1, n));
+        orientation = rem(motionangle - 180 * round(rand(1, n)), 360);
 
         patchDuration = base.getPatch();
         patchDuration = patchDuration.size(3);
