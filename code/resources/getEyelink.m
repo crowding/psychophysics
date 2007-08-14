@@ -139,14 +139,28 @@ initializer = currynamedargs(initializer, varargin{:});
             %a 7-letter encoding of the date and time
 
             pause(1); % to make it likely that we get a unique filename, hah!
-            % oh, why is the eyelink so dumb?
+                      % oh, why is the eyelink so dumb?q
             details.edfname = ['z' clock2filename(clock) '.edf'];
+        end
+        
+        if ~isfield(details, 'localname') || (~isempty(details.edfname) && isempty(details.localname))
+            %make a note of where we will find the file locally
+            
+            %if we're in an experiment, use those values...
+            if all(isfield(details, {'subject', 'caller'}))
+                details.localname = fullfile...
+                    ( e.eyedir...
+                    , sprintf ...
+                    ( '%s-%04d-%02d-%02d__%02d-%02d-%02d-%s.edf'...
+                    , details.subject, floor(clock), details.caller.function ...
+                    ) ...
+                    );
+            else
+                details.localname = fullfile(e.eyedir, details.edfname);
+            end
         end
 
         if ~isempty(details.edfname)
-            %make a note of where we will find the file locally
-            details.localname = fullfile(e.eyedir, details.edfname);
-
             %the eyelink has no way directly to check that the filename is
             %valid or non-existing... so we must assert that we can't open the
             %file yet.
@@ -180,7 +194,7 @@ initializer = currynamedargs(initializer, varargin{:});
 
         function downloadFile
             %if we were recording to a file, download it
-            if ~isempty(details.edfname)
+            if ~isempty(details.edfname) && ~isempty(details.localname)
                 %try both in any case
                 status = Eyelink('CloseFile');
                 if Eyelink('IsConnected') ~= details.el.dummyconnected
