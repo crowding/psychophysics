@@ -5,9 +5,8 @@ function this = CircleInterpolationTrial(varargin)
 
 %eye tracking parameters
 fixationSettleTime = 0.35;
-fixationAverageTime = 0.1;
 coarseFixationWindow = 5;
-fineFixationWindow = 3; %why must it be so large?
+fineFixationWindow = 2; %why must it be so large?
 nFixationSamples = 10;
 
 %basic motion parameters (these are passed to circularMotion itself)
@@ -24,6 +23,8 @@ patch = CauchyPatch...
 % window of dt)
 onsets = 0;
 phases = 0;
+angles = 90;
+color = [0.5; 0.5; 0.5];
 
 n = 3; %the number of flashes for each object
 
@@ -35,7 +36,7 @@ barDuration = 1/30; %duration of bar presentation
 barPhase = dx/radius*2;
 barOnset = dt*2;
 
-comparisonBarDelay = 0.5;
+comparisonBarOnset = 1;
 
 failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
     
@@ -65,8 +66,8 @@ this = autoobject(varargin{:});
             , 'phase', phases ...
             , 'dt', dt ...
             , 'dphase', dx / radius ...
-            , 'angle', 90 + phases * 180 / pi ...
-            , 'color', [0.5 0.5 0.5] ...
+            , 'angle', angles ...
+            , 'color', color ...
             );
 
         sprites = SpritePlayer(patch, motion);
@@ -87,7 +88,7 @@ this = autoobject(varargin{:});
         barOffset = 0;
         
         comparisonBar = FilledBar ...
-            ( 'x', radius * cos(barPhase), 'y', -radius * sin(barPhase) ...
+            ( 'x', radius * cos(barPhase), 'y', - radius * sin(barPhase) ...
             , 'length', barGap - 2*barWidth, 'width', barWidth ...
             , 'angle', barPhase * 180 / pi ...
             , 'color', params.whiteIndex ...
@@ -97,6 +98,7 @@ this = autoobject(varargin{:});
 
         point = LocTrigger(fixationPoint.getLoc);
         timer = RefreshTrigger();
+        timer2 = RefreshTrigger();
         
         keydown = KeyDown();
         keydown.set(@stopExperiment, 'q');
@@ -106,7 +108,7 @@ this = autoobject(varargin{:});
         
         main = mainLoop ...
             ( {sprites, fixationPoint, insideBar, outsideBar, comparisonBar} ...
-            , {in, out, timer} ...
+            , {point, timer, timer2} ...
             , 'keyboard', {keydown} ...
             , 'mouse', {mousedown, mousemove} ...
             );
@@ -124,6 +126,7 @@ this = autoobject(varargin{:});
             fixationTotal = [0 0];
             point.set(@settleFixation, 1, coarseFixationWindow, [0 0]);
             timer.unset();
+            timer2.unset();
         end
 
         function settleFixation(s)
@@ -131,6 +134,8 @@ this = autoobject(varargin{:});
             timer.set(@averageFixation ...
                 , s.refresh + round(fixationSettleTime / interval) ...
                 , 1);
+            fixationSamples = 0;
+            fixationTotal = [0 0];
         end
 
         function averageFixation(s)
@@ -141,15 +146,9 @@ this = autoobject(varargin{:});
                     timer.set(@start, s.refresh + 1);
                 end
                 if (s.refresh - s.triggerRefresh)/2 >= nFixationSamples
-                    timer.set(@retryFixation, s.refresh+1);
+                    awaitFixation(s);
                 end
             end
-        end
-        
-        function retryFixation(s)
-            timer.unset();
-            fixationPoint.setVisible(0);
-            point.set(@awaitFixation, 1, coarseFixationWindow, [0 0]);
         end
         
         function start(s)
@@ -160,25 +159,29 @@ this = autoobject(varargin{:});
 
         function showMotion(s)
             sprites.setVisible(1, s.next); %onset recorded in the trigger.
-            timer.set(@showBars, s.refresh + round(barOnset/interval));
+
+            timer.set(@showBars, s.refresh + round(barOnset / interval));
+            timer2.set(@showComparison, s.refresh + round(comparisonBarOnset / interval));
         end
 
         function showBars(s)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
-            timer.set(@hideBars, s.triggerRefresh + round(barDuration/interval));
+            timer.set(@hideBars, s.refresh + round(barDuration/interval));
         end
 
         function hideBars(s)
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
-            timer.set(@showComparison, s.triggerRefresh + round(comparisonBarDelay/interval));
+            timer.unset();
         end
         
         function showComparison(s)
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
             comparisonBar.setVisible(1);
+            timer.unset();
+            timer2.unset();
             point.unset();
             mousemove.set(@moveComparisonBar);
             mousedown.set(@accept);
@@ -213,7 +216,7 @@ this = autoobject(varargin{:});
             result.accepted = 1;
             
             %push the blank frame to the screen, then stop
-            timer.set(main.stop, s.refresh+1);
+            timer.set(main.stop, s.refresh+2);
         end
         
         function decline(s)

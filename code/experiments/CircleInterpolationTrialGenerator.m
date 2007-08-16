@@ -1,38 +1,38 @@
 function this = CircleInterpolationTrialGenerator(varargin)
     %Generate trials that explore interpolation (response using the mouse.)
 
-    coarseFixationWindow = 3;
-    fineFixationWindow = 1;
-    nSamples = 10;
-    onset = 0.5;
+    %the base gives the basic parameters of the trial. It will be cloned
+    %for each trial.
+    base = CircleInterpolationTrial();
+    
+    nTargets = 5; %number of targets to use. in generating trials.
+    
+    minGap = 2*pi/8; %this many radians (on the circle) between all targets at the
+                     %time of the flash.
 
-    nDistractors = 5;
-    radius = 10;
-    dx = 0.75;
-    dt = 0.15;
-    nStations = 5;
+    numInBlock = 50; %number of trials in a block.
     
-    numInBlock = 50;
+    %the "onset asynchrony" is the time between the center of the target's
+    %first appearance and the onset of the bar.
+    onsetAsynchronies = 0;
     
-    %the "onset asynchrony" is the time 
-    onsetAsynchronies = linspace(-0.5*dt, (nStations-0.5)*dt, 3*(nStations+1) + 1); %four per target appearance.
+    %after acquiring ifxation, stimulus onset happens here
+    baseOnset = 0.5;
+    
+    %Comparison bars are shown this long after the last appearance of the
+    %target
+    comparisonBarDelay = 0.5;
     
     %the "normal displacement" is the linear offset of the flash ahead of
     %the target's linearly interpolated position.
-    % (positive values are in the direction of translation.)
-    normalDisplacements = linspace( -0.5*dx, 1.5*dx, 5);
-
-    patch = CauchyPatch...
-        ( 'velocity', 5 ...
-        , 'size', [0.5 0.75 0.1]...
-        );
-    
-    comparisonBarDelay = max((nStations+1)*dt) - min(onsetAsynchronies);
+    %(positive values are in the direction of translation.)
+    interpolatedDisplacements = 0;
 
     %These arrays maintain the list of trials yet to be done.
     shuffleOnsetAsynchrony = []; %time of flash from centroid of first target appearance
+    
     %now, the "flash displacement" is the linear offset of the flash from
-    %the location of the target at stimulus onset.
+    %the (interpolated) location of the target at stimulus onset.
     shuffleFlashDisplacement = []; %Absolute linear displacement of flash
     shuffleConsistent = []; %Whether motion is consistent in this trial.
     shuffleDx = []; %dx of the target.
@@ -40,35 +40,30 @@ function this = CircleInterpolationTrialGenerator(varargin)
     shuffle_();
     
     this = autoobject(varargin{:});
-
-    function setShuffleOnsetAsynchrony(v)
-        error('CircleInterpolationTrialGenerator:readonly', 'read only property');
-    end
-    function setShuffleFlashDisplacement(v)
-        error('CircleInterpolationTrialGenerator:readonly', 'read only property');
-    end
-    function setShuffleConsistent(v)
-        error('CircleInterpolationTrialGenerator:readonly', 'read only property');
-    end
-    function setShuffleDx(v)
-        error('CircleInterpolationTrialGenerator:readonly', 'read only property');
-    end
-
+    
     %------------------ methods...
 
     function n = setOnsetAsynchronies(n)
         onsetAsynchronies = n;
+        shuffle_();
+    end
+
+    function n = setInterpolatedDisplacements(n)
+        interpolatedDisplacements = n;
+        shuffle_();
+    end
+
+    function d = setBase(d)
+        base = d;
+        shuffle_();
+    end
         
-        shuffle_();
-    end
-
-    function n = setFlashDisplacements(n)
-        flashDisplacements = n;
-        shuffle_();
-    end
-
     function shuffle_()
-        [soa, snd, sc, sdx] = ndgrid(onsetAsynchronies, normalDisplacements, [0 1], [dx -dx]);
+        dx = base.getDx();
+        dt = base.getDt();
+        dx = dx(1);
+        dt = dt(1);
+        [soa, snd, sc, sdx] = ndgrid(onsetAsynchronies, interpolatedDisplacements, [0 1], [dx -dx]);
         shuffleOnsetAsynchrony = soa(:);
         shuffleDx = sdx(:);
         shuffleConsistent = sc(:);
@@ -101,92 +96,115 @@ function this = CircleInterpolationTrialGenerator(varargin)
 
     function trial = next(params)
         
+        %select a trial from the trials to be done...
         index = ceil(rand() * numel(shuffleOnsetAsynchrony));
-        
         thisDx = shuffleDx(index);
-        thisConsistent = shuffleConsistent(index);
-
+        thisConsistent = shuffleConsistent(index)
         barAsynchrony = shuffleOnsetAsynchrony(index);
+        barDisplacement = shuffleFlashDisplacement(index);
         
         rounded = params.cal.interval * round(barAsynchrony / params.cal.interval);
         if abs(rounded - barAsynchrony) > 0.001
             warning('CircleInterpolationTrialGenerator:framesync', 'Specified onset asynchronies are not well aligned to frame intervals!');
         end
+
+        %now randomize the stimulus:
+        %onset times are randomized within a window of dt to reduce
+        %'strobing' appearance. They are also aligned to frame intervals.
+        onsets = params.cal.interval * floor((baseOnset + rand(1, nTargets) * base.getDt()) / params.cal.interval);
         
-        barDisplacement = shuffleFlashDisplacement(index);
-
-        %onset times of each thing (staggering the onset times reduces the
-        %appearance of strobing)
-        onsets = dt + (0:nDistractors-1) * dt / nDistractors;
+        if (minGap * nTargets) > 2*pi
+            error('circleInterpolationTrialGenerator:nTargets', 'can''t support that minimum gap with that many targets.');
+        end
         
-        %align to frame intervals
-        onsets = params.cal.interval * floor(onsets / params.cal.interval);
+        %phase of each target at the time of cue (randomly chooses target
+        %locations with the condition that no target is less than minGap
+        %from another target.)
+        r1 = rand();
+        r2 = sort(rand(1, nTargets));
+        phases = mod( r1 * 2*pi ...
+                      + minGap * (0:(nTargets-1)) ...
+                      + r2 * (2*pi - nTargets * minGap)...
+                    , 2*pi)
+                
+        minGap;
+        gaps = abs(mod(pi + phases([2:nTargets 1]) - phases, 2*pi) - pi);
+        if any(gaps < minGap)
+            noop(); %wtf
+        end
 
-        %phases of each thing (note, this produces an irregular, but
-        %non-overlapping distribution.
-        phases = (rand() + (0:nDistractors-1)/nDistractors)*2*pi;
-        phases = phases + rand(1, nDistractors) * pi/nDistractors;
-        phases = phases(randperm(length(phases)));
-
-        %randomly choose one of the items as the target
-        targetIndex = ceil(rand() * nDistractors);
-
-        %set the bar velocity
-        p = patch;
-        p.velocity = p.velocity * sign(thisDx) * 2 *(logical(thisConsistent) - 0.5);
-
-        %some targets go the other way?
-        thisDx = repmat(thisDx, size(phases));
-        thisDx(1:end) ~= phases;
+        %The directions of the targets are randomized except for the first:
+        ddx = thisDx * (round(rand(1, nTargets))*2 - 1);
+        ddx(1) = thisDx;
         
-        trial = CircleInterpolationTrial ...
-            ( 'dx', thisDx ...
-            , 'dt', dt ...
-            , 'n', nStations ...
+        %the phase of the bar flash and comparison
+        barPhase = phases(1) + barDisplacement/base.getRadius()*sign(thisDx);
+        
+        %the onset of the flash is determined:
+        barOnset = onsets(1) + barAsynchrony;
+        
+        %and the onset phases are adjusted for the tine the targets spend
+        %traveling.
+        travel = ddx/base.getRadius().*(barOnset - onsets)./base.getDt();
+        phases = mod(phases - travel, 2*pi);
+
+        %and the angles (i.e. the coherences) randomized except fot the
+        %first one which is determined;
+        angles = phases * 180/pi + 90*sign(ddx) + 180 * round(rand);
+        angles(1) = phases(1)*180/pi + 90*sign(thisDx) + 180*~logical(thisConsistent);
+        angles = mod(angles, 360);
+        
+        trial = clone(base ...
             , 'onsets', onsets ...
             , 'phases', phases ...
-            , 'barPhase', phases(targetIndex) + barDisplacement/radius...
-            , 'barOnset', onsets(targetIndex) + barAsynchrony ...
-            , 'patch', p ...
-            , 'comparisonBarDelay', comparisonBarDelay ...
+            , 'dx', ddx ...
+            , 'angles', angles ...
+            , 'barPhase', barPhase ...
+            , 'barOnset', barOnset ...
             );
-        
-        printf('made a trial: %f dx, %d consistent, %f asynch, %f displacement', thisDx(targetIndex), thisConsistent, barAsynchrony, barDisplacement);
+            
+        printf('made a trial: %f dx, %d consistent, %f asynch, %f displacement', ddx(1), thisConsistent, barAsynchrony, barDisplacement);
     end
 
     function result(last, result)
-        %TODO: Interpret a mixed up clockwise and counter; leftward and rightward.
-
-        %This is probably the har way to do it... backing out the
-        %rights data from the raw stimulus (when I could have just
-        %saved the raw data... but it makes sure that the data I save
-        %is sufficient & my task is unambiguous.
+        %Interprets a trial, and if is has a response removes it from the
+        %pending trials list. Note it considers all the targets, whcih is
+        %unnecessary but leftover from an earlier version.
         
         thisDx = last.getDx();
-        p = last.getPatch();
-        thisConsistent = sign(p.velocity ./ last.getDx()) > 0;
-
-        %find the right quest and update it
-        %THIS ISN'T QUITE RIGHT...
+        phases = last.getPhases();
+        angles = last.getAngles();
+        
+        thisConsistent = (mod(180 + angles - phases*180/pi , 360) - 180).*sign(thisDx) > 0;
         %which target was nearest the bar when the bar blinked?
-        targetPhasesAtOnset = last.getPhases() + last.getDx()/last.getRadius()*last.getBarOnset();
-        [tmp, targetIndex] = min(abs(last.getBarPhase() - targetPhasesAtOnset));
-        targetPhaseDisplacement = last.getBarPhase() - last.getPhases(); %dsplacement for initial target appearance.
-        targetPhaseDisplacement = targetPhaseDisplacement(targetIndex);
-        targetDisplacement = targetPhaseDisplacement * last.getRadius();
+        travel = last.getDx()./last.getDt()./last.getRadius().*(last.getBarOnset()-last.getOnsets());
+        targetPhasesAtFlash = last.getPhases() + travel;
+        last.getBarPhase();
+        [tmp, targetIndex] = min(abs(mod(pi + last.getBarPhase() - targetPhasesAtFlash, 2*pi) - pi))
+        flashPhaseDisplacement = mod(pi + (last.getBarPhase() - targetPhasesAtFlash) .* sign(thisDx), 2*pi) - pi;
+        flashDisplacement= flashPhaseDisplacement * last.getRadius();
         
         asynch = last.getBarOnset() - last.getOnsets();
-        asynch = asynch(targetIndex);
-        [tmp, questIndex] = min(abs(asynch - onsetAsynchronies));
-
+        
         if ~isfield(result, 'responseDisplacement') || isnan(result.responseDisplacement)
             return;
         end
 
-        printf(' got a trial: %f dx, %d consistent, %f asynch, %f displacement, response displacement %d', thisDx, thisConsistent, asynch, targetDisplacement, result.responseDisplacement);
+        printf(' got a trial: %f dx, %d consistent, %f asynch, %f displacement, response displacement %d'...
+            , thisDx(targetIndex)...
+            , thisConsistent(targetIndex)...
+            , asynch(targetIndex)...
+            , flashDisplacement(targetIndex)...
+            , result.responseDisplacement...
+            );
 
         %check if it matches a scheduled trial and if so remove it.
-        match = find((thisDx(targetIndex) == shuffleDx) & (thisConsistent(targetIndex) == shuffleConsistent) & (abs(shuffleOnsetAsynchrony - asynch) < 0.001) & (abs(targetDisplacement - shuffleFlashDisplacement) < 0.01));
+        match = find ...
+            ( (thisDx(targetIndex) == shuffleDx) ...
+            & (thisConsistent(targetIndex) == shuffleConsistent) ...
+            & (abs(shuffleOnsetAsynchrony - asynch(targetIndex)) < 0.001) ...
+            & (abs(flashDisplacement(targetIndex) - shuffleFlashDisplacement) < 0.01));
+        
         if ~isempty(match)
             disp match
             shuffleDx(match(1)) = [];

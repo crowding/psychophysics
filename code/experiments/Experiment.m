@@ -12,29 +12,39 @@ function this = Experiment(varargin)
 % be passed down into the Eyelink and Screen setup routines.
 caller = getversion(2);
 
-defaults = namedargs...
+props = struct ...
     ( 'trials', ShuffledTrials()...
     , 'subject', ''...
     , 'filename','__auto__'...
-    , 'runs', {} ...
+    , 'runs', {{}} ...
     , 'description', ''...
     , 'caller', caller...
-    , 'params.logfile', '__auto__'...
-    , 'params.hideCursor', 1 ...
     );
 
-params = namedargs(defaults, varargin{:}); %htis is only used for the file check
+params = struct ...
+    ( 'logfile', '__auto__'...
+    , 'hideCursor', 1 ...
+    , 'continuing', 0 ...
+    );
 
-if isempty(params.subject)
-    params.subject = input('Enter subject initials: ', 's');
+this = Object(...
+    Identifiable()...
+    , propertiesfromdefaults(props, 'params', params, varargin{:})...
+    , public(@run)...
+    );
+
+params = this.params;
+
+if isempty(this.subject)
+    this.subject = input('Enter subject initials: ', 's');
 end
 
-if ~isvarname(params.subject)
+if ~isvarname(this.subject)
     error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
 end
 
 %if there is a previous unfinished experiment, load it.
-pattern = [params.subject '*' params.caller.function '.mat'];
+pattern = [this.subject '*' this.caller.function '.mat'];
 last = dir(fullfile(env('datadir'),pattern));
 if ~isempty(last) && (~isfield(params, 'continuing') || params.continuing)
     last = last(end).name;
@@ -65,11 +75,6 @@ end
 %note the Experiment object is not dumped to the edf-file, only the
 %ExperimentRun object.
 
-this = Object(...
-    Identifiable()...
-    , propertiesfromdefaults(params, 'params', varargin{:})...
-    , public(@run)...
-    );
     
     function run(params)
         if exist('params', 'var')
@@ -90,12 +95,10 @@ this = Object(...
                     ,'Caller name %s does not make a good filename.'...
                     , fname);
             end
-            this.filename = sprintf('%s-%04d-%02d-%02d__%02d-%02d-%02d-%s.mat',...
+            this.filename = sprintf('%s-%04d-%02d-%02d__%02d-%02d-%02d-%s',...
                 this.subject, floor(clock), fname);
         end
 
-	42
-	params.logfile
         if isequal(params.logfile, '__auto__')
             this.params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
         end
@@ -112,7 +115,7 @@ this = Object(...
         e = [];
         try
             [stat, host] = system('hostname');
-            if strfind(host, 'pastorianus')
+            if strfind(host, 'pastorianus')  && (~isfield(params, 'dummy') || ~params.dummy)
                 switchscreen('videoIn', 2, 'videoOut', 1, 'immediate', 1);
                 theRun.run();
             else
@@ -132,9 +135,9 @@ this = Object(...
         if(~isempty(this.filename))
             t = tempname;
             disp( sprintf('writing to temp file %s', t));
-            save(t, 'this');
-            finalfile = fullfile(env('datadir'), this.filename);
-            movefile([t '.mat'], finalfile);
+            require(openFile(t, 'w'), @(params) dump(this, @(pat, varargin)fprintf(params.fid, [pat '\n'], varargin{:}), 'experiment'));
+            finalfile = fullfile(env('datadir'), [this.filename '.txt']);
+            movefile(t, finalfile);
             disp( sprintf('saved to %s', finalfile) );
         end
 
