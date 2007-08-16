@@ -4,44 +4,49 @@ function this = CircularMotionProcess(varargin)
 
     x = 0; %the center around which the sprite rotates
     y = 0;
-    radius = 0; %the radius of the circle it moves on
+    radius = 0; %the radius of the circle it/they move on
     phase = 0; %the initial phase
     angle = 0;
-    color = [1 1 1 1];
+    color = [0.5;0.5;0.5];
 
     dphase = 0; %the phase angle change per appearance
-    dt = 0.1; %the number fo seconds per appearance
-    n = Inf; %the number of appearances left to show
+    dt = 0.1; %the number of seconds per appearance
+    n = Inf; %the number of appearances to show
 
     t = 0; %time of the first appearance
+
+    counter_ = [0]; %counts how many of each target have been shown
 
     this = autoobject(varargin{:});
 
 %-----
-    counter_ = 1;
+    
+    function setPhase(p)
+        phase = p;
+        counter_ = zeros(size(p));
+    end
     
     function [xx, yy, tt, aa, cc] = next()
-        if (n > 0)
-            xxx = x + radius .* cos(phase);
-            yyy = y - radius .* sin(phase);
-            aaa = angle;
+        c = counter_;
+        c(counter_ > n) = NaN;
+        [tt, i] = min(t + c .* dt);
+        
+        if ~isnan(tt)
+            xxx = x + radius .* cos(phase + dphase.*c);
+            yyy = y - radius .* sin(phase + dphase.*c);
+            aaa = angle + 180/pi .* dphase.*c;
             
-            xx = xxx(counter_);
-            yy = yyy(counter_);
-            aa = aaa(counter_);
-            tt = t(counter_);
+            xx = xxx(i);
+            yy = yyy(i);
+            aa = aaa(i);
             
-            cc = color;
-
-            if counter_ >= max([ numel(xxx), numel(yyy), numel(aaa)]);
-                phase = phase + dphase;
-                angle = angle + dphase * 180 / pi;
-                n = n - 1;
-                t = t + dt;
-                counter_ = 1;
+            if size(color, 2) > 1
+                cc = color(:,i);
             else
-                counter_ = counter_ + 1;
+                cc = color;
             end
+            
+            counter_(i) = counter_(i) + 1;
         else
             [xx, yy, tt, aa, cc] = deal(NaN);
         end

@@ -41,15 +41,11 @@ failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
     
 this = autoobject(varargin{:});
 
-failureSound_ = tones(failureTones);
 
 
 %------ methods ------
-    function setFailureTones(v)
-        failureSound_ = tones(failureTones);
-    end
-
     function [params, result] = run(params)
+        failureSound_ = makeBeeps(failureTones, params.freq);
         
         interval = params.cal.interval;
         
@@ -61,7 +57,6 @@ failureSound_ = tones(failureTones);
             result.responseDisplacement = NaN;
             result.accepted = 0;
         end
-
 
         motion = CircularMotionProcess ...
             ( 'radius', radius ...
@@ -100,8 +95,7 @@ failureSound_ = tones(failureTones);
 
         fixationPoint = FilledDisk([0 0], 0.1, params.blackIndex, 'visible', 1);
 
-        in = InsideTrigger();
-        out = OutsideTrigger();
+        point = LocTrigger(fixationPoint.getLoc);
         timer = RefreshTrigger();
         
         keydown = KeyDown();
@@ -109,9 +103,6 @@ failureSound_ = tones(failureTones);
         
         mousedown = MouseDown();
         mousemove = MouseMove();
-        
-        in = InsideTrigger();
-        out = OutsideTrigger();
         
         main = mainLoop ...
             ( {sprites, fixationPoint, insideBar, outsideBar, comparisonBar} ...
@@ -131,14 +122,12 @@ failureSound_ = tones(failureTones);
             fixationPoint.setVisible(1);
             fixationSamples = 0;
             fixationTotal = [0 0];
-            in.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @settleFixation);
-            out.unset();
+            point.set(@settleFixation, 1, coarseFixationWindow, [0 0]);
             timer.unset();
         end
 
         function settleFixation(s)
-            in.unset();
-            out.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @awaitFixation);
+            point.set(@awaitFixation, 0, coarseFixationWindow, [0 0]);
             timer.set(@averageFixation ...
                 , s.refresh + round(fixationSettleTime / interval) ...
                 , 1);
@@ -160,15 +149,13 @@ failureSound_ = tones(failureTones);
         function retryFixation(s)
             timer.unset();
             fixationPoint.setVisible(0);
-            out.set(fixationPoint.bounds, coarseFixationWindow, [0 0], @awaitFixation);
+            point.set(@awaitFixation, 1, coarseFixationWindow, [0 0]);
         end
         
         function start(s)
             averagedFixation = fixationTotal / fixationSamples;
-
             timer.set(@showMotion, s.refresh + 1);
-            in.unset;
-            out.set(fixationPoint.bounds, fineFixationWindow, [0 0], @failed);
+            point.set(@failed, fineFixationWindow, averagedFixation);
         end
 
         function showMotion(s)
@@ -185,7 +172,6 @@ failureSound_ = tones(failureTones);
         function hideBars(s)
             insideBar.setVisible(0);
             outsideBar.setVisible(0);
-
             timer.set(@showComparison, s.triggerRefresh + round(comparisonBarDelay/interval));
         end
         
@@ -193,8 +179,7 @@ failureSound_ = tones(failureTones);
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
             comparisonBar.setVisible(1);
-            timer.unset();
-            out.unset();
+            point.unset();
             mousemove.set(@moveComparisonBar);
             mousedown.set(@accept);
             keydown.set(@decline, 'space');
@@ -256,10 +241,11 @@ failureSound_ = tones(failureTones);
             mousedown.unset();
             result.barOffset = NaN;
             result.accepted = 0;
-            out.unset();
-            in.unset();
+            point.unset();
             timer.set(main.stop, s.refresh+2);
-            play(failureSound_());
+            PsychPortAudio('Stop', params.pahandle);
+            PsychPortAudio('FillBuffer', params.pahandle, failureSound_, 0);
+            PsychPortAudio('Start', params.pahandle, 1, s.next);
         end
         
         awaitFixation();
