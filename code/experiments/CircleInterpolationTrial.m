@@ -177,10 +177,11 @@ this = autoobject(varargin{:});
         end
         
         function showComparison(s)
+            sprites.setVisible(0);
             insideBar.setVisible(1);
             outsideBar.setVisible(1);
             comparisonBar.setVisible(1);
-            timer.unset();
+            timer.set(@decline, s.refresh + 1);
             timer2.unset();
             point.unset();
             mousemove.set(@moveComparisonBar);

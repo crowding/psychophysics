@@ -19,10 +19,14 @@ function initializer = GetEyelink(varargin)
 
 FILE_CANT_OPEN = -1;
 
+defaults = struct...
+    ( 'hideCursor', 0 ...
+    );
+
 %build the initializer, and curry it with given args.
 
 initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-initializer = currynamedargs(initializer, varargin{:});
+initializer = currynamedargs(initializer, defaults, varargin{:});
 
 %sub-initializers:
 

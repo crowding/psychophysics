@@ -80,9 +80,13 @@ function this = CircleInterpolationTrialGenerator(varargin)
         %}
     end
 
+    function h = hasNextBlock()
+        h = ~isempty(shuffleFlashDisplacement);
+    end
+
     blockCounter_ = 0;
     function startBlock()
-        blockCounter_ = numInBlock;
+        blockCounter_ = min(numInBlock, numel(shuffleFlashDisplacement));
     end
 
     function has = hasNext()
@@ -127,12 +131,6 @@ function this = CircleInterpolationTrialGenerator(varargin)
                       + r2 * (2*pi - nTargets * minGap)...
                     , 2*pi)
                 
-        minGap;
-        gaps = abs(mod(pi + phases([2:nTargets 1]) - phases, 2*pi) - pi);
-        if any(gaps < minGap)
-            noop(); %wtf
-        end
-
         %The directions of the targets are randomized except for the first:
         ddx = thisDx * (round(rand(1, nTargets))*2 - 1);
         ddx(1) = thisDx;
@@ -180,7 +178,7 @@ function this = CircleInterpolationTrialGenerator(varargin)
         travel = last.getDx()./last.getDt()./last.getRadius().*(last.getBarOnset()-last.getOnsets());
         targetPhasesAtFlash = last.getPhases() + travel;
         last.getBarPhase();
-        [tmp, targetIndex] = min(abs(mod(pi + last.getBarPhase() - targetPhasesAtFlash, 2*pi) - pi))
+        [tmp, targetIndex] = min(abs(mod(pi + last.getBarPhase() - targetPhasesAtFlash, 2*pi) - pi));
         flashPhaseDisplacement = mod(pi + (last.getBarPhase() - targetPhasesAtFlash) .* sign(thisDx), 2*pi) - pi;
         flashDisplacement= flashPhaseDisplacement * last.getRadius();
         

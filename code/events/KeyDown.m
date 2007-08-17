@@ -38,7 +38,7 @@ end
             k.keysPressed = KbName(new);
             for i = evtable(new)'
                 if ~isempty(i{1})
-                    log('KEY_DOWN $s $s', func2str(i{:}), struct2str(k));
+                    log('TRIGGER %s %s', func2str(i{:}), struct2str(k));
                     i{1}(k);
                 end
             end

@@ -152,6 +152,9 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
         %Step 3: Retreive some information and gray the screen
         function [release, details] = blankScreen(details)
 
+            details.screenInfo = Screen('GetWindowInfo', details.window);
+            details.screenInterval = Screen('GetFlipInterval', details.window);
+            
             release = @noop;
 
             function noop

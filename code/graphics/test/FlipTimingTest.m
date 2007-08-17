@@ -11,7 +11,7 @@ function FlipTimingTest
         [interval n stddev] = Screen('GetFlipInterval', params.window);
 
         i = 0;
-        nRects = 20;
+        nRects = 30;
         
         printf('Loop 0, regular:    %f', staircase(@loop0,             0, 0.001, 3, 1, 10));
         printf('Loop 0, occasional: %f', staircase(occasional(@loop0), 0, 0.001, 3, 1, 10));

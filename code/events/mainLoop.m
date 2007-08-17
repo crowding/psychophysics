@@ -37,7 +37,7 @@ this = autoobject(varargin{:});
 %instance variables
 go_ = 0; % flags whether the main loop is running
 nt_ = 0;
-toDegrees_ = [];
+toDegrees_ = @noop;
 
 %values used while running in the main loop
 
@@ -72,6 +72,9 @@ windowTop_ = 0;
         nt_ = numel(triggers);
         go_ = 1;
         interval = params.cal.interval;
+        VBLStartline = params.screenInfo.VBLStartline;
+        VBLEndline = params.screenInfo.VBLEndline;
+        flipInterval = params.screenInterval;
         hitcount = 0;
         skipcount = 0;
         dontsync = params.dontsync;
@@ -186,7 +189,22 @@ windowTop_ = 0;
             %-----Flip phase: Flip the screen buffers and note the time at
             %which the change occurred.
             prevVBL = VBL;
-            VBL = Screen('Flip', window, (VBL + interval) * slowdown - interval/2) / slowdown;
+            
+            deadline = (VBL + interval) * slowdown - interval/2;
+            [tmp, tmp, FlipTimestamp]...
+                = Screen('Flip', window, deadline, [], 1);
+            beampos = Screen('GetWindowInfo', params.window, 1);
+            %Estimate of when the next blank happens
+            VBL = FlipTimestamp + (VBLStartline-beampos)/VBLEndline*flipInterval;
+            
+            if (deadline > VBL)
+                %figure it hit anyway, since this only happens in slowdown
+                %mode.
+                VBL = VBL + ceil((deadline - VBL) * interval) + interval;
+            end
+
+            VBL = VBL / slowdown;
+            
             if (aviout_)
                 frame = Screen('GetImage', window);
                 size(frame)
@@ -197,7 +215,7 @@ windowTop_ = 0;
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
         if (aviout_)
-            aviobj = close(aviobj); %TODO make this into a REQUIRE
+            close(aviobj); %TODO make this into a REQUIRE
         end
     end
 
