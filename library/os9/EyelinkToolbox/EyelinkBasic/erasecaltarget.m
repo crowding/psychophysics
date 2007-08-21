@@ -1,1 +1,0 @@
-function erasecaltarget(el, rect)% erase calibration target%% USAGE: erasecaltarget(el, rect)%%		el: eyelink default values%		rect: rect that will be filled with background colour SCREEN( el.window, 'FillOval', el.backgroundcolour,  rect );

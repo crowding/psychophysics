@@ -1,1 +1,0 @@
-function clearcaldisplay(el)SCREEN( el.window, 'FillRect',  el.backgroundcolour );	% clear_cal_display()
