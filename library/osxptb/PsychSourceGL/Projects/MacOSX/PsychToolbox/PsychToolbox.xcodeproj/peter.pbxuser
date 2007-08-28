@@ -52,7 +52,7 @@
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
 		activeBuildConfigurationName = Development;
 		activeExecutable = D02B7DDE0BD85BF500757F74 /* MATLAB */;
-		activeTarget = 2FEBA6B70988630A00F4165F /* Screen */;
+		activeTarget = 2FEBA654098862D800F4165F /* PsychHID */;
 		addToTargets = (
 			2FEBA6B70988630A00F4165F /* Screen */,
 		);
@@ -214,10 +214,28 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 199920686;
-			PBXWorkspaceStateSaveDate = 199920686;
+			PBXPerProjectTemplateStateSaveDate = 209638936;
+			PBXWorkspaceStateSaveDate = 209638936;
 		};
 		perUserProjectItems = {
+			D07C78A40C7EDB2C00397AEC /* PBXTextBookmark */ = D07C78A40C7EDB2C00397AEC /* PBXTextBookmark */;
+			D07C78A50C7EDB2C00397AEC /* PBXTextBookmark */ = D07C78A50C7EDB2C00397AEC /* PBXTextBookmark */;
+			D07C78A80C7EDB2C00397AEC /* PBXTextBookmark */ = D07C78A80C7EDB2C00397AEC /* PBXTextBookmark */;
+			D07C78A90C7EDB2C00397AEC /* PBXTextBookmark */ = D07C78A90C7EDB2C00397AEC /* PBXTextBookmark */;
+			D07C78E00C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E00C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E10C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E10C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E20C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E20C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E40C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E40C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E50C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E50C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E60C7FA0BA00397AEC /* PBXTextBookmark */ = D07C78E60C7FA0BA00397AEC /* PBXTextBookmark */;
+			D07C78E90C7FA0ED00397AEC /* PBXTextBookmark */ = D07C78E90C7FA0ED00397AEC /* PBXTextBookmark */;
+			D07C78EC0C7FA0F400397AEC /* PBXTextBookmark */ = D07C78EC0C7FA0F400397AEC /* PBXTextBookmark */;
+			D07C78EE0C8231DC00397AEC /* PBXTextBookmark */ = D07C78EE0C8231DC00397AEC /* PBXTextBookmark */;
+			D07C78F00C8231DC00397AEC /* PBXTextBookmark */ = D07C78F00C8231DC00397AEC /* PBXTextBookmark */;
+			D07C78F10C8231DC00397AEC /* PBXTextBookmark */ = D07C78F10C8231DC00397AEC /* PBXTextBookmark */;
+			D07C78F30C8231DC00397AEC /* PBXTextBookmark */ = D07C78F30C8231DC00397AEC /* PBXTextBookmark */;
+			D07C78F40C8231DD00397AEC /* PBXTextBookmark */ = D07C78F40C8231DD00397AEC /* PBXTextBookmark */;
+			D07C78F50C8231DE00397AEC /* PBXTextBookmark */ = D07C78F50C8231DE00397AEC /* PBXTextBookmark */;
 			D09BA2B70BE054D600C5F2CE /* PBXTextBookmark */ = D09BA2B70BE054D600C5F2CE /* PBXTextBookmark */;
 			D09BA3E00BE31F6A00C5F2CE /* PBXTextBookmark */ = D09BA3E00BE31F6A00C5F2CE /* PBXTextBookmark */;
 			D09BA3E30BE31F6A00C5F2CE /* PBXTextBookmark */ = D09BA3E30BE31F6A00C5F2CE /* PBXTextBookmark */;
@@ -286,7 +304,6 @@
 			D0C4CDDF0BE9F3B90035A075 /* PBXTextBookmark */ = D0C4CDDF0BE9F3B90035A075 /* PBXTextBookmark */;
 			D0C4CDE00BE9F3B90035A075 /* PBXTextBookmark */ = D0C4CDE00BE9F3B90035A075 /* PBXTextBookmark */;
 			D0C4CDE20BE9F3B90035A075 /* PBXTextBookmark */ = D0C4CDE20BE9F3B90035A075 /* PBXTextBookmark */;
-			D0C4CDE70BE9F3B90035A075 /* PBXTextBookmark */ = D0C4CDE70BE9F3B90035A075 /* PBXTextBookmark */;
 			D0E48DD70BE031FD00287D6B /* PBXTextBookmark */ = D0E48DD70BE031FD00287D6B /* PBXTextBookmark */;
 			D0E48DD80BE031FD00287D6B /* PBXTextBookmark */ = D0E48DD80BE031FD00287D6B /* PBXTextBookmark */;
 			D0E48DD90BE031FD00287D6B /* PBXTextBookmark */ = D0E48DD90BE031FD00287D6B /* PBXTextBookmark */;
@@ -296,11 +313,8 @@
 			D0E48DE10BE031FD00287D6B /* PBXTextBookmark */ = D0E48DE10BE031FD00287D6B /* PBXTextBookmark */;
 			D0FFFF980BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF980BEB224D00CB5A7F /* PBXTextBookmark */;
 			D0FFFF990BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF990BEB224D00CB5A7F /* PBXTextBookmark */;
-			D0FFFF9A0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9A0BEB224D00CB5A7F /* PBXTextBookmark */;
-			D0FFFF9B0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9B0BEB224D00CB5A7F /* PBXTextBookmark */;
 			D0FFFF9C0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9C0BEB224D00CB5A7F /* PBXTextBookmark */;
 			D0FFFF9D0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9D0BEB224D00CB5A7F /* PBXTextBookmark */;
-			D0FFFF9E0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9E0BEB224D00CB5A7F /* PBXTextBookmark */;
 			D0FFFF9F0BEB224D00CB5A7F /* PBXTextBookmark */ = D0FFFF9F0BEB224D00CB5A7F /* PBXTextBookmark */;
 		};
 		sourceControlManager = D07744CB0BCB4927000FDFB7 /* Source Control */;
@@ -356,6 +370,13 @@
 		executables = (
 			D07744900BCB4904000FDFB7 /* DoNothing_OLD */,
 		);
+	};
+	2F5434E40904C61F0051D6CC /* PsychHIDReceiveReports.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1286, 7152}}";
+			sepNavSelRange = "{18616, 6}";
+			sepNavVisRect = "{{8, 5498}, {1069, 493}}";
+		};
 	};
 	2F57E34B08CEB64200A5CF85 /* StoreBit_OLD */ = {
 		activeExec = 0;
@@ -693,6 +714,13 @@
 			sepNavWindowFrame = "{{-908, 1166}, {859, 789}}";
 		};
 	};
+	8395A9DB0BBF370800FC482E /* PsychHID.cc */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1069, 468}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {1069, 468}}";
+		};
+	};
 	83C8025F0B8CB29300097021 /* MirrorFaceCore Intel */ = {
 		activeExec = 0;
 	};
@@ -711,6 +739,13 @@
 			sepNavSelRange = "{12803, 0}";
 			sepNavVisRect = "{{0, 2682}, {1189, 362}}";
 			sepNavWindowFrame = "{{-1219, 1148}, {859, 789}}";
+		};
+	};
+	CF566E6F07F7D2FC00D4957A /* PsychHIDGetReport.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1069, 2724}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 594}, {1069, 468}}";
 		};
 	};
 	D02B7CED0BCEEBD700757F74 /* All */ = {
@@ -1493,6 +1528,210 @@
 		isa = PBXCodeSenseManager;
 		indexTemplatePath = "";
 	};
+	D07C78A40C7EDB2C00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 8370C71E096A014E00BD4C8C /* PsychTextureSupport.c */;
+		name = "void PsychDetectTextureTarget(PsychWindowRecordType *win)";
+		rLen = 58;
+		rLoc = 3065;
+		rType = 0;
+		vrLen = 2293;
+		vrLoc = 1803;
+	};
+	D07C78A50C7EDB2C00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434D70904C5DB0051D6CC /* PsychHIDGiveMeReports.c */;
+		name = "PsychHIDGiveMeReports.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1641;
+		vrLoc = 0;
+	};
+	D07C78A70C7EDB2C00397AEC /* LinkingHIDLibrary.rtf */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = text.rtf;
+		name = LinkingHIDLibrary.rtf;
+		path = /Users/peter/eyetracking/library/osxptb/PsychSourceGL/Notes/LinkingHIDLibrary.rtf;
+		sourceTree = "<absolute>";
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1069, 962}}";
+			sepNavSelRange = "{3307, 0}";
+			sepNavVisRect = "{{0, 312}, {1069, 483}}";
+		};
+	};
+	D07C78A80C7EDB2C00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 8370C71E096A014E00BD4C8C /* PsychTextureSupport.c */;
+		name = "void PsychDetectTextureTarget(PsychWindowRecordType *win)";
+		rLen = 58;
+		rLoc = 3065;
+		rType = 0;
+		vrLen = 2293;
+		vrLoc = 1803;
+	};
+	D07C78A90C7EDB2C00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434D70904C5DB0051D6CC /* PsychHIDGiveMeReports.c */;
+		name = "PsychHIDGiveMeReports.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1641;
+		vrLoc = 0;
+	};
+	D07C78E00C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = D07C78A70C7EDB2C00397AEC /* LinkingHIDLibrary.rtf */;
+		name = "LinkingHIDLibrary.rtf: 28";
+		rLen = 0;
+		rLoc = 3307;
+		rType = 0;
+		vrLen = 2451;
+		vrLoc = 2484;
+	};
+	D07C78E10C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 8395A9DB0BBF370800FC482E /* PsychHID.cc */;
+		name = "PsychHID.cc: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1016;
+		vrLoc = 0;
+	};
+	D07C78E20C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF566E6F07F7D2FC00D4957A /* PsychHIDGetReport.c */;
+		name = "PsychHIDGetReport.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 2566;
+		vrLoc = 2267;
+	};
+	D07C78E40C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = D07C78A70C7EDB2C00397AEC /* LinkingHIDLibrary.rtf */;
+		name = "LinkingHIDLibrary.rtf: 28";
+		rLen = 0;
+		rLoc = 3307;
+		rType = 0;
+		vrLen = 2451;
+		vrLoc = 2484;
+	};
+	D07C78E50C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 8395A9DB0BBF370800FC482E /* PsychHID.cc */;
+		name = "PsychHID.cc: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1016;
+		vrLoc = 0;
+	};
+	D07C78E60C7FA0BA00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF566E6F07F7D2FC00D4957A /* PsychHIDGetReport.c */;
+		name = "PsychHIDGetReport.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 2566;
+		vrLoc = 2267;
+	};
+	D07C78E90C7FA0ED00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434E40904C61F0051D6CC /* PsychHIDReceiveReports.c */;
+		name = "PsychHIDReceiveReports.c: 195";
+		rLen = 0;
+		rLoc = 9759;
+		rType = 0;
+		vrLen = 990;
+		vrLoc = 9351;
+	};
+	D07C78EC0C7FA0F400397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = D07C78A70C7EDB2C00397AEC /* LinkingHIDLibrary.rtf */;
+		name = "LinkingHIDLibrary.rtf: 28";
+		rLen = 0;
+		rLoc = 3307;
+		rType = 0;
+		vrLen = 0;
+		vrLoc = 0;
+	};
+	D07C78EE0C8231DC00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = D07C78EF0C8231DC00397AEC /* CFRunLoop.h */;
+		name = CFRunLoopRunInMode;
+		rLen = 18;
+		rLoc = 5835;
+		rType = 0;
+		vrLen = 2011;
+		vrLoc = 5257;
+	};
+	D07C78EF0C8231DC00397AEC /* CFRunLoop.h */ = {
+		isa = PBXFileReference;
+		name = CFRunLoop.h;
+		path = /System/Library/Frameworks/CoreFoundation.framework/Versions/A/Headers/CFRunLoop.h;
+		sourceTree = "<absolute>";
+	};
+	D07C78F00C8231DC00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434E40904C61F0051D6CC /* PsychHIDReceiveReports.c */;
+		name = "PsychHIDReceiveReports.c: 472";
+		rLen = 0;
+		rLoc = 20369;
+		rType = 0;
+		vrLen = 3537;
+		vrLoc = 18456;
+	};
+	D07C78F10C8231DC00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = D07C78F20C8231DC00397AEC /* CFRunLoop.h */;
+		name = CFRunLoopRunInMode;
+		rLen = 18;
+		rLoc = 5835;
+		rType = 0;
+		vrLen = 2011;
+		vrLoc = 5257;
+	};
+	D07C78F20C8231DC00397AEC /* CFRunLoop.h */ = {
+		isa = PBXFileReference;
+		name = CFRunLoop.h;
+		path = /System/Library/Frameworks/CoreFoundation.framework/Versions/A/Headers/CFRunLoop.h;
+		sourceTree = "<absolute>";
+	};
+	D07C78F30C8231DC00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434E40904C61F0051D6CC /* PsychHIDReceiveReports.c */;
+		name = Source;
+		rLen = 6;
+		rLoc = 18616;
+		rType = 0;
+		vrLen = 2677;
+		vrLoc = 19316;
+	};
+	D07C78F40C8231DD00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2FC84FBE068E7813009B1AF2 /* SCREENDrawTexture.c */;
+		name = "SCREENDrawTexture.c: 77";
+		rLen = 0;
+		rLoc = 4188;
+		rType = 0;
+		vrLen = 0;
+		vrLoc = 0;
+	};
+	D07C78F50C8231DE00397AEC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2F5434E40904C61F0051D6CC /* PsychHIDReceiveReports.c */;
+		name = "PsychHIDReceiveReports.c: 195";
+		rLen = 0;
+		rLoc = 9759;
+		rType = 0;
+		vrLen = 0;
+		vrLoc = 0;
+	};
 	D09BA26D0BE04F2E00C5F2CE /* PBXBookmarkGroup */ = {
 		isa = PBXBookmarkGroup;
 		children = (
@@ -2199,16 +2438,6 @@
 		vrLen = 1044;
 		vrLoc = 0;
 	};
-	D0C4CDE70BE9F3B90035A075 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 2FC84FBE068E7813009B1AF2 /* SCREENDrawTexture.c */;
-		name = "SCREENDrawTexture.c: 77";
-		rLen = 0;
-		rLoc = 4188;
-		rType = 0;
-		vrLen = 0;
-		vrLoc = 0;
-	};
 	D0E48DD70BE031FD00287D6B /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
 		fRef = 2F6FC4AC0739C0FB00B3EB88 /* README.rtf */;
@@ -2299,26 +2528,6 @@
 		vrLen = 1242;
 		vrLoc = 8881;
 	};
-	D0FFFF9A0BEB224D00CB5A7F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 8370C71E096A014E00BD4C8C /* PsychTextureSupport.c */;
-		name = "void PsychDetectTextureTarget(PsychWindowRecordType *win)";
-		rLen = 58;
-		rLoc = 3065;
-		rType = 0;
-		vrLen = 2071;
-		vrLoc = 3064;
-	};
-	D0FFFF9B0BEB224D00CB5A7F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 8370C71E096A014E00BD4C8C /* PsychTextureSupport.c */;
-		name = BlitTexture;
-		rLen = 11;
-		rLoc = 29558;
-		rType = 0;
-		vrLen = 1951;
-		vrLoc = 29544;
-	};
 	D0FFFF9C0BEB224D00CB5A7F /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
 		fRef = 2FA28CC60793759E00E81C78 /* SCREENDrawDots.c */;
@@ -2338,16 +2547,6 @@
 		rType = 0;
 		vrLen = 1242;
 		vrLoc = 8881;
-	};
-	D0FFFF9E0BEB224D00CB5A7F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 8370C71E096A014E00BD4C8C /* PsychTextureSupport.c */;
-		name = "void PsychDetectTextureTarget(PsychWindowRecordType *win)";
-		rLen = 58;
-		rLoc = 3065;
-		rType = 0;
-		vrLen = 2293;
-		vrLoc = 1803;
 	};
 	D0FFFF9F0BEB224D00CB5A7F /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;

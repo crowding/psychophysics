@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libhid
+Description: HID access library
+Version: 0.2.16
+Libs: -L/sw/lib -lusb -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation -Wl,-prebind -L${libdir} -lhid
+Cflags: -I/sw/include -I${includedir}

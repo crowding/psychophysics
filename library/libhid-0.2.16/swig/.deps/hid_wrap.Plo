@@ -1,0 +1,294 @@
+hid_wrap.lo hid_wrap.o: hid_wrap.c ../include/compiler.h \
+  /sw/include/python2.5/Python.h /sw/include/python2.5/patchlevel.h \
+  /sw/include/python2.5/pyconfig.h \
+  /usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/limits.h \
+  /usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/syslimits.h \
+  /usr/include/limits.h /usr/include/machine/limits.h \
+  /usr/include/ppc/limits.h /usr/include/ppc/_limits.h \
+  /usr/include/sys/syslimits.h /usr/include/stdio.h /usr/include/_types.h \
+  /usr/include/sys/_types.h /usr/include/sys/cdefs.h \
+  /usr/include/machine/_types.h /usr/include/ppc/_types.h \
+  /usr/include/string.h /usr/include/errno.h /usr/include/sys/errno.h \
+  /usr/include/stdlib.h /usr/include/sys/wait.h /usr/include/sys/signal.h \
+  /usr/include/sys/appleapiopts.h /usr/include/machine/signal.h \
+  /usr/include/ppc/signal.h /usr/include/sys/resource.h \
+  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
+  /usr/include/sys/_endian.h \
+  /usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/stdint.h \
+  /usr/include/libkern/OSByteOrder.h \
+  /usr/include/libkern/ppc/OSByteOrder.h /usr/include/alloca.h \
+  /usr/include/machine/types.h /usr/include/ppc/types.h \
+  /usr/include/unistd.h /usr/include/sys/unistd.h \
+  /usr/include/sys/select.h /usr/include/sys/types.h \
+  /usr/include/signal.h /usr/include/sys/time.h /usr/include/time.h \
+  /usr/include/machine/_limits.h ../include/assert.h ../include/hid.h \
+  /sw/include/usb.h /usr/include/dirent.h /usr/include/sys/dirent.h \
+  ../hidparser/hidparser.h ../hidparser/hidtypes.h ../include/debug.h \
+  /sw/include/python2.5/pyport.h /sw/include/python2.5/pyconfig.h \
+  /usr/include/math.h /usr/include/architecture/ppc/math.h \
+  /usr/include/sys/stat.h /usr/include/termios.h \
+  /usr/include/sys/termios.h /usr/include/sys/ttycom.h \
+  /usr/include/sys/ioccom.h /usr/include/sys/ttydefaults.h \
+  /sw/include/python2.5/pymem.h /sw/include/python2.5/pyport.h \
+  /sw/include/python2.5/object.h /sw/include/python2.5/objimpl.h \
+  /sw/include/python2.5/pymem.h /sw/include/python2.5/pydebug.h \
+  /sw/include/python2.5/unicodeobject.h /usr/include/ctype.h \
+  /usr/include/runetype.h /usr/include/wchar.h \
+  /usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/stdarg.h \
+  /usr/include/_wctype.h /sw/include/python2.5/intobject.h \
+  /sw/include/python2.5/boolobject.h /sw/include/python2.5/longobject.h \
+  /sw/include/python2.5/floatobject.h \
+  /sw/include/python2.5/complexobject.h \
+  /sw/include/python2.5/rangeobject.h \
+  /sw/include/python2.5/stringobject.h \
+  /sw/include/python2.5/bufferobject.h \
+  /sw/include/python2.5/tupleobject.h /sw/include/python2.5/listobject.h \
+  /sw/include/python2.5/dictobject.h /sw/include/python2.5/enumobject.h \
+  /sw/include/python2.5/setobject.h /sw/include/python2.5/methodobject.h \
+  /sw/include/python2.5/moduleobject.h /sw/include/python2.5/funcobject.h \
+  /sw/include/python2.5/classobject.h /sw/include/python2.5/fileobject.h \
+  /sw/include/python2.5/cobject.h /sw/include/python2.5/traceback.h \
+  /sw/include/python2.5/sliceobject.h /sw/include/python2.5/cellobject.h \
+  /sw/include/python2.5/iterobject.h /sw/include/python2.5/genobject.h \
+  /sw/include/python2.5/descrobject.h \
+  /sw/include/python2.5/weakrefobject.h /sw/include/python2.5/codecs.h \
+  /sw/include/python2.5/pyerrors.h /sw/include/python2.5/pystate.h \
+  /sw/include/python2.5/pyarena.h /sw/include/python2.5/modsupport.h \
+  /sw/include/python2.5/pythonrun.h /sw/include/python2.5/ceval.h \
+  /sw/include/python2.5/sysmodule.h /sw/include/python2.5/intrcheck.h \
+  /sw/include/python2.5/import.h /sw/include/python2.5/abstract.h \
+  /sw/include/python2.5/compile.h /sw/include/python2.5/code.h \
+  /sw/include/python2.5/eval.h /sw/include/python2.5/pystrtod.h \
+  /sw/include/python2.5/pyfpe.h
+
+../include/compiler.h:
+
+/sw/include/python2.5/Python.h:
+
+/sw/include/python2.5/patchlevel.h:
+
+/sw/include/python2.5/pyconfig.h:
+
+/usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/limits.h:
+
+/usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/machine/limits.h:
+
+/usr/include/ppc/limits.h:
+
+/usr/include/ppc/_limits.h:
+
+/usr/include/sys/syslimits.h:
+
+/usr/include/stdio.h:
+
+/usr/include/_types.h:
+
+/usr/include/sys/_types.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/machine/_types.h:
+
+/usr/include/ppc/_types.h:
+
+/usr/include/string.h:
+
+/usr/include/errno.h:
+
+/usr/include/sys/errno.h:
+
+/usr/include/stdlib.h:
+
+/usr/include/sys/wait.h:
+
+/usr/include/sys/signal.h:
+
+/usr/include/sys/appleapiopts.h:
+
+/usr/include/machine/signal.h:
+
+/usr/include/ppc/signal.h:
+
+/usr/include/sys/resource.h:
+
+/usr/include/machine/endian.h:
+
+/usr/include/ppc/endian.h:
+
+/usr/include/sys/_endian.h:
+
+/usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/stdint.h:
+
+/usr/include/libkern/OSByteOrder.h:
+
+/usr/include/libkern/ppc/OSByteOrder.h:
+
+/usr/include/alloca.h:
+
+/usr/include/machine/types.h:
+
+/usr/include/ppc/types.h:
+
+/usr/include/unistd.h:
+
+/usr/include/sys/unistd.h:
+
+/usr/include/sys/select.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/signal.h:
+
+/usr/include/sys/time.h:
+
+/usr/include/time.h:
+
+/usr/include/machine/_limits.h:
+
+../include/assert.h:
+
+../include/hid.h:
+
+/sw/include/usb.h:
+
+/usr/include/dirent.h:
+
+/usr/include/sys/dirent.h:
+
+../hidparser/hidparser.h:
+
+../hidparser/hidtypes.h:
+
+../include/debug.h:
+
+/sw/include/python2.5/pyport.h:
+
+/sw/include/python2.5/pyconfig.h:
+
+/usr/include/math.h:
+
+/usr/include/architecture/ppc/math.h:
+
+/usr/include/sys/stat.h:
+
+/usr/include/termios.h:
+
+/usr/include/sys/termios.h:
+
+/usr/include/sys/ttycom.h:
+
+/usr/include/sys/ioccom.h:
+
+/usr/include/sys/ttydefaults.h:
+
+/sw/include/python2.5/pymem.h:
+
+/sw/include/python2.5/pyport.h:
+
+/sw/include/python2.5/object.h:
+
+/sw/include/python2.5/objimpl.h:
+
+/sw/include/python2.5/pymem.h:
+
+/sw/include/python2.5/pydebug.h:
+
+/sw/include/python2.5/unicodeobject.h:
+
+/usr/include/ctype.h:
+
+/usr/include/runetype.h:
+
+/usr/include/wchar.h:
+
+/usr/lib/gcc/powerpc-apple-darwin8/4.0.1/include/stdarg.h:
+
+/usr/include/_wctype.h:
+
+/sw/include/python2.5/intobject.h:
+
+/sw/include/python2.5/boolobject.h:
+
+/sw/include/python2.5/longobject.h:
+
+/sw/include/python2.5/floatobject.h:
+
+/sw/include/python2.5/complexobject.h:
+
+/sw/include/python2.5/rangeobject.h:
+
+/sw/include/python2.5/stringobject.h:
+
+/sw/include/python2.5/bufferobject.h:
+
+/sw/include/python2.5/tupleobject.h:
+
+/sw/include/python2.5/listobject.h:
+
+/sw/include/python2.5/dictobject.h:
+
+/sw/include/python2.5/enumobject.h:
+
+/sw/include/python2.5/setobject.h:
+
+/sw/include/python2.5/methodobject.h:
+
+/sw/include/python2.5/moduleobject.h:
+
+/sw/include/python2.5/funcobject.h:
+
+/sw/include/python2.5/classobject.h:
+
+/sw/include/python2.5/fileobject.h:
+
+/sw/include/python2.5/cobject.h:
+
+/sw/include/python2.5/traceback.h:
+
+/sw/include/python2.5/sliceobject.h:
+
+/sw/include/python2.5/cellobject.h:
+
+/sw/include/python2.5/iterobject.h:
+
+/sw/include/python2.5/genobject.h:
+
+/sw/include/python2.5/descrobject.h:
+
+/sw/include/python2.5/weakrefobject.h:
+
+/sw/include/python2.5/codecs.h:
+
+/sw/include/python2.5/pyerrors.h:
+
+/sw/include/python2.5/pystate.h:
+
+/sw/include/python2.5/pyarena.h:
+
+/sw/include/python2.5/modsupport.h:
+
+/sw/include/python2.5/pythonrun.h:
+
+/sw/include/python2.5/ceval.h:
+
+/sw/include/python2.5/sysmodule.h:
+
+/sw/include/python2.5/intrcheck.h:
+
+/sw/include/python2.5/import.h:
+
+/sw/include/python2.5/abstract.h:
+
+/sw/include/python2.5/compile.h:
+
+/sw/include/python2.5/code.h:
+
+/sw/include/python2.5/eval.h:
+
+/sw/include/python2.5/pystrtod.h:
+
+/sw/include/python2.5/pyfpe.h:

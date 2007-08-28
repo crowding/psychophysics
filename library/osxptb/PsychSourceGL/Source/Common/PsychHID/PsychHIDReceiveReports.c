@@ -174,6 +174,7 @@ void CountReports(char *string)
                 }
 	}
 	
+	/*
 	n=0;
 	for(i=0;i<MAXDEVICEINDEXS;i++){
 		if(i==0)r=freeReportsPtr;
@@ -191,6 +192,7 @@ void CountReports(char *string)
 		for(i=1;i<MAXDEVICEINDEXS;i++)if(listLength[i]>0)printf(", %2d:%3d",i,listLength[i]);
 		printf("\n");
 	}
+	*/
 }
 
 void ReportCallback(void *target,IOReturn result,void *refcon,void *sender,UInt32 bufferSize)
