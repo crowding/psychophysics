@@ -1,7 +1,7 @@
 function assert(value, message)
 
 if ~value
-    e.identifier = 'assert:assertionFailed';
+    e.identifier = 'MATLAB:assert:failed';
     if nargin >= 2
         e.message = message;
     else

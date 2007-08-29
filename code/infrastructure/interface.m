@@ -1,4 +1,5 @@
 function [out, extras] = interface(proto, in)
+% function [out, extras] = interface(proto, in)
 %Takes two structs. The second can be a cell array of structs.
 %
 %Extracts a subset of fields from the first struct so as to match the
@@ -8,6 +9,9 @@ function [out, extras] = interface(proto, in)
 %have a collection of them you are holding in an array and working with a
 %lot. Extract the interface and you can use a struct array, which is faster
 %than a cell array of structs.
+%
+%The second output argument contains those fields of the struct that were
+%not in the interface.
 
 %There used to be an elegant implentation of this here, but it fell victim
 %to matlab's weirdness about making a deep copy of lexical variables every

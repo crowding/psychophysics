@@ -9,27 +9,6 @@ function serial = DaqScopeTest(varargin)
 %         channel: []
 %           range: []
 
-% for i=channel
-%     DaqAIn(daq(1),i,3);% set gain range
-% end
-% start=GetSecs;
-% params=DaqAInScanBegin(daq(1),options);
-% for i=1:length(time)
-%     WaitSecs(time(i)+start-GetSecs);
-%     err=DaqAOut(daq(1),0,sineWave(i));
-%     err=DaqAOut(daq(1),1,squareWave(i));
-%     if err.n
-%         break;
-%     end
-%     tOut(i)=GetSecs-start;
-% end
-% params=DaqAInScanContinue(daq(1),options);
-% [data,params]=DaqAInScanEnd(daq(1),options);
-%
-%         , 'options.channel', [0 1] ...
-%         , 'options.range', [0 0] ...
-%         , 'options.sendChannelRange', 1 ...
-
     defaults = namedargs ...
         ( 'device', DaqDeviceIndex() ...
         , 'duration', 3 ...
@@ -37,10 +16,10 @@ function serial = DaqScopeTest(varargin)
         , 'options.channel', [0 1] ...
         , 'options.range', [2 2] ...
         , 'options.f', 200 ...
-        , 'options.immediate', 1 ...
+        , 'options.immediate', 0 ...
         , 'options.trigger', 0 ...
-        , 'options.secs', 0.002 ...
         , 'options.retrigger', 0 ...
+        , 'options.secs', 0.0 ...
         , 'options.sendChannelRange', 1 ...
         , 'options.print', 0 ...
         , 'options.sample', 0 ...
@@ -61,6 +40,7 @@ function serial = DaqScopeTest(varargin)
     params.options.sendChannelRange = 0;
     params.options.sample = 1;
     samples = 0;
+    j = 0;
     serial = {};
     while (GetSecs < start + params.duration+0.02)
         [data, daqParams, s] = DaqAInScan(params.device, params.options);
@@ -72,11 +52,12 @@ function serial = DaqScopeTest(varargin)
 %            plot(t, data(:,1));
 %            ylim([-5 5]);
 %            drawnow;
+        else
+            j = j + 1;
         end
     end
     stop = GetSecs;
-    i / (GetSecs - start);
-    printf('Got %d samples ( %f/sec )', samples, samples/(stop - start));
+    printf('Got %d samples ( %f/sec ), %f loops/sec, empty %d/%d times', samples, samples/(stop - start), i / (stop - start), j, i);
     params.options.begin = 0;
     params.options.continue = 0;
     params.options.end = 1;
@@ -90,9 +71,13 @@ function serial = DaqScopeTest(varargin)
     serial = list;
     if (any(diff(list)) > 1)
         disp('Some packets dropped :(');
-    elseif any(diff(list) < 1)
-        disp('Some repeated serial numbers :(');
+    elseif any(diff(list) < 0)
+        if (any(diff(sort(list)) < 1))
+            disp('Some packets repeated :(');
+        else 
+            disp('Some packets out of order :/');
+        end
     else
-        disp ('All OK received');
+        disp ('All received OK :)');
     end
 end
