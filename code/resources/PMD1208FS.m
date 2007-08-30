@@ -327,11 +327,21 @@ function this = PMD1208FS(varargin)
             %sample numbers does each number correspond to?
 
             %which (zero-based) channel index for each bit of data?
-            [plus, channels] = ndgrid((0:samplesPer-1)', mod(samplesPer, c) * serials);
+            %slow: [plus, channels] = ndgrid((0:samplesPer-1)', mod(samplesPer, c) * serials);
+            %faster:
+            plus = (0:samplesPer-1)';
+            plus = plus(:, ones(1,numel(serials)));
+            channels = serials(ones(samplesPer, 1), :)*mod(samplesPer, c);
+            
             channels = mod(channels + plus, c);
 
             %which (zero-based) sample index for each bit of data?
-            [plus, samples] = ndgrid((0:samplesPer-1)', samplesPer * serials);
+            %slow: [plus, samples] = ndgrid((0:samplesPer-1)', samplesPer * serials);
+            %faster:
+            samples = serials(ones(samplesPer, 1),:)*samplesPer;
+            plus = (0:samplesPer-1)';
+            plus = plus(:, ones(1,numel(serials)));
+            
             samples = floor((samples + plus) / c);
             
             %mix in incomplete data from previous runs
@@ -360,12 +370,11 @@ function this = PMD1208FS(varargin)
             %now arrange these samples as an array...
             assembled = zeros(c, (lastSample-firstSample) + 1) + NaN;
             
-            try
-                assembled(sub2ind(size(assembled), channels+1, samples - firstSample + 1)) = data;
-            catch
-                rethrow(lasterror);
-            end
+            %assembled(sub2ind(size(assembled), channels+1, samples - firstSample + 1)) = data;
+            assembled(channels+1 + size(assembled, 1)*(samples - firstSample)) = data;
 
+            
+            
             samples = firstSample:lastSample;
             times = samples / fActual_ + tBegin_ + syncadj_;
             

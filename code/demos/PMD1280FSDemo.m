@@ -1,14 +1,14 @@
 function this = PMD1280FSDemo(varargin)
 
-%I want to sample X and Y at 1000 Hz, and receive at least 240
-%packets/second. At 31 samples/packet, I need 7440 samples/sec.
-%So on two channels, do this by oversampling 4x:
+%I want to sample X and Y at 1000 Hz, and receive at least 120
+%packets/second. At 31 samples/packet, I need 3720 samples/sec.
+%So on two channels, do this by oversampling 2x:
 
     defaults = struct ...
         ( 'daqOptions', struct ...
             ( 'f', 1000 ...
-            , 'channel', [0 1 0 1 0 1 0 1] ... %sample channels 1 and 2 repeatedly for oversampling
-            , 'range', [2 2 2 2 2 2 2 2] ...
+            , 'channel', [0 1 0 1] ... %sample channels 1 and 2 repeatedly for oversampling
+            , 'range', [2 2 2 2] ...
             , 'immediate', 0 ...
             , 'trigger', 0 ... %set this to 1 and connect the vsync line
             ...                %from the monitor port to the PMD's trigger
@@ -19,13 +19,15 @@ function this = PMD1280FSDemo(varargin)
         , 'backgroundColor', 0 ...
         , 'foregroundColor', 1 ...
         , 'requireCalibration', 0 ...
-        , 'history', 10000 ... %how many points to draw on the screen at once
-        , 'bigSparkColor', [20 10 0] ...
-        , 'bigSparkSize', 20 ...
-        , 'bigSparkVelocity', 20 ... %pixels per second
-        , 'littleSparkColor', [0 127 255] ...
-        , 'littleSparkSize', 2 ...
-        , 'littleSparkVelocity', 50 ... %pixels per second
+        , 'history', 8000 ... %how many points to draw on the screen at once
+        , 'bigSparkColor', [50 8 0]' ...
+        , 'bigSparkSize', 10 ...
+        , 'bigSparkVelocity', 30 ... %pixels per second
+        , 'bigSparkLifetime', 20 ... %seconds
+        , 'littleSparkColor', [0 127 255]' ...
+        , 'littleSparkSize', 1 ...
+        , 'littleSparkVelocity', 1 ... %pixels per second
+        , 'littleSparkLifetime', 8 ... %seconds
     );
         
     params = namedargs(defaults, varargin{:});
@@ -37,7 +39,7 @@ function this = PMD1280FSDemo(varargin)
         %scale the full sampling of the ADC onto the screen.
         offset = (params.rect([3 4]) + params.rect([1 2]))' / 2;
         vmax = device.vmax();
-        gain = (params.rect([3 4])' - offset) ./ vmax([1;2]) / 2;
+        gain = (params.rect([3 2])' - offset) ./ vmax([1;2]) / 2;
     
         interval = Screen('getFlipInterval', params.window);
         
@@ -79,10 +81,14 @@ function this = PMD1280FSDemo(varargin)
             
             if size(sampleHistory, 2) >= 1
                 %sparks move
-                coords = sampleHistory + ((VBL + interval) - tHistory([1;1], :)).*vHistory*params.bigSparkVelocity;
-                Screen('DrawDots', params.window, coords, params.bigSparkSize, params.bigSparkColor, [], 1);
-                coords = sampleHistory + ((VBL + interval) - tHistory([1;1], :)).*vHistory*params.littleSparkVelocity;
-                Screen('DrawDots', params.window, coords, params.littleSparkSize, params.littleSparkColor, [], 1);
+                lifetimes = ((VBL + interval) - tHistory);
+                movement = lifetimes([1;1],:).*vHistory;
+                coords = sampleHistory + movement.*params.bigSparkVelocity;
+                colors = params.bigSparkColor * max(1 - lifetimes / params.bigSparkLifetime, 0);
+                Screen('DrawDots', params.window, coords, params.bigSparkSize, colors, [], 1);
+                coords = sampleHistory + movement.*params.littleSparkVelocity;
+                colors = params.littleSparkColor * max(1 - lifetimes / params.littleSparkLifetime, 0);
+                Screen('DrawDots', params.window, coords, params.littleSparkSize, colors, [], 0);
             end
 
             Screen('DrawingFinished', params.window);
