@@ -10,25 +10,30 @@ function this = PMD1208FS(varargin)
         , 'f', 1000 ...
         , 'immediate', 0 ...
         , 'trigger', 0 ...
-        , 'secs', 0.001 ...
+        , 'secs', 0 ...
         , 'print', 0 ...
         );
 
     open = 0;
     AInScanRunning = 0;
 
+    %how many samples to keep in the backlog before dropping them.
+    maxBacklog = 500;
+    maxOutOfSync = 0.01;
+    
     vmax_=[20,10,5,4,2.5,2,1.25,1];
     dinc_ = [];
 
     this = autoobject(varargin{:});
 
-    %how many samples to keep in the backlog before dropping them.
-    maxBacklog = 500;
-    maxOutOfSync = 0.01;
     
     function [release, params] = init(params)
         if open
             error('PMD1208FS:illegalOperation', 'Tried to initialize but was already open');
+        end
+        
+        if isempty(device)
+            error('PMD1208FS:noDevice', 'No device specified');
         end
             
         % The user supplies us only the device index "device" corresponding to
@@ -54,7 +59,6 @@ function this = PMD1208FS(varargin)
 
         AInStop_();
         AOutStop_();
-
 
         if devices(device).outputs<70 || isempty(dinc_) || ~streq(devices(device).serialNumber,devices(device+dinc_).serialNumber)
             error(sprintf('Invalid device, not the original USB-1208FS.'));
@@ -165,6 +169,7 @@ function this = PMD1208FS(varargin)
     tBegin_ = [];
     tFirstPacket_ = [];
     syncadj_ = 0;
+    maxsync_ = 0;
 
     incompleteSamples_ = [];
     incompleteChannels_ = [];
@@ -185,6 +190,7 @@ function this = PMD1208FS(varargin)
         
         tFirstPacket_ = [];
         syncadj_ = 0;
+        maxsync_ = 0;
 
         incompleteSamples_ = [];
         incompleteChannels_ = [];
@@ -204,7 +210,6 @@ function this = PMD1208FS(varargin)
         %loaded by open();
         c = numel(options.channel);
         [fActual_, timer_prescale, timer_preload] = nearestF(options.f);
-        fActual_
         
         if isfinite(options.count)
             counted = 1;
@@ -245,7 +250,7 @@ function this = PMD1208FS(varargin)
         reports = [];
         new = [0];
         %if options.secs is zero, loop until we have everything
-        tic = getSecs;
+        tic = GetSecs;
         while(~isempty(new))
             new = [];
             for d = (1:3)*dinc_
@@ -295,7 +300,7 @@ function this = PMD1208FS(varargin)
                 serials(i) = double(r(63))+256*double(r(64));
             end
 
-            %combine as SIGNED shorts
+            %combine as SIGNED shorts, scaling to the range [-1..1)
             data = (data(1:2:end, :) + data(2:2:end, :)*256);
             data = (data-(65536*(data>=32768))) ./ 32768;
 
@@ -376,6 +381,9 @@ function this = PMD1208FS(varargin)
                 syncadj_ = syncadj_ + sync;
                 times = times + sync;
             end
+            if abs(sync) > abs(maxsync_)
+                maxsync_ = sync;
+            end
 
             %these samples are good, forward them on
             good = all(~isnan(assembled), 1);
@@ -398,12 +406,18 @@ function this = PMD1208FS(varargin)
             gains = vmax_(options.range(:))';
             data = data .* gains(:, ones(1, size(data, 2)));
         else
-            data = [];
-            t = [];
+            %keeping zero dimension arrays dimensions consistent is
+            %nice
+            data = zeros(numel(options.channel), 0);
+            t = zeros(1, 0);
         end
     end
 
 
+    function r = vmax()
+        %returns the range for each channel.
+        r = vmax_(options.range(:) + 1)';
+    end
 
 
     function AInStop()
@@ -411,6 +425,10 @@ function this = PMD1208FS(varargin)
             error('PMD1208FS:notInitialized', 'need to initialize with require(device.init(), @code)');
         else
             AInStop_();
+        end
+        if maxsync_
+            fprintf('worst sync: %f\n', maxsync_)
+            maxsync_ = 0;
         end
     end
 
@@ -473,14 +491,37 @@ function this = PMD1208FS(varargin)
     end
 
 
+
     function reset()
         if open
             error('PMD1208FS:illegalOperation', 'can''t reset while open');
         end
-        
-        err = DaqReset(device);
-        if err.n
-            fprintf('reset device %d, reset error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
+
+        fprintf('Resetting USB-1208FS.\n');
+        clear PsychHID; % flush current enumeration  (list of devices)
+        WaitSecs(1); %don't know why this is necessary
+        daq=DaqDeviceIndex();
+        if isempty(daq)
+            error('Sorry, couldn''t find a USB-1208FS.');
         end
+        if ~any(ismember(device,daq))
+            warning('PMD1108FS:deviceIndexChanged', 'The device at index %d was not found. Changing to %d', device, daq(1));
+            device=daq(1);
+        end
+
+        % Reset. Ask the USB-1208FS to reset its USB interface.
+        err=PsychHID('SetReport',device,2,65,uint8(65)); % Reset
+        if err.n
+            fprintf('reset SetReport error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
+        end
+        
+        % CAUTION: Immediately after RESET, all commands fail, returning error
+        % messages saying the command is unsupported (0xE00002C7) or the device is
+        % not responding (0xE00002ED) or not attached (0xE00002D9). To restore
+        % communication we must flush the current enumeration and re-enumerate the
+        % HID-compliant devices.
+        clear PsychHID; % flush current enumeration  (list of devices)
+        WaitSecs(1); %don't know why this is necessary, again
+        PsychHID('Devices');
     end
 end

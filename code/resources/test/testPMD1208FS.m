@@ -1,5 +1,6 @@
 function testPMD1208FS
-    duration = 20;
+    duration = 5;
+    
     device = PMD1208FS...
         ('options', struct...
             ( 'f',  2000 ...
@@ -11,7 +12,7 @@ function testPMD1208FS
             ) ...
         );
     
-    %device.reset();
+    device.reset();
     require(device.init, @doTest);
     
     function doTest
