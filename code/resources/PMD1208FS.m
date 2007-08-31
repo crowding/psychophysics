@@ -2,7 +2,16 @@ function this = PMD1208FS(varargin)
     %Object that interfaces to the PMD1080FS. As of now it only supports
     %executing regularly sampled AInScan operations. 
     
-    device = DaqDeviceIndex();
+    %constants
+
+    VMAX_ = [20,10,5,4,2.5,2,1.25,1]; %gain levels and the max voltages
+                                      %they correspond to.
+
+    %------ properties ------
+    
+    device = [];
+    serialNumber = [];  %the serial number of the DAQ
+    
     options = struct ...
         ( 'count', Inf ...
         , 'channel', [0] ...
@@ -10,31 +19,125 @@ function this = PMD1208FS(varargin)
         , 'f', 1000 ...
         , 'immediate', 0 ...
         , 'trigger', 0 ...
-        , 'secs', 0 ...
+        , 'secs', 0 ... %A value of 0 here seems to gather all incoming
+                    ... %reports just fine, including when multiple
+                    ... %reports have arrived since the last call; any
+                    ... %nonzero value would just waste time.
         , 'print', 0 ...
         );
 
     open = 0;
     AInScanRunning = 0;
 
-    maxBacklog = 10000; %how many samples to keep in the backlog before dropping them.
-    maxOutOfSync = 0.01; %if sync drifts by more than this much, issue a warning at the end of an AInScan.
-    clockRateAdj = 1; %PMD's clock should be multiplied by this much to align with the PC's clock.
+    maxBacklog = 10000;  %how many samples to keep in the backlog before
+                         %dropping them.
     
-    vmax_=[20,10,5,4,2.5,2,1.25,1];
-    dinc_ = [];
+    maxOutOfSync = 0.01; %if sync drifts by more than this many seconds,
+                         %issue a warning at the end of an AInScan.
+    
+    %calibration bobbins
+    CALIBRATION_MAGIC_NUMBER_ = uint16(57826); %arbitrary magic number
+    CALIBRATION_ADDRESS_ = 512; %beginning of user data region
+    CALIBRATION_FORMAT_ = {uint16(1), uint32(1), 1, zeros(1,8), zeros(1,8)};
 
+    calibrationDate = uint32(0);    %When calibration was performed (serial date number)
+    clockDrift = 0;                 %Clock adjustment. How quickly the PMD's clock drifts relative to the
+                                    %computer's (extra seconds of PMD time per second of computer time.)
+    gainAdj = ones(size(VMAX_));    %the gain adjustment, per gain level.
+    offsetAdj = zeros(size(VMAX_)); %the offset adjustment, per gain level.
+    
+    %private
+    dinc_ = []; %increment to find the PMD's three data interfaces
+    
+    %------ instantiation ------
+    
     this = autoobject(varargin{:});
-
     
-    function [release, params] = init(params)
-        if open
-            error('PMD1208FS:illegalOperation', 'Tried to initialize but was already open');
+    %do initialization on creation
+    initialize_();
+    
+    
+    function initialize_()
+        if isempty(device)
+            if isempty(serialNumber)
+                device = deviceIndex;
+                serialNumber = querySerialNumber();
+            else
+                device = deviceIndex(serialNumber);
+            end
+        else
+            if isempty(serialNumber)
+                serialNumber = querySerialNumber();
+            else
+                if ~isequal(serialNumber, querySerialNumber)
+                    %we get here if both device index and serial number were
+                    %specified. Trust the serial number.
+                    d = deviceIndex(serialNumber);
+                    if ~isequal(d, device)
+                        warning('PMD1208FS:deviceIndexMismatch', 'Device index does not match device.');
+                    end
+                end
+            end
+        end
+
+        if isempty(device)
+            error('PMD1208FS:deviceNotFound', 'Device not found. Perhaps try using %s(''reset'', 1)', mfilename);
         end
         
-        if isempty(device)
-            error('PMD1208FS:noDevice', 'No device specified');
+        device = device(1);
+
+        devices=PsychHID('Devices');
+        for dinc_=[-1 1]
+            if device+dinc_>=1 && device+dinc_<=length(devices) && (devices(device+dinc_).outputs==65 || devices(device+dinc_).outputs==1)
+                break
+            else
+                dinc_=[];
+            end
         end
+
+        if devices(device).outputs<70 || isempty(dinc_) || ~streq(devices(device).serialNumber,devices(device+dinc_).serialNumber)
+            error('PMD1208FS:invalidDevice', 'Invalid device, not the original USB-1208FS.');
+        end
+        
+        AInStop_();
+        AOutStop_();
+        
+        %finally load the calibration from device memory
+        readCalibration();
+    end
+
+
+
+    %------ methods ------
+    
+    
+    
+    function daq = deviceIndex(serialNumber)
+        %returns a list of all your PMD devices, or if you specify a
+        %serial number parameter, searches for that particular device.
+        devices=PsychHID('Devices');
+        daq=[];
+        for i=1:length(devices)
+            product=devices(i).product;
+            if (streq(product,'PMD-1208FS')|streq(product,'USB-1208FS')) & devices(i).outputs>=70
+                if (nargin < 1) || isequal(devices(i).serialNumber, serialNumber)
+                    daq(end+1)=i;
+                end
+            end
+        end
+    end
+
+
+
+    function sn = querySerialNumber()
+        d = PsychHID('Devices');
+        sn = d(device).serialNumber;
+    end
+
+
+
+    function [release, params] = init(params)
+        assertNotOpen_();
             
         % The user supplies us only the device index "device" corresponding to
         % interface 0. The reports containing the samples arrive on interfaces
@@ -48,22 +151,10 @@ function this = PMD1208FS(varargin)
         % number of outputs: the USB-1208FS interface 0 has 229 (pre-Tiger) 70 (Tiger) outputs,
         % interface 1 has 65 (pre-Tiger) 1 (Tiger) outputs, and interfaces 2 and 3 have zero outputs.
         % I have no idea why the number of outputs changed with the arrival of Mac OS X Tiger.
-        devices=PsychHID('Devices');
-        for dinc_=[-1 1]
-            if device+dinc_>=1 && device+dinc_<=length(devices) && (devices(device+dinc_).outputs==65 || devices(device+dinc_).outputs==1)
-                break
-            else
-                dinc_=[];
-            end
-        end
-
+        
         AInStop_();
         AOutStop_();
-
-        if devices(device).outputs<70 || isempty(dinc_) || ~streq(devices(device).serialNumber,devices(device+dinc_).serialNumber)
-            error(sprintf('Invalid device, not the original USB-1208FS.'));
-        end
-
+        
         err=DaqALoadQueue(device,options.channel,options.range);
         if err.n
             fprintf('DaqALoadQueue error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
@@ -73,12 +164,11 @@ function this = PMD1208FS(varargin)
         release = @release_;
         
         function release_()
-            AInStop();
-            AOutStop();
+            AInStop_();
+            AOutStop_();
             open = 0;
         end
     end
-
 
 
 
@@ -95,6 +185,7 @@ function this = PMD1208FS(varargin)
             error('PMD1208FS:illegalOperation', 'read only value');
         end
     end
+
 
 
     function setOptions(o)
@@ -122,7 +213,7 @@ function this = PMD1208FS(varargin)
         if any(o.channel < 0 | o.channel > 15)
             error('PMD1208FS:illegalArgument', '"options.channel"  must be 0-15.');            
         end
-        if any(o.range < 0 | o.range >= length(vmax_))
+        if any(o.range < 0 | o.range >= length(VMAX_))
             error('PMD1208FS:illegalArgument', '"options.range"  out of bounds.');            
         end
         c=length(o.channel);
@@ -144,39 +235,41 @@ function this = PMD1208FS(varargin)
 
 
 
-    function [fActual ,prescale, preload] = nearestF(f, channel)
-        %computes the nearest available sampling  frequency to the desired
-        %one, as well as low-level prescale and preload parameters. pass
+    function [fActual ,prescale, preload, fNominal] = nearestF(f, channel)
+        %computes the nearest available sampling frequency to the desired
+        %one, as well as low-level prescale and preload parameters. Pass
         %the channel argument for the nearest frequency under a particular
-        %channel sequence.
+        %channel scan sequence (otherwise the present one will be used)
         
         if nargin < 2
             channel = options.channel;
         end
         
-        f = f * numel(channel);
+        
+        f = f * numel(channel) / (1+clockDrift);
         prescale=ceil(log2(10e6/65535/f)); % Use smallest integer timer_prescale consistent with pmd.f.
         prescale=max(0,min(8,prescale)); % Restrict to available range.
         preload=round(10e6/2^prescale/f);
         preload=max(1,min(65535,preload)); % Restrict to available range.
-        fActual = 10e6/2^prescale/preload / numel(channel);
+        fNominal = 10e6/2^prescale/preload / numel(channel);
+        fActual = fNominal + fNominal * clockDrift;
     end
 
 
 
-    %state variables used during an AInScan()
+    %private state variables used during an AInScan()
     fActual_ = [];
+    fNominal_ = [];
     tBegin_ = [];
     tFirstPacket_ = [];
-    syncadj_ = 0;
-    maxsync_ = 0;
+    lastserial_ = [];
 
     incompleteSamples_ = [];
     incompleteChannels_ = [];
     incompleteData_ = [];
     
-    warnedDataLoss_ = 0;
-    warnedSyncLoss_ = 0;
+    warnDataLoss_ = 0;
+    warnSyncLoss_ = 0;
     
     wrapping_ = 0;
     serialOffset_ = 0;
@@ -189,15 +282,14 @@ function this = PMD1208FS(varargin)
         end
         
         tFirstPacket_ = [];
-        syncadj_ = 0;
-        maxsync_ = 0;
+        lastserial_ = [];
 
         incompleteSamples_ = [];
         incompleteChannels_ = [];
         incompleteData_ = [];
 
-        warnedDataLoss_ = 0;
-        warnedSyncLoss_ = 0;
+        warnDataLoss_ = 0;
+        warnSyncLoss_ = 0;
         
         wrapping_ = 0;
         serialOffset_ = 0;
@@ -209,7 +301,7 @@ function this = PMD1208FS(varargin)
         %build the report to begin scan.s. The channel queue is already
         %loaded by open();
         c = numel(options.channel);
-        [fActual_, timer_prescale, timer_preload] = nearestF(options.f);
+        [fActual_, timer_prescale, timer_preload, fNominal_] = nearestF(options.f);
         
         if isfinite(options.count)
             counted = 1;
@@ -231,17 +323,13 @@ function this = PMD1208FS(varargin)
         report(9)=bitand(timer_preload,255); % timer_preload
         report(10)=bitshift(timer_preload,-8);
         report(11)=counted+2*options.immediate+4*options.trigger+16;
-        err=PsychHID('SetReport',device,2,17,report); % AInScan
-        if err.n
-            fprintf('AInScan SetReport error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
-        end
+        PsychHIDCheckError_('SetReport',device,2,17,report); % AInScan
         AInScanRunning = 1;
     end
 
 
 
-
-    function [data, t] = AInScanSample()
+    function [data, t, latest, sync] = AInScanSample()
         if ~AInScanRunning
             error('PMD1208FS:illegalOperation', 'need to start scan before sampling');
         end
@@ -250,19 +338,16 @@ function this = PMD1208FS(varargin)
         reports = [];
         %if options.secs is zero, loop until we have everything
         for d = (1:3)*dinc_
-            tic = GetSecs;
             err = PsychHID('ReceiveReports', device+d, options); %options.print
-            toc = getSecs;
             if err.n
-                fprintf('AInScan device %d, ReceiveReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
+                error('PMD1208FS:PsychHIDError','%s error 0x%s. %s: %s\n', varargin{1}, hexstr(err.n),err.name,err.description);
             end
+
             [r, err] = PsychHID('GiveMeReports', device+d);
-            if (numel(r) > 1)
-                noop();
-            end
             if err.n
-                fprintf('AInScan device %d, GiveMeReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
+                error('PMD1208FS:PsychHIDError','%s error 0x%s. %s: %s\n', varargin{1}, hexstr(err.n),err.name,err.description);
             end
+
             reports = [reports r];
         end
         
@@ -277,7 +362,7 @@ function this = PMD1208FS(varargin)
             %TODO: Handle count/retrigger options (i.e. don't report
             %past-the-count data as being samples, and find out whether
             %retriggering starts a new packet -- at present it looks as if
-            %my PMD-1208FS doesn't support the retrigger option so this ia
+            %my PMD-1208FS doesn't support the retrigger option so this is a
             %moot point.
             
             if (options.immediate)
@@ -299,10 +384,12 @@ function this = PMD1208FS(varargin)
             data = (data-(65536*(data>=32768))) ./ 32768;
 
             %Deal with wraparound of the packet serial number.
-            if (max(serials) >= (65535-ceil(maxBacklog/samplesPer)-numel(reports))) && (min(serials) <= (ceil(maxBacklog/samplesPer))+numel(reports))
+            if (max([serials lastserial_]) >= (65535-ceil(maxBacklog/samplesPer)-numel(reports))) && (min([serials lastserial_]) <= (ceil(maxBacklog/samplesPer))+numel(reports))
                 serials(serials<=32768) = serials(serials<=32768) + 65536;
+                lastserial_ = max(serials) - 65536;
                 wrapping_ = 1;
             else
+                lastserial_ = max(serials);
                 if wrapping_
                     %advance the clock...
                     serialOffset_ = serialOffset_ + 65536;
@@ -311,6 +398,7 @@ function this = PMD1208FS(varargin)
             end
             
             serials = serials + serialOffset_;
+
             
             %Note that I use a double values that keep increasing to count
             %samples. The smallest positive integer not representable in a
@@ -349,10 +437,7 @@ function this = PMD1208FS(varargin)
 
             %we can't keeep backlogged samples around forever.
             if lastSample >= firstSample+maxBacklog
-                if (~warnedDataLoss_)
-                    warning('PMD1208FS:lostData', 'Packet serial numbers indicate data loss');
-                    warnedDataLoss_ = 1;
-                end
+                warnDataLoss_ = 1;
                 firstSample = lastSample - maxBacklog + 1;
                 keep = samples > firstSample;
                 data = data(keep);
@@ -368,105 +453,104 @@ function this = PMD1208FS(varargin)
             assembled(channels+1 + size(assembled, 1)*(samples - firstSample)) = data;
 
             
-            
-            samples = firstSample:lastSample;
-            times = samples / fActual_ + tBegin_ + syncadj_;
+            samples = (firstSample:lastSample);
+            times = samples / fNominal_;
+            times = times + (times*clockDrift) + tBegin_;
             
             %Inspect for the discrepancy of time packets received versus
             %time indicated.
-            sync = max([reports.time]) - tFirstPacket_ - max(times) + tBegin_ + toc - tic;
+            latest = max([reports.time]);
+            
+            sync = (max(times) - tBegin_ + (samplesPer-1)/c/fActual_) ...
+                 - (latest - tFirstPacket_);
+             
             if abs(sync) > maxOutOfSync
-                if ~warnedSyncLoss_
-                    warning('PMD1208FS:outOfSync', 'Timing of packet receipt is out of sync with sample count. Adjusting, but I need to skew the clock...');
-                    warnedSyncLoss_ = 1;
-                end
-                
-                syncadj_ = syncadj_ + sync;
-                times = times + sync;
+                warnSyncLoss_ = 1;
             end
-            if abs(sync) > abs(maxsync_)
-                maxsync_ = sync;
+
+            if abs(sync) > 1
+                noop(); %something fishy gong on
             end
 
             %these samples are good, forward them on
-            good = all(~isnan(assembled), 1);
+            bf = ~isnan(assembled);
+            good = all(bf, 1);
+            bf(:,good) = 0; %bitfield shows incomplete samples
+            
             data = assembled(:,good);
             [t, i] = sort(times(good));
             data = data(:,i);
             
             %deal with the incomplete samples (hold them over)
-            assembled(:,good) = [];
-            samples(:, good) = [];
-            
-            incomplete = ~isnan(assembled);
-            [channelix, sampleix] = find(incomplete);
-
-            incompleteSamples_ = samples(sampleix);
+            [channelix, sampleix] = find(bf);
+            incompleteSamples_ = sampleix + firstSample - 1;
             incompleteChannels_ = channelix - 1;
-            incompleteData_ = assembled(incomplete);
-
-            %FINALLY, apply the gain adjustment
-            gains = vmax_(options.range(:))';
-            data = data .* gains(:, ones(1, size(data, 2)));
+            incompleteData_ = assembled(bf);
+            
+            %FINALLY, apply the gain adjustments
+            offsets = offsetAdj(options.range(:) + 1);
+            offsets = offsets(:);
+            gains = gainAdj(options.range(:) + 1);
+            gains = gains(:) .* VMAX_(options.range(:) + 1)';
+            
+            data = (data + offsets(:, ones(1, size(data, 2)))) ...
+                   .* gains(:, ones(1, size(data, 2)));
         else
             %keeping zero dimension arrays dimensions consistent is
             %nice
             data = zeros(numel(options.channel), 0);
             t = zeros(1, 0);
+            latest = zeros(0, 1);
+            sync = zeros(0, 1);
         end
     end
 
 
     function r = vmax()
         %returns the range for each channel.
-        r = vmax_(options.range(:) + 1)';
+        r = VMAX_(options.range(:) + 1)';
     end
 
 
-    function AInStop()
+    function [lostdata] = AInStop()
+        %Stop the scan and return
         if ~open
             error('PMD1208FS:notInitialized', 'need to initialize with require(device.init(), @code)');
         else
             AInStop_();
         end
-        if maxsync_
-            fprintf('worst sync: %f\n', maxsync_)
-            maxsync_ = 0;
+        if (warnDataLoss_)
+            warning('PMD1208FS:lostData', 'Packet serial numbers indicated data loss during the scan');
+            lostdata = 1;
+        else
+            lostdata = 0;
+        end
+        if warnSyncLoss_
+             warning('PMD1208FS:outOfSync', 'Timing of packet receipt drifted out of sync with sample count. Consider calibrating the clock on this device.');
         end
     end
 
-
-
-
     function AInStop_()
-        %private function, doesn't care
-        err=PsychHID('SetReport',device,2,18,uint8(0));
-        if err.n
-            fprintf('AInStop SetReport error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
-        end
+        %private function, doesn't care whether we're open
+        PsychHIDCheckError_('SetReport',device,2,18,uint8(0));
 
         flush_();
 
         for d=(1:3)*dinc_
-            err=PsychHID('ReceiveReportsStop',device+d);
-            if err.n
-                fprintf('AInStop device %d, ReceiveReportsStop error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
-            end
+            PsychHIDCheckError_('ReceiveReportsStop',device+d);
         end
     end
+
 
 
     function flush_()
         % Flush any stale reports.
         for d=(1:3)*dinc_ % Interfaces 1,2,3
-            err=PsychHID('ReceiveReports',device+d);
-            if err.n
-                fprintf('flush_ device %d, ReceiveReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
-            end
+            PsychHIDCheckError_('ReceiveReports',device+d);
         end
         
         for d=(1:3)*dinc_ % Interfaces 1,2,3
-            [reports,err]=PsychHID('GiveMeReports',device+d);
+            reports=PsychHIDCheckError_('GiveMeReports',device+d);
             if ~isempty(reports) && options.print
                 fprintf('Flushing %d stale reports from device %d.\n',length(reports),device+d);
             end
@@ -475,7 +559,7 @@ function this = PMD1208FS(varargin)
 
 
 
-    function AOutStop
+    function AOutStop()
         if ~open
             error('PMD1208FS:notInitialized', 'need to initialize with require(device.init(), @code)');
         else
@@ -483,14 +567,9 @@ function this = PMD1208FS(varargin)
         end
     end
 
-
-
     function AOutStop_()
         %Private version, does not check if device is open.
-        err=PsychHID('SetReport',device,2,22,uint8(0));
-        if err.n
-            fprintf('AOutStop SetReport error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
-        end
+        PsychHIDCheckError_('SetReport',device,2,22,uint8(0));
     end
 
 
@@ -501,30 +580,250 @@ function this = PMD1208FS(varargin)
         end
 
         fprintf('Resetting USB-1208FS.\n');
-        clear PsychHID; % flush current enumeration  (list of devices)
+        clear PsychHID; % flush current enumeration (list of devices)
         WaitSecs(1); %don't know why this is necessary
-        daq=DaqDeviceIndex();
-        if isempty(daq)
-            error('Sorry, couldn''t find a USB-1208FS.');
-        end
-        if ~any(ismember(device,daq))
-            warning('PMD1108FS:deviceIndexChanged', 'The device at index %d was not found. Changing to %d', device, daq(1));
-            device=daq(1);
-        end
+        reacquire();
 
         % Reset. Ask the USB-1208FS to reset its USB interface.
-        err=PsychHID('SetReport',device,2,65,uint8(65)); % Reset
-        if err.n
-            fprintf('reset SetReport error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
-        end
+        PsychHIDCheckError_('SetReport',device,2,65,uint8(65)); % Reset
         
         % CAUTION: Immediately after RESET, all commands fail, returning error
         % messages saying the command is unsupported (0xE00002C7) or the device is
         % not responding (0xE00002ED) or not attached (0xE00002D9). To restore
         % communication we must flush the current enumeration and re-enumerate the
         % HID-compliant devices.
+        
         clear PsychHID; % flush current enumeration  (list of devices)
         WaitSecs(1); %don't know why this is necessary, again
-        PsychHID('Devices');
+        reacquire();
     end
+
+
+
+    function reacquire()
+        %Try to find the device number again.
+        assertNotOpen_();
+        
+        daq=deviceIndex(serialNumber);
+        if isempty(daq)
+            device = [];
+            error('Sorry, couldn''t find a USB-1208FS.');
+        end
+        if ~any(ismember(device,daq))
+            warning('PMD1108FS:deviceIndexChanged', 'The device index changed from %d to %d', device, daq(1));
+            device=daq(1);
+        end
+    end
+
+
+
+    function writeCalibration()
+        %store the calibration coefficients on device memory.
+        data = {CALIBRATION_MAGIC_NUMBER_, calibrationDate, clockDrift, offsetAdj, gainAdj};
+        for i = 1:numel(data)
+            if numel(data{i}) ~= numel(CALIBRATION_FORMAT_{i})
+                error('PMD1208FS:calibrationNotWritten', 'Calibration properties are of the wrong size');
+            end
+            data{i} = cast(data{i}, class(CALIBRATION_FORMAT_{i}));
+        end
+        
+        bytes = tobytes(data{:});
+        
+        for i = 0:59:numel(bytes)
+            len = min(59, numel(bytes)-i);
+            memWrite(CALIBRATION_ADDRESS_ + i, bytes(i+1:i+len));
+            verify = memRead(CALIBRATION_ADDRESS_ + i, len);
+            if ~isequal(verify, bytes(i+1:i+len))
+                error('PMD1208FS:CalibrationWriteError', 'Could not write the calibration data.');
+            end
+        end
+    end
+
+
+
+    function [drift, int, stats] = calibrateClock(samples, f)
+        %tries to calibrate the PMD's clock and return a drift rate,
+        %confidence interval, and stats
+        if (nargin < 1)
+            samples = 100000;
+        end
+        if (nargin < 2)
+            f = 1000;
+        end
+        
+        y = zeros(samples, 1);
+        x = zeros(samples, 1);
+        require(@saveoptions, highPriority(), @init, @gatherSamples);
+
+        function [release, params] = saveoptions(params)
+            tmpoptions = options;
+            tmpClockDrift = clockDrift;
+            clockDrift = 0;
+            this.setOptions(struct('f', f, 'channel', 0, 'range', 0, 'immediate', 1, 'secs', 0, 'trigger', 0, 'print', 0));
+            release = @r;
+            function r
+                options=tmpoptions;
+                clockDrift=tmpClockDrift;
+            end
+        end
+        
+        function gatherSamples
+            i = 1;
+            ns = 0;
+            begin = GetSecs;
+            latestlatest = begin;
+            AInScanBegin(GetSecs + 0.014); %setup time
+            while(i <= samples)
+                [data, t, latest, sync] = AInScanSample();
+                ns = ns + size(data, 2);
+                if ~isempty(latest)
+                    x(i) = latest;
+                    y(i) = sync;
+                    i = i + 1;
+                    latestlatest = latest;
+                end
+                if (GetSecs - latestlatest > 1)
+                    error('PMD1208FS:notGettingSamples', 'not receiving samples');
+                end
+            end
+            warnSyncLoss_ = 0;
+            lost = AInStop();
+            if lost
+                error('PMD1208FS:lostData', 'lost data during calibration');
+            end
+        end
+        
+        x = x - mean(x);
+        
+        figure();
+        plot(x, y, 'k.', 'MarkerSize', 1);
+        mx = min(x);
+        xx = max(x);
+        
+        [xa, i] = sort(abs(x));
+        x = x(i);
+        y = y(i);
+        x(:,2) = 1;
+        
+        [b, bint, r, rint, stats] = regress(y, x);
+        drift = b(1);
+        int = bint(1,:);        
+
+        xlabel('time');
+        ylabel('snyc error');
+        ylim([mx*drift-3*std(r), xx*drift+3*std(r)] + mean(y));
+
+        hold on;
+        plot([mx xx], [mx xx]*drift, 'r-', 'LineWidth', 2);
+        clockDrift = drift;
+        calibrationDate = datenum(date);
+    end
+
+        
+        
+    function readCalibration()
+        %read the calibration data from device memory
+        bytes = zeros(1, numbytes(CALIBRATION_FORMAT_{:}), 'uint8');
+        for i = 0:62:numel(bytes)-1
+            len = min(62, numel(bytes)-i);
+            bytes(i+1:i+len) = memRead(CALIBRATION_ADDRESS_+i, len);
+        end
+
+        [magic, bytes] = ...
+            frombytes(bytes, CALIBRATION_FORMAT_{1}, uint8([]));
+        
+        if (magic ~= CALIBRATION_MAGIC_NUMBER_)
+            warning('PMD1208FS:noCalibrationFound', 'No stored calibration was found on this device.');
+            return;
+        end
+        
+        [calibrationDate, clockDrift, offsetAdj, gainAdj] = ...
+            frombytes(bytes, CALIBRATION_FORMAT_{2:end});
+    end
+
+
+
+
+    function memWrite(address, data)
+        assertNotOpen_();
+        
+        if numel(data)~=length(data)
+            error('PMD1108FS:illegalArgument','"data" must be a vector.');
+        end
+        if length(data)>59
+            error('PMD1108FS:illegalArgument','"data" vector is too long.');
+        end
+        if isempty(data)
+            error('PMD1108FS:illegalArgument','"data" vector is empty.');
+        end
+        if any(~ismember(data,0:255))
+            error('PMD1108FS:illegalArgument','"data" values must be in the 8-bit range 0 to 255.');
+        end
+        if (address < 256) || ((address+length(data)) > 1024)
+            error('PMD1108FS:illegalArgument','Address out of range.');
+        end
+        report=zeros(1,4+length(data));
+        report(1)=49;
+        report(2)=bitand(address,255);
+        report(3)=bitshift(address,-8);
+        report(4)=length(data);
+        report(5:end)=data;
+        PsychHIDCheckError_('SetReport',device,2,49,uint8(report)); % MemWrite
+    end
+
+
+    function data = memRead(address, bytes)
+        assertNotOpen_();
+        
+        if ~ismember(bytes,1:63)
+            error('Can''t read more than 62 bytes.');
+        end
+        if ~ismember(bytes,1:63)
+            error('Can''t read more than 62 bytes.');
+        end
+        if (address < 0) || ((address+bytes) > 1024)
+            error('PMD1108FS:illegalArgument','Address out of range.');
+        end
+        
+        PsychHIDCheckError_('ReceiveReports',device);
+        PsychHIDCheckError_('ReceiveReportsStop',device);
+        reports=PsychHIDCheckError_('GiveMeReports',device);
+
+        report=zeros(1,4);
+        report(1)=48;
+        report(2)=bitand(address,255);
+        report(3)=bitshift(address,-8);
+        report(4)=0; % unused
+        report(5)=bytes;
+        PsychHIDCheckError_('SetReport',device,2,48,uint8(report)); % MemRead
+        WaitSecs(0.05);
+        data=PsychHIDCheckError_('GetReport',device,1,48,bytes+1); % MemRead
+        data(1) = [];
+        PsychHIDCheckError_('ReceiveReportsStop',device);
+    end
+
+
+
+
+    function assertNotOpen_()
+        if open
+            error('PMD1208FS:illegalOperation', 'Can''t perform operation while device is open');
+        end
+    end
+
+
+
+
+    function varargout = PsychHIDCheckError_(varargin)
+        try
+            [varargout{1:nargout}, err] = PsychHID(varargin{:});
+            if err.n
+                error('PMD1208FS:PsychHIDError','%s error 0x%s. %s: %s\n', varargin{1}, hexstr(err.n),err.name,err.description);
+            end
+        catch
+            rethrow(lasterror);
+        end
+    end
+
+
 end

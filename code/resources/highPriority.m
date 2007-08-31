@@ -11,7 +11,11 @@ i = currynamedargs(@initializer, varargin{:});
     function [r, o] = initializer(o)
         
         if ~isfield(o, 'priority')
-            o.priority = MaxPriority(o.window);
+            if ~isfield(o, 'window')
+                o.priority = MaxPriority(max(Screen('Screens')));
+            else
+                o.priority = MaxPriority(o.window);
+            end
         end
         
         o.oldpriority = Priority(o.priority);

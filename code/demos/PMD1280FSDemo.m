@@ -8,7 +8,7 @@ function this = PMD1280FSDemo(varargin)
         ( 'daqOptions', struct ...
             ( 'f', 5000 ...
             , 'channel', [0 1 0 1 0 1 0 1] ... %sample channels 1 and 2 repeatedly for oversampling
-            , 'range', [2 2 2 2 2 2 2 2] ...
+            , 'range', [1 1 1 1 1 1 1 1] ...
             , 'immediate', 0 ...
             , 'trigger', 0 ... %set this to 1 and connect the vsync line
             ...                %from the monitor port to the PMD's trigger
@@ -20,14 +20,16 @@ function this = PMD1280FSDemo(varargin)
         , 'foregroundColor', 1 ...
         , 'requireCalibration', 0 ...
         , 'history', 10000 ... %how many points to draw on the screen at once
-        , 'bigSparkColor', [40 8 0]' ...
-        , 'bigSparkSize', 5 ...
-        , 'bigSparkVelocity', 40 ... %pixels per second
-        , 'bigSparkLifetime', 4 ... %seconds
+        , 'bigSparkColor', [100 20 0]' ...
+        , 'bigSparkSize', 8 ...
+        , 'bigSparkVelocity', 1000 ... %pixels per second
+        , 'bigSparkLifetime', 0.2 ... %seconds
+        , 'bigSparkJump', 0 ... %seconds
         , 'littleSparkColor', [0 127 255]' ...
         , 'littleSparkSize', 1 ...
-        , 'littleSparkVelocity', 300 ... %pixels per second
-        , 'littleSparkLifetime', 100 ... %seconds
+        , 'littleSparkVelocity', 3 ... %pixels per second
+        , 'littleSparkLifetime', 5 ... %seconds
+        , 'littleSparkJump', -0.1 ... %seconds
     );
         
     params = namedargs(defaults, varargin{:});
@@ -36,10 +38,10 @@ function this = PMD1280FSDemo(varargin)
 
     require(getScreen(params), device.init, highPriority(), @runDemo);
     function runDemo(params)
-        %scale the full sampling of the ADC onto the screen.
+        %scale the full samples range of the ADC onto the screen.
         offset = (params.rect([3 4]) + params.rect([1 2]))' / 2;
         vmax = device.vmax();
-        gain = (params.rect([3 2])' - offset) ./ vmax([1;2]) / 2;
+        gain = (params.rect([3 2])' - offset) ./ vmax([1;2]);
     
         interval = Screen('getFlipInterval', params.window);
         
@@ -81,12 +83,11 @@ function this = PMD1280FSDemo(varargin)
             
             if size(sampleHistory, 2) >= 1
                 %sparks move
-                lifetimes = ((VBL + interval) - tHistory);
-                movement = lifetimes([1;1],:).*vHistory;
-                coords = sampleHistory + movement.*params.bigSparkVelocity;
+                lifetimes = abs((VBL + interval) - tHistory);
+                coords = sampleHistory + (lifetimes([1;1],:) + params.bigSparkJump).*vHistory.*params.bigSparkVelocity;
                 colors = params.bigSparkColor * max(1 - lifetimes / params.bigSparkLifetime, 0);
                 Screen('DrawDots', params.window, coords, params.bigSparkSize, colors, [], 0);
-                coords = sampleHistory + movement.*params.littleSparkVelocity;
+                coords = sampleHistory + (lifetimes([1;1],:) + params.littleSparkJump).*vHistory.*params.littleSparkVelocity;
                 colors = params.littleSparkColor * max(1 - lifetimes / params.littleSparkLifetime, 0);
                 Screen('DrawDots', params.window, coords, params.littleSparkSize, colors, [], 0);
             end
