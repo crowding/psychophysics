@@ -17,9 +17,9 @@ function this = PMD1208FS(varargin)
     open = 0;
     AInScanRunning = 0;
 
-    %how many samples to keep in the backlog before dropping them.
-    maxBacklog = 500;
-    maxOutOfSync = 0.01;
+    maxBacklog = 10000; %how many samples to keep in the backlog before dropping them.
+    maxOutOfSync = 0.01; %if sync drifts by more than this much, issue a warning at the end of an AInScan.
+    clockRateAdj = 1; %PMD's clock should be multiplied by this much to align with the PC's clock.
     
     vmax_=[20,10,5,4,2.5,2,1.25,1];
     dinc_ = [];
@@ -248,34 +248,30 @@ function this = PMD1208FS(varargin)
 
         %return samples and nominal time since start
         reports = [];
-        new = [0];
         %if options.secs is zero, loop until we have everything
-        tic = GetSecs;
-        while(~isempty(new))
-            new = [];
-            for d = (1:3)*dinc_
-                err = PsychHID('ReceiveReports', device+d, options); %options.print
-                if err.n
-                    fprintf('AInScan device %d, ReceiveReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
-                end
-                [r, err] = PsychHID('GiveMeReports', device+d);
-                if err.n
-                    fprintf('AInScan device %d, GiveMeReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
-                end
-                new = [new r];
+        for d = (1:3)*dinc_
+            tic = GetSecs;
+            err = PsychHID('ReceiveReports', device+d, options); %options.print
+            toc = getSecs;
+            if err.n
+                fprintf('AInScan device %d, ReceiveReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
             end
-            reports = [reports new];
-            if (options.secs)
-                break;
+            [r, err] = PsychHID('GiveMeReports', device+d);
+            if (numel(r) > 1)
+                noop();
             end
-        end
-        toc = getSecs;
-        
-        if isempty(tFirstPacket_)
-            tFirstPacket_ = min([reports.time]);
+            if err.n
+                fprintf('AInScan device %d, GiveMeReports error 0x%s. %s: %s\n',device+d,hexstr(err.n),err.name,err.description);
+            end
+            reports = [reports r];
         end
         
         if ~isempty(reports)
+            
+            if isempty(tFirstPacket_)
+                tFirstPacket_ = min([reports.time]);
+            end
+            
             c = numel(options.channel);
 
             %TODO: Handle count/retrigger options (i.e. don't report
@@ -292,20 +288,18 @@ function this = PMD1208FS(varargin)
                 samplesPer = 31;
             end
 
-            data = zeros(bytes, numel(reports));
-            serials = zeros(1, numel(reports));
-            for i = 1:numel(reports)
-                r = reports(i).report;
-                data( :, i ) = r(1:bytes);
-                serials(i) = double(r(63))+256*double(r(64));
-            end
-
-            %combine as SIGNED shorts, scaling to the range [-1..1)
-            data = (data(1:2:end, :) + data(2:2:end, :)*256);
+            %aggregate all the reports one per column
+            alldata = double(cat(1, reports.report)');
+            
+            %each column contains a serial number
+            serials = alldata(63,:)+256*alldata(64,:);
+            
+            %combine samples as SIGNED shorts, scaling to the range [-1..1)
+            data = (alldata(1:2:bytes, :) + alldata(2:2:bytes, :)*256);
             data = (data-(65536*(data>=32768))) ./ 32768;
 
             %Deal with wraparound of the packet serial number.
-            if (max(serials) >= 65535-ceil(maxBacklog/samplesPer) && min(serials) <= ceil(maxBacklog/samplesPer))
+            if (max(serials) >= (65535-ceil(maxBacklog/samplesPer)-numel(reports))) && (min(serials) <= (ceil(maxBacklog/samplesPer))+numel(reports))
                 serials(serials<=32768) = serials(serials<=32768) + 65536;
                 wrapping_ = 1;
             else
