@@ -249,9 +249,9 @@ function this = PMD1208FS(varargin)
         f = f * numel(channel) / (1+clockDrift);
         prescale=ceil(log2(10e6/65535/f)); % Use smallest integer timer_prescale consistent with pmd.f.
         prescale=max(0,min(8,prescale)); % Restrict to available range.
-        preload=round(10e6/2^prescale/f);
+        preload=round(10e6/2^prescale/f)-1; %note the -1; preload is a count register, not a divisor.
         preload=max(1,min(65535,preload)); % Restrict to available range.
-        fNominal = 10e6/2^prescale/preload / numel(channel);
+        fNominal = 10e6/2^prescale/(preload+1) / numel(channel);
         fActual = fNominal + fNominal * clockDrift;
     end
 
@@ -329,7 +329,7 @@ function this = PMD1208FS(varargin)
 
 
 
-    function [data, t, latest, sync] = AInScanSample()
+    function [data, t, latest, sync, packetTimes, serials, rawserials] = AInScanSample()
         if ~AInScanRunning
             error('PMD1208FS:illegalOperation', 'need to start scan before sampling');
         end
@@ -353,8 +353,10 @@ function this = PMD1208FS(varargin)
         
         if ~isempty(reports)
             
+            packetTimes = [reports.time];
+            
             if isempty(tFirstPacket_)
-                tFirstPacket_ = min([reports.time]);
+                tFirstPacket_ = min(packetTimes);
             end
             
             c = numel(options.channel);
@@ -377,7 +379,8 @@ function this = PMD1208FS(varargin)
             alldata = double(cat(1, reports.report)');
             
             %each column contains a serial number
-            serials = alldata(63,:)+256*alldata(64,:);
+            rawserials = alldata(63,:)+256*alldata(64,:);
+            serials = rawserials;
             
             %combine samples as SIGNED shorts, scaling to the range [-1..1)
             data = (alldata(1:2:bytes, :) + alldata(2:2:bytes, :)*256);
@@ -502,6 +505,9 @@ function this = PMD1208FS(varargin)
             t = zeros(1, 0);
             latest = zeros(0, 1);
             sync = zeros(0, 1);
+            serials = zeros(0, 1);
+            rawserials = zeros(0, 1);
+            packetTimes = zeros(1, 0);
         end
     end
 
@@ -641,18 +647,43 @@ function this = PMD1208FS(varargin)
 
 
 
-    function [drift, int, stats] = calibrateClock(samples, f)
+    function [drift, int, stats] = calibrateClock(samples, f, force)
         %tries to calibrate the PMD's clock and return a drift rate,
-        %confidence interval, and stats
+        %confidence interval, and stats.
+        assertNotOpen_();
+        
         if (nargin < 1)
             samples = 100000;
         end
         if (nargin < 2)
-            f = 1000;
+            f = 10000000/16183;
+            %special value! A prime number close to a
+            %golden ratio from 1000 Hz, avoids modes of the 10MHz clock on
+            %the PMD as well as the inherent 1KHz clock of USB.
+            
+            %Note, you'll run into timebase issues if you run at immediate
+            %mode close to 1000Hz. -- you can't send more than 1000
+            %reports/sec over USB, inherently. My clock runs a little 
+            %(34 ppm) fast, it seems.
+        end
+
+        if ~exist('force', 'var') || ~force
+            in = '';
+            while ~any(strcmpi(in, {'y', 'n', 'yes', 'no'}))
+                in = input(sprintf('This will take at least %.1f minutes. Continue? (y/n) ', samples/f/60), 's');
+            end
+
+            if (in(1) == 'n')
+                return;
+            end
         end
         
         y = zeros(samples, 1);
         x = zeros(samples, 1);
+        z = cell(samples, 1);
+        t = cell(samples, 1);
+        tt = cell(samples, 1);
+        q = cell(samples, 1);
         require(@saveoptions, highPriority(), @init, @gatherSamples);
 
         function [release, params] = saveoptions(params)
@@ -674,11 +705,15 @@ function this = PMD1208FS(varargin)
             latestlatest = begin;
             AInScanBegin(GetSecs + 0.014); %setup time
             while(i <= samples)
-                [data, t, latest, sync] = AInScanSample();
+                [data, time, latest, sync, times, serials, rawserials] = AInScanSample();
                 ns = ns + size(data, 2);
                 if ~isempty(latest)
                     x(i) = latest;
                     y(i) = sync;
+                    z{i} = serials;
+                    t{i} = time;
+                    tt{i} = times;
+                    q{i} = rawserials;
                     i = i + 1;
                     latestlatest = latest;
                 end
@@ -693,30 +728,30 @@ function this = PMD1208FS(varargin)
             end
         end
         
+        save(sprintf('samples_%d_%fHz', samples, f), 'x', 'y', 'z', 't', 'tt', 'q');
+        
         x = x - mean(x);
-        
-        figure();
-        plot(x, y, 'k.', 'MarkerSize', 1);
-        mx = min(x);
-        xx = max(x);
-        
-        [xa, i] = sort(abs(x));
-        x = x(i);
-        y = y(i);
+        mn = min(x);
+        mx = max(x);
         x(:,2) = 1;
         
         [b, bint, r, rint, stats] = regress(y, x);
         drift = b(1);
         int = bint(1,:);        
+        
+        x(:,2) = [];
 
+        figure();
+        plot(x, y, 'k.', 'MarkerSize', 1);
         xlabel('time');
-        ylabel('snyc error');
-        ylim([mx*drift-3*std(r), xx*drift+3*std(r)] + mean(y));
+        ylabel('sync error');
+        ylim([mn*drift-3*std(r), mx*drift+3*std(r)] + mean(y));
 
         hold on;
-        plot([mx xx], [mx xx]*drift, 'r-', 'LineWidth', 2);
+        plot([mn mx], [mn mx]*drift+b(2), 'r-', 'LineWidth', 2);
         clockDrift = drift;
         calibrationDate = datenum(date);
+        hold off;
     end
 
         
