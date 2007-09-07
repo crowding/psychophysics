@@ -6,7 +6,7 @@ function this = PMD1280FSDemo(varargin)
 
     defaults = struct ...
         ( 'daqOptions', struct ...
-            ( 'f', 5000 ...
+            ( 'f', 1000 ...
             , 'channel', [0 1 0 1 0 1 0 1] ... %sample channels 1 and 2 repeatedly for oversampling
             , 'range', [1 1 1 1 1 1 1 1] ...
             , 'immediate', 0 ...
@@ -20,16 +20,17 @@ function this = PMD1280FSDemo(varargin)
         , 'foregroundColor', 1 ...
         , 'requireCalibration', 0 ...
         , 'history', 10000 ... %how many points to draw on the screen at once
-        , 'bigSparkColor', [100 20 0]' ...
+        , 'bigSparkColor', [5 1 0]' ...
         , 'bigSparkSize', 8 ...
-        , 'bigSparkVelocity', 1000 ... %pixels per second
-        , 'bigSparkLifetime', 0.2 ... %seconds
+        , 'bigSparkVelocity', 5 ... %pixels per second
+        , 'bigSparkLifetime', 20 ... %seconds
         , 'bigSparkJump', 0 ... %seconds
         , 'littleSparkColor', [0 127 255]' ...
-        , 'littleSparkSize', 1 ...
-        , 'littleSparkVelocity', 3 ... %pixels per second
-        , 'littleSparkLifetime', 5 ... %seconds
-        , 'littleSparkJump', -0.1 ... %seconds
+        , 'littleSparkSize', 2 ...
+        , 'littleSparkVelocity', 100 ... %pixels per second
+        , 'littleSparkLifetime', 10 ... %seconds
+        , 'littleSparkJump', 50 ... %pixels
+        , 'sparkLengthScaler', 0.05 ... %
     );
         
     params = namedargs(defaults, varargin{:});
@@ -87,9 +88,14 @@ function this = PMD1280FSDemo(varargin)
                 coords = sampleHistory + (lifetimes([1;1],:) + params.bigSparkJump).*vHistory.*params.bigSparkVelocity;
                 colors = params.bigSparkColor * max(1 - lifetimes / params.bigSparkLifetime, 0);
                 Screen('DrawDots', params.window, coords, params.bigSparkSize, colors, [], 0);
-                coords = sampleHistory + (lifetimes([1;1],:) + params.littleSparkJump).*vHistory.*params.littleSparkVelocity;
+                
+                norm = [1;1] * (sqrt(vHistory(1,:).^2 + vHistory(2,:).^2));
+                normed = vHistory ./ norm;
+                jumps = normed * params.littleSparkJump;
+                starts = sampleHistory + (lifetimes([1;1],:)).*vHistory.*params.littleSparkVelocity + jumps;
+                ends =   sampleHistory + (lifetimes([1;1],:) + norm*params.sparkLengthScaler).*vHistory.*params.littleSparkVelocity + jumps;
                 colors = params.littleSparkColor * max(1 - lifetimes / params.littleSparkLifetime, 0);
-                Screen('DrawDots', params.window, coords, params.littleSparkSize, colors, [], 0);
+                Screen('DrawLines', params.window, reshape([starts; ends], 2, []), params.littleSparkSize, reshape([colors; colors], 3, []), [], 0);
             end
 
             Screen('DrawingFinished', params.window);

@@ -19,6 +19,7 @@ function this = PMD1208FS(varargin)
         , 'f', 1000 ...
         , 'immediate', 0 ...
         , 'trigger', 0 ...
+        , 'triggerSlope', 0 ...
         , 'secs', 0 ... %A value of 0 here seems to gather all incoming
                     ... %reports just fine, including when multiple
                     ... %reports have arrived since the last call; any
@@ -32,7 +33,7 @@ function this = PMD1208FS(varargin)
     maxBacklog = 10000;  %how many samples to keep in the backlog before
                          %dropping them.
     
-    maxOutOfSync = 0.01; %if sync drifts by more than this many seconds,
+    maxOutOfSync = 0.02; %if sync drifts by more than this many seconds,
                          %issue a warning at the end of an AInScan.
     
     %calibration bobbins
@@ -160,6 +161,10 @@ function this = PMD1208FS(varargin)
             fprintf('DaqALoadQueue error 0x%s. %s: %s\n',hexstr(err.n),err.name,err.description);
         end
         
+        if (options.trigger)
+            setTrigger_()
+        end
+        
         open = 1;
         release = @release_;
         
@@ -171,6 +176,12 @@ function this = PMD1208FS(varargin)
     end
 
 
+    function setTrigger_
+        if ~ismember(options.triggerSlope,0:1)
+            error('"rising" must be 0 or 1.');
+        end
+        PsychHIDCheckError_('SetReport',device,2,66,uint8([66 options.triggerSlope])); % SetTrigger
+    end
 
     function setOpen(o)
         if ~isequal(o, open)
@@ -274,6 +285,8 @@ function this = PMD1208FS(varargin)
     wrapping_ = 0;
     serialOffset_ = 0;
     
+    maxSyncLoss_ = 0;
+    
     function AInScanBegin(tBegin)
         if (nargin >= 1)
             tBegin_ = tBegin;
@@ -290,6 +303,7 @@ function this = PMD1208FS(varargin)
 
         warnDataLoss_ = 0;
         warnSyncLoss_ = 0;
+        maxSyncLoss_ = 0;
         
         wrapping_ = 0;
         serialOffset_ = 0;
@@ -457,8 +471,8 @@ function this = PMD1208FS(varargin)
 
             
             samples = (firstSample:lastSample);
-            times = samples / fNominal_;
-            times = times + (times*clockDrift) + tBegin_;
+            times = samples / fNominal_ ./(1+clockDrift);
+            times = times + tBegin_;
             
             %Inspect for the discrepancy of time packets received versus
             %time indicated.
@@ -471,6 +485,10 @@ function this = PMD1208FS(varargin)
                 warnSyncLoss_ = 1;
             end
 
+            if abs(sync) > maxSyncLoss_
+                maxSyncLoss_ = sync;
+            end
+            
             if abs(sync) > 1
                 noop(); %something fishy gong on
             end
@@ -518,12 +536,12 @@ function this = PMD1208FS(varargin)
     end
 
 
-    function [lostdata] = AInStop()
+    function [lostdata, varargout] = AInStop()
         %Stop the scan and return
         if ~open
             error('PMD1208FS:notInitialized', 'need to initialize with require(device.init(), @code)');
         else
-            AInStop_();
+            AInStop_(0);
         end
         if (warnDataLoss_)
             warning('PMD1208FS:lostData', 'Packet serial numbers indicated data loss during the scan');
@@ -534,13 +552,23 @@ function this = PMD1208FS(varargin)
         if warnSyncLoss_
              warning('PMD1208FS:outOfSync', 'Timing of packet receipt drifted out of sync with sample count. Consider calibrating the clock on this device.');
         end
+        
+        maxSyncLoss_
+        
+        %read the remaining data.
+        [varargout{1:nargout}] = AInScanSample();
+        
+        %flush
+        flush_();
     end
 
-    function AInStop_()
+    function AInStop_(flush)
         %private function, doesn't care whether we're open
         PsychHIDCheckError_('SetReport',device,2,18,uint8(0));
 
-        flush_();
+        if (nargin == 0 || flush)
+            flush_();
+        end
 
         for d=(1:3)*dinc_
             PsychHIDCheckError_('ReceiveReportsStop',device+d);
@@ -558,7 +586,7 @@ function this = PMD1208FS(varargin)
         for d=(1:3)*dinc_ % Interfaces 1,2,3
             reports=PsychHIDCheckError_('GiveMeReports',device+d);
             if ~isempty(reports) && options.print
-                fprintf('Flushing %d stale reports from device %d.\n',length(reports),device+d);
+                warning('PMD1208FS:staleReports', 'Flushing %d stale reports from device %d.\n',length(reports),device+d);
             end
         end
     end
@@ -647,36 +675,47 @@ function this = PMD1208FS(varargin)
 
 
 
-    function [drift, int, stats] = calibrateClock(samples, f, force)
+    function [drift, int, stats] = calibrateClock(varargin)
         %tries to calibrate the PMD's clock and return a drift rate,
         %confidence interval, and stats.
         assertNotOpen_();
-        
-        if (nargin < 1)
-            samples = 100000;
-        end
-        if (nargin < 2)
-            f = 10000000/16183;
-            %special value! A prime number close to a
-            %golden ratio from 1000 Hz, avoids modes of the 10MHz clock on
-            %the PMD as well as the inherent 1KHz clock of USB.
-            
-            %Note, you'll run into timebase issues if you run at immediate
-            %mode close to 1000Hz. -- you can't send more than 1000
-            %reports/sec over USB, inherently. My clock runs a little 
-            %(34 ppm) fast, it seems.
-        end
 
-        if ~exist('force', 'var') || ~force
+        opts.samples = 100000;
+        opts.f = 10000000/16183;
+        %special value! A prime number close to a
+        %golden ratio from 1000 Hz, avoids modes of the 10MHz clock on
+        %the PMD as well as the inherent 1KHz clock of USB.
+        opts.channel = [0];
+        opts.immediate = 1;
+        opts.range = [0];
+        opts.force = 0;
+        %Note, you'll run into timebase issues if you run at immediate
+        %mode close to 1000Hz. -- you can't send more than 1000
+        %reports/sec over USB, inherently. My clock runs a little
+        %(34 ppm) fast, it seems.
+
+        opts = namedargs(opts, varargin{:});
+
+        if ~opts.force
             in = '';
             while ~any(strcmpi(in, {'y', 'n', 'yes', 'no'}))
-                in = input(sprintf('This will take at least %.1f minutes. Continue? (y/n) ', samples/f/60), 's');
+                if opts.immediate
+                    ns = 1;
+                else
+                    ns = 31;
+                end
+                in = input(sprintf('This will take at least %.1f minutes. Continue? (y/n) ', opts.samples/numel(opts.channel)*ns/opts.f/60), 's');
             end
 
             if (in(1) == 'n')
                 return;
             end
         end
+        
+        
+        samples = opts.samples;
+        opts = rmfield(opts, 'force');
+        opts = rmfield(opts, 'samples');
         
         y = zeros(samples, 1);
         x = zeros(samples, 1);
@@ -690,7 +729,7 @@ function this = PMD1208FS(varargin)
             tmpoptions = options;
             tmpClockDrift = clockDrift;
             clockDrift = 0;
-            this.setOptions(struct('f', f, 'channel', 0, 'range', 0, 'immediate', 1, 'secs', 0, 'trigger', 0, 'print', 0));
+            this.setOptions(opts);
             release = @r;
             function r
                 options=tmpoptions;
@@ -728,7 +767,7 @@ function this = PMD1208FS(varargin)
             end
         end
         
-        save(sprintf('samples_%d_%fHz', samples, f), 'x', 'y', 'z', 't', 'tt', 'q');
+        save(sprintf('samples_%d_%fHz', samples, opts.f), 'x', 'y', 'z', 't', 'tt', 'q');
         
         x = x - mean(x);
         mn = min(x);
