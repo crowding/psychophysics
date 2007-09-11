@@ -39,7 +39,7 @@ function bytes = tobytesstep(in)
             error('tobytes:unsupportedDataType', 'Complex data not supported');
         end
     else
-        error('tobytes:unsupportedDataType', 'Data type ''%s'' not supported', class(s));
+        error('tobytes:unsupportedDataType', 'Data type ''%s'' not supported', class(in));
     end
 
     bytes = uint8(hex2dec(reshape(hex, 2, [])'))';
