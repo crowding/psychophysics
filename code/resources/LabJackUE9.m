@@ -126,7 +126,7 @@ this = autoobject(varargin{:});
         %send the command
         pnet(a_, 'write', packet);
         if (nargin >= 3 && readResponse)
-            response = readPacket();
+            [commandNo, response] = readPacket();
         end
     end
 
@@ -147,12 +147,48 @@ this = autoobject(varargin{:});
             cksum2h = moar(4);
             
         end
-        data = pnet(a_, 'read', dataLength, 'uint16')
+        data = pnet(a_, 'read', dataLength, 'uint16');
     end
 
     COMMAND_RESET_ = 3;
+    
+    LJE_UNABLE_TO_READ_CALDATA_ = 254;
+    LJE_DEVICE_NOT_CALIBRATED_ = 255;
     LJE_NOERROR_ = 0;
-
+    LJE_INVALID_CHANNEL_NUMBER_ = 2;
+    LJE_INVALID_RAW_INPUT_PARAMETER_ = 3;
+    LJE_UNABLE_TO_START_STREAM_ = 4;
+    LJE_UNABLE_TO_STOP_STREAM_ = 5;
+    LJE_NOTHING_TO_STREAM_ = 6;
+    LJE_UNABLE_TO_CONFIG_STREAM_ = 7;
+    LJE_BUFFER_OVERRUN_ = 8;
+    LJE_STREAM_NOT_RUNNING_ = 9;
+    LJE_INVALID_PARAMETER_ = 10;
+    LJE_INVALID_STREAM_FREQUENCY_ = 11;
+    LJE_INVALID_AIN_RANGE_ = 12;
+    LJE_STREAM_CHECKSUM_ERROR_ = 13;
+    LJE_STREAM_COMMAND_ERROR_ = 14;
+    LJE_STREAM_ORDER_ERROR_ = 15;
+    LJE_AD_PIN_CONFIGURATION_ERROR_ = 16;
+    LJE_REQUEST_NOT_PROCESSED_ = 17;
+    LJE_SCRATCH_ERROR_ = 19;
+    LJE_DATA_BUFFER_OVERFLOW_ = 20;
+    LJE_ADC0_BUFFER_OVERFLOW_ = 21;
+    LJE_FUNCTION_INVALID_ = 22;
+    LJE_SWDT_TIME_INVALID_ = 23;
+    LJE_FLASH_ERROR_ = 24;
+    LJE_STREAM_IS_ACTIVE_ = 25;
+    LJE_STREAM_TABLE_INVALID_ = 26;
+    LJE_STREAM_CONFIG_INVALID_ = 27;
+    LJE_STREAM_BAD_TRIGGER_SOURCE_ = 28;
+    LJE_STREAM_INVALID_TRIGGER_ = 30;
+    LJE_STREAM_ADC0_BUFFER_OVERFLOW_ = 31;
+    LJE_STREAM_SAMPLE_NUM_INVALID_ = 33;
+    LJE_STREAM_BIPOLAR_GAIN_INVALID_ = 34;
+    LJE_STREAM_SCAN_RATE_INVALID_ = 35;
+    
+    
+    
     function reset(hard)
         if nargin > 0 && hard
             [commandNo, data] = writePacket(COMMAND_RESET_, 1, 1);
@@ -164,7 +200,17 @@ this = autoobject(varargin{:});
             error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
         end
         if ~isequal(data, LJE_NOERROR_)
-            error('LabJackUE9:errorReturned', 'error %d returned from Labjack,', data(1));
+            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
+        end
+    end
+
+    function str = errorCodeToString_(code)
+        vars = who('LJE_*');
+        vals = cellfun(@eval, vars);
+        if any(code == vals)
+            str = [vars{code == vals}];
+        else
+            str = num2str(code);
         end
     end
 
