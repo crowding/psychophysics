@@ -34,6 +34,30 @@ this = autoobject(varargin{:});
         portB = o;
     end
 
+
+
+
+    %------ COMMANDS ------
+
+    function reset(hard)
+        if nargin > 0 && hard
+            [commandNo, data] = writePacket(COMMAND_RESET_, 1, 1);
+        else
+            [commandNo, data] = writePacket(COMMAND_RESET_, 0, 1);
+        end
+        
+        if ~isequal(commandNo, COMMAND_RESET_)
+            error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
+        end
+        if ~isequal(data, LJE_NOERROR_)
+            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
+        end
+    end
+
+    
+
+    %------- COMMS ------
+
     function initializer = init(varargin)
         
         initializer = currynamedargs(@i, varargin{:});
@@ -68,15 +92,34 @@ this = autoobject(varargin{:});
             error('LabJackUE9:DeviceOpen', 'Can''t do that while device is open');
         end
     end
-
+    
+    
     function flush()
         %just read (there's no explicit flush in pnet...)
         assertOpen_();
         pnet(a_, 'read', 'noblock');
         pnet(b_, 'read', 'noblock');
     end
+    
+    function [commandNo, data] = readPacket()
+        in = pnet(a_, 'read', 2, 'uint8');
+        cksum = in(1);
+        commandByte = in(2);
+        commandNo = bitand(15, bitshift(in(2), -3));
+        if commandNo <= 14
+            dataLength = bitand(in(2), 3);
+        else
+            moar = pnet(a_, 'read', 4, 'uint8');
+            dataLength = moar(1);
+            commandNo = moar(2);
+            cksum2l = moar(3);
+            cksum2h = moar(4);
+            
+        end
+        data = pnet(a_, 'read', dataLength, 'uint16');
+    end
 
-
+    
     function [commandNo, response] = writePacket(commandNo, data, readResponse)
         %send a command to the device. Takes data with words.
         assertOpen_();
@@ -132,24 +175,6 @@ this = autoobject(varargin{:});
 
 
 
-    function [commandNo, data] = readPacket()
-        in = pnet(a_, 'read', 2, 'uint8');
-        cksum = in(1);
-        commandByte = in(2);
-        commandNo = bitand(15, bitshift(in(2), -3));
-        if commandNo <= 14
-            dataLength = bitand(in(2), 3);
-        else
-            moar = pnet(a_, 'read', 4, 'uint8');
-            dataLength = moar(1);
-            commandNo = moar(2);
-            cksum2l = moar(3);
-            cksum2h = moar(4);
-            
-        end
-        data = pnet(a_, 'read', dataLength, 'uint16');
-    end
-
     COMMAND_RESET_ = 3;
     
     LJE_UNABLE_TO_READ_CALDATA_ = 254;
@@ -188,21 +213,7 @@ this = autoobject(varargin{:});
     LJE_STREAM_SCAN_RATE_INVALID_ = 35;
     
     
-    
-    function reset(hard)
-        if nargin > 0 && hard
-            [commandNo, data] = writePacket(COMMAND_RESET_, 1, 1);
-        else
-            [commandNo, data] = writePacket(COMMAND_RESET_, 0, 1);
-        end
-        
-        if ~isequal(commandNo, COMMAND_RESET_)
-            error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
-        end
-        if ~isequal(data, LJE_NOERROR_)
-            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
-        end
-    end
+
 
     function str = errorCodeToString_(code)
         vars = who('LJE_*');
