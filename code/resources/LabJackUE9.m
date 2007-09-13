@@ -61,11 +61,11 @@ this = autoobject(varargin{:});
     SINGLEIO_COMMAND_ = 4;
     
     SINGLEIO_DIGITAL_FORMAT_ = struct...
-        ( 'iotype', uint8(0) ...
-        , 'channel', uint8(0) ...
-        , 'dir', false(1,8) ...
-        , 'state', false(1, 8) ...
-        , 'reserved', uint8([0 0]) ...
+        ( 'iotype',     uint8(0) ...
+        , 'channel',    uint8(0) ...
+        , 'dir',        false(1,8) ...
+        , 'state',      false(1,8) ...
+        , 'reserved',   uint8([0 0]) ...
         );
     
     SINGLEIO_ADC_FORMAT_ = struct...
@@ -116,18 +116,108 @@ this = autoobject(varargin{:});
         ,'out', 1 ...
         );
 
-    function value = bitIn(channel)
+    function r = bitIn(channel)
+        %function r = bitIn(channel)
+        %Reads the state of the digital IO channel specified. 
+        %
+        %>> a = LabJackUE9; require(a.init(), @()a.bitIn(0))
+        %ans = 
+        %    channel: 0
+        %        dir: 1
+        %      state: 1
+        
         assertOpen_();
         
         s = SINGLEIO_DIGITAL_FORMAT_;
         s.iotype = SINGLEIO_IOTYPE_.digitalBitRead;
-        s.dir(:) = SINGLEIO_DIR_.in;
         s.channel = channel;
         
         [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
         r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
-        value = r.state(end);
+        r.dir = r.dir(end);
+        r.state = r.state(end);
+        r = rmfield(r, {'iotype', 'reserved'});
     end
+
+
+    function r = bitOut(channel, dir, state)
+        %function r = bitOut(channel, dir, state)
+        %Sets the state of a single digital IO line. 'dir' is one for
+        %output.
+        %
+        %>> a = LabJackUE9; require(a.init(), @()a.bitOut(0, 1, 0))
+        %ans =
+        %    channel: 0
+        %        dir: 1
+        %      state: 0
+
+        assertOpen_();
+        
+        s = SINGLEIO_DIGITAL_FORMAT_;
+        s.iotype = SINGLEIO_IOTYPE_.digitalBitWrite;
+        s.channel = channel;
+        s.dir(end) = dir;
+        s.state(end) = state;
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
+        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        
+        r.dir = r.dir(end);
+        r.state = r.state(end);
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+
+
+    function r = portIn(channel)
+        %function r = portIn(channel)
+        %Reads the state of the digital IO port specified. 
+        %   Ports are 0: FIO, 1: EIO, 2, CIO, 3, MIO.
+        %
+        %>> a = LabJackUE9; require(a.init(), @()a.portIn(0))
+        %ans =
+        %    channel: 0
+        %        dir: [0 0 0 0 0 0 0 1]
+        %      state: [1 1 1 1 1 1 1 0]
+        assertOpen_();
+        
+        s = SINGLEIO_DIGITAL_FORMAT_;
+        s.iotype = SINGLEIO_IOTYPE_.digitalPortRead;
+        s.channel = channel;
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
+        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+
+
+    function r = portOut(channel, dir, state)
+        %function r = portIn(channel)
+        %Sets the state of the digital IO port specified. 
+        %   Ports are 0: FIO, 1: EIO, 2, CIO, 3, MIO.
+        %
+        %'dir' and 'state' can be logical arrays or numbers which will be
+        %converted to binary.
+        %
+        %>> a = LabJackUE9; require(a.init(), @()a.portOut(0, [1 1 1 1 1 1 1 1], 42))
+        %ans =
+        %    channel: 0
+        %        dir: [0 0 0 0 0 0 0 1]
+        %      state: [1 1 1 1 1 1 1 0]
+        assertOpen_();
+        
+        s = SINGLEIO_DIGITAL_FORMAT_;
+
+        s.iotype = SINGLEIO_IOTYPE_.digitalPortWrite;
+        s.channel = channel;
+        s.dir = dir;
+        s.state = state;
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
+        
+        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+
 
     %------- COMMS ------
 
