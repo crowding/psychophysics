@@ -6,9 +6,21 @@ portA = 52360;
 portB = 52361;
 open = 0; %Are we presently open?
 
+%calibration params (%TODO: load these at bootup.
+calibration.ADCSlopeOffsetUnipolar = ...
+    [  7.7503E-05   3.8736E-05  1.9353E-05  9.6764E-06 ...
+    ; -1.2000E-2   -1.2000E-2  -1.2000E-2  -1.200E-02 ...
+    ];
+
+calibration.ADCSlopeOffsetBipolar = [1.5629E-04; -5.1760E00];
+
+calibration.DACSlopeOffset = ...
+    [ 8.4259E02 8.4259E02 ...
+    ; 0.0000E00 0.0000E00 ...
+    ];
+
 a_ = []; %connection port A handle.
 b_ = []; %connection port B handle.
-
 
 this = autoobject(varargin{:});
 
@@ -33,9 +45,6 @@ this = autoobject(varargin{:});
         assertNotOpen_();
         portB = o;
     end
-
-
-
 
     %------ COMMANDS ------
 
@@ -68,12 +77,11 @@ this = autoobject(varargin{:});
         , 'reserved',   uint8([0 0]) ...
         );
     
-    SINGLEIO_ADC_FORMAT_ = struct...
+    SINGLEIO_ADC_OUT_FORMAT_ = struct...
         ( 'iotype', uint8(0) ...
         , 'channel', uint8(0) ...
         , 'bipGain', uint8(0) ...
         , 'resolution', uint8(0) ...
-        , 'AINH', uint8(0) ...
         , 'settlingTime', uint8(0) ...
         , 'reserved', uint8(0) ...
         );
@@ -81,18 +89,18 @@ this = autoobject(varargin{:});
     SINGLEIO_ADC_IN_FORMAT_ = struct...
         ( 'iotype',         uint8(0) ...
         , 'channel',        uint8(0) ...
-        , 'AIN', {false(1, 12), 'uint32'} ...
-        , 'settlingTime',   uint8(0) ...
+        , 'AINL',           uint8(0) ...
+        , 'AINM',           uint8(0) ...
+        , 'AINH',           uint8(0) ...
         , 'reserved',       uint8(0) ...
         );
 
     SINGLEIO_DAC_FORMAT_ = struct...
         ( 'iotype',         uint8(0) ...
         , 'channel',        uint8(0) ...
-        , 'DAC',            uint16(0) ...
-        , 'AINH',           uint8(0) ...
-        , 'settlingTime',   uint8(0) ...
-        , 'reserved',       uint8(0) ...
+        , 'DACL',       	uint8(0) ... %TODO: fix endianness in to/frombytes
+        , 'DACH',           uint8(0) ...
+        , 'reserved',       uint8([0 0]) ...
         );
     
     SINGLEIO_IOTYPE_ = struct ...
@@ -205,22 +213,114 @@ this = autoobject(varargin{:});
         %      state: [1 1 1 1 1 1 1 0]
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_FORMAT_;
+        s = SINGLEIO_ADC_OUT_FORMAT_;
 
         s.iotype = SINGLEIO_IOTYPE_.digitalPortWrite;
         s.channel = channel;
         s.dir = dir;
         s.state = state;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_ADC_OUT_FORMAT_, s), 1);
         
-        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
 
+
+    function r = analogIn(channel, gain, resolution, settlingTime)
+        %function r = analogIn(channel, gain, resolution, settlingTime)
+        %Reads the specified ADC channel.
+        %
+        %'gain' sets the range:
+        %0 : [0,5]v, 1 : [0,2.5]v, 2 : [0,1.25]v, 3 : [0,0.625]v,
+        %8 : [-5,5]v. Default 0.
+        %
+        %'resolution' is the number of bits, 12-17. Default 16.
+        %
+        %'settlingTime' adds about 5 usec times this value before taking
+        %the sample. Default 0.
+        %
+        % >> a = LabJackUE9; require(a.init(), @()a.analogIn(0, 0, 17))
+        % ans =
+        %     channel: 0
+        %         AIN: 1.0621
+        assertOpen_();
+        
+        if (nargin<2)
+            gain = 0;
+        end
+        if (nargin<3)
+            resolution = 16;
+        end
+        if (nargin<4)
+            settlingTime = 0;
+        end
+        
+        s = SINGLEIO_ADC_OUT_FORMAT_;
+
+        s.iotype = SINGLEIO_IOTYPE_.analogIn;
+        s.channel = channel;               
+        s.bipGain = gain;
+        s.resolution = resolution;
+        s.settlingTime = settlingTime;
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_ADC_OUT_FORMAT_, s), 1);
+        
+        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_); 
+        %TODO: apply gain and offset from calibration
+        r.AIN = 256*double(r.AINH) + double(r.AINM) + double(r.AINL)/256;
+
+        if (gain >= 8)
+            r.AIN = [r.AIN 1] * calibration.ADCSlopeOffsetBipolar;
+        else
+            r.AIN = [r.AIN 1] * calibration.ADCSlopeOffsetUnipolar(:,gain+1);
+        end
+        r = rmfield(r, {'iotype', 'reserved', 'AINH', 'AINM', 'AINL'});
+    end
+
+
+
+    function r = analogOut(channel, voltage)
+        %function r = analogOut(channel, gain, resolution, settlingTime)
+        %
+        %Sets a DAC value. 'channel' the channel number, 'voltage' in the
+        %range [0,4.9] or so (will be clipped).
+        %
+        %Note that the labjack returns no data in its response.
+        % 
+        % >> a = LabJackUE9; require(a.init(), @()a.analogOut(0, 4.0))
+        % ans =
+        %     channel: 0
+        %        DACL: 0
+        %        DACH: 0
+        assertOpen_();
+        
+        s = SINGLEIO_DAC_FORMAT_;
+
+        s.iotype = SINGLEIO_IOTYPE_.analogOut;
+        s.channel = channel;
+        
+        value = [voltage 1] * calibration.DACSlopeOffset(:,channel+1);
+        value = max(value, 0);
+        value = min(value, 4095);
+        
+        s.DACL = mod(value, 256);
+        s.DACH = floor(value / 256);
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DAC_FORMAT_, s), 1);
+        
+        r = frombytes(r, SINGLEIO_DAC_FORMAT_);
+        
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+
+
+
     %------- COMMS ------
 
+    
+    
     function initializer = init(varargin)
         
         initializer = currynamedargs(@i, varargin{:});

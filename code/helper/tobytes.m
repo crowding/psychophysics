@@ -33,6 +33,8 @@ function bytes = tobytes(varargin)
     %   67
     %
     
+    %TODO: handle endian-ness.
+    
     if isequal(varargin{1}, 'template')
         bytes = collapselogicals({tobytesstep(varargin{2}, varargin{3})});
     else
@@ -58,6 +60,7 @@ function bytes = tobytesstep(template, in)
         error('tobytes:wrongSize', 'data is the wrong size for template');
     elseif isnumeric(template) && isnumeric(in)
         if isreal(template) && isnumeric(in)
+            in = cast(in, class(template));
             if isinteger(template)
                 if any(in < 0) %signed data
                     adj = -2*double(intmin(class(template)));
@@ -69,7 +72,6 @@ function bytes = tobytesstep(template, in)
                     error('tobytes:outOfRange', 'data out of range for template');
                 end
             else
-                in = cast(in, class(template));
                 hex = num2hex(in);
             end
         else
@@ -109,7 +111,16 @@ function bytes = collapselogicals(in)
     for i = [begins(:) ends(:)]'
         begin = i(1);
         en = i(2);
-        bits = cat(2, in{begins:ends});
+        
+        %gather all the bits form this chunk of logical
+        bits = false(1, sum(cellfun('prodofsize', in(begin:end))));
+        ix = 0;
+        for j = begin:en
+            n = numel(in{j});
+            bits(ix+1:ix+n) = in{j};
+            ix = ix + n;
+        end
+        
         if mod(numel(bits), 8)
             error('tobytes:bitfieldWidth', 'Bitfields should be a multiple of 8 wide in total');
         end
