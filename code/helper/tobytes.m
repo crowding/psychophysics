@@ -56,7 +56,6 @@ function bytes = tobytesstep(template, in)
         
     elseif numel(in) ~= numel(template)
         error('tobytes:wrongSize', 'data is the wrong size for template');
-
     elseif isnumeric(template) && isnumeric(in)
         if isreal(template) && isnumeric(in)
             if isinteger(template)

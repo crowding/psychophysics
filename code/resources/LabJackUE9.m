@@ -39,11 +39,13 @@ this = autoobject(varargin{:});
 
     %------ COMMANDS ------
 
+    %--- Reset command ---
+    
     function reset(hard)
         if nargin > 0 && hard
-            [commandNo, data] = writePacket(COMMAND_RESET_, 1, 1);
+            [commandNo, data] = sendPacket(COMMAND_RESET_, 1, 1);
         else
-            [commandNo, data] = writePacket(COMMAND_RESET_, 0, 1);
+            [commandNo, data] = sendPacket(COMMAND_RESET_, 0, 1);
         end
         
         if ~isequal(commandNo, COMMAND_RESET_)
@@ -54,7 +56,78 @@ this = autoobject(varargin{:});
         end
     end
 
+    %--- SingleIO command ---
     
+    SINGLEIO_COMMAND_ = 4;
+    
+    SINGLEIO_DIGITAL_FORMAT_ = struct...
+        ( 'iotype', uint8(0) ...
+        , 'channel', uint8(0) ...
+        , 'dir', false(1,8) ...
+        , 'state', false(1, 8) ...
+        , 'reserved', uint8([0 0]) ...
+        );
+    
+    SINGLEIO_ADC_FORMAT_ = struct...
+        ( 'iotype', uint8(0) ...
+        , 'channel', uint8(0) ...
+        , 'bipGain', uint8(0) ...
+        , 'resolution', uint8(0) ...
+        , 'AINH', uint8(0) ...
+        , 'settlingTime', uint8(0) ...
+        , 'reserved', uint8(0) ...
+        );
+    
+    SINGLEIO_ADC_IN_FORMAT_ = struct...
+        ( 'iotype',         uint8(0) ...
+        , 'channel',        uint8(0) ...
+        , 'AIN', {false(1, 12), 'uint32'} ...
+        , 'settlingTime',   uint8(0) ...
+        , 'reserved',       uint8(0) ...
+        );
+
+    SINGLEIO_DAC_FORMAT_ = struct...
+        ( 'iotype',         uint8(0) ...
+        , 'channel',        uint8(0) ...
+        , 'DAC',            uint16(0) ...
+        , 'AINH',           uint8(0) ...
+        , 'settlingTime',   uint8(0) ...
+        , 'reserved',       uint8(0) ...
+        );
+    
+    SINGLEIO_IOTYPE_ = struct ...
+        ( 'digitalBitRead',     0 ...
+        , 'digitalBitWrite',    1 ...
+        , 'digitalPortRead',    2 ...
+        , 'digitalPortWrite',   3 ...
+        , 'analogIn',           4 ...
+        , 'analogOut',          5 ...
+        );
+    
+    SINGLEIO_CHANNEL_ = struct ...
+        ( 'FIO', 0 ...
+        , 'EIO', 1 ...
+        , 'CIO', 2 ...
+        , 'MIO', 3 ...
+        );
+    
+    SINGLEIO_DIR_ = struct ...
+        ('in',  0 ...
+        ,'out', 1 ...
+        );
+
+    function value = bitIn(channel)
+        assertOpen_();
+        
+        s = SINGLEIO_DIGITAL_FORMAT_;
+        s.iotype = SINGLEIO_IOTYPE_.digitalBitRead;
+        s.dir(:) = SINGLEIO_DIR_.in;
+        s.channel = channel;
+        
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
+        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        value = r.state(end);
+    end
 
     %------- COMMS ------
 
@@ -101,6 +174,7 @@ this = autoobject(varargin{:});
         pnet(b_, 'read', 'noblock');
     end
     
+
     function [commandNo, data] = readPacket()
         in = pnet(a_, 'read', 2, 'uint8');
         cksum = in(1);
@@ -116,12 +190,15 @@ this = autoobject(varargin{:});
             cksum2h = moar(4);
             
         end
-        data = pnet(a_, 'read', dataLength, 'uint16');
+        data = pnet(a_, 'read', dataLength*2, 'uint8');
+        
+        %TODO check checksums
     end
 
     
-    function [commandNo, response] = writePacket(commandNo, data, readResponse)
-        %send a command to the device. Takes data with words.
+    function [cNo, response] = sendPacket(commandNo, data, readResponse)
+        %send a command to the device. Takes data with words, or bytes in
+        %packet order.
         assertOpen_();
         
         %make sure everything is in a reasonable format to begin with.
@@ -129,7 +206,12 @@ this = autoobject(varargin{:});
         %(double + int = int, frex.)
         
         commandNo = double(commandNo);
-        data = double(data);
+        
+        if strcmp(class(data), 'uint8')
+            data = double(data(2:2:end))*256 + double(data(1:2:end));
+        else
+            data = double(data);
+        end
         
         if commandNo <= 14
             %normal command
@@ -169,7 +251,10 @@ this = autoobject(varargin{:});
         %send the command
         pnet(a_, 'write', packet);
         if (nargin >= 3 && readResponse)
-            [commandNo, response] = readPacket();
+            [cNo, response] = readPacket();
+            if (cNo ~= commandNo)
+                error('LabJackUE9:mismatchedCommandNumbers', 'response command number %d from command %d', cNo, commandNo);
+            end
         end
     end
 
