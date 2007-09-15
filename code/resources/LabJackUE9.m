@@ -65,7 +65,7 @@ this = autoobject(varargin{:});
         end
     end
 
-    %--- SingleIO command ---
+    %--- SingleIO commands ---
     
     SINGLEIO_COMMAND_ = 4;
     
