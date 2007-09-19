@@ -115,7 +115,7 @@ end
         e = [];
         try
             [stat, host] = system('hostname');
-            if strfind(host, 'pastorianus')  && (~isfield(params, 'dummy') || ~params.dummy)
+            if ~isempty(strfind(host, 'pastorianus'))  && (~isfield(params, 'dummy') || ~params.dummy)
                 switchscreen('videoIn', 2, 'videoOut', 1, 'immediate', 1);
                 theRun.run();
             else

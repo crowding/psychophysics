@@ -11,7 +11,14 @@ end
 
 desktop = usejava('desktop');
 
+output = {};
+    function printf(varargin)
+        output{end+1} = sprintf(varargin{:});
+    end
+
 arrayfun(@printStackTrace, errors);
+
+disp(cat(2,output{:}));
 
     function printStackTrace(theErr, indent)
         if ~exist('indent', 'var')
@@ -20,21 +27,21 @@ arrayfun(@printStackTrace, errors);
         printErrorMessage(theErr);
         %disp([indent '??? ' theErr.identifier ': ' theErr.message]);
         arrayfun(@traceframe, theErr.stack);
-        disp(' ');
+        printf(' \n');
 
         function traceframe(frame)
             %print out a stack frame with a helpful link.
             %The error URL is undocumented as far as I know.
             if desktop
-                disp(sprintf('%s  In <a href="error:%s,%d,1">%s at %d</a>',...
-                    indent, frame.file, frame.line, frame.name, frame.line));
+                printf('%s  In <a href="error:%s,%d,1">%s at %d</a>\n',...
+                    indent, frame.file, frame.line, frame.name, frame.line);
             else
-                disp(sprintf('%s  In %s at %d', indent, frame.name, frame.line));
+                printf('%s  In %s at %d\n', indent, frame.name, frame.line);
             end
             
             if isfield(frame, 'additional') && ~isempty(frame.additional)
-                disp(' ');
-                disp(sprintf('%s   which was caused while handling an additional error:', indent));
+                printf(' \n');
+                printf('%s   which was caused while handling an additional error:\n', indent);
                 for i = frame.additional(:)'
                     printStackTrace(i, [indent '    ']);
                 end
@@ -54,7 +61,7 @@ arrayfun(@printStackTrace, errors);
                     ,'<a href="error:$1,$2,$3">$0</a>');
             end
             message = regexprep(message, '[\r\n]+', ['$0' indent]);
-            disp([indent '??? ' theErr.identifier ': ' message]);
+            printf('%s??? %s : %s\n', indent, theErr.identifier, message);
         end
     end
 end

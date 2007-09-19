@@ -26,7 +26,7 @@ else
 	p.velocity = 2;
 	p.order = 4;
 
-        p.svn = svninfo(fileparts(mfilename('fullpath')));
+    p.svn = svninfo(fileparts(mfilename('fullpath')));
 	p = class(p, classname, Patch);
 end
 

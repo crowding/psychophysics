@@ -22,6 +22,7 @@ function dump(obj, printer, prefix)
     % when reading a file back in data analysis (e.g. substitute an analysis
     % function for the constructor in the right context, and analysis is as
     % simple as reading and evaluating all lines.)
+    
     if ~exist('prefix', 'var')
         prefix = inputname(1);
         if isempty(prefix)

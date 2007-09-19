@@ -185,7 +185,48 @@
 	<key>Notifications</key>
 	<array/>
 	<key>OpenEditors</key>
-	<array/>
+	<array>
+		<dict>
+			<key>Content</key>
+			<dict>
+				<key>PBXProjectModuleGUID</key>
+				<string>D01032F90C83C869000A87DC</string>
+				<key>PBXProjectModuleLabel</key>
+				<string>PsychHID.h</string>
+				<key>PBXSplitModuleInNavigatorKey</key>
+				<dict>
+					<key>Split0</key>
+					<dict>
+						<key>PBXProjectModuleGUID</key>
+						<string>D01032FA0C83C869000A87DC</string>
+						<key>PBXProjectModuleLabel</key>
+						<string>PsychHID.h</string>
+						<key>_historyCapacity</key>
+						<integer>0</integer>
+						<key>bookmark</key>
+						<string>D01033040C83D1C8000A87DC</string>
+						<key>history</key>
+						<array>
+							<string>D01032E40C83B0B9000A87DC</string>
+						</array>
+					</dict>
+					<key>SplitCount</key>
+					<string>1</string>
+				</dict>
+				<key>StatusBarVisibility</key>
+				<true/>
+			</dict>
+			<key>Geometry</key>
+			<dict>
+				<key>Frame</key>
+				<string>{{0, 20}, {859, 692}}</string>
+				<key>PBXModuleWindowStatusBarHidden2</key>
+				<false/>
+				<key>RubberWindowFrame</key>
+				<string>15 -711 859 733 0 0 1440 938 </string>
+			</dict>
+		</dict>
+	</array>
 	<key>PerspectiveWidths</key>
 	<array>
 		<integer>1436</integer>
@@ -222,6 +263,8 @@
 			<key>Layout</key>
 			<array>
 				<dict>
+					<key>BecomeActive</key>
+					<true/>
 					<key>ContentConfiguration</key>
 					<dict>
 						<key>PBXBottomSmartGroupGIDs</key>
@@ -258,23 +301,21 @@
 						<dict>
 							<key>PBXSmartGroupTreeModuleOutlineStateExpansionKey</key>
 							<array>
-								<string>29B97314FDCFA39411CA2CEA</string>
-								<string>29B97315FDCFA39411CA2CEA</string>
-								<string>F559032A0385BAB5017A7028</string>
-								<string>2F1A1CBC069C8FF800907C00</string>
-								<string>2F9ABA17045F3596007A7274</string>
 								<string>1C37FBAC04509CD000000102</string>
+								<string>D01033000C83D1BF000A87DC</string>
+								<string>D01032EA0C83C869000A87DC</string>
+								<string>D01032EB0C83C869000A87DC</string>
 								<string>1C37FABC05509CD000000102</string>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>88</integer>
-									<integer>70</integer>
+									<integer>19</integer>
+									<integer>1</integer>
 								</array>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateVisibleRectKey</key>
-							<string>{{0, 1047}, {299, 824}}</string>
+							<string>{{0, 0}, {299, 824}}</string>
 						</dict>
 						<key>PBXTopSmartGroupGIDs</key>
 						<array/>
@@ -305,14 +346,12 @@
 							<key>Dock</key>
 							<array>
 								<dict>
-									<key>BecomeActive</key>
-									<true/>
 									<key>ContentConfiguration</key>
 									<dict>
 										<key>PBXProjectModuleGUID</key>
 										<string>D0E48D550BDEC2E700287D6B</string>
 										<key>PBXProjectModuleLabel</key>
-										<string>PsychHIDReceiveReports.c</string>
+										<string>PsychHID.h</string>
 										<key>PBXSplitModuleInNavigatorKey</key>
 										<dict>
 											<key>Split0</key>
@@ -320,11 +359,11 @@
 												<key>PBXProjectModuleGUID</key>
 												<string>D0E48D560BDEC2E700287D6B</string>
 												<key>PBXProjectModuleLabel</key>
-												<string>PsychHIDReceiveReports.c</string>
+												<string>PsychHID.h</string>
 												<key>_historyCapacity</key>
 												<integer>0</integer>
 												<key>bookmark</key>
-												<string>D07C78F30C8231DC00397AEC</string>
+												<string>D01033010C83D1C1000A87DC</string>
 												<key>history</key>
 												<array>
 													<string>D0E48DD70BE031FD00287D6B</string>
@@ -372,11 +411,8 @@
 													<string>D07C78E10C7FA0BA00397AEC</string>
 													<string>D07C78E20C7FA0BA00397AEC</string>
 													<string>D07C78EE0C8231DC00397AEC</string>
-													<string>D07C78F00C8231DC00397AEC</string>
-												</array>
-												<key>nextStack</key>
-												<array>
-													<string>D07C78F10C8231DC00397AEC</string>
+													<string>D01032EC0C83C869000A87DC</string>
+													<string>D01032ED0C83C869000A87DC</string>
 												</array>
 												<key>prevStack</key>
 												<array>
@@ -420,11 +456,11 @@
 													<string>D0C4CDE20BE9F3B90035A075</string>
 													<string>D0FFFF9C0BEB224D00CB5A7F</string>
 													<string>D0FFFF9D0BEB224D00CB5A7F</string>
-													<string>D07C78A80C7EDB2C00397AEC</string>
 													<string>D07C78A90C7EDB2C00397AEC</string>
 													<string>D07C78E40C7FA0BA00397AEC</string>
 													<string>D07C78E50C7FA0BA00397AEC</string>
 													<string>D07C78E60C7FA0BA00397AEC</string>
+													<string>D01032EE0C83C869000A87DC</string>
 												</array>
 											</dict>
 											<key>SplitCount</key>
@@ -465,10 +501,10 @@
 												<key>_historyCapacity</key>
 												<integer>0</integer>
 												<key>bookmark</key>
-												<string>D07C78F40C8231DD00397AEC</string>
+												<string>D01033020C83D1C1000A87DC</string>
 												<key>history</key>
 												<array>
-													<string>D0FFFF9F0BEB224D00CB5A7F</string>
+													<string>D07C78F40C8231DD00397AEC</string>
 												</array>
 											</dict>
 											<key>SplitCount</key>
@@ -574,13 +610,13 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>D07C787D0C7ED62400397AEC</string>
+				<string>D010329E0C83AD17000A87DC</string>
 				<string>1CA23ED40692098700951B8B</string>
-				<string>D07C787E0C7ED62400397AEC</string>
-				<string>D07C787F0C7ED62400397AEC</string>
+				<string>D010329F0C83AD17000A87DC</string>
+				<string>D01032A00C83AD17000A87DC</string>
 				<string>D0E48D550BDEC2E700287D6B</string>
 				<string>D0E48D550BDEC2E700287D6B</string>
-				<string>D07C78800C7ED62400397AEC</string>
+				<string>D01032A10C83AD17000A87DC</string>
 				<string>1CA23EDF0692099D00951B8B</string>
 				<string>1CA23EE00692099D00951B8B</string>
 				<string>1CA23EE10692099D00951B8B</string>
@@ -645,13 +681,11 @@
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>24</integer>
-									<integer>13</integer>
 									<integer>0</integer>
 								</array>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateVisibleRectKey</key>
-							<string>{{0, 808}, {1414, 824}}</string>
+							<string>{{0, 0}, {1414, 824}}</string>
 						</dict>
 						<key>PBXTopSmartGroupGIDs</key>
 						<array/>
@@ -694,7 +728,7 @@
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>D07C78F50C8231DE00397AEC</string>
+										<string>D01033030C83D1C7000A87DC</string>
 										<key>history</key>
 										<array>
 											<string>D0E48DD70BE031FD00287D6B</string>
@@ -741,7 +775,13 @@
 											<string>D07C78E10C7FA0BA00397AEC</string>
 											<string>D07C78E20C7FA0BA00397AEC</string>
 											<string>D07C78EC0C7FA0F400397AEC</string>
-											<string>D07C78E90C7FA0ED00397AEC</string>
+											<string>D07C78EE0C8231DC00397AEC</string>
+											<string>D01032F10C83C869000A87DC</string>
+											<string>D01032C50C83AE7E000A87DC</string>
+										</array>
+										<key>nextStack</key>
+										<array>
+											<string>D07C78F10C8231DC00397AEC</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -789,6 +829,8 @@
 											<string>D07C78E40C7FA0BA00397AEC</string>
 											<string>D07C78E50C7FA0BA00397AEC</string>
 											<string>D07C78E60C7FA0BA00397AEC</string>
+											<string>D01032F20C83C869000A87DC</string>
+											<string>D01032F30C83C869000A87DC</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -909,14 +951,14 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>D07C78B10C7EDB4500397AEC</string>
+				<string>D01032F50C83C869000A87DC</string>
 				<string>1CA23EE50692099D00951B8B</string>
-				<string>D07C78B20C7EDB4500397AEC</string>
+				<string>D01032F60C83C869000A87DC</string>
 				<string>D0E48D740BDEC40000287D6B</string>
-				<string>D07C78B30C7EDB4500397AEC</string>
+				<string>D01032F70C83C869000A87DC</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 				<string>1CA23EE80692099D00951B8B</string>
-				<string>D07C78B40C7EDB4500397AEC</string>
+				<string>D01032F80C83C869000A87DC</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.buildAndRun</string>
@@ -1088,7 +1130,7 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>D07C78BA0C7EDB4500397AEC</string>
+		<string>D01032F90C83C869000A87DC</string>
 		<string>/Users/peter/eyetracking/library/osxptb/PsychSourceGL/Projects/MacOSX/PsychToolbox/PsychToolbox.xcodeproj</string>
 	</array>
 	<key>WindowString</key>

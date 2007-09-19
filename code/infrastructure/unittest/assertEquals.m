@@ -28,10 +28,10 @@ else
             assertEquals(struct2cell(a), struct2cell(b));
         case 'function_handle'
             error('assert:assertEquals', ['function handle comparison '...
-                'not implemented (possible ininite recursion)']);
+                'not implemented (possible infinite recursion)']);
             %assertEquals(functions(a), functions(b));
         otherwise
-            if ~all(a == b)
+            if ~isequalwithequalnans(a, b)
                 if isa(a, 'numeric') && isa(b, 'numeric')
                     error('assert:assertionFailed', ...
                         'Expected %s, got %s', mat2str(a), mat2str(b));

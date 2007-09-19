@@ -34,7 +34,7 @@ else
             m(spaceix(ncols:ncols:end-1)) = ';';
         end
 
-        if nargin > 1
+        if nargin > 1 && ~strcmp(class(mat), 'double')
             m(end) = ']';
             m = [class(mat), '([', m, ')'];
         else
