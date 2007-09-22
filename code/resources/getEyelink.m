@@ -107,11 +107,7 @@ initializer = currynamedargs(initializer, defaults, varargin{:});
     function [release, details] = doSetup(details)
         
         %set and record as many settings as possible
-        if isfield(details, 'eyelinkSettings')
-            details.eyelinkSettings = setupEyelink(details.rect, details.eyelinkSettings);
-        else
-            details.eyelinkSettings = setupEyelink(details.rect, struct());
-        end
+        details = setupEyelink(details);
         
         if details.dummy
             message(details, 'Eyelink unattached, using mouse mode');
@@ -122,6 +118,10 @@ initializer = currynamedargs(initializer, defaults, varargin{:});
                 error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
             end
         end
+        
+        %repeat it again since doTrackerSetup turns on filtering, FFS
+        details = setupEyelink(details);
+        
         if (details.hideCursor)
             HideCursor();
         end
