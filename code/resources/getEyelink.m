@@ -91,7 +91,7 @@ initializer = currynamedargs(initializer, defaults, varargin{:});
         %but background and foreground color should be specifiable from the
         %experiment outset
         details.el.backgroundcolour = details.backgroundIndex;
-        detauls.el.foregroundcolour = details.foregroundIndex;
+        details.el.foregroundcolour = details.foregroundIndex;
         
         [release, details] = deal(@noop, details);
         

@@ -84,9 +84,14 @@ initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
         %Step 1: Pick the screen, and set the gamma to a calibrated value.
         function [release, details] = setGamma(details)
 
-            screenNumber = max(Screen('Screens'));
+            if ~isfield(details, 'screenNumber') || isnan(details.screenNumber);
+                screenNumber = max(Screen('Screens'));
+            else
+                screenNumber = details.screenNumber;
+            end
+            
             if ~isfield(details, 'cal') || isempty(details.cal)
-                cal = Calibration(screenNumber);
+                cal = Calibration('screenNumber', screenNumber);
             else
                 cal = details.cal;
             end
