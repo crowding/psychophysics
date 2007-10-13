@@ -4,24 +4,11 @@ function f = joinResource(first, varargin)
 %they can be used as a single argument to REQUIRE, with releases happening
 %in reverse order from initializations.
 %
-%The way initializers are called is different from what happens when you
-%pass multiple arguments
-%to REQUIRE.
-%
-%In the case of JOINRESOURCE, the optional outputs of the first initializer
+%The optional outputs of the first initializer
 %are passed into the input of the second initializer, and so on.
 %This lets you successively build up an operation with reversible
 %components. The output of the final initializer is passed to the body
 %function.
-%For instance, opening a file and resizing it:
-%
-%filename = 'test.file'
-%size = 100;
-%require(joinResource(openFile, resizeFile))
-%function [close, fid] = openFile:
-%   fid = fopen(filename);
-%   close = @() close(fid);
-%end
 
     %Recursively define a joined initializer out of the 2-initializer join
     if (nargin == 1)
@@ -55,9 +42,7 @@ function f = joinResource(first, varargin)
     %first.
     
     function [r, details] = joinedInitializer(details)
-        %This function over variables 'nfirst' and 'nrest' so that it knows
-        %how many arguments to expect in output. 
-        %a handle to this function is the combined initializer.
+        %A handle to this function is the combined initializer.
         [release1, pass] = first(details);
         try
             [release2, details] = rest(pass);

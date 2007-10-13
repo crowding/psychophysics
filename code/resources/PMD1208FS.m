@@ -661,7 +661,7 @@ function this = PMD1208FS(varargin)
             data{i} = cast(data{i}, class(CALIBRATION_FORMAT_{i}));
         end
         
-        bytes = tobytes(data{:});
+        bytes = tobytes(uint8([]), [data{:}]);
         
         for i = 0:59:numel(bytes)
             len = min(59, numel(bytes)-i);

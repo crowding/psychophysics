@@ -1,9 +1,9 @@
-function assert(value, message)
+function assert(value, varargin)
 
 if ~value
     e.identifier = 'MATLAB:assert:failed';
     if nargin >= 2
-        e.message = message;
+        e.message = sprintf(varargin{:});
     else
         e.message = 'Assertion failed';
     end

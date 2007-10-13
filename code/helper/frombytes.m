@@ -1,5 +1,8 @@
-function varargout = frombytes(bytes, varargin)
+function output = frombytes(bytes, template, varargin)
 
+    defaults = struct('littleendian', 0);
+    params = options(defaults, varargin{:});
+    
     %Converts an array of bytes to given numeric types. The format
     %specification is given as array arguments of the desired type and size.
     %
@@ -28,53 +31,71 @@ function varargout = frombytes(bytes, varargin)
     %much data, if non-numeric or complex values are supplied, or if the
     %number of bytes does not fill out a zero-sized format argument evenly.
     %
-    %Logical arguments will be unpacked as bits. Non-logical arguments must be
-    %alighned to byte boundaries.
+    %Logical template components will be unpacked as bits. Non-logical
+    %arguments must be alighned to byte boundaries. If the first part of a
+    %logical template component is set to 1, each column will be converted
+    %to an unsigned integer and the dimensions will be shifted left.
     %
     %You can give cell arrays or structs as arguments, and they will be
     %unpacked as necessary.
     %
     %BUGS: will not work on long integers yet, as 'dec2hex' and 'hex2dec'
-    %are stupid along with MATLAB's handling of long ints in general
-    %(the error produced reveals that max() doesn't even work for longs!)
+    %are stupid along with MATLAB's handling of long ints in general.
+    %(THERE ARE NO ARITHMETIC OPERATIONS FOR LONGS. WTF.)
     
     %Start by converting to hex
     hex = sprintf('%02x', bytes);
 
     pointer = 0;
     %iterate the over the template
-    subs = iteratesubs(varargin);
-    varargout = varargin;
+    subs = iteratesubs(template);
+    output = template;
     
     for i = 1:numel(subs)
-        f = subsref(varargin, subs{i});
+        f = ssubsref(template, subs{i});
+        
         if numel(f) == 0
             break;
         end
-        [datachunk, nbytes] = frombytesstep(f, pointer, 1);
-        varargout = subsasgn(varargout, subs{i}, datachunk);
+        [datachunk, nbytes] = frombytesstep(f, pointer, 1, params);
+        output = ssubsasgn(output, subs{i}, datachunk);
         pointer = pointer + nbytes;
     end
 
     pointer2 = numel(bytes);
     for j = numel(subs):-1:i+1
-        q = subsref(varargin, subs{j});
+        q = ssubsref(template, subs{j});
         if numel(q) == 0
             error('fromBytes:illegalArgument', 'Only one argument may be of zero size.');
         end
-        [datachunk, nbytes] = frombytesstep(q, pointer, 1);
-        varargout = subsasgn(varargout, subs{j}, datachunk);
+        [datachunk, nbytes] = frombytesstep(q, pointer2, -1, params);
+        output = ssubsasgn(output, subs{j}, datachunk);
         pointer2 = pointer2 - nbytes;
     end
     
     if numel(f) == 0
-        datachunk = frombytesblank(f, pointer, pointer2-pointer);
-        varargout = subsasgn(varargout, subs{i}, datachunk);
+        datachunk = frombytesblank(f, pointer, pointer2-pointer, params);
+        output = ssubsasgn(output, subs{i}, datachunk);
     end
     
+    function r = ssubsref(s, subs)
+        if isempty(subs)
+            r = s;
+        else
+            r = subsref(s, subs);
+        end
+    end
+
+    function s = ssubsasgn(s, subs, a)
+        if isempty(subs)
+            s = a;
+        else
+            s = subsasgn(s, subs, a);
+        end
     
+    end
     
-    function [format, nbytes] = frombytesstep(format, pointer, dir)
+    function [format, nbytes] = frombytesstep(format, pointer, dir, params)
         if islogical(format)
             %special handling for bitfields:
             nbytes = numel(format) / 8;
@@ -85,10 +106,26 @@ function varargout = frombytes(bytes, varargin)
             %grab data, binarize it
             x = hex( floor(pointer)*2+1 : ceil(pointer+nbytes)*2 );
             bin = dec2bin(hex2dec(x(:)), 4)' - '0';
+            if params.littleendian
+                %flip order of bits within bytes for the next step
+                bin = reshape(flipud(reshape(bin, 8, [])), size(bin));
+            end
             %chop off fractional bytes
             bin = bin( 8*(pointer-floor(pointer))+1 : end-8*(ceil(pointer+nbytes)-pointer-nbytes) );
             
-            format(:) = bin;
+            %if the first entry in the logical is true, then convert to an
+            %unsigned int (or ints if there are multiple columns)
+            if format(1)
+                sf = num2cell(size(format));
+                bin = permute(reshape(bin, size(format)), [2 1 3:numel(sf)]);
+                if params.littleendian
+                    format = bin2dec(fliplr(char(bin + '0')));
+                else
+                    format = bin2dec(char(bin + '0'));
+                end
+            else
+                format = reshape(bin, size(format));
+            end
         else
             if pointer ~= floor(pointer)
                 error('frombytes:notByteAligned', 'Non-logical fields must be byte aligned.');
@@ -108,6 +145,10 @@ function varargout = frombytes(bytes, varargin)
                     else
                         toconvert = reshape(hex((pointer-nbytes)*2+1:pointer*2), [], bytesinelement*2);
                     end
+                    if params.littleendian
+                        %swap byte order (obfuscated one liner)
+                        toconvert = reshape(flipdim(reshape(toconvert', 2, bytesinelement, []), 2), size(toconvert'))';
+                    end
                     if isinteger(format)
                         x = hex2dec(toconvert);
                         if ~any(class(format) == 'u')
@@ -117,7 +158,7 @@ function varargout = frombytes(bytes, varargin)
                         end
                         format(:) = x;
                     else
-                        format(:) = hex2num(toconvert);
+                        format(:) = hex2float(toconvert);
                     end
                 else
                     error('frombytes:unsupportedDataType', 'Complex data not supported');
@@ -129,8 +170,7 @@ function varargout = frombytes(bytes, varargin)
     end
 
 
-
-    function [format, nbytes] = frombytesblank(format, pointer, length)
+    function [format, nbytes] = frombytesblank(format, pointer, length, params)
         nonzeros = size(format) == 0;
 
         if sum(nonzeros) == 1
@@ -149,8 +189,14 @@ function varargout = frombytes(bytes, varargin)
                 error('frombytes:unevenData', 'Data does not fill specified format evenly.');
             end
             
+            %read in bits, in the right order
             h = hex(floor(pointer)*2+1:ceil(pointer+length)*2);
-            bits = dec2bin(h(:), 4) - '0';
+            bits = dec2bin(hex2dec(h(:)), 4)' - '0';
+            
+            if (params.littleendian)
+                %reverse bit order in bytes for this step...
+                bits = reshape(flipud(reshape(bits, 8, [])), size(bits));
+            end
             bits = bits(1+8*(pointer-floor(pointer)):8*(pointer-floor(pointer)+length));
             
             dims{dim} = nplanes;
@@ -168,6 +214,11 @@ function varargout = frombytes(bytes, varargin)
             [bytesinelement, nbytes] = s.bytes;
 
             h = hex(pointer*2+1:(pointer+length)*2);
+            
+            if params.littleendian
+                %swap byte order (obfuscated one liner)
+                h = reshape(flipdim(reshape(h', 2, bytesinelement, []), 2), size(h'))';
+            end
 
             if mod(numel(h), nbytes*2)
                 error('frombytes:unevenData', 'Data does not fill specified format evenly.');
@@ -189,7 +240,7 @@ function varargout = frombytes(bytes, varargin)
 
                         format(dimsub{:}) = reshape(x, dims{:});
                     else
-                        format(dimsub{:}) = reshape(hex2num(toconvert), dims{:});
+                        format(dimsub{:}) = reshape(hex2float(toconvert), dims{:});
                     end
                 else
                     error('frombytes:unsupportedDataType', 'Complex data not supported');
