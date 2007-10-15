@@ -78,8 +78,10 @@ function bytes = tobytesstep(template, in, params)
     elseif isstruct(template)
         if isstruct(in)
             in = orderfields(in, template);
-            in = struct2cell(in)';
-            template = struct2cell(template)';
+            in = struct2cell(in);
+            in = in(:)';
+            template = struct2cell(template);
+            template = template(:)';
             out = cellfun(@(x, y)tobytesstep(x, y, params), template, in, 'UniformOutput', 0);
             bytes = collapselogicals(out, params);
             return;
@@ -168,7 +170,7 @@ function bytes = collapselogicals(in, params)
         en = i(2);
         
         %gather all the bits from this chunk of logical
-        bits = false(1, sum(cellfun('prodofsize', in(begin:end))));
+        bits = false(1, sum(cellfun('prodofsize', in(begin:en))));
         ix = 0;
         for j = begin:en
             n = numel(in{j});

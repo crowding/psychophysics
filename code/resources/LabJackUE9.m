@@ -1,10 +1,16 @@
 function this = LabJackUE9(varargin)
 %An object that interfaces to the LabJack UE9 over TCP.
+%hey here's the command to see what's goping on behind the scenes!
+%sudo tcpdump -i en1 -X port 52360 or port 52361
 
-host = '100.1.1.3'; %Address of the device.
+host = 'labjack'; %Address of the device.
 portA = 52360;
 portB = 52361;
 open = 0; %Are we presently open?
+readTimeout = 0.2;
+writeTimeout = 0.2;
+
+LE_ = struct('littleendian', 1);
 
 %calibration params (%TODO: load these at bootup.
 calibration.ADCSlopeOffsetUnipolar = ...
@@ -31,6 +37,16 @@ this = autoobject(varargin{:});
         end
     end
 
+    function setReadTimeout(t)
+        assertNotOpen();
+        readTimeout = t;
+    end
+
+    function setWriteTimeout(t)
+        assertNotOpen();
+        readTimeout = t;
+    end
+
     function setHost(o)
         assertNotOpen_();
         host = o;
@@ -52,30 +68,26 @@ this = autoobject(varargin{:});
     
     function reset(hard)
         if nargin > 0 && hard
-            [commandNo, data] = sendPacket(COMMAND_RESET_, 1, 1);
+            sendPacket(COMMAND_RESET_, 1);
+            [commandNo, data] = readPacket();
         else
-            [commandNo, data] = sendPacket(COMMAND_RESET_, 0, 1);
+            sendPacket(COMMAND_RESET_, 0);
+            [commandNo, data] = readPacket();
         end
         
         if ~isequal(commandNo, COMMAND_RESET_)
             error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
         end
-        if ~isequal(data, LJE_NOERROR_)
+        if ~isequal(data, [0 0])
             error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
         end
     end
 
-    %--- SingleIO commands ---
+    %------ SingleIO commands ------
     
     SINGLEIO_COMMAND_ = 4;
     
-    SINGLEIO_DIGITAL_FORMAT_ = struct...
-        ( 'iotype',     uint8(0) ...
-        , 'channel',    uint8(0) ...
-        , 'dir',        false(1,8) ...
-        , 'state',      false(1,8) ...
-        , 'reserved',   uint8([0 0]) ...
-        );
+
     
     SINGLEIO_ADC_OUT_FORMAT_ = struct...
         ( 'iotype', uint8(0) ...
@@ -89,17 +101,14 @@ this = autoobject(varargin{:});
     SINGLEIO_ADC_IN_FORMAT_ = struct...
         ( 'iotype',         uint8(0) ...
         , 'channel',        uint8(0) ...
-        , 'AINL',           uint8(0) ...
-        , 'AINM',           uint8(0) ...
-        , 'AINH',           uint8(0) ...
+        , 'AIN',            true(24, 1) ...
         , 'reserved',       uint8(0) ...
         );
 
     SINGLEIO_DAC_FORMAT_ = struct...
         ( 'iotype',         uint8(0) ...
         , 'channel',        uint8(0) ...
-        , 'DACL',       	uint8(0) ... %TODO: fix endianness in to/frombytes
-        , 'DACH',           uint8(0) ...
+        , 'DAC',       	    uint16(0) ... %TODO: fix endianness in to/frombytes
         , 'reserved',       uint8([0 0]) ...
         );
     
@@ -124,26 +133,44 @@ this = autoobject(varargin{:});
         ,'out', 1 ...
         );
 
+    SINGLEIO_DIGITAL_COMMAND_ = struct...
+        ( 'commandNo', 4 ...
+        , 'format', struct...
+            ( 'iotype',     uint8(0) ...
+            , 'channel',    uint8(0) ...
+            , 'dir',        false(1,8) ...
+            , 'state',      false(1,8) ...
+            , 'reserved',   uint8([0 0]) ...
+            )...
+        , 'response', struct...
+            ( 'iotype',     uint8(0) ...
+            , 'channel',    uint8(0) ...
+            , 'dir',        false(1,8) ...
+            , 'state',      false(1,8) ...
+            , 'reserved',   uint8([0 0]) ...
+            )...
+        );
+    
+    
     function r = bitIn(channel)
         %function r = bitIn(channel)
-        %Reads the state of the digital IO channel specified. 
+        %Reads the state of the single digital IO channel specified. 
         %
         %>> a = LabJackUE9; require(a.init(), @()a.bitIn(0))
         %ans = 
         %    channel: 0
         %        dir: 1
         %      state: 1
-        
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_FORMAT_;
+        s = SINGLEIO_DIGITAL_COMMAND_.format;
+        
         s.iotype = SINGLEIO_IOTYPE_.digitalBitRead;
         s.channel = channel;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
-        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
-        r.dir = r.dir(end);
-        r.state = r.state(end);
+        r = roundtrip(SINGLEIO_DIGITAL_COMMAND_, s);
+        r.dir = r.dir(1);
+        r.state = r.state(1);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -158,20 +185,18 @@ this = autoobject(varargin{:});
         %    channel: 0
         %        dir: 1
         %      state: 0
-
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_FORMAT_;
+        s = SINGLEIO_DIGITAL_COMMAND_.format;
+        
         s.iotype = SINGLEIO_IOTYPE_.digitalBitWrite;
         s.channel = channel;
         s.dir(end) = dir;
         s.state(end) = state;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
-        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
-        
-        r.dir = r.dir(end);
-        r.state = r.state(end);
+        r = roundtrip(SINGLEIO_DIGITAL_COMMAND_, s);
+        r.dir = r.dir(1);
+        r.state = r.state(1);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -192,8 +217,8 @@ this = autoobject(varargin{:});
         s.iotype = SINGLEIO_IOTYPE_.digitalPortRead;
         s.channel = channel;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DIGITAL_FORMAT_, s), 1);
-        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_);
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_DIGITAL_FORMAT_, s, LE_), 1);
+        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_, LE_);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -220,9 +245,9 @@ this = autoobject(varargin{:});
         s.dir = dir;
         s.state = state;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_ADC_OUT_FORMAT_, s), 1);
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_ADC_OUT_FORMAT_, s, LE_), 1);
         
-        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_);
+        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_, LE_);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -265,18 +290,10 @@ this = autoobject(varargin{:});
         s.resolution = resolution;
         s.settlingTime = settlingTime;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_ADC_OUT_FORMAT_, s), 1);
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_ADC_OUT_FORMAT_, s, LE_), 1);
+        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_, LE_);
         
-        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_); 
-        %TODO: apply gain and offset from calibration
-        r.AIN = 256*double(r.AINH) + double(r.AINM) + double(r.AINL)/256;
-
-        if (gain >= 8)
-            r.AIN = [r.AIN 1] * calibration.ADCSlopeOffsetBipolar;
-        else
-            r.AIN = [r.AIN 1] * calibration.ADCSlopeOffsetUnipolar(:,gain+1);
-        end
-        r = rmfield(r, {'iotype', 'reserved', 'AINH', 'AINM', 'AINL'});
+        r = rmfield(r, {'iotype', 'reserved'});
     end
 
 
@@ -308,18 +325,130 @@ this = autoobject(varargin{:});
         s.DACL = mod(value, 256);
         s.DACH = floor(value / 256);
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes('template', SINGLEIO_DAC_FORMAT_, s), 1);
+        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_DAC_FORMAT_, s, LE_), 1);
         
-        r = frombytes(r, SINGLEIO_DAC_FORMAT_);
+        r = frombytes(r, SINGLEIO_DAC_FORMAT_, LE_);
         
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
 
 
+    %------ Flash memory commands ------
+    READMEM_COMMAND_ = struct...
+        ( 'commandNo',  42 ...
+        , 'format', struct...
+            ( 'reserved', uint8(0)...
+            , 'blocknum', uint8(0)...
+            ) ...
+        , 'response', struct...
+            ( 'reserved', uint8(0)...
+            , 'blocknum', uint8(0)...
+            , 'data', zeros(128, 1, 'uint8')...
+            ) ...
+        );
+    
+    function response = readMem(blocknum)
+        if blocknum < 0 || blocknum > 7
+            error('LabJackUE9:readMem', 'invalid block number')
+        end
+        
+        packet = READMEM_COMMAND_.format;
+        packet.blocknum = blocknum;
+        
+        response = roundtrip(READMEM_COMMAND_, packet);
+
+        if ~isequal(response.blocknum, blocknum)
+            error...
+                ( 'LabJackUE9:responseMismatch'...
+                , 'response blocknum mismatch: expected %d, was %d'...
+                , blocknum, response.blocknum);
+        end
+    end
+
+
+
+    WRITEMEM_COMMAND_ = struct...
+        ( 'commandNo', 40 ...
+        , 'format', struct...
+            ( 'blocknum', uint16(0) ...
+            , 'data', zeros(128, 1, 'uint8') ...
+            )...
+        , 'response', struct...
+           ( 'errorcode', uint8(0) ...
+           , 'reserved', uint8(0) ...
+           ) ...
+        );
+    
+    function writeMem(blocknum, data)
+        if blocknum < 0 || blocknum > 7
+            error('LabJackUE9:writeMem', 'invalid block number')
+        end
+        
+        packet = WRITEMEM_COMMAND_.format;
+        packet.blocknum = blocknum;
+        packet.data = data;
+        
+        response = roundtrip(WRITEMEM_COMMAND_, packet);
+    end
+
+    %we ahve a wacky 64 bit point data type for calibration...
+    Z_ = struct('frac', uint32(0), 'int', int32(0));
+
+    CALIBRATION_FORMAT_ = struct...
+        ( 'ADCUnipolar', struct...
+            ( 'slope', {Z_, Z_, Z_, Z_} ...
+            , 'offset', {Z_, Z_, Z_, Z_} ) ...
+        , 'reserved0',                      zeros(64, 1, 'uint8') ...
+        , 'ADCBipolar', struct...
+            ( 'slope', {Z_} ...
+            , 'offset', {Z_} ) ...
+        , 'reserved1',                      zeros(112, 1, 'uint8') ...
+        , 'DAC', struct...
+            ( 'slope', {Z_, Z_} ...
+            , 'offset', {Z_, Z_} ) ...
+        , 'temp', struct...
+            ( 'slope', {Z_} ...
+            , 'slopeLow', {Z_} ) ...
+        , 'reserved2',                       [Z_ Z_] ...
+        , 'CalTemp',                         Z_ ...
+        , 'Vref',                            Z_ ...
+        , 'reserved3',                       Z_ ...
+        , 'HalfVref',                        Z_ ...
+        , 'VsSlope',                         Z_ ...
+        , 'reserved4',                       Z_ ...
+        , 'ADCUnipolarHighRes',  struct...
+            ( 'slope', {Z_} ...
+            , 'offset', {Z_} ) ...
+        , 'reserved5',                      zeros(112, 1, 'uint8') ...
+        , 'ADCBipolarHighRes', struct...
+            ( 'slope', {Z_} ...
+            , 'offset', {Z_} ) ...
+        , 'reserved6',                      zeros(112, 1, 'uint8') ...
+        );
+
+    function c = loadCalibration()
+        for i = 0:4
+            block(i+1) = readMem(i);
+            block(i+1).data = block(i+1).data(:)';
+        end
+        
+        c = frombytes([block.data], CALIBRATION_FORMAT_, 'littleendian', 1);
+        c = rmfield(c, strcat('reserved', ['123456']'));
+        calibration = c;
+    end
+
     %------- COMMS ------
 
-    
+    function response = roundtrip(command, data)
+        sendPacket(command.commandNo, tobytes(command.format, data, LE_));
+        [commandNo, response] = readPacket();
+        if ~isequal(commandNo, command.commandNo)
+            error('LabJackUE9:mismatchedCommandNumbers', 'response command number %d from command %d', commandNo, command.commandNo);
+        end
+            
+        response = frombytes(response, command.response, LE_);
+    end
     
     function initializer = init(varargin)
         
@@ -329,13 +458,26 @@ this = autoobject(varargin{:});
             assertNotOpen_();
             %open the TCP connection
             a_ = pnet('tcpconnect', host, portA); %does port matter?
+            if a_ < 0
+                error('LabJackUE9:connection', 'Could not connect');
+            end
+            pnet(a_, 'setreadtimeout', readTimeout);
+            pnet(a_, 'setwritetimeout', writeTimeout);
             b_ = pnet('tcpconnect', host, portB); %does port matter?
+            if b_ < 0
+                error('LabJackUE9:connection', 'Could not connect');
+            end
+            pnet(b_, 'setreadtimeout', readTimeout);
+            pnet(b_, 'setwritetimeout', writeTimeout);
             open = 1;
             flush();
             
             release = @r;
             function r
                 open = 0;
+                pnet(a_, 'read', 'noblock');
+                pnet(b_, 'read', 'noblock');
+
                 pnet(a_, 'close');
                 pnet(b_, 'close');
                 a_ = [];
@@ -367,6 +509,9 @@ this = autoobject(varargin{:});
 
     function [commandNo, data] = readPacket()
         in = pnet(a_, 'read', 2, 'uint8');
+        if numel(in) < 2
+            error('LabJackUE9:ReadTimeOut', 'packet read timeout');
+        end
         cksum = in(1);
         commandByte = in(2);
         commandNo = bitand(15, bitshift(in(2), -3));
@@ -374,6 +519,9 @@ this = autoobject(varargin{:});
             dataLength = bitand(in(2), 3);
         else
             moar = pnet(a_, 'read', 4, 'uint8');
+            if numel(moar) < 4
+                error('LabJackUE9:ReadTimeOut', 'packet read timeout');
+            end
             dataLength = moar(1);
             commandNo = moar(2);
             cksum2l = moar(3);
@@ -381,58 +529,62 @@ this = autoobject(varargin{:});
             
         end
         data = pnet(a_, 'read', dataLength*2, 'uint8');
+        if numel(data) < dataLength*2
+            error('LabJackUE9:ReadTimeOut', 'packet read timeout');
+        end
         
         %TODO check checksums
     end
 
     
-    function [cNo, response] = sendPacket(commandNo, data, readResponse)
+    function sendPacket(commandNo, data)
         %send a command to the device. Takes data with words, or bytes in
-        %packet order.
+        %packet order. (they must be uint8s in this case)
         assertOpen_();
         
         %make sure everything is in a reasonable format to begin with.
-        %matlab annoyance: incredibly stupid datatype precenence
+        %matlab annoyance: incredibly stupid datatype precedence
         %(double + int = int, frex.)
         
         commandNo = double(commandNo);
         
         if strcmp(class(data), 'uint8')
-            data = double(data(2:2:end))*256 + double(data(1:2:end));
+            data = double(data);
         else
             data = double(data);
+            data = [mod(data(:)', 256); floor(data(:)'/256)]'
+            data = data(:)'
         end
-        
+    
+        cksum2 = sum(data);
+
+        if mod(numel(data), 2)
+            error('LabJackUE9:unevenData', 'Must provide an even number of bytes.');
+        end
+
         if commandNo <= 14
             %normal command
-            if numel(data) <= 14
-                cbyte = 128 + bitand(commandNo,15)*8 + bitand(numel(data),7);
-                pdata = dec2hex(data, 4)';
-                pdata = hex2dec(reshape(pdata([3 4 1 2], :), 2, [])')'; %swap bytes
-                cksum = sum([cbyte pdata]);
+            if numel(data) <= 28
+                cbyte = 128 + bitand(commandNo,15)*8 + bitand(numel(data)/2,7);
+                cksum = sum([cbyte data]);
                 cksum = mod(cksum, 256) + floor(cksum/256); %ones complement accumulator
-                packet = uint8([cksum, cbyte, pdata]);
+                packet = uint8([cksum, cbyte, data]);
             else
                 error('LabJackUE9:TooMuchData', 'Too much data for this command.');
             end
         else
             %extended command
-            if numel(data) <= 250
+            if numel(data) <= 500
                 cbyte = 248;
-                nwords = numel(data);
+                nwords = numel(data)/2;
                 xcnum = commandNo;
-                cksum2 = sum(data);
-                cksum2 = mod(cksum2, 65536) + floor(cksum2/65536);
                 cksum2l = mod(cksum2, 256);
-                cksum2h = floor(cksum2, 256);
+                cksum2h = floor(cksum2 / 256);
                 
                 cksum = sum([cbyte, nwords, xcnum, cksum2l, cksum2h]);
                 cksum = mod(cksum, 256) + floor(cksum/256); %ones complement accumulator
                 
-                pdata = dec2hex(data, 4)';
-                pdata = hex2dec(pdata([3 4 1 2], :), 2, [])'; %swap bytes
-                
-                packet = uint8([cksum, cbyte, nwords, cksum2l, cksum2h, pdata]);
+                packet = uint8([cksum, cbyte, nwords, xcnum, cksum2l, cksum2h, data]);
             else
                 error('LabJackUE9:TooMuchData', 'Too much data for this command.');
             end
@@ -440,14 +592,11 @@ this = autoobject(varargin{:});
         
         %send the command
         pnet(a_, 'write', packet);
-        if (nargin >= 3 && readResponse)
-            [cNo, response] = readPacket();
-            if (cNo ~= commandNo)
-                error('LabJackUE9:mismatchedCommandNumbers', 'response command number %d from command %d', cNo, commandNo);
-            end
-        end
+        %count = pnet(a_, 'write', packet);
+        %if count < numel(packet)
+        %    error('LabJackUE9:WriteTimeOut', 'packet write timeout');
+        %end
     end
-
 
 
     COMMAND_RESET_ = 3;
