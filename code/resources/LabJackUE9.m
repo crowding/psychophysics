@@ -9,24 +9,46 @@ portB = 52361;
 open = 0; %Are we presently open?
 readTimeout = 0.2;
 writeTimeout = 0.2;
+debug = 1;
 
 LE_ = struct('littleendian', 1);
 
-%calibration params (%TODO: load these at bootup.
-calibration.ADCSlopeOffsetUnipolar = ...
-    [  7.7503E-05   3.8736E-05  1.9353E-05  9.6764E-06 ...
-    ; -1.2000E-2   -1.2000E-2  -1.2000E-2  -1.200E-02 ...
-    ];
+%Calibration params. These are copied from my personal labjack. Yalues from
+%your labjack will be will be loaded at initialization.
+calibration.ADCUnipolar = cell(1,4);
+calibration.ADCUnipolar{1,1}.slope = 7.7561940997839e-05;
+calibration.ADCUnipolar{1,1}.offset = -0.0116342853289098;
+calibration.ADCUnipolar{1,2}.slope = 3.87721229344606e-05;
+calibration.ADCUnipolar{1,2}.offset = -0.0120969316922128;
+calibration.ADCUnipolar{1,3}.slope = 1.93545129150152e-05;
+calibration.ADCUnipolar{1,3}.offset = -0.0123288538306952;
+calibration.ADCUnipolar{1,4}.slope = 9.64500941336155e-06;
+calibration.ADCUnipolar{1,4}.offset = -0.0123841688036919;
+calibration.ADCUnipolar = cell2mat(calibration.ADCUnipolar);
+calibration.ADCBipolar.slope = 0.000156391179189086;
+calibration.ADCBipolar.offset = -5.17294792411849;
+calibration.DAC = cell(1,2);
+calibration.DAC{1,1}.slope = 842.220494680107;
+calibration.DAC{1,1}.offset = -19.5067721442319;
+calibration.DAC{1,2}.slope = 840.558117963374;
+calibration.DAC{1,2}.offset = -27.1995932771824;
+calibration.DAC = cell2mat(calibration.DAC);
+calibration.temp.slope = 0.0125841302797198;
+calibration.temp.offset = 0;
+calibration.tempLow.slope = 0.012831287458539;
+calibration.tempLow.offset = 0;
+calibration.CalTemp = 299.879827279132;
+calibration.Vref = 2.42993684369139;
+calibration.HalfVref = 1.21196511248127;
+calibration.Vs.slope = 9.26947686821222e-05;
+calibration.Vs.offset = 0;
+calibration.ADCUnipolarHighRes.slope = -2.3283064365387e-10;
+calibration.ADCUnipolarHighRes.offset = -2.3283064365387e-10;
+calibration.ADCBipolarHighRes.slope = -2.3283064365387e-10;
+calibration.ADCBipolarHighRes.offset = -2.3283064365387e-10;
 
-calibration.ADCSlopeOffsetBipolar = [1.5629E-04; -5.1760E00];
-
-calibration.DACSlopeOffset = ...
-    [ 8.4259E02 8.4259E02 ...
-    ; 0.0000E00 0.0000E00 ...
-    ];
-
-a_ = []; %connection port A handle.
-b_ = []; %connection port B handle.
+a_ = []; %TCP connection port handle
+b_ = [];
 
 this = autoobject(varargin{:});
 
@@ -63,6 +85,76 @@ this = autoobject(varargin{:});
     end
 
     %------ COMMANDS ------
+    
+    %------
+    
+    COMMCONFIG_COMMAND_ = struct...
+        ( 'remote', 0 ...
+        , 'extended', 1 ...
+        , 'commandNo', 1 ...
+        , 'format', struct...
+            ( 'writeMask', struct... %mask for writing...
+                ( 'LocalID',        false ...
+                , 'PowerLevel',     false ...
+                , 'IPAddress',      false ...
+                , 'Gateway',        false ...
+                , 'Subnet',         false ...
+                , 'PortA',          false ...
+                , 'PortB',          false ...
+                , 'DHCPEnabled',    false ...
+                ) ...
+            , 'reserved0',      uint8(0)...
+            , 'LocalID',            uint8(1) ...
+            , 'PowerLevel',         uint8(0) ...
+            , 'IPAddress',          uint8([209 1 168 192]) ... %little endian
+            , 'Gateway',            uint8([1 1 168 192])...
+            , 'Subnet',             uint8([0 255 255 255])...
+            , 'PortA',              uint16(52360)...
+            , 'PortB',              uint16(52361) ...
+            , 'DHCPEnabled',        false...
+            , 'reserved1',          false(1, 7)...
+            , 'ProductID',          uint8(0)...
+            , 'MACAddress',         zeros(1, 6, 'uint8')...
+            , 'HWVersion', struct...
+                ( 'int',            uint8(0)...
+                , 'frac',           uint8(0)...
+                )...
+            , 'CommFWVersion', struct...
+                ( 'int',            uint8(0)...
+                , 'frac',           uint8(0)...
+                )...
+            )...
+        , 'response', []...
+        );
+    COMMCONFIG_COMMAND_.response = COMMCONFIG_COMMAND_.format;
+                
+    function response = readCommConfig()
+        data = COMMCONFIG_COMMAND_.format;
+        response = roundtrip(COMMCONFIG_COMMAND_, data);
+        response = rmfield(response, {'reserved0', 'reserved1'});
+    end
+
+
+    function response = writeCommConfig(varargin)
+        %Sets the comm config parameters. Takes structs or names arguments.
+        %Example use:
+        %
+        %>> a = LabJackUE9();
+        %>> require(a.init(), @()a.writeCommConfig('LocalID', 2))
+        params = namedargs(varargin{:});
+        data = COMMCONFIG_COMMAND_.format;
+        for i = fieldnames(params)'
+            if ~isfield(data.writeMask, i{:})
+                error('LabJackUE9:unknownCommOption', 'unknown or read-only option %s', i{:})
+            end
+            data.writeMask.(i{:}) = true;
+            data.(i{:}) = params.(i{:});
+        end
+        
+        response = roundtrip(COMMCONFIG_COMMAND_, data);
+        response = rmfield(response, {'reserved0', 'reserved1'});
+    end
+
 
     %--- Reset command ---
     
@@ -87,31 +179,6 @@ this = autoobject(varargin{:});
     
     SINGLEIO_COMMAND_ = 4;
     
-
-    
-    SINGLEIO_ADC_OUT_FORMAT_ = struct...
-        ( 'iotype', uint8(0) ...
-        , 'channel', uint8(0) ...
-        , 'bipGain', uint8(0) ...
-        , 'resolution', uint8(0) ...
-        , 'settlingTime', uint8(0) ...
-        , 'reserved', uint8(0) ...
-        );
-    
-    SINGLEIO_ADC_IN_FORMAT_ = struct...
-        ( 'iotype',         uint8(0) ...
-        , 'channel',        uint8(0) ...
-        , 'AIN',            true(24, 1) ...
-        , 'reserved',       uint8(0) ...
-        );
-
-    SINGLEIO_DAC_FORMAT_ = struct...
-        ( 'iotype',         uint8(0) ...
-        , 'channel',        uint8(0) ...
-        , 'DAC',       	    uint16(0) ... %TODO: fix endianness in to/frombytes
-        , 'reserved',       uint8([0 0]) ...
-        );
-    
     SINGLEIO_IOTYPE_ = struct ...
         ( 'digitalBitRead',     0 ...
         , 'digitalBitWrite',    1 ...
@@ -133,24 +200,26 @@ this = autoobject(varargin{:});
         ,'out', 1 ...
         );
 
-    SINGLEIO_DIGITAL_COMMAND_ = struct...
-        ( 'commandNo', 4 ...
+    SINGLEIO_BIT_COMMAND_ = struct...
+        ( 'extended', 0 ...
+        , 'commandNo', SINGLEIO_COMMAND_ ...
         , 'format', struct...
             ( 'iotype',     uint8(0) ...
             , 'channel',    uint8(0) ...
-            , 'dir',        false(1,8) ...
-            , 'state',      false(1,8) ...
-            , 'reserved',   uint8([0 0]) ...
+            , 'dir',        false ...       %false for input, true for output
+            , 'reserved0',  false(1, 7) ...
+            , 'state',      false ...
+            , 'reserved1',  false(1, 23) ...
             )...
         , 'response', struct...
             ( 'iotype',     uint8(0) ...
             , 'channel',    uint8(0) ...
-            , 'dir',        false(1,8) ...
-            , 'state',      false(1,8) ...
-            , 'reserved',   uint8([0 0]) ...
+            , 'dir',        false ...
+            , 'reserved0',  false(1, 7) ...
+            , 'state',      false ...
+            , 'reserved1',  false(1, 23) ...
             )...
         );
-    
     
     function r = bitIn(channel)
         %function r = bitIn(channel)
@@ -163,17 +232,14 @@ this = autoobject(varargin{:});
         %      state: 1
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_COMMAND_.format;
+        s = SINGLEIO_BIT_COMMAND_.format;
         
         s.iotype = SINGLEIO_IOTYPE_.digitalBitRead;
         s.channel = channel;
         
-        r = roundtrip(SINGLEIO_DIGITAL_COMMAND_, s);
-        r.dir = r.dir(1);
-        r.state = r.state(1);
-        r = rmfield(r, {'iotype', 'reserved'});
+        r = roundtrip(SINGLEIO_BIT_COMMAND_, s);
+        r = rmfield(r, {'iotype', 'reserved0', 'reserved1'});
     end
-
 
     function r = bitOut(channel, dir, state)
         %function r = bitOut(channel, dir, state)
@@ -187,19 +253,201 @@ this = autoobject(varargin{:});
         %      state: 0
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_COMMAND_.format;
+        s = SINGLEIO_BIT_COMMAND_.format;
         
         s.iotype = SINGLEIO_IOTYPE_.digitalBitWrite;
         s.channel = channel;
-        s.dir(end) = dir;
-        s.state(end) = state;
+        s.dir = dir;
+        s.state = state;
         
-        r = roundtrip(SINGLEIO_DIGITAL_COMMAND_, s);
-        r.dir = r.dir(1);
-        r.state = r.state(1);
+        r = roundtrip(SINGLEIO_BIT_COMMAND_, s);
+        r = rmfield(r, {'iotype', 'reserved0', 'reserved1'});
+    end
+
+
+
+
+    SINGLEIO_ANALOGIN_COMMAND_ = struct...
+        ( 'extended', 0 ...
+        , 'commandNo', SINGLEIO_COMMAND_...
+        , 'format', struct...
+            ( 'iotype',         uint8(SINGLEIO_IOTYPE_.analogIn) ...
+            , 'channel',        uint8(0) ...
+            , 'bipGain',        uint8(0) ...
+            , 'resolution',     uint8(16) ...
+            , 'settlingTime',   uint8(0) ...
+            , 'reserved',       uint8(0) ...
+            ) ...
+        , 'response',  struct...
+            ( 'iotype',         uint8(0) ...
+            , 'channel',        uint8(0) ...
+            , 'AIN',            true(24, 1) ...
+            , 'reserved',       uint8(0) ...
+            )...
+        );
+
+    function r = analogIn(channel, gain, resolution, settlingTime)
+        %function r = analogIn(channel, gain, resolution, settlingTime)
+        %Reads the specified ADC channel, adn returns the read
+        %
+        %Channel numbers
+        %0-13 are the built-in inputs. 
+        %
+        %14, 128 are Vref;
+        %15, 136 are GND;
+        %132, 140 are Vsupply;
+        %133, 141 is the ambient temperature in Kelvin
+        %
+        %Channels 14-127 activate the multiplexer pins for extended
+        %channels. The lower 3 bits of the channel number determine the
+        %multiplexer output and the high 4 bits 
+        %
+        %'gain' sets the range of the reading:
+        %0 : [0,5]v, 1 : [0,2.5]v, 2 : [0,1.25]v, 3 : [0,0.625]v,
+        %8 : [-5,5]v. Default 0.
+        %
+        %'resolution' is the number of bits, effective range 12-17. Default
+        %16. 18+ is for use with UE9-Pro devices (can only use gains 0 and
+        %8)
+        %
+        %'settlingTime' adds about 5 usec per count this value before taking
+        %the sample. Default 0.
+        %
+        % The raw 24-bit ADC (upper 16 are used) ADC value is returned
+        % in the field 'AIN', and an additional field 'value' converts to
+        % physical units according to the labJack's calibration.
+        %
+        % >> a = LabJackUE9; require(a.init(), @()a.analogIn(0, 0, 17))
+        % ans =
+        %     channel: 0
+        %         AIN: ...
+        %       value: 1.0621
+        assertOpen_();
+        
+        s = SINGLEIO_ANALOGIN_COMMAND_.format;
+        s.channel = channel;
+        if (nargin>=2)
+            s.bipGain = gain;
+        end
+        if (nargin>=3)
+            s.resolution = resolution;
+        end
+        if (nargin>=4)
+            s.settlingTime = settlingTime;
+        end
+        
+        r = roundtrip(SINGLEIO_ANALOGIN_COMMAND_, s);
+        r.value = ainCal_(r.AIN, r.channel, s.bipGain, s.resolution);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
+    function value = ainCal_(ain, channel, gain, resolution)
+        %select the calibration factor to use from the channel number and
+        %gain...
+        
+        switch channel
+            case 132
+                s = calibration.Vs;
+            case 133
+                s = calibration.temp;
+            case 140
+                s = calibration.Vs;
+            case 141
+                s = calibration.temp;
+            otherwise
+                if resolution >= 18
+                    switch gain
+                        case 0
+                            s = calibration.ADCUnipolarHighRes;
+                        case 8
+                            s = calibration.ADCBipolarHighRes;
+                        otherwise
+                            error('LabJackUE9:invalidGainValue', 'invalid gain value for high resolution');
+                    end
+                else
+                    switch gain
+                        case 0
+                            s = calibration.ADCUnipolar(1);
+                        case 1
+                            s = calibration.ADCUnipolar(2);
+                        case 2
+                            s = calibration.ADCUnipolar(3);
+                        case 3
+                            s = calibration.ADCUnipolar(4);
+                        case 8
+                            s = calibration.ADCBipolar;
+                        otherwise
+                            error('LabJackUE9:invalidGainValue', 'invalid gain value');
+                    end
+                end
+        end
+        
+        value = ain/256 * s.slope + s.offset;
+    end
+
+    SINGLEIO_ANALOGOUT_COMMAND_ = struct...
+        ( 'extended', 0 ...
+        , 'commandNo', SINGLEIO_COMMAND_ ...
+        , 'format', struct...
+            ( 'iotype',         uint8(SINGLEIO_IOTYPE_.analogOut) ...
+            , 'channel',        uint8(0) ...
+            , 'DAC',       	    uint16(0) ...
+            , 'reserved',       uint8([0 0]) ...
+            ) ...
+        , 'response', struct...
+            ( 'iotype',         uint8(SINGLEIO_IOTYPE_.analogOut) ...
+            , 'channel',        uint8(0) ...
+            , 'DAC',       	    uint16(0) ...
+            , 'reserved',       uint8([0 0]) ...
+            ) ...
+        );
+
+    function r = analogOut(channel, voltage)
+        %function r = analogOut(channel, gain, resolution, settlingTime)
+        %
+        %Sets a DAC value. 'channel' the channel number, 'voltage' in the
+        %range [0,4.9] or so (will be clipped).
+        %
+        %Note that the labjack returns no data in its response.
+        % 
+        % >> a = LabJackUE9; require(a.init(), @()a.analogOut(0, 4.0))
+        % ans =
+        %     channel: 0
+        %         DAC: 0
+        assertOpen_();
+        
+        s = SINGLEIO_ANALOGOUT_COMMAND_.format;
+        s.channel = channel;
+        
+        value = round(voltage * calibration.DAC(channel+1).slope + calibration.DAC(channel+1).offset);
+        value = max(value, 0);
+        value = min(value, 4095);
+        
+        s.DAC = value;
+        
+        r = roundtrip(SINGLEIO_ANALOGOUT_COMMAND_, s);        
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+
+
+    SINGLEIO_PORT_COMMAND_ = struct...
+        ( 'extended', 0 ...
+        , 'commandNo', SINGLEIO_COMMAND_ ...
+        , 'format', struct...
+            ( 'iotype',     uint8(SINGLEIO_IOTYPE_.digitalPortRead) ...
+            , 'channel',    uint8(0) ...
+            , 'dir',        false(1, 8)...       %false for input, true for output
+            , 'state',      false(1, 8) ...
+            , 'reserved',       uint8([0 0]) ...
+            )...
+        , 'response', struct...
+            ( 'iotype',     uint8(0) ...
+            , 'channel',    uint8(0) ...
+            , 'dir',        false(1, 8) ...
+            , 'state',      false(1, 8) ...
+            , 'reserved',       uint8([0 0]) ...
+            )...
+        );
 
     function r = portIn(channel)
         %function r = portIn(channel)
@@ -213,12 +461,12 @@ this = autoobject(varargin{:});
         %      state: [1 1 1 1 1 1 1 0]
         assertOpen_();
         
-        s = SINGLEIO_DIGITAL_FORMAT_;
+        s = SINGLEIO_PORT_COMMAND_.format;
+        
         s.iotype = SINGLEIO_IOTYPE_.digitalPortRead;
         s.channel = channel;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_DIGITAL_FORMAT_, s, LE_), 1);
-        r = frombytes(r, SINGLEIO_DIGITAL_FORMAT_, LE_);
+        r = roundtrip(SINGLEIO_PORT_COMMAND_, s);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -238,97 +486,14 @@ this = autoobject(varargin{:});
         %      state: [1 1 1 1 1 1 1 0]
         assertOpen_();
         
-        s = SINGLEIO_ADC_OUT_FORMAT_;
+        s = SINGLEIO_PORT_COMMAND_.format;
 
         s.iotype = SINGLEIO_IOTYPE_.digitalPortWrite;
         s.channel = channel;
         s.dir = dir;
         s.state = state;
         
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_ADC_OUT_FORMAT_, s, LE_), 1);
-        
-        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_, LE_);
-        r = rmfield(r, {'iotype', 'reserved'});
-    end
-
-
-
-    function r = analogIn(channel, gain, resolution, settlingTime)
-        %function r = analogIn(channel, gain, resolution, settlingTime)
-        %Reads the specified ADC channel.
-        %
-        %'gain' sets the range:
-        %0 : [0,5]v, 1 : [0,2.5]v, 2 : [0,1.25]v, 3 : [0,0.625]v,
-        %8 : [-5,5]v. Default 0.
-        %
-        %'resolution' is the number of bits, 12-17. Default 16.
-        %
-        %'settlingTime' adds about 5 usec times this value before taking
-        %the sample. Default 0.
-        %
-        % >> a = LabJackUE9; require(a.init(), @()a.analogIn(0, 0, 17))
-        % ans =
-        %     channel: 0
-        %         AIN: 1.0621
-        assertOpen_();
-        
-        if (nargin<2)
-            gain = 0;
-        end
-        if (nargin<3)
-            resolution = 16;
-        end
-        if (nargin<4)
-            settlingTime = 0;
-        end
-        
-        s = SINGLEIO_ADC_OUT_FORMAT_;
-
-        s.iotype = SINGLEIO_IOTYPE_.analogIn;
-        s.channel = channel;               
-        s.bipGain = gain;
-        s.resolution = resolution;
-        s.settlingTime = settlingTime;
-        
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_ADC_OUT_FORMAT_, s, LE_), 1);
-        r = frombytes(r, SINGLEIO_ADC_IN_FORMAT_, LE_);
-        
-        r = rmfield(r, {'iotype', 'reserved'});
-    end
-
-
-
-    function r = analogOut(channel, voltage)
-        %function r = analogOut(channel, gain, resolution, settlingTime)
-        %
-        %Sets a DAC value. 'channel' the channel number, 'voltage' in the
-        %range [0,4.9] or so (will be clipped).
-        %
-        %Note that the labjack returns no data in its response.
-        % 
-        % >> a = LabJackUE9; require(a.init(), @()a.analogOut(0, 4.0))
-        % ans =
-        %     channel: 0
-        %        DACL: 0
-        %        DACH: 0
-        assertOpen_();
-        
-        s = SINGLEIO_DAC_FORMAT_;
-
-        s.iotype = SINGLEIO_IOTYPE_.analogOut;
-        s.channel = channel;
-        
-        value = [voltage 1] * calibration.DACSlopeOffset(:,channel+1);
-        value = max(value, 0);
-        value = min(value, 4095);
-        
-        s.DACL = mod(value, 256);
-        s.DACH = floor(value / 256);
-        
-        [command, r] = sendPacket(SINGLEIO_COMMAND_, toBytes(SINGLEIO_DAC_FORMAT_, s, LE_), 1);
-        
-        r = frombytes(r, SINGLEIO_DAC_FORMAT_, LE_);
-        
+        r = roundtrip(SINGLEIO_PORT_COMMAND_, s);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
@@ -336,7 +501,8 @@ this = autoobject(varargin{:});
 
     %------ Flash memory commands ------
     READMEM_COMMAND_ = struct...
-        ( 'commandNo',  42 ...
+        ( 'extended', 1 ...
+        , 'commandNo',  42 ...
         , 'format', struct...
             ( 'reserved', uint8(0)...
             , 'blocknum', uint8(0)...
@@ -349,7 +515,7 @@ this = autoobject(varargin{:});
         );
     
     function response = readMem(blocknum)
-        if blocknum < 0 || blocknum > 7
+        if blocknum < 0 || blocknum > 15
             error('LabJackUE9:readMem', 'invalid block number')
         end
         
@@ -369,7 +535,8 @@ this = autoobject(varargin{:});
 
 
     WRITEMEM_COMMAND_ = struct...
-        ( 'commandNo', 40 ...
+        ( 'extended', 1 ...
+        , 'commandNo', 40 ...
         , 'format', struct...
             ( 'blocknum', uint16(0) ...
             , 'data', zeros(128, 1, 'uint8') ...
@@ -409,22 +576,26 @@ this = autoobject(varargin{:});
             , 'offset', {Z_, Z_} ) ...
         , 'temp', struct...
             ( 'slope', {Z_} ...
-            , 'slopeLow', {Z_} ) ...
-        , 'reserved2',                       [Z_ Z_] ...
+            , 'offset', {Z_} ) ...        %there's a zero here acutally
+        , 'tempLow', struct...
+            ( 'slope', {Z_} ...
+            , 'offset', {Z_} ) ...        %not used
         , 'CalTemp',                         Z_ ...
         , 'Vref',                            Z_ ...
-        , 'reserved3',                       Z_ ...
+        , 'reserved2',                       Z_ ...
         , 'HalfVref',                        Z_ ...
-        , 'VsSlope',                         Z_ ...
-        , 'reserved4',                       Z_ ...
+        , 'Vs', struct...
+            ( 'slope', {Z_} ...
+            , 'offset', {Z_} ) ...        %not used
+        , 'reserved3',                      zeros(16, 1, 'uint8')    ...
         , 'ADCUnipolarHighRes',  struct...
             ( 'slope', {Z_} ...
             , 'offset', {Z_} ) ...
-        , 'reserved5',                      zeros(112, 1, 'uint8') ...
+        , 'reserved4',                      zeros(112, 1, 'uint8') ...
         , 'ADCBipolarHighRes', struct...
             ( 'slope', {Z_} ...
             , 'offset', {Z_} ) ...
-        , 'reserved6',                      zeros(112, 1, 'uint8') ...
+        , 'reserved5',                      zeros(112, 1, 'uint8') ...
         );
 
     function c = loadCalibration()
@@ -434,14 +605,45 @@ this = autoobject(varargin{:});
         end
         
         c = frombytes([block.data], CALIBRATION_FORMAT_, 'littleendian', 1);
-        c = rmfield(c, strcat('reserved', ['123456']'));
+        c = rmfield(c, strcat('reserved', ['012345']'));
+        c = unfix(c);
         calibration = c;
+
+        function c = unfix(c)
+            switch class(c)
+                case 'struct'
+                    if numel(c) ~= 1
+                        c = arrayfun(@unfix, c);
+                    elseif all(isfield(c, {'frac', 'int'}))
+                        c = arrayfun(@(s)double(s.int) + double(s.frac) / 2^32, c);
+                    else
+                        c = structfun(@unfix, c, 'UniformOutput', 0);
+                    end
+                case 'cell'
+                    c = cellfun(@unfix, c, 'UniformOutput', 0);
+                otherwise
+                    c = c;
+            end
+        end
     end
+
+
+
 
     %------- COMMS ------
 
     function response = roundtrip(command, data)
-        sendPacket(command.commandNo, tobytes(command.format, data, LE_));
+        remote = 1;
+        extended = 0;
+        
+        if isfield(command, 'extended')
+            extended = command.extended;
+        end
+        if isfield(command, 'remote')
+            remote = command.remote;
+        end
+
+        sendPacket(command.commandNo, tobytes(command.format, data, LE_), remote, extended);
         [commandNo, response] = readPacket();
         if ~isequal(commandNo, command.commandNo)
             error('LabJackUE9:mismatchedCommandNumbers', 'response command number %d from command %d', commandNo, command.commandNo);
@@ -452,39 +654,67 @@ this = autoobject(varargin{:});
     
     function initializer = init(varargin)
         
-        initializer = currynamedargs(@i, varargin{:});
-        function [release, params] = i(params)
-            %fix this...
-            assertNotOpen_();
-            %open the TCP connection
-            a_ = pnet('tcpconnect', host, portA); %does port matter?
-            if a_ < 0
-                error('LabJackUE9:connection', 'Could not connect');
-            end
-            pnet(a_, 'setreadtimeout', readTimeout);
-            pnet(a_, 'setwritetimeout', writeTimeout);
-            b_ = pnet('tcpconnect', host, portB); %does port matter?
-            if b_ < 0
-                error('LabJackUE9:connection', 'Could not connect');
-            end
-            pnet(b_, 'setreadtimeout', readTimeout);
-            pnet(b_, 'setwritetimeout', writeTimeout);
-            open = 1;
-            flush();
-            
-            release = @r;
-            function r
-                open = 0;
-                pnet(a_, 'read', 'noblock');
-                pnet(b_, 'read', 'noblock');
+        initializer = joinResource...
+            ( openPort(portA, @setA)...
+            , openPort(portB, @setB)...
+            , @setOpen ...
+            , @getCal ...
+            );
 
-                pnet(a_, 'close');
-                pnet(b_, 'close');
-                a_ = [];
+        initializer = currynamedargs(initializer, varargin{:});
+        
+        function opener = openPort(port, setter)
+            opener = @i;
+            function [release, params] = i(params)
+                assertNotOpen_();
+                handle = pnet('tcpconnect', host, portA); %does port matter?
+                if handle < 0
+                    error('LabJackUE9:connection', 'Could not connect');
+                end
+                pnet(handle, 'setreadtimeout', readTimeout);
+                pnet(handle, 'setwritetimeout', writeTimeout);
+                setter(handle);
+                
+                release = @close;
+                function close()
+                    pnet(handle, 'close');
+                end
             end
         end
         
+        function setA(a)
+            a_ = a;
+        end
+
+        function setB(b)
+            b_ = b;
+        end
+        
+        function [release, params] = setOpen(params)
+            open = 1;
+            release = @close;
+            function close()
+                open = 0;
+            end
+        end
+        
+        function [release, params] = getCal(params)
+            flush();
+            require(@debugOff, @loadCalibration);
+            release = @noop;
+        end
+        
+        function [release, params] = debugOff(params)
+            old = debug;
+            debug = 0;
+            release = @x;
+            function x()
+                debug = old;
+            end
+        end
     end
+
+
 
     function assertOpen_()
         if ~open
@@ -512,32 +742,61 @@ this = autoobject(varargin{:});
         if numel(in) < 2
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
-        cksum = in(1);
+        cksumin = in(1);
         commandByte = in(2);
         commandNo = bitand(15, bitshift(in(2), -3));
         if commandNo <= 14
             dataLength = bitand(in(2), 3);
         else
-            moar = pnet(a_, 'read', 4, 'uint8');
-            if numel(moar) < 4
-                error('LabJackUE9:ReadTimeOut', 'packet read timeout');
-            end
-            dataLength = moar(1);
-            commandNo = moar(2);
-            cksum2l = moar(3);
-            cksum2h = moar(4);
-            
+            dataLength = 2;
         end
+        
         data = pnet(a_, 'read', dataLength*2, 'uint8');
         if numel(data) < dataLength*2
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
+        cksum = sum(double([in(2) data]));
+        cksum = mod(cksum, 256) + floor(cksum/256);
+        cksum = mod(cksum, 256) + floor(cksum/256);
+        if cksum ~= cksumin
+            error('LabJackUE9:checksum','Packet read checksum failure')
+        end
         
-        %TODO check checksums
+        if commandNo > 14
+            xDataLength = data(1);
+            xCommandNo = data(2);
+            xCksuminL = data(3);
+            xCksuminH = data(4);
+            xData = pnet(a_, 'read', xDataLength*2, 'uint8');
+            if numel(xData) < xDataLength*2
+                error('LabJackUE9:ReadTimeOut', 'packet read timeout');
+            end
+            
+            xCksum = sum(double(xData));
+            if xCksum ~= double(xCksuminH)*256 + double(xCksuminL)
+                error('LabJackUE9:checksum','Packet read extended checksum failure');
+            end
+            data = xData;
+            commandNo = xCommandNo;
+            
+        else
+            xData = [];
+        end
+        
+        if debug
+            disp(strcat('<<< ', hexdump([in data xData])));
+        end
+            
     end
 
     
-    function sendPacket(commandNo, data)
+    function sendPacket(commandNo, data, remote, extended)
+        if nargin < 3
+            remote = 1;
+        end
+        if nargin < 4
+            extended = 0;
+        end
         %send a command to the device. Takes data with words, or bytes in
         %packet order. (they must be uint8s in this case)
         assertOpen_();
@@ -552,8 +811,8 @@ this = autoobject(varargin{:});
             data = double(data);
         else
             data = double(data);
-            data = [mod(data(:)', 256); floor(data(:)'/256)]'
-            data = data(:)'
+            data = [mod(data(:)', 256); floor(data(:)'/256)]';
+            data = data(:)';
         end
     
         cksum2 = sum(data);
@@ -562,10 +821,10 @@ this = autoobject(varargin{:});
             error('LabJackUE9:unevenData', 'Must provide an even number of bytes.');
         end
 
-        if commandNo <= 14
+        if commandNo <= 14 && ~extended
             %normal command
             if numel(data) <= 28
-                cbyte = 128 + bitand(commandNo,15)*8 + bitand(numel(data)/2,7);
+                cbyte = 128*logical(remote) + bitand(commandNo,15)*8 + bitand(numel(data)/2,7);
                 cksum = sum([cbyte data]);
                 cksum = mod(cksum, 256) + floor(cksum/256); %ones complement accumulator
                 packet = uint8([cksum, cbyte, data]);
@@ -575,7 +834,7 @@ this = autoobject(varargin{:});
         else
             %extended command
             if numel(data) <= 500
-                cbyte = 248;
+                cbyte = 128 * logical(remote) + 120;
                 nwords = numel(data)/2;
                 xcnum = commandNo;
                 cksum2l = mod(cksum2, 256);
@@ -596,6 +855,11 @@ this = autoobject(varargin{:});
         %if count < numel(packet)
         %    error('LabJackUE9:WriteTimeOut', 'packet write timeout');
         %end
+        
+        if debug
+            disp(strcat('>>> ', hexdump(packet)));
+        end
+
     end
 
 
@@ -648,5 +912,7 @@ this = autoobject(varargin{:});
             str = num2str(code);
         end
     end
+
+        
 
 end

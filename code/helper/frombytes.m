@@ -141,9 +141,9 @@ function output = frombytes(bytes, template, varargin)
             if isnumeric(format)
                 if isreal(format)
                     if (dir > 0)
-                        toconvert = reshape(hex(1+pointer*2:(pointer+nbytes)*2), [], bytesinelement*2);
+                        toconvert = reshape(hex(1+pointer*2:(pointer+nbytes)*2), bytesinelement*2, [])';
                     else
-                        toconvert = reshape(hex((pointer-nbytes)*2+1:pointer*2), [], bytesinelement*2);
+                        toconvert = reshape(hex((pointer-nbytes)*2+1:pointer*2), bytesinelement*2, [])';
                     end
                     if params.littleendian
                         %swap byte order (obfuscated one liner)

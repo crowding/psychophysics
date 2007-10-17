@@ -76,4 +76,15 @@ function this = testToBytes(varargin)
         end    
     end
 
+    %for toBytes only, you can provide an incomplete struct on the data
+    %argument and it will take values from the street side.
+    %values from the 
+    function testIncompleteStructs()
+        this.check...
+            ( struct('a', uint8(0), 'reserved', uint8(0), 'b', uint8(0), 'reserved2', uint8(1)) ...
+            , struct('a', 100, 'b', 200) ...
+            , uint8([100 0 200 1]) ...
+            );
+    end
+
 end

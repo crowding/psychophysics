@@ -76,18 +76,31 @@ function bytes = tobytesstep(template, in, params)
             error('tobytes:unsupportedDataType', 'Data types ''%s'', ''%s'' not supported', class(template), class(in));
         end
     elseif isstruct(template)
-        if isstruct(in)
-            in = orderfields(in, template);
-            in = struct2cell(in);
-            in = in(:)';
-            template = struct2cell(template);
-            template = template(:)';
-            out = cellfun(@(x, y)tobytesstep(x, y, params), template, in, 'UniformOutput', 0);
-            bytes = collapselogicals(out, params);
-            return;
+        if numel(template) == 1
+            if isstruct(in)
+                fns = fieldnames(template);
+
+                if ~isempty(setdiff(fieldnames(in), fns))
+                    error('tobytes:extraStructFields', 'Fields in data not in template');
+                end
+                out = cell(size(fns))';
+                for i = 1:numel(out)
+                    if isfield(in, fns{i})
+                        out{i} = tobytesstep(template.(fns{i}), in.(fns{i}), params);
+                    else
+                        out{i} = tobytesstep(template.(fns{i}), template.(fns{i}), params);
+                    end
+                end
+                bytes = collapselogicals(out, params);
+            else
+                error('tobytes:unsupportedDataType', 'Data types ''%s'', ''%s'' not supported', class(template), class(in));
+            end
         else
-            error('tobytes:unsupportedDataType', 'Data types ''%s'', ''%s'' not supported', class(template), class(in));
+            out = arrayfun(@(x,y)tobytesstep(x, y, params), template, in, 'UniformOutput', 0);
+            bytes = uint8([out{:}]);
         end
+
+        return;
     end
     
     tpl = template; tpl(1) = 0;
