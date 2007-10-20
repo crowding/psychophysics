@@ -3,12 +3,13 @@ function this = LabJackUE9(varargin)
 %hey here's the command to see what's goping on behind the scenes!
 %sudo tcpdump -i en1 -X port 52360 or port 52361
 
-host = 'labjack'; %Address of the device.
+host = '100.1.1.3'; %Address of the device.
 portA = 52360;
 portB = 52361;
 open = 0; %Are we presently open?
 readTimeout = 0.2;
 writeTimeout = 0.2;
+discoveryTimeout = 0.2;
 debug = 1;
 
 LE_ = struct('littleendian', 1);
@@ -84,9 +85,14 @@ this = autoobject(varargin{:});
         portB = o;
     end
 
+    function IP = getIPAddress()
+        assertOpen_();
+        IP = pnet(a_, 'gethost');
+    end
+
     %------ COMMANDS ------
     
-    %------
+%% CommConfig
     
     COMMCONFIG_COMMAND_ = struct...
         ( 'remote', 0 ...
@@ -106,9 +112,9 @@ this = autoobject(varargin{:});
             , 'reserved0',      uint8(0)...
             , 'LocalID',            uint8(1) ...
             , 'PowerLevel',         uint8(0) ...
-            , 'IPAddress',          uint8([209 1 168 192]) ... %little endian
-            , 'Gateway',            uint8([1 1 168 192])...
-            , 'Subnet',             uint8([0 255 255 255])...
+            , 'IPAddress',          uint8([192 168 1 209]) ... %actual format is little endian (see writecommconfig)
+            , 'Gateway',            uint8([192 168 1 1])... %ditto
+            , 'Subnet',             uint8([255 255 255 0])... %ditto
             , 'PortA',              uint16(52360)...
             , 'PortB',              uint16(52361) ...
             , 'DHCPEnabled',        false...
@@ -131,9 +137,9 @@ this = autoobject(varargin{:});
     function response = readCommConfig()
         data = COMMCONFIG_COMMAND_.format;
         response = roundtrip(COMMCONFIG_COMMAND_, data);
+        response = flipaddress_(response); %we usually see IP/MAC addresses as big endian
         response = rmfield(response, {'reserved0', 'reserved1'});
     end
-
 
     function response = writeCommConfig(varargin)
         %Sets the comm config parameters. Takes structs or names arguments.
@@ -151,30 +157,422 @@ this = autoobject(varargin{:});
             data.(i{:}) = params.(i{:});
         end
         
+        data = flipaddress_(data);
+        
         response = roundtrip(COMMCONFIG_COMMAND_, data);
         response = rmfield(response, {'reserved0', 'reserved1'});
     end
 
+%% DiscoveryUDP
 
-    %--- Reset command ---
-    
-    function reset(hard)
-        if nargin > 0 && hard
-            sendPacket(COMMAND_RESET_, 1);
-            [commandNo, data] = readPacket();
-        else
-            sendPacket(COMMAND_RESET_, 0);
-            [commandNo, data] = readPacket();
+    UDP_DISCOVERY_PORT_ = 52362;
+
+    function discovery = discover(broadcast)
+        %function discovery = discover(broadcast)
+        %Discovers the Labjack on the local subnet via broadcasting UDP
+        %packets. returns an array of the communications configurations al
+        %all labjacks which responded. If no hostname of port was set
+        %previously, the first labjack whish responded is used for the host
+        %and port of future connections.
+        %
+        %Accepts an optional 'broadcast' parameter. This is the address to
+        %which a query is sent. Default is 255.255.255.255, but this may
+        %not get through certain networks (and the packet will only go out
+        %on one interface if you have multiple interfaces.)
+        %
+        %Note this won't work unless you modify pnet.c to use set the
+        %broadcast option on UDP sockets and use inet_atoi when looking
+        %up hostnames.
+        %
+        %TODO: Modify pnet.c to emumerate the interfaces on the machine
+        %and send the appropriate broadcast packets to each interface.
+        %See this page for code:
+        %http://www.doctort.org/adam/nerd-notes/enumerating-network-interfa
+        %ces-on-linux.html
+        
+        discovery = COMMCONFIG_COMMAND_.response([]); %empty structure...
+        
+        require(currynamedargs(@opensocket_, 'port', 52363), @disco)
+        function disco(params)
+            pnet(params.socket, 'setreadtimeout', readTimeout);
+            pnet(params.socket, 'write', uint8([34 120 0 169 0 0]));
+            pnet(params.socket, 'writepacket', broadcast, UDP_DISCOVERY_PORT_);
+            
+            size = pnet(params.socket, 'readpacket');
+            while size
+                [commandNo, payload] = readPacket(params.socket);
+                discovery(end+1) = frombytes(payload, COMMCONFIG_COMMAND_.response);
+                discovery(end) = flipaddress_(discovery(end));
+                size = pnet(params.socket, 'readpacket');
+            end
         end
         
-        if ~isequal(commandNo, COMMAND_RESET_)
-            error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
-        end
-        if ~isequal(data, [0 0])
-            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
+        if (isempty(host) || isempty(portA) || isempty(portB)) && ~isempty(discovery)
+            host = sprintf('%d.%d.%d.%d', discovery(1).IPAddress);
+            portA = discovery(1).PortA;
+            portB = discovery(1).PortB;
         end
     end
 
+    function commstruct = flipaddress_(commstruct)
+        %flip IP addresses used by Labjack around to the more familiar big-endian
+        %order, or vice versa.
+        commstruct.IPAddress = flipud(commstruct.IPAddress(:))';
+        commstruct.Gateway = flipud(commstruct.Gateway(:))';
+        commstruct.Subnet = flipud(commstruct.Subnet(:))';
+        commstruct.MACAddress = flipud(commstruct.MACAddress(:))';
+    end
+                
+    function [release, params] = opensocket_(params)
+        params.socket = pnet('udpsocket', params.port);
+        if params.socket < 0
+            error('LabJackUE9Test:nosocket', 'could not open socket');
+        end
+        release = @close;
+        function close()
+            pnet(params.socket, 'close');
+        end
+    end
+
+%% ControlConfig
+
+CONTROLCONFIG_COMMAND_ = struct...
+    ( 'extended', 1 ...
+    , 'commandNo', 8 ...
+    , 'format', struct...
+        ( 'WritePowerLevel',        false ...
+        , 'WriteMask', struct...
+            ( 'IO',                 false ...
+            , 'DAC',                false ...
+            )...
+        , 'reserved0',              false(1,5) ...
+        , 'PowerLevel',             false ...
+        , 'reserved1',              false(1,7) ...
+        , 'FIODir',                 false(1,8) ...
+        , 'FIOState',               false(1,8) ...
+        , 'EIODir',                 false(1,8) ...
+        , 'EIOState',               false(1,8) ...
+        , 'CIOState',               false(1,4) ... %tobytes respects endianness in bit order
+        , 'CIODir',                 false(1,4) ...
+        , 'MIOState',               false(1,3) ...
+        , 'reserved2',              false ...
+        , 'MIODir',                 false(1,3) ...
+        , 'IODontLoadDefaults',     false      ...
+        , 'DAC0Value',              true(1,12)  ... %12 bits of output
+        , 'reserved3',              true(1,3)  ...
+        , 'DAC0Enabled',            false ...
+        , 'DAC1Value',              true(1,12)  ... %12 bits of output
+        , 'reserved4',              true(1,3)  ...
+        , 'DAC1Enabled',            false ...
+        )...
+    , 'response', struct...
+        ( 'Errorcode',              uint8(0) ...
+        , 'PowerLevel',             false ...
+        , 'reserved0',              false(1,7) ...
+        , 'ResetSource',            uint8(0) ... %unused?
+        , 'ControlFWVersion', struct...
+                ( 'int',            uint8(0)...
+                , 'frac',           uint8(0)...
+                )...
+        , 'ControlBLVersion', struct...
+                ( 'int',            uint8(0)...
+                , 'frac',           uint8(0)...
+                )...
+        , 'HiRes',                  false ...
+        , 'reserved1',              false(1,7) ...
+        , 'FIODir',                 false(1,8) ...
+        , 'FIOState',               false(1,8) ...
+        , 'EIODir',                 false(1,8) ...
+        , 'EIOState',               false(1,8) ...
+        , 'CIOState',               false(1,4) ... %bits 0-3
+        , 'CIODir',                 false(1,4) ...
+        , 'MIOState',               false(1,3) ...
+        , 'reserved2',              false ...
+        , 'MIODir',                 false(1,3) ...
+        , 'IOLoadDefaults',         false      ...
+        , 'DAC0Value',              true(1,12)  ... %unsigned int value
+        , 'reserved3',              false(1,3)  ...
+        , 'DAC0Enabled',            false ...
+        , 'DAC1Value',              true(1,12)  ...
+        , 'reserved4',              false(1,3)  ...
+        , 'DAC1Enabled',            false ...
+        )...
+    );
+    
+    
+    function r = readControlConfig()
+        assertOpen_();
+        r = roundtrip(CONTROLCONFIG_COMMAND_, CONTROLCONFIG_COMMAND_.format);
+        r = rmfield(r, {'reserved0', 'reserved1', 'reserved2', 'reserved3', 'reserved4'});
+    end
+
+    function r = writeControlConfig(varargin)
+        %function r = writeControlConfig(varargin)
+        %Changes the control configiuration. Specify named arguments in two
+        %groups
+        %
+        %IO group: FIODir, FIOState, EIODir, EIOState, CIODir, CIOState
+        %   Each are 1x8 boolean. To disable these, set 'IODontLoadDefaults' to
+        %   true.
+        %
+        %DAC group: DAC0Enabled, DAC0Value, DAC1Enabled, DAC1Value
+        %   'Enabled' gets boolean, and 'value' gets an integer 12-bit
+        %   value (raw hardware units -- calibration conversion not
+        %   yet implemented)
+        %
+        %PowerLevel: Boolean. Sets the current power level. If
+        %   'WritePowerLevel' is provided and also 1, writes the power level
+        %   to flash.
+        %
+        %Example usage: Configure FIO to be all inputs at startup
+        %
+        %>> a.writeControlConfig('IOLoadDefaults', 1, 'FIODir', [0 0 0 0 0 0 0 0]);
+        %
+        %Example: set to low power mode, and configure so that device
+        %always starts in low power mode.
+        %
+        %>> a.writeControlConfig('PowerLevel', 1, 'WritePowerLevel', 1);
+        %
+        %When only providing some parameters in a group e.g. DAC or IO, the
+        %other parameters will be filled in by reading the settings from
+        %the device.
+        assertOpen_();
+        args = namedargs(varargin{:});
+        
+        %start with the current settings
+        state = readControlConfig();
+        packet = CONTROLCONFIG_COMMAND_.format;
+        for j = fieldnames(state)'
+            if isfield(packet, j{:})
+                packet.(j{:}) = state.(j{:});
+            end
+        end
+        
+        %apply user arguments and figure the write mask.
+        for i = fieldnames(args)'
+            if strfind(i{:}, 'IO')
+                packet.WriteMask.IO = true;
+                packet.(i{:}) = args.(i{:});
+            elseif strfind(i{:}, 'DAC')
+                %TODO provide
+                packet.WriteMask.DAC = true;
+                packet.(i{:}) = args.(i{:});
+            elseif isfield(packet, i{:})
+                packet.(i{:}) = args.(i{:});
+            else
+                error('LabJackUE9:unknownOption', 'unknown config option %s', i{:});
+            end
+        end
+        r = roundtrip(CONTROLCONFIG_COMMAND_, packet);
+        r = rmfield(r, {'reserved0', 'reserved1', 'reserved2', 'reserved3', 'reserved4'});
+    end
+
+%% Feedback and FeedbackAlt
+% ------Feedback command reads and writes everything!------
+
+FEEDBACK_COMMAND_ = struct...
+    ( 'extended', 1 ...
+    , 'commandNo', 0 ...
+    , 'format', struct...
+        ( 'FIOMask',            false(1, 8)...
+        , 'FIODir',             false(1, 8)...
+        , 'FIOState',           false(1, 8)...
+        , 'EIOMask',            false(1, 8)...
+        , 'EIODir',             false(1, 8)...
+        , 'EIOState',           false(1, 8)...
+        , 'CIOMask',            false(1, 4)...
+        , 'reserved0',          false(1, 4)...
+        , 'CIOState',           false(1, 4)...
+        , 'CIODir',             false(1, 4)...
+        , 'MIOMask',            false(1, 3)...
+        , 'reserved1',          false(1, 5)...
+        , 'MIOState',           false(1, 3)...
+        , 'reserved2',          false...
+        , 'MIODir',             false(1, 3)...
+        , 'reserved3',          false...
+        , 'DAC0Value',          true(12, 1)...
+        , 'reserved4',          false(2, 1)...
+        , 'DAC0Update',         false...
+        , 'DAC0Enabled',        false...
+        , 'DAC1Value',          true(12, 1)...
+        , 'reserved5',          false(2, 1)...
+        , 'DAC1Update',         false...
+        , 'DAC1Enabled',        false...
+        , 'AINMask',            false(1, 16)...
+        , 'AIN14ChannelNumber', uint8(0)...
+        , 'AIN15ChannelNumber', uint8(0)...
+        , 'Resolution',         true(4, 1)...
+        , 'reserved6',          false(4, 1)...
+        , 'SettlingTime',       uint8(0)...
+        , 'AINGain',            true(4, 16)...
+        )...
+    , 'response', struct...
+        ( 'FIODir',             false(1, 8)...
+        , 'FIOState',           false(1, 8)...
+        , 'EIODir',             false(1, 8)...
+        , 'EIOState',           false(1, 8)...
+        , 'CIOState',           false(1, 4)...
+        , 'CIODir',             false(1, 4)...
+        , 'MIOState',           false(1, 3)...
+        , 'reserved0',          false(1, 2)...
+        , 'MIODir',             false(1, 3)...
+        , 'AIN',                uint16(zeros(1, 16))...
+        , 'Counter0',           uint16(0)...
+        , 'Counter1',           uint16(0)...
+        , 'TimerA',             uint16(0)...
+        , 'TimerB',             uint16(0)...
+        , 'TimerC',             uint16(0)...
+        )...
+    );
+        
+        
+    function r = feedback(varargin)
+        %The feedback command can read or write practically everything.
+        %It takes named arguments.
+        %
+        %For digital IO, set parameters
+        %'xIOMask', 'xIODir' and 'xIOState' where x in {F,E,C,M} and the
+        %arguments are logical arrays of 8,8,4,3 elements respectively. The
+        %mask controls which bits of dir and state are written.
+        %
+        %For Analog output, set 'DACxUpdate' then 'DACxEnabled' and 'DACxValue.'
+        %Alternately you can provide 'DACxVoltage' and it will scale
+        %appropriately.
+        %
+        %For analog input, set 'AINMask' (a 16-element boolean array which
+        %defaults to true) and 'AINGain' (a 16-element array defaulting to
+        %0). 'Resolution' (16) and 'SettlingTime' (0) are available as
+        %well. 16 is the max for Resolution.
+        %
+        %Set arguments 'AIN14ChannelNumber' and 'AIN15ChannelNumber' to
+        %appropriate numbers to read internal channels.
+        %
+        %The response contains dir and state for digital ports, all AIN
+        %measurements in raw format as 'AIN' and in calibrated format as
+        %'AINValue', and the values of the timers and counters.
+        
+        packet = FEEDBACK_COMMAND_.format;
+        packet.AINMask(:) = 1; %default to all channels read.
+        packet.AINGain = zeros(1, 16);
+        
+        args = namedargs(varargin{:});
+        
+        for i = fieldnames(args)'
+            switch(i{:})
+                case 'DAC0Voltage'
+                    packet.DAC0Value = aoutcal_(0, args.DAC0Voltage);
+                case 'DAC1Voltage'
+                    packet.DAC1Value = aoutcal_(0, args.DAC1Voltage);
+                otherwise
+                    if isfield(packet, i{:})
+                        packet.(i{:}) = args.(i{:})
+                    else
+                        error('LabJackUE9:unknownOption', 'unknown feedback option %s', i{:});
+                    end
+            end
+        end
+                    
+        r = roundtrip(FEEDBACK_COMMAND_, packet);
+        
+        %calibrate the analog reads
+        channel = [0:13 packet.AIN14ChannelNumber packet.AIN15ChannelNumber];
+        r.AINValue = ainCal_(r.AIN, channel, packet.AINGain, packet.Resolution);
+        
+        r = rmfield(r, {'reserved0'});
+    end
+
+FEEDBACKALT_COMMAND_ = struct...
+    ( 'extended', 1 ...
+    , 'commandNo', 1 ...
+    , 'format', struct...
+        ( 'FIOMask',            false(1, 8)...
+        , 'FIODir',             false(1, 8)...
+        , 'FIOState',           false(1, 8)...
+        , 'EIOMask',            false(1, 8)...
+        , 'EIODir',             false(1, 8)...
+        , 'EIOState',           false(1, 8)...
+        , 'CIOMask',            false(1, 4)...
+        , 'reserved0',          false(1, 4)...
+        , 'CIOState',           false(1, 4)...
+        , 'CIODir',             false(1, 4)...
+        , 'MIOMask',            false(1, 3)...
+        , 'reserved1',          false(1, 5)...
+        , 'MIOState',           false(1, 3)...
+        , 'reserved2',          false...
+        , 'MIODir',             false(1, 3)...
+        , 'reserved3',          false...
+        , 'DAC0Value',          true(12, 1)...
+        , 'reserved4',          false(2, 1)...
+        , 'DAC0Update',         false...
+        , 'DAC0Enabled',        false...
+        , 'DAC1Value',          true(12, 1)...
+        , 'reserved5',          false(2, 1)...
+        , 'DAC1Update',         false...
+        , 'DAC1Enabled',        false...
+        , 'AINMask',            false(1, 16)...
+        , 'AIN14ChannelNumber',   uint8(13)...
+        , 'AIN15ChannelNumber',   uint8(13)...
+        , 'Resolution',         true(4, 1)...
+        , 'reserved6',          false(4, 1)...
+        , 'SettlingTime',       uint8(0)...
+        , 'AINGain',            true(4, 16)...
+        , 'AINChannelNumber',   uint8(0:13)...
+        )...
+    , 'response', struct...
+        ( 'FIODir',             false(1, 8)...
+        , 'FIOState',           false(1, 8)...
+        , 'EIODir',             false(1, 8)...
+        , 'EIOState',           false(1, 8)...
+        , 'CIOState',           false(1, 4)...
+        , 'CIODir',             false(1, 4)...
+        , 'MIOState',           false(1, 3)...
+        , 'reserved0',          false(1, 2)...
+        , 'MIODir',             false(1, 3)...
+        , 'AIN',                uint16(zeros(1, 16))...
+        )...
+    );
+
+    function r = feedbackAlt(varargin)
+        %Like 'Feedback' except that there is a 'AINChannelNumber' parameter that
+        %takes a 16-element array; it allows you to redirect all 16
+        %channel samplings.
+        
+        packet = FEEDBACKALT_COMMAND_.format;
+        packet.AINMask(:) = 1; %default to all channels read.
+        packet.AINGain = zeros(1, 16);
+        
+        args = namedargs(varargin{:});
+        
+        for i = fieldnames(args)'
+            switch(i{:})
+                case 'DAC0Voltage'
+                    packet.DAC0Value = aoutcal_(0, args.DAC0Voltage);
+                case 'DAC1Voltage'
+                    packet.DAC1Value = aoutcal_(0, args.DAC1Voltage);
+                case 'AINChannelNumber'
+                    %it isn't well ordered in the spec...
+                    packet.AINChannelNumber = args.AINChannelNumber(1:14);
+                    packet.AIN14ChannelNumber = args.AINChannelNumber(15);
+                    packet.AIN15ChannelNumber = args.AINChannelNumber(16);
+                otherwise
+                    if isfield(packet, i{:})
+                        packet.(i{:}) = args.(i{:});
+                    else
+                        error('LabJackUE9:unknownOption', 'unknown feedback option %s', i{:});
+                    end
+            end
+        end
+
+        r = roundtrip(FEEDBACKALT_COMMAND_, packet);
+        
+        %calibrate the analog reads
+        channel = [packet.AINChannelNumber(:)' packet.AIN14ChannelNumber packet.AIN15ChannelNumber];
+        r.AINValue = ainCal_(r.AIN(:), channel(:), packet.AINGain(:), packet.Resolution);
+        
+        r = rmfield(r, {'reserved0'});
+    end
+
+%% SingleIO
     %------ SingleIO commands ------
     
     SINGLEIO_COMMAND_ = 4;
@@ -264,9 +662,6 @@ this = autoobject(varargin{:});
         r = rmfield(r, {'iotype', 'reserved0', 'reserved1'});
     end
 
-
-
-
     SINGLEIO_ANALOGIN_COMMAND_ = struct...
         ( 'extended', 0 ...
         , 'commandNo', SINGLEIO_COMMAND_...
@@ -337,52 +732,36 @@ this = autoobject(varargin{:});
         end
         
         r = roundtrip(SINGLEIO_ANALOGIN_COMMAND_, s);
-        r.value = ainCal_(r.AIN, r.channel, s.bipGain, s.resolution);
+        r.value = ainCal_(r.AIN ./ 256, r.channel, s.bipGain, s.resolution);
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
     function value = ainCal_(ain, channel, gain, resolution)
         %select the calibration factor to use from the channel number and
-        %gain...
-        
-        switch channel
-            case 132
-                s = calibration.Vs;
-            case 133
-                s = calibration.temp;
-            case 140
-                s = calibration.Vs;
-            case 141
-                s = calibration.temp;
-            otherwise
-                if resolution >= 18
-                    switch gain
-                        case 0
-                            s = calibration.ADCUnipolarHighRes;
-                        case 8
-                            s = calibration.ADCBipolarHighRes;
-                        otherwise
-                            error('LabJackUE9:invalidGainValue', 'invalid gain value for high resolution');
-                    end
-                else
-                    switch gain
-                        case 0
-                            s = calibration.ADCUnipolar(1);
-                        case 1
-                            s = calibration.ADCUnipolar(2);
-                        case 2
-                            s = calibration.ADCUnipolar(3);
-                        case 3
-                            s = calibration.ADCUnipolar(4);
-                        case 8
-                            s = calibration.ADCBipolar;
-                        otherwise
-                            error('LabJackUE9:invalidGainValue', 'invalid gain value');
-                    end
-                end
+        %gain. 'ain', 'channel', and 'gain' must all be the same size.
+        if ~isequal(size(ain), size(channel), size(gain))
+            error('LabJackUE9:badArguments', 'ain, channel, and gain must be the same size.');
         end
         
-        value = ain/256 * s.slope + s.offset;
+        %slope/offset
+        s = struct('slope', cell(size(ain)), 'offset', cell(size(ain)));
+        if resolution >= 18
+            s(gain == 0) = calibration.ADCUnipolarHighRes;
+            s(gain == 8) = calibration.ADCBipolarHighRes;
+        else
+            s(gain < 4) = calibration.ADCUnipolar(gain(gain < 4) + 1);
+            s(gain == 8) = calibration.ADCBipolar;
+        end
+        s(channel == 132) = calibration.Vs;
+        s(channel == 133) = calibration.temp;
+        s(channel == 140) = calibration.Vs;
+        s(channel == 141) = calibration.temp;
+        if any(~cellfun('prodofsize', {s.slope}))
+            error('LabJackUE9:invalidGainValue', 'invalid gain value for this resolution');
+        end
+            
+        value = [double(ain(:)')] .* [s.slope] + [s.offset];
+        value = reshape(value, size(ain));
     end
 
     SINGLEIO_ANALOGOUT_COMMAND_ = struct...
@@ -402,29 +781,47 @@ this = autoobject(varargin{:});
             ) ...
         );
 
-    function r = analogOut(channel, voltage)
-        %function r = analogOut(channel, gain, resolution, settlingTime)
+    
+    function r = voltageOut(channel, volts)
+        %function r = analogOut(channel, volts)
         %
         %Sets a DAC value. 'channel' the channel number, 'voltage' in the
-        %range [0,4.9] or so (will be clipped).
+        %range [0,4.9] or so (will be approximated using the calibration
+        %data and clipped to the available range.)
         %
         %Note that the labjack returns no data in its response.
         % 
-        % >> a = LabJackUE9; require(a.init(), @()a.analogOut(0, 4.0))
+        % >> a = LabJackUE9; require(a.init(), @()a.voltageOut(0, 4.0))
         % ans =
         %     channel: 0
         %         DAC: 0
-        assertOpen_();
+        s.DAC = aoutcal_(channel, volts);
         
-        s = SINGLEIO_ANALOGOUT_COMMAND_.format;
-        s.channel = channel;
-        
-        value = round(voltage * calibration.DAC(channel+1).slope + calibration.DAC(channel+1).offset);
+        r = roundtrip(SINGLEIO_ANALOGOUT_COMMAND_, s);        
+        r = rmfield(r, {'iotype', 'reserved'});
+    end
+    
+    function value = aoutcal_(channel, volts)
+        value = round(volts * calibration.DAC(channel+1).slope + calibration.DAC(channel+1).offset);
         value = max(value, 0);
         value = min(value, 4095);
+    end
+
+    function r = analogOut(channel, value)
+        %function r = analogOut(channel, value)
+        %
+        %Sets a DAC value. 'channel' the channel number, 'value'
+        %ranging from 0 to 4095.
+        %
+        %Note that the labjack returns no data in its response.
+        % 
+        % >> a = LabJackUE9; require(a.init(), @()a.analogOut(0, 1024))
+        % ans =
+        %     channel: 0
+        %         DAC: 0
         
+        s = SINGLEIO_ANALOGOUT_COMMAND_.format;
         s.DAC = value;
-        
         r = roundtrip(SINGLEIO_ANALOGOUT_COMMAND_, s);        
         r = rmfield(r, {'iotype', 'reserved'});
     end
@@ -497,9 +894,49 @@ this = autoobject(varargin{:});
         r = rmfield(r, {'iotype', 'reserved'});
     end
 
+%% TimerCounter
+TIMERCOUNTER_COMMAND_ = struct...
+    ( 'extended', 1 ...
+    , 'commandNo', 24 ...
+    , 'format', struct ...
+        ( 'TimerClockDivisor', uint8(0)...
+        , 'EnableMask', struct...
+            ( 'NumTimers', true(3, 1)...
+            , 'Counter0', false ...
+            , 'Counter1', false ...
+            , 'reserved0', false(1, 2)...
+            , 'UpdateConfig', 1 ...
+            )...
+        , 'TimerClockBase', true...
+        , 'reserved0', false(1, 7)...
+        )...
+    , 'response', struct...
+        (...
+        )...
+    );
+        
 
+%% Reset
+%--- Reset command ---
+    
+    function reset(hard)
+        if nargin > 0 && hard
+            sendPacket(COMMAND_RESET_, 1);
+            [commandNo, data] = readPacket();
+        else
+            sendPacket(COMMAND_RESET_, 0);
+            [commandNo, data] = readPacket();
+        end
+        
+        if ~isequal(commandNo, COMMAND_RESET_)
+            error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
+        end
+        if ~isequal(data, [0 0])
+            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), errorCodeToString_(data(1)));
+        end
+    end
 
-    %------ Flash memory commands ------
+%% ReadMem & LoadCalibration
     READMEM_COMMAND_ = struct...
         ( 'extended', 1 ...
         , 'commandNo',  42 ...
@@ -532,34 +969,7 @@ this = autoobject(varargin{:});
         end
     end
 
-
-
-    WRITEMEM_COMMAND_ = struct...
-        ( 'extended', 1 ...
-        , 'commandNo', 40 ...
-        , 'format', struct...
-            ( 'blocknum', uint16(0) ...
-            , 'data', zeros(128, 1, 'uint8') ...
-            )...
-        , 'response', struct...
-           ( 'errorcode', uint8(0) ...
-           , 'reserved', uint8(0) ...
-           ) ...
-        );
-    
-    function writeMem(blocknum, data)
-        if blocknum < 0 || blocknum > 7
-            error('LabJackUE9:writeMem', 'invalid block number')
-        end
-        
-        packet = WRITEMEM_COMMAND_.format;
-        packet.blocknum = blocknum;
-        packet.data = data;
-        
-        response = roundtrip(WRITEMEM_COMMAND_, packet);
-    end
-
-    %we ahve a wacky 64 bit point data type for calibration...
+    %we have a wacky 64 bit point data type for calibration...
     Z_ = struct('frac', uint32(0), 'int', int32(0));
 
     CALIBRATION_FORMAT_ = struct...
@@ -627,10 +1037,33 @@ this = autoobject(varargin{:});
         end
     end
 
+%% WriteMem
+    WRITEMEM_COMMAND_ = struct...
+        ( 'extended', 1 ...
+        , 'commandNo', 40 ...
+        , 'format', struct...
+            ( 'blocknum', uint16(0) ...
+            , 'data', zeros(128, 1, 'uint8') ...
+            )...
+        , 'response', struct...
+           ( 'errorcode', uint8(0) ...
+           , 'reserved', uint8(0) ...
+           ) ...
+        );
+    
+    function writeMem(blocknum, data)
+        if blocknum < 0 || blocknum > 7
+            error('LabJackUE9:writeMem', 'invalid block number')
+        end
+        
+        packet = WRITEMEM_COMMAND_.format;
+        packet.blocknum = blocknum;
+        packet.data = data;
+        
+        response = roundtrip(WRITEMEM_COMMAND_, packet);
+    end
 
-
-
-    %------- COMMS ------
+%% Communications
 
     function response = roundtrip(command, data)
         remote = 1;
@@ -734,24 +1167,37 @@ this = autoobject(varargin{:});
         assertOpen_();
         pnet(a_, 'read', 'noblock');
         pnet(b_, 'read', 'noblock');
+        pnet(a_, 'write', uint8([8 8]));
+        resp = pnet(a_, 'read', 2, 'uint8');
+        if ~isequal([8 8], resp)
+            error('LabJackUE9:flushFailed', 'flush operation failed')
+        end
+        pnet(a_, 'read', 'noblock');
+        pnet(b_, 'read', 'noblock');
     end
     
 
-    function [commandNo, data] = readPacket()
-        in = pnet(a_, 'read', 2, 'uint8');
+    function [commandNo, data] = readPacket(conn)
+        if nargin == 0
+            conn = a_;
+        end
+        
+        in = pnet(conn, 'read', 2, 'uint8');
         if numel(in) < 2
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
         cksumin = in(1);
         commandByte = in(2);
         commandNo = bitand(15, bitshift(in(2), -3));
-        if commandNo <= 14
+        if commandByte == 184 %checksum error
+            dataLength = 0;
+        elseif commandNo <= 14
             dataLength = bitand(in(2), 3);
         else
             dataLength = 2;
         end
         
-        data = pnet(a_, 'read', dataLength*2, 'uint8');
+        data = pnet(conn, 'read', dataLength*2, 'uint8');
         if numel(data) < dataLength*2
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
@@ -767,7 +1213,7 @@ this = autoobject(varargin{:});
             xCommandNo = data(2);
             xCksuminL = data(3);
             xCksuminH = data(4);
-            xData = pnet(a_, 'read', xDataLength*2, 'uint8');
+            xData = pnet(conn, 'read', xDataLength*2, 'uint8');
             if numel(xData) < xDataLength*2
                 error('LabJackUE9:ReadTimeOut', 'packet read timeout');
             end

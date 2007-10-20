@@ -92,7 +92,6 @@ function output = frombytes(bytes, template, varargin)
         else
             s = subsasgn(s, subs, a);
         end
-    
     end
     
     function [format, nbytes] = frombytesstep(format, pointer, dir, params)

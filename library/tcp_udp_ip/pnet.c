@@ -724,9 +724,10 @@ void my_mexReturnArrayFromBuff(const int argno,io_buff *buff,const int line)
 int ipv4_lookup(const char *hostname,int port)
 {
     struct in_addr addr;    /* my address information */
+    int err;
     /* Try IP address */
-    addr.s_addr=inet_addr(hostname);
-    if (addr.s_addr==INADDR_NONE){
+    err = inet_aton(hostname, &addr);
+    if (!err){
 	/*Can't resolve host string as dot notation IP number...
 	  try lookup IP from hostname */
 	struct hostent *he;
@@ -766,11 +767,11 @@ int writedata()
 	if(lastsize<1000)
 	    usleep(DEFAULT_USLEEP);
 	if(IS_STATUS_UDP_NO_CON(con[con_index].status))
-	    retval = sendto(fid,&ptr[sentlen],len-sentlen,MSG_NOSIGNAL,
+            retval = sendto(fid,&ptr[sentlen],len-sentlen,MSG_NOSIGNAL,
 			    (struct sockaddr *)&con[con_index].remote_addr,sizeof(struct sockaddr));
-	else
-	    retval=send(fid,&ptr[sentlen],len-sentlen,MSG_NOSIGNAL);
-	lastsize=retval>0?retval:0;
+    else
+        retval=send(fid,&ptr[sentlen],len-sentlen,MSG_NOSIGNAL);
+    lastsize=retval>0?retval:0;
 	sentlen+=lastsize;
 	/*	if( retval==0){
 		mexPrintf("\nREMOTE HOST DISCONNECTED\n");
@@ -966,6 +967,7 @@ int tcp_udp_socket(int port,int dgram_f)
     my_addr.sin_addr.s_addr = INADDR_ANY; /* auto-fill with my IP */
     memset(&(my_addr.sin_zero),0, 8);        /* zero the rest of the struct */
     setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(const char *)&on,sizeof(on));
+    setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, (const char *)&on,sizeof on);
     if(bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr))== -1)
     {
 	close(sockfd);
@@ -1214,7 +1216,7 @@ void mexFunction(
     }
     if(myoptstrcmp(fun,"WRITEPACKET")==0){
 	if(IS_STATUS_UDP_NO_CON(con[con_index].status))
-	    ipv4_lookup(my_mexInputOptionString(2),my_mexInputScalar(3));
+        ipv4_lookup(my_mexInputOptionString(2),my_mexInputScalar(3));
 	my_mexReturnValue(writedata());
 	con[con_index].write.pos=0;
 	return;

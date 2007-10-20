@@ -70,7 +70,7 @@ function bytes = tobytesstep(template, in, params)
         if iscell(in)
             
             out = cellfun(@(x, y)tobytesstep(x, y, params), template, in, 'UniformOutput', 0);
-            bytes = collapselogicals(out, params);
+            bytes = out;
             return;
         else
             error('tobytes:unsupportedDataType', 'Data types ''%s'', ''%s'' not supported', class(template), class(in));
@@ -91,13 +91,13 @@ function bytes = tobytesstep(template, in, params)
                         out{i} = tobytesstep(template.(fns{i}), template.(fns{i}), params);
                     end
                 end
-                bytes = collapselogicals(out, params);
+                bytes = out;
             else
                 error('tobytes:unsupportedDataType', 'Data types ''%s'', ''%s'' not supported', class(template), class(in));
             end
         else
             out = arrayfun(@(x,y)tobytesstep(x, y, params), template, in, 'UniformOutput', 0);
-            bytes = uint8([out{:}]);
+            bytes = out;
         end
 
         return;
@@ -111,7 +111,7 @@ function bytes = tobytesstep(template, in, params)
     nd = ndims(in) + 1;
     [id{1:nd}] = size(template);
     
-    if islogical(template) && isnumeric(in) && all([size(template, 1) size(in)] == [id{:}])
+    if islogical(template) && isnumeric(in) && numel(in) == numel(template(1, :));
         %decimal to binary conversion ahoy.
         if any((in < 0)) | any((in >= 2^numel(template)))
             error('tobytes:outOfRange', 'data out of range for template');
@@ -168,7 +168,15 @@ end
 
 
 function bytes = collapselogicals(in, params)
-    l = cellfun('islogical', in);
+    subs = iteratesubs(in)';
+
+    bytes = cell(size(subs));
+    for i = 1:numel(bytes)
+        bytes{i} = ssubsref(in, subs{i});
+        bytes{i} = bytes{i}(:)';
+    end
+
+    l = cellfun('islogical', bytes);
     
     begins = find(diff([0 l]) > 0);
     ends = find(diff([l 0]) < 0);
@@ -183,11 +191,11 @@ function bytes = collapselogicals(in, params)
         en = i(2);
         
         %gather all the bits from this chunk of logical
-        bits = false(1, sum(cellfun('prodofsize', in(begin:en))));
+        bits = false(1, sum(cellfun('prodofsize', bytes(begin:en))));
         ix = 0;
         for j = begin:en
-            n = numel(in{j});
-            bits(ix+1:ix+n) = in{j};
+            n = numel(bytes{j});
+            bits(ix+1:ix+n) = bytes{j};
             ix = ix + n;
         end
         
@@ -197,10 +205,26 @@ function bytes = collapselogicals(in, params)
 
         bits = reshape(bits, 8, []);
         %convert to bytes
-        bytes = uint8(sum(bits.*x(:, ones(1, size(bits, 2))), 1));
-        in(begin:en) = {uint8([])};
-        in{begin} = bytes;
+        byte = uint8(sum(bits.*x(:, ones(1, size(bits, 2))), 1));
+        bytes(begin:en) = {uint8([])};
+        bytes{begin} = byte;
     end
     
-    bytes = [in{:}];
+    bytes = [bytes{:}];
+end
+
+function r = ssubsref(s, subs)
+    if isempty(subs)
+        r = s;
+    else
+        r = subsref(s, subs);
+    end
+end
+
+function s = ssubsasgn(s, subs, a)
+    if isempty(subs)
+        s = a;
+    else
+        s = subsasgn(s, subs, a);
+    end
 end
