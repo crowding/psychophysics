@@ -59,10 +59,10 @@ end
     function set(fn, char)
         %sets a particular character as handler
         if nargin >= 2
-            if ischar(char) | iscell(char) | islogical(char)
+            if isnumeric(char)
+                evtable{char} = deal(fn);    
+            elseif ischar(char) | iscell(char) | islogical(char)
                 evtable{KbName(char)} = deal(fn);
-            elseif isnumeric(char)
-                evtable{char} = deal(fn);
             else
                 error('KeyDown:badarg', 'bad argument');
             end
@@ -74,10 +74,10 @@ end
     function unset(char)
         if (nargin == 0)
             [evtable{:}] = deal([]);
-        elseif ischar(char) | iscell(char) | islogical(char)
-            [evtable{KbName(char)}] = deal([]);
         elseif isnumeric(char)
             [evtable{char}] = deal([]);
+        elseif ischar(char) | iscell(char) | islogical(char)
+            [evtable{KbName(char)}] = deal([]);
         end
     end
 

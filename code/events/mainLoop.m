@@ -24,24 +24,16 @@ defaults_ = struct...
     , 'slowdown', 1 ...
     , 'aviout', ''...
     , 'avirect', [] ...
+    , 'keyboardIndex', ...
     );
 
-%support the old mainLoop(graphics, triggers) calling convention
-if ~ischar(varargin{1})
-    graphics = varargin{1};
-    varargin{1} = [];
-else
-    graphics = {};
-end
-
-if ~ischar(varargin{1})
-    triggers = varargin{1};
-else
-    triggers = {};
-end
-
+graphics = {};
+triggers = {};
 keyboard = {};
 mouse = {};
+
+%support the old mainLoop(graphics, triggers) calling convention
+varargin = assignments(varargin, 'graphics', 'triggers');
 
 this = autoobject(varargin{:});
 

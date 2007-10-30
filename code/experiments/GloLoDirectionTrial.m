@@ -53,6 +53,9 @@ end
         
         result = struct('success', 0, 'direction', NaN);
 
+        cwKeyCode = KbName(cwResponseKey);
+        ccwKeyCode = KbName(ccwResponseKey);
+        
         function stopExperiment(s)
             main.stop();
             result.endTime = s.t;
@@ -95,8 +98,8 @@ end
         function showCue(s)
             cuePoint.setVisible(1);
             timer.set(@resetCue, round(s.refresh + cueDuration / interval));
-            keydown.set(@ccwResponse, cwResponseKey);
-            keydown.set(@cwResponse, ccwResponseKey);
+            keydown.set(@ccwResponse, cwKeyCode);
+            keydown.set(@cwResponse, ccwKeyCode);
         end
         
         function resetCue(s)

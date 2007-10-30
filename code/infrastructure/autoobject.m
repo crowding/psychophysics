@@ -4,6 +4,8 @@ function this = autoobject(varargin)
     
     %first, grab a list of the properties (which are variables in the
     %calling function.)
+    m = inmem();
+    
     prop_names = propNames( evalin('caller', 'whos()') );
     method_names = methodNames(dbstack('-completenames'));
 

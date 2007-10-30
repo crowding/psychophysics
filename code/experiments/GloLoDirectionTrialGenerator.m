@@ -11,7 +11,8 @@ function this = GloLoDirectionTrialGenerator(varargin)
     %state variable, when to show the next trial...
     nextTrial_ = 0;
     lastEnd_ = 0;
-
+    shuffledTime_ = 0;
+    
     factors = struct...
         ( 'nTargets', [1 2 3 4 5] ...
         , 'cueOnsetAsynchrony' , [-2*dt_ : dt_/2 : (motion_.getN()+1)*dt_] ...
@@ -33,11 +34,16 @@ function this = GloLoDirectionTrialGenerator(varargin)
     shuffled_ = {};
     interstitialShown_ = 0;
     
+    function shuffle()
+        shuffled_ = factstruct(factors);
+        shuffledTime_ = GetSecs();
+    end
+    
     function trial = next(params)
         %generate a randomized trial using the given params...
         %remember which one we gave.
         if isempty(shuffled_)
-            shuffled_ = factstruct(factors);
+            shuffle();
         end
         
         if (mod(numel(results), blocksize) == 0) && ~interstitialShown_
@@ -52,7 +58,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
 
     function has = hasNext()
         if isempty(shuffled_) && isempty(results)
-            shuffled_ = factstruct(factors);
+            shuffle();
         end
         has = ~isempty(shuffled_);
     end
@@ -69,10 +75,13 @@ function this = GloLoDirectionTrialGenerator(varargin)
 
     function trial = generate(factors, params)
         factors
-        trial = deepclone(base);
+        %trial = deepclone(base);
+        trial = base; %GOSH HIGHLY SKETCHY!!!! But necessary to get ISI down.
         %o = Obj(trial);
         mot = trial.getMotion();
         dt = mot.getDt();
+        dphase = abs(mot.getDphase());
+        dphase = dphase(1);
         
         onset = roundToFrames(rand(1, factors.nTargets) * dt + factors.minOnset - log(rand()) ./ factors.onsetRate, params.cal.interval);
 
@@ -81,7 +90,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
         trial.setCueOnset(cueOnset);
 
         globaldir = [factors.targetGlobal randsample([-1 1], factors.nTargets-1, 1)];
-        dphase = mot.getDphase() .* globaldir;
+        dphase = dphase .* globaldir;
         mot.setDphase(dphase);
         
         r1 = rand();
@@ -119,6 +128,14 @@ function this = GloLoDirectionTrialGenerator(varargin)
 
             lastEnd_ = result.endTime;
             nextTrial_ = result.endTime + interTrialInterval;
+
+            fprintf('ISI wait start: %f\nTrial start target:%f\nTrial start:%f\nTrial end: %f\nnext target: %f\n'...
+                , result.isiWaitStartTime - shuffledTime_...
+                , trial.getTrialStart() - shuffledTime_...
+                , result.startTime - shuffledTime_...
+                , result.endTime - shuffledTime_...
+                , nextTrial_ - shuffledTime_...
+                );
         else
             nextTrial_ = 0;
             lastEnd_ = 0;
