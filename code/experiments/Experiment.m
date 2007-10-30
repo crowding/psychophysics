@@ -123,7 +123,7 @@ end
             end
         catch
             theRun.err = lasterror;
-            if strfind(host, 'pastorianus')
+            if strfind(host, 'pastorianus') && ~params.dummy
                 switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
             end
         end

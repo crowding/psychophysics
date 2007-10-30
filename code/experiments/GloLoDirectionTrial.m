@@ -1,4 +1,4 @@
-function this = CircleInterpolationTrial(varargin)
+function this = GloLoDirectionTrial(varargin)
 
 %A circular motion with multiple spokes is generated; it is played
 %for a short time and then the subject responds with a left or right
@@ -7,23 +7,8 @@ function this = CircleInterpolationTrial(varargin)
 %all the visual stimulus is determined by a motion process
 %and a Patch.
 
-
-
-motion = CircularMotionProcess ...
-    ( 'radius', 10 ...
-    , 'n', 3 ...
-    , 't', 1 ...
-    , 'phase', 0 ...
-    , 'dt', 0.15 ...
-    , 'dphase', 0.75 / 10 ... %dx = 0.75...
-    , 'angle', 90 ...
-    , 'color', [0.5;0.5;0.5] ...
-    );
-
-patch = CauchyPatch...
-    ( 'velocity', subsref(motion.getDphase()*motion.getRadius()/motion.getDt(), substruct('()', {1})) ...
-    , 'size', [0.5 0.75 0.1]...
-    );
+motion = [];
+patch = [];
 
 %use this to control inter-trial interval
 trialStart = 0;
@@ -31,11 +16,34 @@ trialStart = 0;
 %these parameters say when to show the cue.
 cueOnset = 1;
 fixationPointSize = 0.1;
-fixationPointShift = 0.05;
-fixationPointShiftPhase = 0; %must specify this manually.
-fixationPointShiftDuration = 0.1;
+cueSize = 0.1;
+cueLocation = [0 0];
+cueDuration = 0.1;
+cwResponseKey = 'x';
+ccwResponseKey = 'z';
     
 this = autoobject(varargin{:});
+
+%complicated properties take too long especially if deep-cloning
+if isempty(motion)
+    motion = CircularMotionProcess ...
+        ( 'radius', 10 ...
+        , 'n', 3 ...
+        , 't', 1 ...
+        , 'phase', 0 ...
+        , 'dt', 0.15 ...
+        , 'dphase', 0.75 / 10 ... %dx = 0.75...
+        , 'angle', 90 ...
+        , 'color', [0.25;0.;0.125] ...
+        );
+end
+
+if isempty(patch)
+    patch = CauchyPatch...
+        ( 'velocity', subsref(motion.getDphase()*motion.getRadius()/motion.getDt(), substruct('()', {1})) ...
+        , 'size', [0.5 0.75 0.1]...
+        );
+end
 
 %------ methods ------
     function [params, result] = run(params)
@@ -55,18 +63,17 @@ this = autoobject(varargin{:});
 
         sprites = SpritePlayer(patch, motion);
 
-        fixationPoint = FilledDisk([0 0], 0.1, params.blackIndex, 'visible', 1);
+        fixationPoint = FilledDisk([0 0], fixationPointSize, params.blackIndex, 'visible', 1);
+        cuePoint = FilledDisk(cueLocation, cueSize, params.blackIndex, 'visible', 0);
 
         timer = RefreshTrigger();
         
         keydown = KeyDown();
         keydown.set(@stopExperiment, 'q');
-        keydown.set(@ccwResponse, 'z');
-        keydown.set(@cwResponse, 'x');
         keydown.set(@skip, 'space');
         
         main = mainLoop ...
-            ( 'graphics', {sprites, fixationPoint} ...
+            ( 'graphics', {sprites, fixationPoint, cuePoint} ...
             , 'triggers', {timer} ...
             , 'keyboard', {keydown} ...
             );
@@ -74,25 +81,26 @@ this = autoobject(varargin{:});
         %event handler functions
         
         function isi(s)
+            result.isiWaitStartTime = s.next;
             %wait out the inter-stimulus interval
             timer.set(@start, round(s.refresh + (trialStart - s.next) / interval));
         end
         
         function start(s)
+            result.startTime = s.next;
             sprites.setVisible(s.next); %onset recorded here...
-            cueTime = cueOnset
-            stimTime = motion.getT()
             timer.set(@showCue, s.refresh + cueOnset / interval);
          end
         
         function showCue(s)
-            fixationPoint.setLoc(fixationPoint.getLoc() ...
-                + [cos(fixationPointShiftPhase) -sin(fixationPointShiftPhase)] * fixationPointShift);
-            timer.set(@resetCue, round(s.refresh + fixationPointShiftDuration / interval));
+            cuePoint.setVisible(1);
+            timer.set(@resetCue, round(s.refresh + cueDuration / interval));
+            keydown.set(@ccwResponse, cwResponseKey);
+            keydown.set(@cwResponse, ccwResponseKey);
         end
         
         function resetCue(s)
-            fixationPoint.setLoc([0 0]);
+            cuePoint.setVisible(0);
             timer.unset();
         end
         

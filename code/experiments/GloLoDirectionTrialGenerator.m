@@ -10,6 +10,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
     
     %state variable, when to show the next trial...
     nextTrial_ = 0;
+    lastEnd_ = 0;
 
     factors = struct...
         ( 'nTargets', [1 2 3 4 5] ...
@@ -19,11 +20,11 @@ function this = GloLoDirectionTrialGenerator(varargin)
         , 'minGapAtCue', 2*pi/8 ...
         , 'targetGlobal', [1 -1] ...
         , 'targetLocal', [1 -1] ...
+        , 'cueRadius', 0.1 ...
         );
     
     message = @()sprintf('Press down on knob to continue.\n%d blocks remaining.', floor(eval('numel(shuffled_)') / eval('blocksize')));
     
-    done = {};
     results = {};
 
     this = autoobject(varargin{:});
@@ -35,32 +36,30 @@ function this = GloLoDirectionTrialGenerator(varargin)
     function trial = next(params)
         %generate a randomized trial using the given params...
         %remember which one we gave.
-        if isempty(shuffled_) && isempty(done)
+        if isempty(shuffled_)
             shuffled_ = factstruct(factors);
         end
         
-        if (mod(numel(done), blocksize) == 0) && ~interstitialShown_
+        if (mod(numel(results), blocksize) == 0) && ~interstitialShown_
             which_ = [];
             trial = interstitial();
             interstitialShown_ = 1;
         else
             which_ = randsample(numel(shuffled_), 1);
-            done_ = {};
-            results_ = {};
             trial = generate(shuffled_(which_), params);
         end
     end
 
     function has = hasNext()
-        if isempty(shuffled_) && isempty(done)
+        if isempty(shuffled_) && isempty(results)
             shuffled_ = factstruct(factors);
         end
-        has = ~isempty(shuffled_)
+        has = ~isempty(shuffled_);
     end
 
     function t = interstitial();
         t = MessageTrial...
-            ( 'message', sprintf('Press down on knob to continue.\n%d blocks remaining', ceil(numel(shuffled_)/blocksize))... 
+            ( 'message', sprintf('Press space bar or knob to continue.\n%d blocks remaining', ceil(numel(shuffled_)/blocksize))... 
             , 'key', 'Space');
     end
 
@@ -71,12 +70,19 @@ function this = GloLoDirectionTrialGenerator(varargin)
     function trial = generate(factors, params)
         factors
         trial = deepclone(base);
-        o = Obj(trial);
+        %o = Obj(trial);
+        mot = trial.getMotion();
+        dt = mot.getDt();
         
-        onset = roundToFrames(rand(1, factors.nTargets) * o.motion.dt + factors.minOnset - log(rand()) ./ factors.onsetRate, params.cal.interval);
+        onset = roundToFrames(rand(1, factors.nTargets) * dt + factors.minOnset - log(rand()) ./ factors.onsetRate, params.cal.interval);
 
-        o.motion.t = onset;
-        o.cueOnset = roundToFrames(factors.cueOnsetAsynchrony + onset(1), params.cal.interval);
+        mot.setT(onset);
+        cueOnset = roundToFrames(factors.cueOnsetAsynchrony + onset(1), params.cal.interval);
+        trial.setCueOnset(cueOnset);
+
+        globaldir = [factors.targetGlobal randsample([-1 1], factors.nTargets-1, 1)];
+        dphase = mot.getDphase() .* globaldir;
+        mot.setDphase(dphase);
         
         r1 = rand();
         r2 = sort(rand(1, factors.nTargets));
@@ -85,28 +91,37 @@ function this = GloLoDirectionTrialGenerator(varargin)
                       + r2 * (2*pi - factors.nTargets * factors.minGapAtCue)...
                     , 2*pi);
         
-        o.fixationPointShiftPhase = phasesAtCue(1);
-                
-        o.motion.phase = phasesAtCue - (o.cueOnset - onset(1)) .* (o.motion.dphase) / o.motion.dt;
-        
-        globaldir = [factors.targetGlobal randsample([-1 1], factors.nTargets-1, 1)];
-        o.motion.dphase = o.motion.dphase * globaldir;
+        trial.setCueLocation([cos(phasesAtCue(1)) -sin(phasesAtCue(1))] * factors.cueRadius);
+        phase = phasesAtCue - (cueOnset - onset(1)) .* dphase / dt
+        mot.setPhase(phase);
         
         localdir = [factors.targetLocal randsample([-1 1], factors.nTargets-1, 1)];
-        o.motion.angle = 180/pi*o.motion.phase + 90 * localdir;
-        o.trialStart = nextTrial_;
+        mot.setAngle(180/pi*phase + 90 * localdir);
+        trial.setTrialStart(nextTrial_);
     end
 
     function result(trial, result)
-        if ~isempty(which_) && isfield(result, 'success') && result.success && ~isempty(strfind(trial.version__.function, 'MessageTrial'))
+        if ~isempty(which_) && isfield(result, 'success') && result.success && isempty(strfind(trial.version__.function, 'MessageTrial'))
             interstitialShown_ = 0;
-            done{end+1} = shuffled(which_);
-            results{end+1} = results;
+            results{end+1} = structunion(result, shuffled_(which_));
+            disp(results{end});
+            size(results)
             shuffled_(which_) = [];
             which_ = [];
         end
-        if isfield('endTime', result)
+        if isfield(result, 'endTime')
+            if (nextTrial_ > 0) && result.startTime > nextTrial_ + 1/50
+                fprintf('Missed trial start deadline by %f secs\n', result.startTime - nextTrial_);
+            else
+                fprintf('no start time given...');
+            end
+            fprintf('ISI overhead: %f\n', result.isiWaitStartTime - lastEnd_);
+
+            lastEnd_ = result.endTime;
             nextTrial_ = result.endTime + interTrialInterval;
+        else
+            nextTrial_ = 0;
+            lastEnd_ = 0;
         end
     end
 end
