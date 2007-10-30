@@ -10,7 +10,7 @@ function this = testAutoObjects()
             , @testAutoRoundTrip ...
             , @testNoAutoProperties...
             , @testAutoObjectExcludesUnderscoreAnsAndVarargin ...
-            , @testAutoObjectVarsDefinedBefore ...
+            , @testAutoObjectVarsDefinedAfter ...
             , @testAutoObjectVarsUndefined ...
             , @testVarargin ...
             , @testBadVarargin ...
@@ -19,6 +19,7 @@ function this = testAutoObjects()
             , @testNoAutoMethods ...
             , @testOverrideSetter ...
             , @testOverrideGetter ...
+            , @testVararginSetMethod ...
             ) ...
         );
     
@@ -143,50 +144,49 @@ function this = testAutoObjects()
         end
     end
 
-    function testAutoObjectVarsDefinedBefore()
-        %Only gets variables that have been defined before the call to make
-        %an object.
+    function testAutoObjectVarsDefinedAfter()
+        %Should grab variables that are defined after...
         function this = obj(varargin)
             propA = 1;
             this = autoobject(varargin{:});
+            
+            %this is plum wacky. without putting this function here, the
+            %test fails.
+            function r = w()
+                r = 0;
+            end
+
             propB = 2;
         end
         
         o = obj();
         assertEquals(1, o.getPropA());
+        assertEquals(2, o.getPropB());
         assertEquals(1, o.property__('propA'));
+        assertEquals(2, o.property__('propB'));
         vars = o.property__();
         assert(strmatch('propA', vars));
-        assert(~strmatch('propB', vars))
-        try
-            o.getPropB();
-            fail();
-        catch
-        end
+        assert(strmatch('propB', vars));
     end
 
     function testAutoObjectVarsUndefined()
-        %Doesn't grab variables that are undefined (!)
+        %Should grab variables that are undefined, if they come before the
+        %call to autoobj.
         function this = obj(propA, varargin)
             this = autoobject(varargin{:});
         end
         
         o1 = obj();
         o2 = obj(1);
-        try
-            o1.getPropA()
-        catch
-        end
-        assertEquals(1, o2.getPropA())
+        assert(isfield(o1, 'getPropA'))
+        o1.setPropA(2);
+        assertEquals(2, o1.getPropA());
+        assertEquals(1, o2.getPropA());
         
-        assert(~strmatch('propA', o1.property__()));
+        assert(strmatch('propA', o1.property__()));
         assert(strmatch('propA', o2.property__()));
         
-        try
-            o1.property__('propA');
-            fail();
-        catch
-        end
+        o1.property__('propA');
         assertEquals(1, o2.property__('propA'));
     end
 
@@ -208,6 +208,20 @@ function this = testAutoObjects()
         function this = obj(varargin)
             propA = 1;
             this = autoobject(varargin{:});
+        end
+        
+        o = obj('propA', 3);
+        assertEquals(3, o.getPropA());
+    end
+
+    function testVararginSetMethod()
+        function this = obj(varargin)
+            propA = 1;
+            this = autoobject(varargin{:});
+            
+            function setPropA(s)
+                propA = s;
+            end
         end
         
         o = obj('propA', 3);

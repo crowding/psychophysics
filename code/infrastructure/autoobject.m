@@ -1,40 +1,39 @@
 function this = autoobject(varargin)
     %combines the duties of autoprops and automethods into one faster
-    %function (no trip through finalize or inherit necessary.)
+    %function (no trip through finalize necessary.)
     
-    %first, grab a list of the properties (which are variables in the
-    %calling function.)
-    m = inmem();
-    
-    prop_names = propNames( evalin('caller', 'whos()') );
-    method_names = methodNames(dbstack('-completenames'));
-
     %For speed I want to minimize the number of lexical scope variables that
     %property__ and method__ carry around. Thus the subfunction and the
-    %one-liner-ism here.
+    %one-liner-ism here, as well as the recycling of variable names :-/
     
-    [this, method_names] = makeObjString(prop_names, method_names, namedargs(varargin{:}));
-    %[this, method_names, setters, getters] = makeObjString(prop_names, method_names);
+    %VERY FUCKING SNEAKY HERE! MATLAB's restriction on adding variables to
+    %a static workspace apparently does not extend to persistent variables.
+    %Therefore if we want to cache a value with a calling function and have
+    %it associated with the function (and cleared whenever the function is
+    %recompiled) we can just stuff it in a persistent variable using
+    %evalin!
+    evalin('caller', 'persistent init__;');
+    this = evalin('caller', 'init__;');
+    
+    if isempty(this)
+        [this, prop_names, method_names] = makeObjString...
+            ( evalin('caller', 'whos()') ...
+            , dbstack('-completenames') );
+        version = getversion(2);
+        tmp = evalin('caller', '@(varargin) eval(''init__ = varargin;'');');
+        tmp(this, prop_names, method_names, version);
+        clear tmp;
+    else
+        [this, prop_names, method_names, version] = this{:};
+    end
     
     this = evalin('caller', this);
-    this{2} = this{2}(@property__, @method__, getversion(2));
+    this{2} = this{2}(@property__, @method__, version);
     this{1}(namedargs(varargin{:}), this{2});
     this = this{2};
 
     %convert prop_names into a struct for speed in property access?
-    %doAssignments(varargin);
-    
-    function doAssignments(what)
-        %this needs to be made much faster for clone()...
-        r = namedargs(what{:});
-        
-        for i = fieldnames(r)'
-            property__(i{:}, r.(i{:}));
-        end
-    end
-    
-%{
-%}
+  
     function value = property__(name, value)
         switch(nargin)
             case 0
@@ -72,10 +71,16 @@ function this = autoobject(varargin)
         S = Subscripter;
         %use only variables in the top level of nesting
         prop_names = prop_names(capture([S{prop_names.nesting}.level]) == max(capture));
-        %and only variables that have been defined
-        prop_names = {prop_names(cat(2, S{prop_names.class}(1)) ~= '(').name}; 
-        %and not varargin or ans or anything ending with an underscore
-        prop_names = prop_names(~cellfun('prodofsize', regexp(prop_names, '(^varargin|^ans|_)$', 'once', 'start')));
+
+        %Used to not make properties of undifined variables. But now I do.
+        %prop_names = {prop_names(cat(2, S{prop_names.class}(1)) ~= '(').name}; 
+        prop_names = {prop_names.name}';
+        
+        %TOOD: only variables that occur on lines before the call whether
+        %or not they are defined.
+        
+        %and not varargin or ans or this or anything ending with an underscore
+        prop_names = prop_names(~cellfun('prodofsize', regexp(prop_names, '(^varargin|^ans|^this|_)$', 'once', 'start')));
     end
 
     function names = methodNames(stack)
@@ -83,7 +88,7 @@ function this = autoobject(varargin)
         names = names(~cellfun('prodofsize', regexp(names, '_$', 'start')));
     end
     
-    function [string, method_names, setters, getters] = makeObjString(prop_names, method_names, assignments);
+    function [string, prop_names, method_names] = makeObjString(whos, stack)
         %matlab insanity: once again, it fails to do anything consistent
         %with empty arrays. cellfun() insists that
         %empty array inputs be of exactly the same size. This wouldn't be
@@ -118,7 +123,11 @@ function this = autoobject(varargin)
         %of the result of the indexing operation (without modifying the
         %damn thing like here.)
         
+        %here, cache the file...
+        
+        prop_names = propNames(whos);
         prop_names = prop_names(:);
+        method_names = methodNames(stack);
         method_names = method_names(:);
         
         %In ordinary programming, you handle the case 'zero', and 'one' and
@@ -131,15 +140,12 @@ function this = autoobject(varargin)
         [getter_names, getteri] = setdiff(getter_names, method_names);
         setter_names = cellfun(@setterName, prop_names, 'UniformOutput', 0);
         setters = setter_names;
+        [setmethod_names, setmethodi] = intersect(method_names, setter_names);
         [setter_names, setteri] = setdiff(setter_names, method_names);
         
         %assignments to the new obejct can be made directly, or by the
-        %setters we are using...
-        assigned = fieldnames(assignments);
-        varsetters = cellfun(@setterName, assigned, 'UniformOutput', 0);
-        [settersused, settersusedix] = intersect(varsetters, method_names);
-        varsset = assigned; varsset(settersusedix) = [];
-          
+        %setters we are using.
+ 
         %to create the object, we evaluate in the caller a string built like so: 
         %setOtherVar(assignments__.otherVar) evalin('caller', '@() struct('method', @method, ..., property__, method__, version__)
         %consisting of:
@@ -167,16 +173,17 @@ function this = autoobject(varargin)
             , 'UniformOutput', 0 ...
             );
 
-        %There is also a setter string; when evaluated in the 
+        %There is also a setter string, which needs to be evaluated
         assignmentstrings = cellfun ...
-            ( @(variable_name) sprintf('%s = assignments__.%s; ', variable_name, variable_name) ...
-            , varsset...
+            ( @(variable_name) sprintf('if isfield(assignments__, ''''%s''''); %s = assignments__.%s; end;', variable_name, variable_name, variable_name) ...
+            , prop_names(setteri(:))...
             , 'UniformOutput', 0 ...
             );
         
         settingstrings = cellfun ...
-            ( @(setter_name, variable_name) sprintf('this__.%s(assignments__.%s); ', setter_name, variable_name)...
-            , settersused(:), assigned(settersusedix(:)) ...
+            ( @(setter_name, variable_name) sprintf('if isfield(assignments__, ''''%s''''); this__.%s(assignments__.%s); end;', variable_name, setter_name, variable_name)...
+            , setmethod_names(:) ...
+            , prop_names(setmethodi(:)) ...
             , 'UniformOutput', 0 ...
             );
         
