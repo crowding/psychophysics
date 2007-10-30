@@ -23,7 +23,7 @@ function this = CircularMotionProcess(varargin)
     
     function setPhase(p)
         phase = p;
-        counter_ = zeros(size(p));
+        reset();
     end
     
     function [xx, yy, tt, aa, cc] = next()
@@ -50,5 +50,9 @@ function this = CircularMotionProcess(varargin)
         else
             [xx, yy, tt, aa, cc] = deal(NaN);
         end
+    end
+
+    function reset()
+        counter_ = zeros(size(phase));
     end
 end

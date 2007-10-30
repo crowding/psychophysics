@@ -1,53 +1,28 @@
-function this = Text(loc_, text_, color_)
-%this = Text(loc_, text_, color_)
+function this = Text(varargin)
+%function this = Text(loc, text, color, varargin)
 
-    visible_ = 0;
+    loc = [0 0];
+    text = '';
+    color = [0 0 0];
+    visible = 0;
+    centered = 0;
+    
+    varargin = assignments(varargin, 'loc', 'text', 'color');
+
+    this = autoobject(varargin{:});
+
     toPixels_ = 0;
 
-    this = final(@draw, @bounds, ...
-        @getText, @setText, ...
-        @getColor, @setColor, ...
-        @getLoc, @setLoc, ...
-        @getVisible, @setVisible, ...
-        @init, @update...
-        );
-
     function draw(window, next)
-        loc = toPixels_(loc_);
-        Screen('DrawText', window, text_, loc(1), loc(2), color_);
-    end
-    
-    %----- dumb accessors -----
-    function t = getText
-        t = text_;
-    end
-
-    function t = setText(t)
-        text_ = t;
-    end
-
-    function c = getColor
-        c = color_;
-    end
-
-    function c = setColor(c)
-        color_ = c;
-    end
-
-    function l = getLoc
-        l = loc_;
-    end
-
-    function l = setLoc(l)
-        loc_ = l;
-    end
-
-    function v = getVisible
-        v = visible_;
-    end
-
-    function v = setVisible(v)
-        visible_ = v;
+        if ~visible
+            return;
+        end
+        pix = toPixels_(loc);
+        if centered
+            bounds = Screen('TextBounds', window, text);
+            pix = pix - (bounds([3 4]) - bounds([1 2])) ./ 2;
+        end
+        Screen('DrawText', window, text, pix(1), pix(2), color);
     end
 
     function [release, params] = init(params)
@@ -56,5 +31,38 @@ function this = Text(loc_, text_, color_)
     end
 
     function update(frames)
+    end
+
+    %simple getters/setters
+    function t = getText
+        t = text;
+    end
+
+    function t = setText(t)
+        text = t;
+    end
+
+    function c = getColor
+        c = color;
+    end
+
+    function c = setColor(c)
+        color = c;
+    end
+
+    function l = getLoc
+        l = loc;
+    end
+
+    function l = setLoc(l)
+        loc = l;
+    end
+
+    function v = getVisible()
+        v = visible;
+    end
+
+    function v = setVisible(v)
+        visible = v;
     end
 end

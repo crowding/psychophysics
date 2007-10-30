@@ -1,5 +1,14 @@
 function this = KeyDown(fn, char, varargin);
+%function this = KeyDown(fn, char);
 %Reacts to keys being pressed down.
+%fn = a function to call;
+%char = the keycode or name of the key;
+%
+%This can support listening to multiple keys. Just call set(fn, char) for
+%each key to listen to. Call set(fn) to set the function on all keys.
+%Call unset() to clear event handlers or unset(char) to clear from a
+%particular character.
+
 last_ = false(size(getOutput(3, @KbCheck)));
 
 evtable = cell(size(last_));
@@ -10,6 +19,8 @@ this = autoobject(varargin{:});
 
 if nargin >= 2
     set(fn, char);
+elseif nargin >= 1
+    set(fn);
 end
 
 %------methods------

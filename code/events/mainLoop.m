@@ -1,13 +1,19 @@
-function this = mainLoop(graphics, triggers, varargin)
-%function this = mainLoop(graphics, triggers)
+function this = mainLoop(varargin)
+%function this = mainLoop( ['property', value]* )
 %
-%The main loop which controls presentation of a trial. There are three
-%output arguments, main, drawing, and events, which used to be separate
-%objects in separate files, but were tied together for speed.
+%The main loop which controls presentation of a trial, and controls the
+%events.
+%
+%Named properties:
+%
+% graphics -- a cell array of graphics handlers (see the graphics directory)
+% events -- a cell array of eye position dispatchers (see the events directory)
+% keyboard -- keyboard event dispatchers (see the events directory)
+% mouse -- mouse event dispatchers (see the events directory)
 %
 %It also used to let you dynamically add and remove drawing objects and
-%triggers, but this has been disable due to massive speed problems with
-%matlab's nested functions.
+%triggers, but this has been taken out due to massive performance problems
+%with matlab's nested functions.
 %
 %The main loop allows you to start and stop.
 
@@ -20,10 +26,17 @@ defaults_ = struct...
     , 'avirect', [] ...
     );
 
-if ~exist('graphics', 'var')
+%support the old mainLoop(graphics, triggers) calling convention
+if ~ischar(varargin{1})
+    graphics = varargin{1};
+    varargin{1} = [];
+else
     graphics = {};
 end
-if ~exist('triggers', 'var')
+
+if ~ischar(varargin{1})
+    triggers = varargin{1};
+else
     triggers = {};
 end
 
