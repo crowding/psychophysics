@@ -24,18 +24,38 @@ defaults_ = struct...
     , 'slowdown', 1 ...
     , 'aviout', ''...
     , 'avirect', [] ...
-    , 'keyboardIndex', ...
     );
 
+%this is old and needs to be generalized.
 graphics = {};
 triggers = {};
 keyboard = {};
 mouse = {};
 
+%new hotness, input using a variale list of methods.
+input = {};
+trig_ = {};
+
 %support the old mainLoop(graphics, triggers) calling convention
 varargin = assignments(varargin, 'graphics', 'triggers');
-
 this = autoobject(varargin{:});
+
+%support older constructor conventions --
+if ~isempty(keyboard)
+    input{end+1} = KeyboardInput();
+    trig_ = {trig_{:} keyboard{:}};
+end
+
+if ~isempty(mouse)
+    input{end+1} = MouseInput();
+    trig_ = {trig_{:} mouse{:}};
+end
+
+if ~isempty(triggers)
+    input{end+1} = EyelinkInput();
+    trig_ = {trig_{:} triggers{:}};
+end
+
 
 %----- constructed objects -----
 
@@ -46,9 +66,6 @@ toDegrees_ = @noop;
 
 %values used while running in the main loop
 
-badSampleCount = 0;
-missingSampleCount = 0;
-goodSampleCount = 0;
 skipFrameCount = 0;
 
 windowLeft_ = 0;
@@ -63,11 +80,12 @@ windowTop_ = 0;
         %
         %Initializes the event managers and sets high CPU priority before
         %running.
-        params = require(...
-            triggerInitializer(params)...
-            ,graphicsInitializer()...
-            ,highPriority()...
-            ,@doGo...
+        params = require...
+            ( triggerInitializer(params)...
+            , graphicsInitializer()...
+            , highPriority()...
+            , startInput()...
+            , @doGo...
             );
 %            ,listenChars()...
     end
@@ -166,29 +184,15 @@ windowTop_ = 0;
             %This may be generalised to a variety of event sources.
 
             %Eye movement events...
-            pushEvents(params, VBL + 2*interval, refresh)
-            
-            %Mouse events...
-            if ~isempty(mouse)
-                [m.x, m.y, m.buttons] = GetMouse();
-                m.t = GetSecs() / slowdown;
-                [m.x_deg, m.y_deg] = toDegrees_(m.x, m.y);
-                m.next = VBL + 2*interval;
-                m.refresh = refresh;
-                for i = mouse(:)'
-                    i.check(m);
-                end
+            s = struct('next', VBL + 2*interval, 'refresh', refresh);
+
+            %generic events...
+            for i = 1:numel(input)
+                s = input(i).input(s);
             end
             
-            %Keyboard events...
-            if ~isempty(keyboard)
-                [k.keyIsDown, k.t, k.keyCode] = KbCheck();
-                k.t = k.t / slowdown;
-                k.next = VBL + 2*interval;
-                k.refresh = refresh;
-                for i = keyboard(:)'
-                    i.check(k);
-                end
+            for i = 1:numel(trig_)
+                trig_(i).check(s);
             end
 
             %-----Flip phase: Flip the screen buffers and note the time at
@@ -266,60 +270,7 @@ windowTop_ = 0;
         end
     end
 
-    function [x, y, t] = sample(params)
-        %Takes a sample from the eye, or mouse if the eyelink is not
-        %connected. Returns x and y == NaN if the sample has invalid
-        %coordinates.
 
-        if params.dummy
-            [x, y, buttons] = GetMouse();
-            x = x - windowLeft_;
-            y = y - windowTop_;
-            
-            t = GetSecs() / params.slowdown;
-            if any(buttons) %simulate blinking
-                x = NaN;
-                y = NaN;
-                badSampleCount = badSampleCount + 1;
-            else
-                goodSampleCount = goodSampleCount + 1;
-            end
-        else
-            %obtain a new sample from the eye.
-            if Eyelink('NewFloatSampleAvailable') == 0;
-                x = NaN;
-                y = NaN;
-                t = GetSecs() / params.slowdown;
-                missingSampleCount = missingSampleCount + 1;
-            else
-                % Probably don't need to do this eyeAvailable check every
-                % frame. Profile this call?
-                eye = Eyelink('EyeAvailable');
-                switch eye
-                    case params.el.BINOCULAR
-                        error('eyeEvents:binocular',...
-                            'don''t know which eye to use for events');
-                    case params.el.LEFT_EYE
-                        eyeidx = 1;
-                    case params.el.RIGHT_EYE
-                        eyeidx = 2;
-                end
-
-                sample = Eyelink('NewestFloatSample');
-                x = sample.gx(eyeidx);
-                y = sample.gy(eyeidx);
-                if x == -32768 %no position -- blinking?
-                    badSampleCount = badSampleCount + 1;
-                    x = NaN;
-                    y = NaN;
-                else
-                    goodSampleCount = goodSampleCount + 1;
-                end
-
-                t = (sample.time - params.clockoffset) / 1000 / params.slowdown;
-            end
-        end
-    end
 
 
     function i = triggerInitializer(varargin)
@@ -328,12 +279,13 @@ windowTop_ = 0;
         %where the log file is.
         %
         %See also require.
+        trig_ = interface(struct('check', {}, 'setLog', {}, 'init', {}), trig_);
         
         i = currynamedargs(...
-                joinResource(...
-                    @initLog...
-                    ,@initVars...
-                    ,RecordEyes()...
+                joinResource...
+                    ( @initLog...
+                    , @initVars...
+                    , trig_.init...
                 )...
                 ,varargin{:}...
             );
@@ -343,18 +295,10 @@ windowTop_ = 0;
         %now that we are starting an experiment, tell each trigger where to
         %log to.
         
-        for i = triggers(:)'
+        for i = trig_(:)'
             i.setLog(params.log);
         end
-
-        for i = keyboard(:)'
-            i.setLog(params.log);
-        end
-
-        for i = mouse(:)'
-            i.setLog(params.log);
-        end
-
+        
         release = @stop;
 
         function stop
@@ -363,13 +307,8 @@ windowTop_ = 0;
 
     function [release, params] = initVars(params)
         release = @noop;
-
         toDegrees_ = transformToDegrees(params.cal);
-        rect = Screen('GlobalRect', params.window);
-        windowLeft_ = rect(1);
-        windowTop_ = rect(2);
     end
-
 
     function init = graphicsInitializer(varargin)
         %Produces an initializer to be called as we enter the main loop.
@@ -379,14 +318,16 @@ windowTop_ = 0;
         %
         %See also require.
         graphics = interface(struct('draw',  {}, 'update', {}, 'init',   {}), graphics);
-        triggers = interface(struct('check', {}, 'draw',   {}, 'setLog', {}), triggers);
-        keyboard = interface(struct('check', {}, 'setLog', {}, 'init',   {}), keyboard);
-        mouse    = interface(struct('check', {}, 'setLog', {}, 'init',   {}), mouse);
         
-        init = currynamedargs(joinResource(graphics.init, keyboard.init, mouse.init), varargin{:});
+        init = currynamedargs(joinResource(graphics.init), varargin{:});
+%       init = currynamedargs(joinResource(graphics.init, keyboard.init, mouse.init), varargin{:});
     end
 
-
+    function init = startInput()
+        input = interface(struct('input', {}, 'begin', {}), input);
+        init = joinResource(input.begin);
+    end
+        
     function drawTriggers(window, toPixels)
         % draw the trigger areas on the screen for debugging purposes.
         %

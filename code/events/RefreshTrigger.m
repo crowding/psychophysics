@@ -34,6 +34,10 @@ this = autoobject(varargin{:});
         end
     end
 
+    function [release, params] = init(params)
+        release = @noop;
+    end
+
     function set(fn_, refresh_, valid_)
         % function set([refresh, fn, [valid]])
         %

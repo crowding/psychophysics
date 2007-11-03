@@ -10,7 +10,7 @@ log_ = 0;
 set(varargin{:})
 
 %----- public interface -----
-this = final(@check, @set, @unset, @draw, @setLog, @getFn);
+this = final(@check, @set, @unset, @draw, @setLog, @getFn, @init);
 
 %----- methods -----
     function check(s)
@@ -73,5 +73,9 @@ this = final(@check, @set, @unset, @draw, @setLog, @getFn);
         
     function fn = getFn()
         fn = fn_;
+    end
+
+    function [release, params] = init(params)
+        release = @noop;
     end
 end

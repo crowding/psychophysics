@@ -11,12 +11,14 @@ lastButtons_ = [];
 %------methods
     function [release, params] = init(params)
         [tmp1, tmp2, lastButtons_] = GetMouse(params.window);
-        fntable = cell(size(lastButtons_));
+        if numel(fntable) < numel(lastButtons_)
+            fntable(numel(lastButtons_)) = {[]};
+        end
         release = @noop;
     end
 
     function check(m)
-        b = m.buttons & ~lastButtons_;
+        b = m.mouseButtons & ~lastButtons_;
         if any(b)
             m.buttonsDown = b;
             for i = fntable(b)
@@ -25,7 +27,7 @@ lastButtons_ = [];
                     i{1}(m);
                 end
             end
-            lastButtons_ = m.buttons;
+            lastButtons_ = m.mouseButtons;
         end
     end
 

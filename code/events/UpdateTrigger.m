@@ -1,28 +1,30 @@
-function this = UpdateTrigger(fn_)
+function this = UpdateTrigger(varargin)
 %A trigger that calls its function on every update.
 %
 %See also Trigger.
 
-this = final(@check, @set, @unset, @setLog, @draw, @getFn);
+log = [];
+fn = [];
 
-if (nargin < 1)
+varargin = assignments(varargin, 'fn');
+this = autoobject(varargin{:});
+
+if isempty(fn)
     set_ = 0;
 else
     set_ = 1;
 end
 
-log_ = [];
-
     %methods
     function check(s)
         if set_
-            log_('TRIGGER %s %s', func2str(fn_), struct2str(s));
-            fn_(s); %call function always
+            log('TRIGGER %s %s', func2str(fn), struct2str(s));
+            fn(s); %call function always
         end
     end
 
-    function set(fn)
-        fn_ = fn;
+    function set(f)
+        fn = f;
         set_ = 1;
     end
 
@@ -30,14 +32,19 @@ log_ = [];
         set_ = 0;
     end
 
-    function setLog(log)
-        log_ = log;
+    function setFn(f)
+        fn = f;
+        set_ = 1;
     end
 
-    function fn = getFn()
-        fn = fn_;
+    function setLog(l)
+        log = l;
     end
 
     function draw(window, toPixels)
+    end
+
+    function [release, params] = init(params)
+        release = @noop;
     end
 end

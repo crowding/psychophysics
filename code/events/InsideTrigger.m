@@ -9,7 +9,7 @@ end
 
 log_ = [];
 
-this = final(@check, @draw, @set, @unset, @setLog, @getFn);
+this = final(@check, @draw, @set, @unset, @setLog, @getFn, @init);
 
     function check(s)
         if set_ && inRect(...
@@ -48,5 +48,9 @@ this = final(@check, @draw, @set, @unset, @setLog, @getFn);
 
     function fn = getFn()
         fn = fn_;
+    end
+
+    function [release, params] = init(params)
+        release = @noop;
     end
 end

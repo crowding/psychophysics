@@ -28,6 +28,7 @@ require(setupEyelinkExperiment(params), @runDemo);
         startTrigger = UpdateTrigger(@start);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
+        abortTrigger = MouseDown();
         
         rect.setVisible(1);
         disk.setVisible(1);
@@ -36,35 +37,40 @@ require(setupEyelinkExperiment(params), @runDemo);
         
         % ----- the main loop. -----
         main = mainLoop ...
-            ( {rect, disk, text, patch, triggers} ...
-            , {moveTrigger, followTrigger, startTrigger, playTrigger, stopTrigger} ...
+            ( {rect, disk, text, patch} ...
+            , {moveTrigger, startTrigger, playTrigger, stopTrigger} ...
+            , 'mouse', {followTrigger, abortTrigger} ...
             );
+        %   , 'keyboard', {keyTrigger} ...
+            
+        abortTrigger.set(main.stop, 1);
         
         triggers.set(main);
 
         main.go(details);
-        %----- thet event reaction functions -----
 
-        function start(x, y, t, next)
-            playTrigger.set(t + 5, @play);
-            stopTrigger.set(t + 20, main.stop);
+        %----- thet event handling functions -----
+
+        function start(s)
+            playTrigger.set(s.next + 5, @play);
+            stopTrigger.set(s.next + 100, main.stop);
             startTrigger.unset();
         end
         
-        function play(x, y, t, next)
+        function play(s)
             patch.setVisible(1);
-            playTrigger.set(t + 5, @play); %trigger every five seconds
+            playTrigger.set(s.triggerTime + 5, @play); %trigger every five seconds
         end
 
-        function r = moveRect(x, y, t, next)
+        function r = moveRect(s)
             %set the rectangle to a random color and shape
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 
-        function r = followDisk(x, y, t, next)
-            %make the disk follow the eye
-            disk.setLoc([x y]);
-            text.setText(sprintf('%0.2f, %0.2f\n%0.3f, %0.3f', x, y, t, GetSecs()));
+        function r = followDisk(s)
+            %make the disk follow the mouse
+            disk.setLoc([s.mousex_deg s.mousey_deg]);
+            text.setText(sprintf('%0.2f, %0.2f\n%0.3f, %0.3f', s.mousex_deg, s.mousey_deg, s.mouset, GetSecs()));
         end
 
         function r = randomRect(bounds)
