@@ -98,8 +98,8 @@ end
         function showCue(s)
             cuePoint.setVisible(1);
             timer.set(@resetCue, round(s.refresh + cueDuration / interval));
-            keydown.set(@ccwResponse, cwKeyCode);
-            keydown.set(@cwResponse, ccwKeyCode);
+            keydown.set(@ccwResponse, ccwKeyCode);
+            keydown.set(@cwResponse, cwKeyCode);
         end
         
         function resetCue(s)

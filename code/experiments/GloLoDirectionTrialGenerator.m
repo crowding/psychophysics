@@ -11,11 +11,11 @@ function this = GloLoDirectionTrialGenerator(varargin)
     %state variable, when to show the next trial...
     nextTrial_ = 0;
     lastEnd_ = 0;
-    shuffledTime_ = 0;
+    %shuffledTime_ = 0;
     
     factors = struct...
         ( 'nTargets', [1 2 3 4 5] ...
-        , 'cueOnsetAsynchrony' , [-2*dt_ : dt_/2 : (motion_.getN()+1)*dt_] ...
+        , 'cueOnsetAsynchrony', (-2*dt_ : dt_/2 : (motion_.getN()+1)*dt_) ...
         , 'minOnset', 0.5 ...
         , 'onsetRate', 1 ...
         , 'minGapAtCue', 2*pi/8 ...
@@ -23,8 +23,6 @@ function this = GloLoDirectionTrialGenerator(varargin)
         , 'targetLocal', [1 -1] ...
         , 'cueRadius', 0.1 ...
         );
-    
-    message = @()sprintf('Press down on knob to continue.\n%d blocks remaining.', floor(eval('numel(shuffled_)') / eval('blocksize')));
     
     results = {};
 
@@ -36,7 +34,8 @@ function this = GloLoDirectionTrialGenerator(varargin)
     
     function shuffle()
         shuffled_ = factstruct(factors);
-        shuffledTime_ = GetSecs();
+        nTrials = numel(shuffled_)
+        %shuffledTime_ = GetSecs();
     end
     
     function trial = next(params)
@@ -63,7 +62,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
         has = ~isempty(shuffled_);
     end
 
-    function t = interstitial();
+    function t = interstitial()
         t = MessageTrial...
             ( 'message', sprintf('Press space bar or knob to continue.\n%d blocks remaining', ceil(numel(shuffled_)/blocksize))... 
             , 'key', 'Space');
@@ -74,9 +73,11 @@ function this = GloLoDirectionTrialGenerator(varargin)
     end
 
     function trial = generate(factors, params)
-        factors
+        %factors
+        
         %trial = deepclone(base);
         trial = base; %GOSH HIGHLY SKETCHY!!!! But necessary to get ISI down.
+        
         %o = Obj(trial);
         mot = trial.getMotion();
         dt = mot.getDt();
@@ -101,7 +102,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
                     , 2*pi);
         
         trial.setCueLocation([cos(phasesAtCue(1)) -sin(phasesAtCue(1))] * factors.cueRadius);
-        phase = phasesAtCue - (cueOnset - onset(1)) .* dphase / dt
+        phase = phasesAtCue - (cueOnset - onset(1)) .* dphase / dt;
         mot.setPhase(phase);
         
         localdir = [factors.targetLocal randsample([-1 1], factors.nTargets-1, 1)];
@@ -113,8 +114,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
         if ~isempty(which_) && isfield(result, 'success') && result.success && isempty(strfind(trial.version__.function, 'MessageTrial'))
             interstitialShown_ = 0;
             results{end+1} = structunion(result, shuffled_(which_));
-            disp(results{end});
-            size(results)
+            %disp(results{end});
             shuffled_(which_) = [];
             which_ = [];
         end
@@ -124,11 +124,12 @@ function this = GloLoDirectionTrialGenerator(varargin)
             else
                 fprintf('no start time given...');
             end
-            fprintf('ISI overhead: %f\n', result.isiWaitStartTime - lastEnd_);
+            %fprintf('ISI overhead: %f\n', result.isiWaitStartTime - lastEnd_);
 
             lastEnd_ = result.endTime;
             nextTrial_ = result.endTime + interTrialInterval;
 
+            %{
             fprintf('ISI wait start: %f\nTrial start target:%f\nTrial start:%f\nTrial end: %f\nnext target: %f\n'...
                 , result.isiWaitStartTime - shuffledTime_...
                 , trial.getTrialStart() - shuffledTime_...
@@ -136,6 +137,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
                 , result.endTime - shuffledTime_...
                 , nextTrial_ - shuffledTime_...
                 );
+            %}
         else
             nextTrial_ = 0;
             lastEnd_ = 0;
