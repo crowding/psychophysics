@@ -3,10 +3,10 @@ function this = Experiment(varargin)
 %It takes the following named arguments in its constructor:
 %
 % 'trials', the trial generator (defaults to an instance of ShuffledTrials)
-% 'groups', the number of groups to run (default 10)
-% 'trialspergroup', the number of trials per group (there is a rest period after
-%           each group).
 % 'subject', the subject initials (empty means query at runtime)
+% 'filename', the name of the file to save to (defaults to __auto__ whcih
+%             will choose one
+% 'description', a textual description of the experiment.
 %
 % Any other named arguments are stuffed into the 'params' property and will
 % be passed down into the Eyelink and Screen setup routines.
@@ -111,7 +111,8 @@ end
             , 'trials', this.trials...
             , 'subject', this.subject...
             , 'description', this.description...
-            , 'caller', this.caller);
+            , 'caller', this.caller...
+            );
         e = [];
         try
             [stat, host] = system('hostname');
@@ -123,7 +124,7 @@ end
             end
         catch
             theRun.err = lasterror;
-            if strfind(host, 'pastorianus') && ~params.dummy
+            if ~isempty(strfind(host, 'pastorianus')) && ~params.dummy
                 switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
             end
         end

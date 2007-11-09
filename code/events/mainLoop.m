@@ -17,6 +17,7 @@ function this = mainLoop(varargin)
 %
 %The main loop allows you to start and stop.
 
+%% Object properties
 defaults_ = struct...
     ( 'log', @noop ...
     , 'skipFrames', 1 ...
@@ -26,55 +27,52 @@ defaults_ = struct...
     , 'avirect', [] ...
     );
 
-%this is old and needs to be generalized.
+%graphics is a non-generic output method so the list of graphics objects remains.
 graphics = {};
+
+%this is old and needs to be generalized.
 triggers = {};
+
+%these are old and only for backwards compatibility.
 keyboard = {};
 mouse = {};
 
-%new hotness, input using a variale list of methods.
+%new hotness, input using a variable list of methods.
 input = {};
-trig_ = {};
 
 %support the old mainLoop(graphics, triggers) calling convention
 varargin = assignments(varargin, 'graphics', 'triggers');
 this = autoobject(varargin{:});
 
-%support older constructor conventions --
-if ~isempty(keyboard)
-    input{end+1} = KeyboardInput();
-    trig_ = {trig_{:} keyboard{:}};
-end
 
-if ~isempty(mouse)
-    input{end+1} = MouseInput();
-    trig_ = {trig_{:} mouse{:}};
-end
-
-if ~isempty(triggers)
-    input{end+1} = EyelinkInput();
-    trig_ = {trig_{:} triggers{:}};
-end
-
-
-%----- constructed objects -----
-
-%instance variables
+%% private variables
 go_ = 0; % flags whether the main loop is running
-nt_ = 0;
 toDegrees_ = @noop;
 
-%values used while running in the main loop
-
-skipFrameCount = 0;
-
-windowLeft_ = 0;
-windowTop_ = 0;
-
-%----- methods -----
+%% methods
 
     function params = go(varargin)
         params = namedargs(defaults_, varargin{:});
+        
+        % constructor support for older constructor conventions --
+        if ~isempty(triggers) && isempty(input)
+            %old-style put all eye movement triggers in 'triggers', new style puts
+            %everything there.
+            input{end+1} = params.input.eyes;
+        end
+
+        if ~isempty(keyboard)
+            input{end+1} = params.input.keyboard;
+            triggers = {triggers{:} keyboard{:}};
+            keyboard = {};
+        end
+
+        if ~isempty(mouse)
+            input{end+1} = params.input.mouse;
+            triggers = {triggers{:} mouse{:}};
+            mouse = {};
+        end
+
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
         %
@@ -87,12 +85,11 @@ windowTop_ = 0;
             , startInput()...
             , @doGo...
             );
-%            ,listenChars()...
     end
 
     function params = doGo(params)
         ng = numel(graphics);
-        nt_ = numel(triggers);
+        nt = numel(triggers);
         go_ = 1;
         interval = params.cal.interval;
         VBLStartline = params.screenInfo.VBLStartline;
@@ -191,8 +188,8 @@ windowTop_ = 0;
                 s = input(i).input(s);
             end
             
-            for i = 1:numel(trig_)
-                trig_(i).check(s);
+            for i = 1:numel(triggers)
+                triggers(i).check(s);
             end
 
             %-----Flip phase: Flip the screen buffers and note the time at
@@ -236,56 +233,19 @@ windowTop_ = 0;
         go_ = 0;
     end
 
-    function pushEvents(params, next, refresh)
-        % Send information about the present state of the world to all 
-        % triggers and allow them to fire if they wish.
-        %
-        % next: the scheduled next refresh.
-        % triggers: the triggers to check. you'd think this would be passed
-        % in manually, but lexical scope lookup is very slow for some
-        % reason. Hmm. Array reallocation issues?
-        %
-        % See also Trigger>check.
-
-        if ~go_
-            error('mainLoop:notOnline', 'must start spaceEvents before recording');
-        end
-        
-        [x, y, t] = sample(params);
-        [x, y] = toDegrees_(x, y); %convert to degrees (native units)
-
-        %at the outset the datra contains these values:
-        %'x', the last recorded eye x-position.
-        %'y', the last recorded eye y-position.
-        %'t', the time that the eye position was recorded
-        %'next', the scheduled time of the next eye refresh.
-        %'refresh', which counts the screen refreshes that have occurred
-        %(including those skipped.)
-        s = struct('x', x, 'y', y, 't', t, 'next', next, 'refresh', refresh);
-        %send the sample to each trigger and the triggers will fire if they
-        %match.
-
-        for i = 1:numel(triggers)
-            triggers(i).check(s);
-        end
-    end
-
-
-
-
     function i = triggerInitializer(varargin)
         %at the beginning of a trial, the initializer will be called. It will
         %do things like start the eyeLink recording, and tell every trigger
         %where the log file is.
         %
         %See also require.
-        trig_ = interface(struct('check', {}, 'setLog', {}, 'init', {}), trig_);
+        triggers = interface(struct('check', {}, 'setLog', {}, 'init', {}), triggers);
         
         i = currynamedargs(...
                 joinResource...
                     ( @initLog...
                     , @initVars...
-                    , trig_.init...
+                    , triggers.init...
                 )...
                 ,varargin{:}...
             );
@@ -295,7 +255,7 @@ windowTop_ = 0;
         %now that we are starting an experiment, tell each trigger where to
         %log to.
         
-        for i = trig_(:)'
+        for i = triggers(:)'
             i.setLog(params.log);
         end
         
@@ -337,7 +297,7 @@ windowTop_ = 0;
         %
         % See also Trigger>draw.
 
-        for i = 1:nt_
+        for i = 1:numel(triggers)
             triggers(i).draw(window, toPixels);
         end
     end

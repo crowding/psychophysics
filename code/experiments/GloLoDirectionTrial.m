@@ -21,6 +21,7 @@ cueLocation = [0 0];
 cueDuration = 0.1;
 cwResponseKey = 'x';
 ccwResponseKey = 'z';
+knobTurnThreshold = 3;
     
 this = autoobject(varargin{:});
 
@@ -58,7 +59,7 @@ end
         
         function stopExperiment(s)
             main.stop();
-            result.endTime = s.t;
+            result.endTime = s.next;
             result.abort = 1;
             result.success = 0;
             result.direction = NaN;
@@ -75,10 +76,24 @@ end
         keydown.set(@stopExperiment, 'q');
         keydown.set(@skip, 'space');
         
+        knob = KnobThreshold();
+        button = KnobDown();
+        button.set(@skip);
+        
+        input = {params.input.keybaord}
+        triggers = {timer, keydown}
+        
+        if isfield(params.input, 'knob')
+            input{end+1} = params.input.knob;
+            triggers{end+1} = knob;
+            triggers{end+1} = button;
+        end
+            
+        
         main = mainLoop ...
             ( 'graphics', {sprites, fixationPoint, cuePoint} ...
-            , 'triggers', {timer} ...
-            , 'keyboard', {keydown} ...
+            , 'input', input ...
+            , 'triggers', triggers ...
             );
 
         %event handler functions
@@ -98,7 +113,8 @@ end
         function showCue(s)
             cuePoint.setVisible(1);
             timer.set(@resetCue, round(s.refresh + cueDuration / interval));
-            keydown.set(@ccwResponse, ccwKeyCode);
+            knob.set(@cwResponse, s.knobPosition + knobTurnThreshold, @ccwResponse, s.knobPosition - knobTurnThreshold);
+            keydown.set(@cwResponse, cwKeyCode);
             keydown.set(@cwResponse, cwKeyCode);
         end
         
@@ -125,10 +141,12 @@ end
             finish(s);
         end
             
-        function finish(s);
+        function finish(s)
+            knob.unset();
+            keydown.unset();
             fixationPoint.setVisible(0);
             sprites.setVisible(0);
-            result.endTime = s.t;
+            result.endTime = s.next;
             timer.set(main.stop, s.refresh + 1);
         end
 

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?fileVersion 3.0.0?>
+
+<ManagedProjectBuildInfo>
+<project id="grifcat.cdt.managedbuild.target.gnu.exe.1104185331" name="Executable (Gnu)" projectType="cdt.managedbuild.target.gnu.exe">
+<configuration id="cdt.managedbuild.config.gnu.exe.debug.105848110" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug" artifactName="grifcat" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.GASErrorParser" cleanCommand="rm -rf">
+<toolChain superClass="cdt.managedbuild.toolchain.gnu.exe.debug" id="cdt.managedbuild.toolchain.gnu.exe.debug.380819176" name="GCC Tool Chain">
+<tool superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug" id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1637316539" name="GCC C Compiler">
+<option superClass="gnu.c.compiler.option.misc.other" id="gnu.c.compiler.option.misc.other.716701675" value="-c -fmessage-length=0" valueType="string"/>
+</tool>
+<tool superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug" id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.317036805" name="GCC C++ Compiler"/>
+<tool superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.574821609" name="GCC C Linker">
+<option superClass="gnu.c.link.option.libs" id="gnu.c.link.option.libs.125609817" valueType="libs">
+<listOptionValue value="usb" builtIn="false"/>
+</option>
+</tool>
+<tool superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.25075661" name="GCC C++ Linker"/>
+<tool superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug" id="cdt.managedbuild.tool.gnu.assembler.exe.debug.1353985551" name="GCC Assembler"/>
+</toolChain>
+</configuration>
+<configuration id="cdt.managedbuild.config.gnu.exe.release.1844962087" name="Release" parent="cdt.managedbuild.config.gnu.exe.release" artifactName="grifcat" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.GASErrorParser" cleanCommand="rm -rf">
+<toolChain superClass="cdt.managedbuild.toolchain.gnu.exe.release" id="cdt.managedbuild.toolchain.gnu.exe.release.165407054" name="GCC Tool Chain">
+<tool superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release" id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.609422562" name="GCC C Compiler"/>
+<tool superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release" id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.397437779" name="GCC C++ Compiler"/>
+<tool superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release" id="cdt.managedbuild.tool.gnu.c.linker.exe.release.1462705669" name="GCC C Linker"/>
+<tool superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1254144572" name="GCC C++ Linker"/>
+<tool superClass="cdt.managedbuild.tool.gnu.assembler.exe.release" id="cdt.managedbuild.tool.gnu.assembler.exe.release.1427873876" name="GCC Assembler"/>
+</toolChain>
+</configuration>
+</project>
+</ManagedProjectBuildInfo>

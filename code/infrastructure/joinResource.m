@@ -1,4 +1,7 @@
 function f = joinResource(first, varargin)
+
+global resources__
+
 %JOINRESOURCE(resource1, resource2, ....)
 %takes a set of resource function pointers and chains them together so that
 %they can be used as a single argument to REQUIRE, with releases happening
@@ -18,16 +21,13 @@ function f = joinResource(first, varargin)
         error('joinResource:illegalArgument', 'need at least one argument')
     else % (nargin > 1)
         %multiple resources, join by recursion
-        rest = joinResource(varargin{:});
         
-        nfirst = nargout(first);
-        nrest = nargout(rest);
+        rest = joinResource(varargin{:});
         
         %return a function closing over the initializers, taking the output
         %from the rest of the arguments
         f = @joinedInitializer;
     end
-    
     
     %The 2-initializer join: This is chained together to make N-initializer
     %joins.

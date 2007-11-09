@@ -1,0 +1,63 @@
+grifcat is a simple utility that monitors a Griffin Powermate and spits
+out to stdout any state change information.  This can then be used as
+input to a program or script that reacts to the button being pressed or
+the wheel being turned.
+
+grifcat requires libusb to be installed before compiling
+
+QUICK START
+
+  $ gcc -Wall src/grifcat.c -lusb -o grifcat
+  $ sudo ./grifcat
+  (commence knob spinning)
+
+INSTALLATION
+
+ $ gcc -Wall src/grifcat.c -lusb -o grifcat
+ $ sudo cp grifcat /usr/local/bin
+
+NOTE: You need to have the 'development' version of libusb installed, not
+just the runtime libraries.
+
+USAGE
+
+ To see if the tool finds your griffin powermate, run:
+
+ $ sudo grifcat --list
+
+ To get output, just run it w/o any command line parameters:
+ 
+ $ sudo grifcat
+0001 801401 BtnUp Cw 0 1 1 1 0 0 0
+0002 801401 BtnUp Ccw 0 -1 0 1 1 0 0
+0003 801401 BtnDown Nc 1 0 0 1 1 0 1
+0004 801401 BtnDown Ccw 1 -1 -1 1 2 0 1
+0005 801401 BtnDown Cw 1 1 0 2 2 0 1
+0006 801401 BtnUp Nc 0 0 0 2 2 1 1
+
+ The fields are:
+   Sequence Number
+   Unknown ID sent by powermate
+   Text Button State
+   Text rotation direction
+   Numeric button state (0 = up, 1 = down)
+   Numeric direction (-1 = counter-clockwise, 0 = no change, 1 = clockwise)
+   Signed short going from -128 to 127 wrapping around
+   Clockwise ticks
+   Counter clockwise ticks
+   Button releases
+   Button presses
+
+There's also a 'minimal' mode which only outputs two numbers, button state
+and knob turn.  Use the flag --minimal
+ 
+It's that easy.
+
+If you have any questions, thoughts, concerns, or bugs please email the author.
+
+This program's primary distribution location is
+http://www.technocage.com/~caskey/grifcat/
+
+Caskey L. Dickson
+http://www.technocage.com/~caskey/
+<caskey@technocage.com>

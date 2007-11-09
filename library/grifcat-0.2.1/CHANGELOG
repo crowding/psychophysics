@@ -1,0 +1,13 @@
+grifcat 0.2.1
+
+  - Fixed bug preventing grifcat from outputting on systems whose stdio library
+    detects and buffers non-terminal i/o.
+  - Disabled output of read timeouts unless verbose mode enabled
+
+grifcat 0.2
+
+  - Control over led brightness and pulsing display mode now possible
+
+grifcat 0.1
+
+  - initial release, essential functionality

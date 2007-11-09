@@ -109,7 +109,6 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             head_ = max_sprites_;
             tail_ = max_sprites_;
 
-            
             %unallocate the textures
             if any(Screen('Windows') == params.window)
                 require(screenGL(params.window), @() glDeleteTextures(2, [addtex_ subtex_]));

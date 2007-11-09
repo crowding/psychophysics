@@ -41,7 +41,7 @@ disp(cat(2,output{:}));
             
             if isfield(frame, 'additional') && ~isempty(frame.additional)
                 printf(' \n');
-                printf('%s   which was caused while handling an additional error:\n', indent);
+                printf('%s   which was caused by:\n', indent);
                 for i = frame.additional(:)'
                     printStackTrace(i, [indent '    ']);
                 end

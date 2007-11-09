@@ -47,8 +47,7 @@ function o = namedargs(varargin)
             end
         end
     catch
-        %TODO -- worth cooking up a 'cause' mechanism for exceptions.
-        error('namedargs:badArgumentType', 'bad arguments to namedargs');
+        errorcause(lasterror, 'namedargs:badArgumentType', 'bad arguments to namedargs');
     end
 
     function assign(field, value)

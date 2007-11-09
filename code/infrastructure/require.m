@@ -1,5 +1,10 @@
 function varargout = require(varargin)
 
+%the resources__ global keeps track of the stacktrace of every tiem
+%require() or joinResource() was called and enforces that resources are
+%shut down properly.
+global resources__;
+
 %function varargout = require(resource, ..., protected)
 %
 %REQUIRE acquires access to a limited resource before running a protected
@@ -67,16 +72,19 @@ if ~isa(initializer, 'function_handle')
     error('require:badInitializer', 'initializer must be a function handle');
 end
 
+s = dbstack();
+%resourcecheck(s);
 [releaser, output] = initializer(struct());
+resourcecheck(s, releaser);
 
 if ~isa(releaser, 'function_handle')
     error('require:missingReleaser', 'initializer did not produce a releaser');
 end
 
-%now either run the body, or recurse onto the next initializer
+%now run the body
 try
     if nargin(body) ~= 0
-        [varargout{1:nargout}] = body(output); %run the curried, protected body
+        [varargout{1:nargout}] = body(output);
     else
         [varargout{1:nargout}] = body();
     end
@@ -92,6 +100,8 @@ catch
         err = adderror(lasterror, err);
     end
     try
+        l = lasterror;
+        %resourcecheck();
         releaser();
     catch
         err = adderror(lasterror, err);
@@ -100,4 +110,7 @@ catch
 end
 
 %finally, release the resource.
+%resourcecheck();
 releaser();
+
+end
