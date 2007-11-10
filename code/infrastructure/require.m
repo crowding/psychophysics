@@ -75,7 +75,6 @@ end
 s = dbstack();
 %resourcecheck(s);
 [releaser, output] = initializer(struct());
-resourcecheck(s, releaser);
 
 if ~isa(releaser, 'function_handle')
     error('require:missingReleaser', 'initializer did not produce a releaser');
@@ -101,7 +100,6 @@ catch
     end
     try
         l = lasterror;
-        %resourcecheck();
         releaser();
     catch
         err = adderror(lasterror, err);
@@ -110,7 +108,6 @@ catch
 end
 
 %finally, release the resource.
-%resourcecheck();
 releaser();
 
 end

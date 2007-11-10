@@ -1,5 +1,6 @@
 function this = testToBytes(varargin)
 
+    persistent init__;
     this = inherit(TestCase(), BaseBytesTest(), autoobject(varargin{:}));
     
     function check(format, input, output, varargin)

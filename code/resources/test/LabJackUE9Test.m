@@ -3,6 +3,7 @@ function this = LabJackUE9Test(varargin)
     debug = 0;
     host = '100.1.1.3';
 
+    persistent init__;
     this = inherit(TestCase(), autoobject(varargin{:}));
 
     lj = LabJackUE9('debug', debug, 'host', host);
@@ -266,7 +267,12 @@ function this = LabJackUE9Test(varargin)
 
 %% TimerCounter
     function testTimerCounter()
-        fail('not written');
+        
+        
+        %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3
+        
+        response = lj.timerCounter('
+        
     end
 
 %% ReadMem

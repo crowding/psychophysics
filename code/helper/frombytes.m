@@ -48,7 +48,7 @@ function output = frombytes(bytes, template, varargin)
 
     pointer = 0;
     %iterate the over the template
-    subs = iteratesubs(template);
+    [subs, enums] = iteratesubs(template);
     output = template;
     
     for i = 1:numel(subs)
@@ -76,6 +76,21 @@ function output = frombytes(bytes, template, varargin)
     if numel(f) == 0
         datachunk = frombytesblank(f, pointer, pointer2-pointer, params);
         output = ssubsasgn(output, subs{i}, datachunk);
+    end
+    
+    for i = 1:numel(enums)
+        lookup = enums{i}.s;
+        opts = enums{i}.enum;
+        names = fieldnames(opts);
+        values = struct2cell(opts);
+        value = ssubsref(output, [lookup struct('type', '.', 'subs', 'enum_')]);
+        where = find(cellfun(@(x)isequal(x, value), values), 1, 'first');
+        if isempty(where)
+            %unknown enum value, just return the actual value...
+            output = ssubsasgn(output, lookup, value)
+        else
+            output = ssubsasgn(output, lookup, names{where});
+        end
     end
     
     function r = ssubsref(s, subs)

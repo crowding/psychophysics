@@ -77,7 +77,13 @@ function bytes = tobytesstep(template, in, params)
         end
     elseif isstruct(template)
         if numel(template) == 1
-            if isstruct(in)
+            if isfield(template, 'enum_') && ischar(in)
+                if isfield(template, in)
+                    bytes = tobytes(template.enum_, template.(in), params);
+                else
+                    error('tobytes:noSuchValue', 'No such enum value');
+                end
+            elseif isstruct(in)
                 fns = fieldnames(template);
 
                 if ~isempty(setdiff(fieldnames(in), fns))
