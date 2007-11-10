@@ -51,6 +51,7 @@ calibration.ADCBipolarHighRes.offset = -2.3283064365387e-10;
 a_ = []; %TCP connection port handle
 b_ = [];
 
+persistent init__;
 this = autoobject(varargin{:});
 
 

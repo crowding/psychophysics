@@ -12,7 +12,13 @@ function this = autoobject(varargin)
     %it associated with the function (and cleared whenever the function is
     %recompiled) we can just stuff it in a persistent variable using
     %evalin!
-    evalin('caller', 'persistent init__;');
+    this = evalin('caller', 'whos(''init__'')');
+
+    %Buh. So much for that. Matlab 7.4 kills this behavior.
+    if isempty(this)
+        error('add a ''persistent init__;'' declaration before the call to autoobject');
+    end
+    %evalin('caller', 'persistent init__;');
     this = evalin('caller', 'init__;');
     
     if isempty(this)
