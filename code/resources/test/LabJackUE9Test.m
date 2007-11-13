@@ -82,17 +82,21 @@ function this = LabJackUE9Test(varargin)
         r = lj.feedback();
         assert(isfield(r, 'TimerA'));
         
-        %output fromm DAC0 to AIO0 and DAC1 to FIO1, and check values
-        r = lj.feedback('DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 4.0 ...
-            , 'FIOMask', [1 1 0 0 0 0 0 0], 'FIODir', [1 0 0 0 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]);
-        assertIsEqual(1, r.FIODir(1));
-        assertIsEqual(0, r.FIODir(2));
-        assertIsEqual(0, r.FIOState(1));
-        assertIsEqual(0, r.FIOState(2));
+        %output fromm DAC0 to AIN0 and DAC1 to FIO4, and check values
+        r = lj.feedback...
+            ( 'DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 4.0 ...
+            , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
+            , 'FIOMask', [0 0 0 1 1 0 0 0], 'FIODir', [0 0 0 1 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]);
+        assertIsEqual(1, r.FIODir(4));
+        assertIsEqual(0, r.FIODir(5));
+        assertIsEqual(1, r.FIOState(5));
+        assertIsEqual(0, r.FIOState(4));
         assertClose(4.0, r.AINValue(1));
         
         %unset outputs
-        r = lj.feedback('DAC0Update', 1, 'DAC0Enabled', 0 ...
+        r = lj.feedback...
+            ( 'DAC0Update', 1, 'DAC0Enabled', 0 ...
+            , 'DAC1Update', 1, 'DAC1Enabled', 1 ...
             , 'FIOMask', [1 1 1 1 1 1 1 1], 'FIODir', [0 0 0 0 0 0 0 0]);
         
         assert(all(r.FIODir == 0));
@@ -103,9 +107,11 @@ function this = LabJackUE9Test(varargin)
         r = lj.feedbackAlt();
         assert(~isfield(r, 'TimerA'));
         
-        %output fromm DAC0 to AIO0 and DAC1 to FIO1, and check values
-        r = lj.feedbackAlt('DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 3.0 ...
-            , 'FIOMask', [1 1 0 0 0 0 0 0], 'FIODir', [1 0 0 0 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]...
+        %output fromm DAC0 to AIN0 and check values
+        r = lj.feedbackAlt...
+            ( 'DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 3.0 ...
+            , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
+            , 'FIOMask', [1 0 1 0 1 0 0 0], 'FIODir', [1 0 0 0 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]...
             , 'AINChannelNumber', [ 132 0 133 14 132 0 133 14 132 0 133 14 132 0 133 14]...
             , 'AINMask', [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]...
             , 'Resolution', 16 ...
@@ -114,7 +120,8 @@ function this = LabJackUE9Test(varargin)
         assertIsEqual(1, r.FIODir(1));
         assertIsEqual(0, r.FIODir(2));
         assertIsEqual(0, r.FIOState(1));
-        assertIsEqual(0, r.FIOState(2));
+        assertIsEqual(0, r.FIOState(3));
+        assertIsEqual(1, r.FIOState(5));
         assertClose([5 3.0 290 2.43 5 3.0 290 2.43 5 3.0 290 2.43 5 3.0 290 2.43]', r.AINValue);
         
         %unset outputs
@@ -150,10 +157,10 @@ function this = LabJackUE9Test(varargin)
     end
 
     function testBitIO()
-        %round trip test: assume FIO0 is connected to FIO1.
+        %round trip test: assume FIO0 is connected to FIO2.
         %set both to input
         lj.bitOut(0, 0, 0);
-        lj.bitOut(1, 0, 0);
+        lj.bitOut(2, 0, 0);
 
         %read state
         r = lj.bitIn(0);
@@ -171,12 +178,12 @@ function this = LabJackUE9Test(varargin)
         assertIsEqual(r.state, 1);
 
         %check connection to channel 1
-        r = lj.bitIn(1);
+        r = lj.bitIn(2);
         assertIsEqual(r.dir, 0);
         assertIsEqual(r.state, 1);
         
         lj.bitOut(0, 1, 0);
-        r = lj.bitIn(1);
+        r = lj.bitIn(2);
         assertIsEqual(r.state, 0);
     end
 
@@ -250,28 +257,30 @@ function this = LabJackUE9Test(varargin)
     end
 
     function testPortIO
-        %assumes that FIO0 is connected to FIO1;
+        %assumes that FIO0 is connected to FIO2;
         r = lj.portOut(0, [1 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]);
         r = lj.portIn(0);
         assertIsEqual(0, r.state(1));
-        assertIsEqual(0, r.state(2));
+        assertIsEqual(0, r.state(3));
         r = lj.portOut(0, [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
         r = lj.portIn(0);
         assertIsEqual(1, r.state(1));
-        assertIsEqual(1, r.state(2));
-        r = lj.portOut(0, [0 1 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
+        assertIsEqual(1, r.state(3));
+        r = lj.portOut(0, [0 0 1 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
         r = lj.portIn(0);
         assertIsEqual(0, r.state(1));
-        assertIsEqual(0, r.state(2));
+        assertIsEqual(0, r.state(3));
     end
 
 %% TimerCounter
     function testTimerCounter()
         
+        %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3.
         
-        %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3
+        %first, the bare command reads the timer-counter configuration.
+        r = lj.timerCounter();
         
-        response = lj.timerCounter('
+        error('not written');
         
     end
 
