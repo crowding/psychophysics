@@ -91,7 +91,7 @@ function bytes = tobytesstep(template, in, params)
                 fns = fieldnames(template);
 
                 if ~isempty(setdiff(fieldnames(in), fns))
-                    error('tobytes:extraStructFields', 'Fields in data (%s) not in template (fields are %s)', join(', ', fieldnames(in)), join(', ', fns));
+                    error('tobytes:extraStructFields', 'Unrecognized fields (%s). Allowed: (%s)', join(', ', setdiff(fieldnames(in),fns)), join(', ', fns));
                 end
                 out = cell(size(fns))';
                 for i = 1:numel(out)

@@ -625,8 +625,8 @@ FEEDBACKALT_COMMAND_ = struct...
         r = roundtrip(FEEDBACKALT_COMMAND_, packet, 'enum', 0);
         
         %calibrate the analog reads
-        c14 = enumLookup_(packet.AIN14ChannelNumber);
-        c15 = enumLookup_(packet.AIN15ChannelNumber);
+        c14 = enumLookup_(packet.AIN14ChannelNumber, ANALOG_IN_CHANNEL_);
+        c15 = enumLookup_(packet.AIN15ChannelNumber, ANALOG_IN_CHANNEL_);
         channel = [packet.AINChannelNumber(:)' c14 c15];
         r.AINValue = ainCal_(r.AIN(:), channel(:), packet.AINGain(:), packet.Resolution);
 
@@ -636,6 +636,9 @@ FEEDBACKALT_COMMAND_ = struct...
     function v = enumLookup_(v, enum)
         if isstruct(v) && isfield(v, 'enum_')
             v = v.enum_;
+            if islogical(v)
+                v = bin2dec(char(v') + '0');
+            end
         elseif ischar(v) && isfield(enum, v)
             v = enum.(v);
         end
@@ -1176,6 +1179,14 @@ TIMERCOUNTER_COMMAND_ = struct...
 
 %% StreamConfig
 
+    STREAM_CLOCK_FREQUENCY_ = struct...
+        ( 'enum_', true(2, 1) ...
+        , 'M4', 0 ...
+        , 'M48', 1 ...
+        , 'k750', 2 ...
+        , 'M24', 3 ...
+        );
+
     STREAMCONFIG_COMMAND_ = struct...
         ( 'extended', 1 ...
         , 'commandNo', 17 ...
@@ -1186,16 +1197,10 @@ TIMERCOUNTER_COMMAND_ = struct...
             , 'reserved0', false ...
             , 'DivideBy256', false ...
             , 'reserved1', false ...
-            , 'ClockFrequency', struct...
-                ( 'enum_', true(2, 1) ...
-                , 'M4', 0 ...
-                , 'M48', 1 ...
-                , 'k750', 2 ...
-                , 'M24', 3 ...
-                )...
+            , 'ClockFrequency', STREAM_CLOCK_FREQUENCY_ ...
             , 'reserved2', false ...
-            , 'EnableTrigger', false ...
-            , 'EnablePulse', false ...
+            , 'TriggerEnabled', false ...
+            , 'PulseEnabled', false ...
             , 'ScanInterval', uint16(65535) ...
             , 'ChannelConfig', uint8([])... %to be filled out
             ) ...
@@ -1217,9 +1222,9 @@ TIMERCOUNTER_COMMAND_ = struct...
         %   Required.
         % 'Resolution', the sampling resolution for all channels.
         % 'SettlingTime', the settling time see under AnalogIn.
-        % 'EnableTrigger', enables the external trigger (scans on falling
+        % 'TriggerEnabled', enables the external trigger (scans on falling
         %   edge of counter1)
-        % 'EnablePulse', pulses Counter1 low before each scan.
+        % 'PulseEnabled', pulses Counter1 low before each scan.
         % 'SampleFrequency' A sample frequency in Hz. If this is provided
         %   the function will configure a sampling frequency to suit. In
         %   any case the sampling frequency is returned as a field
@@ -1246,9 +1251,45 @@ TIMERCOUNTER_COMMAND_ = struct...
         
         packet.ChannelConfig = uint8([args.Channels(:)'; args.Gains(:)']);
         packet.NumChannels = numel(args.Channels(:));
+        
         args = rmfield(args, {'Channels', 'Gains'});
         
+        cf = [4e6 48e6 750e3 24e6];
+        div = [1 256];
+            
+        if isfield(args, 'SampleFrequency')
+            desired = args.SampleFrequency;
+            %find the best sample frequency configuration
+            besterr = Inf;
+            bestC = 0;
+            bestD = 0;
+            bestI = 65535;
+            
+            %I can probably do it better than a loop, huh? 750k clock
+            %throws it off.
+            for ClockFrequency = 0:3
+                for DivideBy256 = 0:1
+                    freq = cf(ClockFrequency+1)/div(DivideBy256+1);
+                    ScanInterval = max(min(round(freq/desired), 65535), 1);
+                    err = abs(desired - freq/ScanInterval);
+                    if err < besterr
+                        bestC = ClockFrequency;
+                        bestD = DivideBy256;
+                        bestI = ScanInterval;
+                        besterr = err;
+                    end
+                end
+            end
+            packet.ClockFrequency = bestC;
+            packet.DivideBy256 = bestD;
+            packet.ScanInterval = bestI;
+            args = rmfield(args, 'SampleFrequency');
+        end
+        
+        packet = namedargs(packet, args);
         r = roundtrip(STREAMCONFIG_COMMAND_, packet);
+        
+        r.SampleFrequency = cf(enumLookup_(packet.ClockFrequency, STREAM_CLOCK_FREQUENCY_)+1)/div(packet.DivideBy256+1)/packet.ScanInterval;
         r = rmfield(r, 'reserved0');
     end
 
