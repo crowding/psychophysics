@@ -1,6 +1,6 @@
 function output = frombytes(bytes, template, varargin)
 
-    defaults = struct('littleendian', 0);
+    defaults = struct('littleendian', 0, 'enum', 1);
     params = options(defaults, varargin{:});
     
     %Converts an array of bytes to given numeric types. The format
@@ -39,9 +39,22 @@ function output = frombytes(bytes, template, varargin)
     %You can give cell arrays or structs as arguments, and they will be
     %unpacked as necessary.
     %
-    %BUGS: will not work on long integers yet, as 'dec2hex' and 'hex2dec'
+    %You can give an enum in the format argument as a structure with
+    %'enum_' a special field; the value of enum_ determined the field
+    %format and the other values of the struct determine the naems and
+    %values. For instance:
+    %
+    %frombytes([132], struct('enum_', uint8(0), 'Vref', 132, 'GND', 133))
+    %ans =
+    %Vref
+    %
+    %You can suppress the enumeration translation by passing arguments
+    %'enum', 0.
+    %
+    %BUGS: will not work on long integers, as 'dec2hex' and 'hex2dec'
     %are stupid along with MATLAB's handling of long ints in general.
-    %(THERE ARE NO ARITHMETIC OPERATIONS FOR LONGS. WTF.)
+    %(THERE ARE NO ARITHMETIC OPERATIONS FOR LONGS. THERE ARE NO BITWISE
+    %OPERATIONS FOR SIGNED INTS. WTF.)
     
     %Start by converting to hex
     hex = sprintf('%02x', bytes);
@@ -80,16 +93,20 @@ function output = frombytes(bytes, template, varargin)
     
     for i = 1:numel(enums)
         lookup = enums{i}.s;
-        opts = enums{i}.enum;
-        names = fieldnames(opts);
-        values = struct2cell(opts);
         value = ssubsref(output, [lookup struct('type', '.', 'subs', 'enum_')]);
-        where = find(cellfun(@(x)isequal(x, value), values), 1, 'first');
-        if isempty(where)
-            %unknown enum value, just return the actual value...
-            output = ssubsasgn(output, lookup, value)
+        if params.enum
+            opts = enums{i}.enum;
+            names = fieldnames(opts);
+            values = struct2cell(opts);
+            where = find(cellfun(@(x, name)isequal(x, value) && ~strcmp(name, 'enum_'), values, names) , 1, 'first');
+            if isempty(where)
+                %unknown enum value, just return the actual value...
+                output = ssubsasgn(output, lookup, value);
+            else
+                output = ssubsasgn(output, lookup, names{where});
+            end
         else
-            output = ssubsasgn(output, lookup, names{where});
+            output = ssubsasgn(output, lookup, value);
         end
     end
     

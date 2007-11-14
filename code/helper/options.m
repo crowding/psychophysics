@@ -6,6 +6,6 @@ function args = options(defaults, varargin)
     
     notrec = join(', ', setdiff(fieldnames(args), fieldnames(defaults)));
     if ~isempty(notrec)
-        error('options:unrecognizedOption', 'option(s) %s not recognized', join(', ', notrec));
+        error('options:unrecognizedOption', 'option(s) ''%s'' not recognized', join(', ', notrec));
     end
 end

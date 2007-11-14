@@ -1,7 +1,9 @@
 function this = LabJackUE9Test(varargin)
-    
-    debug = 0;
-    host = '100.1.1.3';
+    %This test suite exercises the LabJack UE9 data acquisition device
+    %using my Ethernet library.
+
+    debug = 0; %pass debug = 1 to see the bytes go by.
+    host = '100.1.1.3'; %fill in your host here...
 
     persistent init__;
     this = inherit(TestCase(), autoobject(varargin{:}));
@@ -9,13 +11,13 @@ function this = LabJackUE9Test(varargin)
     lj = LabJackUE9('debug', debug, 'host', host);
     
     function initializer = init()
-        %must open/close the labjack for every test and reset pnet
+        %For semi-independent testing, must open/close the labjack for every test and reset pnet
         initializer = joinResource(@resetPnet, lj.init());
     end
 
     function [release, params] = resetPnet(params)
-        clear('pnet');
-        evalc('pnet closeall');
+        clear('pnet'); %closes all
+        evalc('pnet closeall'); %reloads; evalc is to suppress the startup message
         release = @noop;
     end
 
@@ -135,23 +137,23 @@ function this = LabJackUE9Test(varargin)
     function testBitIn()
         %set both to input
         r = lj.bitIn(0);
-        assertIsEqual(r.channel, 0);
-        r = lj.bitIn(1);
-        assertIsEqual(r.channel, 1);
+        assertIsEqual(r.channel, 'FIO0');
+        r = lj.bitIn('FIO1');
+        assertIsEqual(r.channel, 'FIO1');
     end
 
     function testBitOut()
         %set both to input
         r = lj.bitOut(0, 0, 0);
-        assertIsEqual(r.channel, 0);
+        assertIsEqual(r.channel, 'FIO0');
         assertIsEqual(r.dir, 0);
         
         r = lj.bitOut(1, 0, 0);
-        assertIsEqual(r.channel, 1);
+        assertIsEqual(r.channel, 'FIO1');
         assertIsEqual(r.dir, 0);
         
-        r = lj.bitOut(0, 1, 0);
-        assertIsEqual(r.channel, 0);
+        r = lj.bitOut('FIO0', 1, 0);
+        assertIsEqual(r.channel, 'FIO0');
         assertIsEqual(r.dir, 1);
         assertIsEqual(r.state, 0);        
     end
@@ -195,10 +197,10 @@ function this = LabJackUE9Test(varargin)
         
         %vref at different gains
         a = lj.analogIn(14);
-        assertIsEqual(14, a.channel);
+        assertIsEqual('Vref', a.channel);
         assertClose(8059632, a.AIN);
         assertClose(2.43, a.value);
-        a = lj.analogIn(14, 1);
+        a = lj.analogIn('Vref', 1);
         assertClose(16119264, a.AIN);
         assertClose(2.43, a.value);
         a = lj.analogIn(14, 8);
@@ -242,17 +244,17 @@ function this = LabJackUE9Test(varargin)
 
     function testPortIn
         r = lj.portIn(0);
-        assertIsEqual(r.channel, 0);
+        assertIsEqual(r.port, 'FIO');
         r = lj.portIn(1);
-        assertIsEqual(r.channel, 1);
+        assertIsEqual(r.port, 'EIO');
     end
 
     function testPortOut
         r = lj.portOut(0, [0 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]);
-        assertIsEqual(r.channel, 0);
+        assertIsEqual(r.port, 'FIO');
         assertIsEqual(r.dir, [0 0 0 0 0 0 0 0]);
         r = lj.portOut(0, [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);
-        assertIsEqual(r.channel, 0);
+        assertIsEqual(r.port, 'FIO');
         assertIsEqual(r.dir, [1 0 0 0 0 0 0 0]); 
     end
 
@@ -274,14 +276,79 @@ function this = LabJackUE9Test(varargin)
 
 %% TimerCounter
     function testTimerCounter()
-        
         %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3.
         
         %first, the bare command reads the timer-counter configuration.
         r = lj.timerCounter();
+
+        assert(isfield(r, 'Timer0'));
+        assert(isfield(r, 'Counter1'));
         
-        error('not written');
+        %configure the timers and counters...
+        %FIO2 is connected to FIO0 and FIO3 to FIO2.
         
+        %Configure FIO3 and 2 to output high 
+        lj.portOut('FIO', [0 0 1 1 0 0 0 0], [0 0 1 1 0 0 0 0]);
+        
+        %enable and reset one timer; will live on FIO0.
+        %enable and reset one Counter; will live on FIO1.
+        r = lj.timerCounter...
+            ( 'NumTimers', 1 ...
+            , 'Counter0Enabled', 1 ...
+            , 'UpdateReset.Counter0', 1 ...
+            , 'Timer0.mode', 'FirmwareCounter' ...
+            , 'Timer0.value', 0 ...
+            );
+        
+
+        %Now toggle FIO2 two times and FIO3 three times.
+        for i = 1:2
+            lj.bitOut('FIO2', 1, 0);
+            lj.bitOut('FIO2', 1, 1);
+        end
+        
+        for i = 1:3
+            lj.bitOut('FIO3', 1, 0);
+            lj.bitOut('FIO3', 1, 1);
+        end
+
+        %now read the timers
+        r = lj.timerCounter();
+        
+        %and disable them (apparently it won't read timers if you are
+        %disabling them
+        lj.timerCounter('NumTimers', 0, 'Counter0Enabled', 0, 'Counter1Enabled', 0);
+        %and release the outputs
+        lj.portOut('FIO', 0, 0);
+        
+        %check that we got the right counts
+        assertIsEqual(2, r.Timer0);
+        assertIsEqual(3, r.Counter0);
+    end
+
+%% StreamConfig
+
+    function testStreamConfig()
+        %configure a stream...
+        
+         r = lj.streamConfig...
+             ( 'Channels', [0 1 2 3]...
+             , 'Gains', [3 2 1 0]...
+             , 'ClockFrequency', 'k750' ...
+             , 'DivideBy256', 0 ...
+             , 'ScanInterval', 750 ...
+             );
+         
+         assertIsEqual(0, r.errorcode);
+         %also configure with a chosen frequency
+         r = lj.streamConfig...
+             ( 'Channels', [0 1]...
+             , 'Gains', [0 0]...
+             , 'SampleFreq', 1000 ...
+             , 'TriggerEnabled', 1 ...
+             , 'PulseEnabled', 1 ...
+             );
+         assertIsEqual(0, r.errorCode);
     end
 
 %% ReadMem

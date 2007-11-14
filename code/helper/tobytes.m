@@ -58,7 +58,7 @@ function bytes = tobytes(template, data, varargin)
     % significant bits. These orders reverse if 'littleendian' is set to 0,
     % which is the default. 
     
-    defaults = struct('littleendian', 0);
+    defaults = struct('littleendian', 0, 'enum', 1); %enum has no effect
     params = options(defaults, varargin{:});
     
     bytes = collapselogicals({tobytesstep(template, data, params)}, params);
@@ -77,17 +77,21 @@ function bytes = tobytesstep(template, in, params)
         end
     elseif isstruct(template)
         if numel(template) == 1
-            if isfield(template, 'enum_') && ischar(in)
-                if isfield(template, in)
-                    bytes = tobytes(template.enum_, template.(in), params);
+            if isfield(template, 'enum_') 
+                if ischar(in)
+                    if isfield(template, in)
+                        bytes = tobytesstep(template.enum_, template.(in), params);
+                    else
+                        error('tobytes:noSuchValue', 'No such enum value');
+                    end
                 else
-                    error('tobytes:noSuchValue', 'No such enum value');
+                    bytes = tobytesstep(template.enum_, in, params);
                 end
             elseif isstruct(in)
                 fns = fieldnames(template);
 
                 if ~isempty(setdiff(fieldnames(in), fns))
-                    error('tobytes:extraStructFields', 'Fields in data not in template');
+                    error('tobytes:extraStructFields', 'Fields in data (%s) not in template (fields are %s)', join(', ', fieldnames(in)), join(', ', fns));
                 end
                 out = cell(size(fns))';
                 for i = 1:numel(out)
@@ -116,6 +120,10 @@ function bytes = tobytesstep(template, in, params)
     
     nd = ndims(in) + 1;
     [id{1:nd}] = size(template);
+    
+    if isstruct(in) && isfield(in, 'enum_')
+        in = in.enum_;
+    end
     
     if islogical(template) && isnumeric(in) && numel(in) == numel(template(1, :));
         %decimal to binary conversion ahoy.
