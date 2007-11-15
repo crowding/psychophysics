@@ -89,19 +89,20 @@ function this = LabJackUE9Test(varargin)
             ( 'DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 4.0 ...
             , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
             , 'FIOMask', [0 0 0 1 1 0 0 0], 'FIODir', [0 0 0 1 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]);
+        
+        %unset outputs
+        r2 = lj.feedback...
+            ( 'DAC0Update', 1, 'DAC0Enabled', 0 ...
+            , 'DAC1Update', 1, 'DAC1Enabled', 1 ...
+            , 'FIOMask', [1 1 1 1 1 1 1 1], 'FIODir', [0 0 0 0 0 0 0 0]);
+        
         assertIsEqual(1, r.FIODir(4));
         assertIsEqual(0, r.FIODir(5));
         assertIsEqual(1, r.FIOState(5));
         assertIsEqual(0, r.FIOState(4));
         assertClose(4.0, r.AINValue(1));
-        
-        %unset outputs
-        r = lj.feedback...
-            ( 'DAC0Update', 1, 'DAC0Enabled', 0 ...
-            , 'DAC1Update', 1, 'DAC1Enabled', 1 ...
-            , 'FIOMask', [1 1 1 1 1 1 1 1], 'FIODir', [0 0 0 0 0 0 0 0]);
-        
-        assert(all(r.FIODir == 0));
+
+        assert(all(r2.FIODir == 0));
     end
 
     function testFeedbackAlt()
@@ -115,6 +116,7 @@ function this = LabJackUE9Test(varargin)
             , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
             , 'FIOMask', [1 0 1 0 1 0 0 0], 'FIODir', [1 0 0 0 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]...
             , 'AINChannelNumber', [ 132 0 133 14 132 0 133 14 132 0 133 14 132 0 133 14]...
+            , 'AINGain', {'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1'}...
             , 'AINMask', [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]...
             , 'Resolution', 16 ...
             );
@@ -330,7 +332,6 @@ function this = LabJackUE9Test(varargin)
 
     function testStreamConfig()
         %configure a stream...
-        
          r = lj.streamConfig...
              ( 'Channels', [0 1 2 3]...
              , 'Gains', [3 2 1 0]...
@@ -339,7 +340,7 @@ function this = LabJackUE9Test(varargin)
              , 'ScanInterval', 750 ...
              );
          
-         assertIsEqual(0, r.errorcode);
+         assertIsEqual('NOERROR', r.errorcode);
          assertIsEqual(1000, r.SampleFrequency);
          
          %also configure with a chosen frequency
@@ -350,8 +351,54 @@ function this = LabJackUE9Test(varargin)
              , 'TriggerEnabled', 1 ...
              , 'PulseEnabled', 0 ...
              );
-         assertIsEqual(0, r.errorcode);
+         assertIsEqual('NOERROR', r.errorcode);
          assertIsEqual(1000, r.SampleFrequency);
+    end
+
+%% StreamStart & StreamStop
+
+    function testStreamStartStop()
+        r = lj.streamConfig...
+            ( 'Channels', [0 1]...
+            , 'Gains', [0 0]...
+            , 'SampleFrequency', 1000 ...
+            );
+            
+        r = lj.streamStart();
+        assertIsEqual(r.errorcode, 'NOERROR');
+        r = lj.streamStop();
+        assertIsEqual(r.errorcode, 'NOERROR');
+    end
+
+%% StreamRead
+    function testStreamRead()
+        %In this test DAC0 should be connected to AIN0.
+        
+        r = lj.streamConfig...
+            ( 'Channels', [0 1]...
+            , 'Gains', [0 0]...
+            , 'SampleFrequency', 1000 ...
+            );
+        
+        r = lj.voltageOut('DAC0', 2.5);
+        
+        r = lj.streamStart();
+        try
+            
+            [uncalibrated] = lj.streamReadUncalibrated();
+
+            WaitSecs(0.5);
+
+            [calibrated] = lj.streamRead();
+
+            WaitSecs(0.5);
+        catch
+            r = lj.streamStop();
+            rethrow(lasterror);
+        end
+        
+        r = lj.streamStop();
+
     end
 
 %% ReadMem

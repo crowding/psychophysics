@@ -95,19 +95,9 @@ function output = frombytes(bytes, template, varargin)
         lookup = enums{i}.s;
         value = ssubsref(output, [lookup struct('type', '.', 'subs', 'enum_')]);
         if params.enum
-            opts = enums{i}.enum;
-            names = fieldnames(opts);
-            values = struct2cell(opts);
-            where = find(cellfun(@(x, name)isequal(x, value) && ~strcmp(name, 'enum_'), values, names) , 1, 'first');
-            if isempty(where)
-                %unknown enum value, just return the actual value...
-                output = ssubsasgn(output, lookup, value);
-            else
-                output = ssubsasgn(output, lookup, names{where});
-            end
-        else
-            output = ssubsasgn(output, lookup, value);
+            value = enumToString(value, enums{i}.enum);
         end
+        output = ssubsasgn(output, lookup, value);
     end
     
     function r = ssubsref(s, subs)
