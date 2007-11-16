@@ -23,7 +23,7 @@ function this = LabJackUE9Test(varargin)
 
 %% CommConfig
     function testReadCommConfig()
-        c = lj.readCommConfig();
+        c = lj.commConfig();
         assertIsEqual(9, c.ProductID);
         assertIsEqual(lj.getPortA(), c.PortA);
         
@@ -38,7 +38,7 @@ function this = LabJackUE9Test(varargin)
         %and check the write mask. Flash is not good for many write
         %cycles so this is a special test.
         pa = lj.getPortA();
-        r = lj.writeCommConfig('PortA', lj.getPortA());
+        r = lj.commConfig('PortA', lj.getPortA());
         assert(r.writeMask.PortA);
         assertIsEqual(pa, r.PortA);
     end
@@ -374,30 +374,35 @@ function this = LabJackUE9Test(varargin)
     function testStreamRead()
         %In this test DAC0 should be connected to AIN0.
         
-        r = lj.streamConfig...
-            ( 'Channels', [0 1]...
+        lj.streamConfig...
+            ( 'Channels', [0 0]...
             , 'Gains', [0 0]...
             , 'SampleFrequency', 1000 ...
             );
         
-        r = lj.voltageOut('DAC0', 2.5);
+        lj.voltageOut('DAC0', 2.5);
         
         r = lj.streamStart();
+        assertIsEqual(r.errorcode, 'NOERROR');
+        
         try
-            
-            [uncalibrated] = lj.streamReadUncalibrated();
+            WaitSecs(0.1);
 
-            WaitSecs(0.5);
-
-            [calibrated] = lj.streamRead();
-
-            WaitSecs(0.5);
+            data = lj.streamRead();
         catch
-            r = lj.streamStop();
+            lj.streamStop();
             rethrow(lasterror);
         end
         
-        r = lj.streamStop();
+        lj.streamStop();
+        
+        assert(~isempty(data.data));
+        assert(~isempty(data.t));
+        
+        assertIsEqual(size(data.data, 1), 2);
+        assertClose(size(data.data, 2), 96);
+        
+        assertClose(data.data, 2.5);
 
     end
 
