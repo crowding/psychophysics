@@ -354,6 +354,7 @@ this = autoobject(varargin{:});
 
     function r = writeControlConfig(varargin)
         %function r = writeControlConfig(varargin)
+        %
         %Changes the control configiuration. Specify named arguments in two
         %groups
         %
@@ -495,8 +496,9 @@ this = autoobject(varargin{:});
             , 'CIOState',           false(1, 4)...
             , 'CIODir',             false(1, 4)...
             , 'MIOState',           false(1, 3)...
-            , 'reserved0',          false(1, 2)...
+            , 'reserved0',          false...
             , 'MIODir',             false(1, 3)...
+            , 'reserved1',          false...
             , 'AIN',                uint16(zeros(1, 16))...
             , 'Counter0',           uint16(0)...
             , 'Counter1',           uint16(0)...
@@ -558,7 +560,7 @@ this = autoobject(varargin{:});
         channel = [0:13 packet.AIN14ChannelNumber packet.AIN15ChannelNumber];
         r.AINValue = ainCal_(r.AIN, channel, packet.AINGain, packet.Resolution);
         
-        r = rmfield(r, {'reserved0'});
+        r = rmfield(r, {'reserved0', 'reserved1'});
     end
 
     FEEDBACKALT_COMMAND_ = struct...
@@ -605,8 +607,9 @@ this = autoobject(varargin{:});
             , 'CIOState',           false(1, 4)...
             , 'CIODir',             false(1, 4)...
             , 'MIOState',           false(1, 3)...
-            , 'reserved0',          false(1, 2)...
+            , 'reserved0',          false...
             , 'MIODir',             false(1, 3)...
+            , 'reserved1',          false...
             , 'AIN',                uint16(zeros(1, 16))...
             )...
         );
@@ -652,7 +655,7 @@ this = autoobject(varargin{:});
         channel = [packet.AINChannelNumber(:)' c14 c15];
         r.AINValue = ainCal_(r.AIN(:), channel(:), packet.AINGain(:), packet.Resolution);
 
-        r = rmfield(r, {'reserved0'});
+        r = rmfield(r, {'reserved0', 'reserved1'});
     end
 
 %% SingleIO: bit i/o
@@ -1038,6 +1041,9 @@ this = autoobject(varargin{:});
         %Sets the state of the digital IO port specified. 
         %   Ports are 0: FIO, 1: EIO, 2, CIO, 3, MIO.
         %
+        % Note that 8 bit inputs are expected even if the M anc D ports
+        % have fewer.
+        %
         %'dir' and 'state' can be logical arrays or numbers which will be
         %converted to binary.
         %
@@ -1359,7 +1365,7 @@ this = autoobject(varargin{:});
 
 % since we are apt to synchronize acquisition with things, this should be
 % made to run fast.
-
+    streamStart_ = 0;
     function r = streamStart(tBegin)
         if ~configured_
             error('LabJackUE9:notConfigured', 'Stream must be configured before starting');
@@ -1385,9 +1391,8 @@ this = autoobject(varargin{:});
         
         serialOffset_ = 0;
         
-        %flush();
-        
         pnet(a_, 'write', uint8([168 168]));
+        streamStart_ = GetSecs();
         if debug
             disp(strcat('>>> ', hexdump([168 168])));
         end
@@ -1451,6 +1456,8 @@ this = autoobject(varargin{:});
         if warnSyncLoss_
              warning('LabJackUE9:outOfSync', 'Timing of packet receipt drifted out of sync with sample count. Consider calibrating the clock on this device.');
         end
+        
+        flush();
     end
 
 
@@ -1573,7 +1580,7 @@ this = autoobject(varargin{:});
             latest = callTime;
             
             sync = (max(times) - tBegin_ + (samplesPer-1)/c/fActual_) ...
-                 - (latest - tFirstPacket_);
+                 - (latest - streamStart_);
              
             if abs(sync) > maxOutOfSync
                 warnSyncLoss_ = 1;
@@ -1606,8 +1613,6 @@ this = autoobject(varargin{:});
             r.t = t;
             r.latest = latest;
             r.sync = sync;
-            r.serials = serials;
-            r.rawserials = rawserials;
             r.timestamps = timestamps;
             if err
                 r.errorcode = enumToString(err, ERRORCODE_);
@@ -1622,9 +1627,6 @@ this = autoobject(varargin{:});
             r.t = zeros(1, 0);
             r.latest = zeros(0, 1);
             r.sync = zeros(0, 1);
-            r.serials = zeros(0, 1);
-            r.rawserials = zeros(0, 1);
-            r.timestamps = zeros(1, 0);
         end
     end
 
@@ -1802,6 +1804,7 @@ this = autoobject(varargin{:});
         
         initializer = joinResource...
             ( openPort(portA, @setA)...
+            , @doFlush ...
             , openPort(portB, @setB)...
             , @setOpen ...
             , @getCal ...
@@ -1812,7 +1815,6 @@ this = autoobject(varargin{:});
         function opener = openPort(port, setter)
             opener = @i;
             function [release, params] = i(params)
-                assertNotOpen_();
                 handle = pnet('tcpconnect', host, port); %does port matter?
                 if handle < 0
                     error('LabJackUE9:connection', 'Could not connect');
@@ -1824,6 +1826,7 @@ this = autoobject(varargin{:});
                 release = @close;
                 function close()
                     pnet(handle, 'close');
+                    WaitSecs(0.1); %labjack seems to require this
                 end
             end
         end
@@ -1834,6 +1837,11 @@ this = autoobject(varargin{:});
 
         function setB(b)
             b_ = b;
+        end
+        
+        function [release, params] = doFlush(params)
+            flush();
+            release = @flush;
         end
         
         function [release, params] = setOpen(params)
@@ -1847,7 +1855,6 @@ this = autoobject(varargin{:});
         end
         
         function [release, params] = getCal(params)
-            flush();
             require(@debugOff, @loadCalibration);
             release = @noop;
         end
@@ -1879,16 +1886,29 @@ this = autoobject(varargin{:});
     
     function flush()
         %just read (there's no explicit flush in pnet...)
-        assertOpen_();
-        pnet(a_, 'read', 'noblock');
-        pnet(b_, 'read', 'noblock');
+        %assertOpen_();
+        r = pnet(a_, 'read', 'uint8', 'noblock');
+        if debug && numel(r)
+            disp(strcat('xAx ', hexdump(r)));
+        end
+
+        %r = pnet(b_, 'read', 'uint8', 'noblock');
+        %if debug && numel(r)
+        %    disp(strcat('xBx ', hexdump(r)));
+        %end
         pnet(a_, 'write', uint8([8 8]));
         resp = pnet(a_, 'read', 2, 'uint8');
         if ~isequal([8 8], resp)
             error('LabJackUE9:flushFailed', 'flush operation failed')
         end
-        pnet(a_, 'read', 'noblock');
-        pnet(b_, 'read', 'noblock');
+        r = pnet(a_, 'read', 'uint8', 'noblock');
+        if debug && numel(r)
+            disp(strcat('xAx ', hexdump(r)));
+        end
+        %r = pnet(b_, 'read', 'uint8', 'noblock');
+        %if debug && numel(r)
+        %    disp(strcat('xBx ', hexdump(r)));
+        %end
     end
     
 

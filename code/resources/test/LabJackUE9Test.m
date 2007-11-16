@@ -1,6 +1,18 @@
 function this = LabJackUE9Test(varargin)
     %This test suite exercises the LabJack UE9 data acquisition device
     %using my Ethernet library.
+    %
+    %In order to run the tests, you need to make the following connections
+    %on the expansion boards:
+    %
+    % DAC0 <-> AIN7
+    % DAC1 <-> MIO0
+    % MIO1 <-> MIO2
+    % CIO0 <-> CIO1
+    % CIO2 <-> CIO3
+    %
+    % Nothing special about these--just pins I'm not using in my
+    % application.
 
     debug = 0; %pass debug = 1 to see the bytes go by.
     host = '100.1.1.3'; %fill in your host here...
@@ -84,25 +96,25 @@ function this = LabJackUE9Test(varargin)
         r = lj.feedback();
         assert(isfield(r, 'TimerA'));
         
-        %output fromm DAC0 to AIN0 and DAC1 to FIO4, and check values
+        %output fromm DAC0 to AIN7, DAC1 to MIO0, MIO1 to MIO2 and check values
         r = lj.feedback...
             ( 'DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 4.0 ...
             , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
-            , 'FIOMask', [0 0 0 1 1 0 0 0], 'FIODir', [0 0 0 1 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]);
+            , 'MIOMask', [1 1 1], 'MIODir', [0 1 0], 'MIOState', [0 1 0]);
         
         %unset outputs
         r2 = lj.feedback...
             ( 'DAC0Update', 1, 'DAC0Enabled', 0 ...
             , 'DAC1Update', 1, 'DAC1Enabled', 1 ...
-            , 'FIOMask', [1 1 1 1 1 1 1 1], 'FIODir', [0 0 0 0 0 0 0 0]);
+            , 'MIOMask', [1 1 1], 'MIODir', [0 0 0]);
         
-        assertIsEqual(1, r.FIODir(4));
-        assertIsEqual(0, r.FIODir(5));
-        assertIsEqual(1, r.FIOState(5));
-        assertIsEqual(0, r.FIOState(4));
-        assertClose(4.0, r.AINValue(1));
+        assertIsEqual(1, r.MIODir(2));
+        assertIsEqual(0, r.MIODir(1));
+        assertIsEqual(1, r.MIOState(1));
+        assertIsEqual(1, r.MIOState(3));
+        assertClose(4.0, r.AINValue(14));
 
-        assert(all(r2.FIODir == 0));
+        assert(all(r2.MIODir == 0));
     end
 
     function testFeedbackAlt()
@@ -114,25 +126,25 @@ function this = LabJackUE9Test(varargin)
         r = lj.feedbackAlt...
             ( 'DAC0Update', 1, 'DAC0Enabled', 1, 'DAC0Voltage', 3.0 ...
             , 'DAC1Update', 1, 'DAC1Enabled', 1, 'DAC1Voltage', 4.0 ...
-            , 'FIOMask', [1 0 1 0 1 0 0 0], 'FIODir', [1 0 0 0 0 0 0 0], 'FIOState', [0 0 0 0 0 0 0 0]...
-            , 'AINChannelNumber', [ 132 0 133 14 132 0 133 14 132 0 133 14 132 0 133 14]...
+            , 'MIOMask', [1 1 1], 'MIODir', [0 1 0], 'MIOState', [0 1 0]...
+            , 'AINChannelNumber', [ 132 13 133 14 132 13 133 14 132 13 133 14 132 13 133 14]...
             , 'AINGain', {'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1', 'x1'}...
             , 'AINMask', [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]...
             , 'Resolution', 16 ...
             );
        
-        assertIsEqual(1, r.FIODir(1));
-        assertIsEqual(0, r.FIODir(2));
-        assertIsEqual(0, r.FIOState(1));
-        assertIsEqual(0, r.FIOState(3));
-        assertIsEqual(1, r.FIOState(5));
+        %unset outputs
+        r2 = lj.feedbackAlt('DAC0Update', 1, 'DAC0Enabled', 0 ...
+                      , 'DAC1Update', 1, 'DAC1Enabled', 1 ...
+                      , 'MIOMask', [1 1 1], 'MIODir', [0 0 0]);
+        
+        assertIsEqual(1, r.MIODir(2));
+        assertIsEqual(0, r.MIODir(1));
+        assertIsEqual(1, r.MIOState(1));
+        assertIsEqual(1, r.MIOState(3));
         assertClose([5 3.0 290 2.43 5 3.0 290 2.43 5 3.0 290 2.43 5 3.0 290 2.43]', r.AINValue);
         
-        %unset outputs
-        r = lj.feedbackAlt('DAC0Update', 1, 'DAC0Enabled', 0 ...
-            , 'FIOMask', [1 1 1 1 1 1 1 1], 'FIODir', [0 0 0 0 0 0 0 0]);
-        
-        assert(all(r.FIODir == 0));
+        assert(all(r2.MIODir == 0));
     end
 
 %% SingleIO
@@ -161,33 +173,33 @@ function this = LabJackUE9Test(varargin)
     end
 
     function testBitIO()
-        %round trip test: assume FIO0 is connected to FIO2.
+        %round trip test: assume CIO0 is connected to MIO2.
         %set both to input
-        lj.bitOut(0, 0, 0);
-        lj.bitOut(2, 0, 0);
+        lj.bitOut('CIO0', 0, 0);
+        lj.bitOut('CIO2', 0, 0);
 
         %read state
-        r = lj.bitIn(0);
+        r = lj.bitIn('CIO0');
         assertIsEqual(r.dir, 0);
         
         %set 0 to output a 0
-        lj.bitOut(0, 1, 0);
-        r = lj.bitIn(0);
+        lj.bitOut('CIO0', 1, 0);
+        r = lj.bitIn('CIO0');
         assertIsEqual(r.dir, 1);
         assertIsEqual(r.state, 0);
 
         %set channel to to output a 1
-        r = lj.bitOut(0, 1, 1);
-        r = lj.bitIn(0);
+        r = lj.bitOut('CIO0', 1, 1);
+        r = lj.bitIn('CIO0');
         assertIsEqual(r.state, 1);
 
         %check connection to channel 1
-        r = lj.bitIn(2);
+        r = lj.bitIn('CIO2');
         assertIsEqual(r.dir, 0);
         assertIsEqual(r.state, 1);
         
-        lj.bitOut(0, 1, 0);
-        r = lj.bitIn(2);
+        lj.bitOut('CIO0', 1, 0);
+        r = lj.bitIn('CIO2');
         assertIsEqual(r.state, 0);
     end
 
@@ -235,11 +247,11 @@ function this = LabJackUE9Test(varargin)
     end
 
     function testAnalogIO()
-        %this requires connecting DAC0 to AIN0...
+        %this requires connecting DAC0 to AIN13...
         
         for v = 0.1:0.1:4.9
             lj.voltageOut(0, v);
-            a = lj.analogIn(0, 0);
+            a = lj.analogIn(13, 0);
             assertClose(v, a.value, 0.05, 0.05);
         end
     end
@@ -261,24 +273,26 @@ function this = LabJackUE9Test(varargin)
     end
 
     function testPortIO
-        %assumes that FIO0 is connected to FIO2;
-        r = lj.portOut(0, [1 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]);
-        r = lj.portIn(0);
+        %assumes that CIO0 is connected to CIO2;
+        r = lj.portOut(2, [1 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]);
+        r = lj.portIn('CIO');
         assertIsEqual(0, r.state(1));
         assertIsEqual(0, r.state(3));
-        r = lj.portOut(0, [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
-        r = lj.portIn(0);
+        r = lj.portOut('CIO', [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
+        r = lj.portIn(2);
         assertIsEqual(1, r.state(1));
         assertIsEqual(1, r.state(3));
-        r = lj.portOut(0, [0 0 1 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
-        r = lj.portIn(0);
+        r = lj.portOut('CIO', [0 0 1 0 0 0 0 0], [1 0 0 0 0 0 0 0]);        
+        r = lj.portIn('CIO');
         assertIsEqual(0, r.state(1));
         assertIsEqual(0, r.state(3));
     end
 
 %% TimerCounter
-    function testTimerCounter()
+    function specialTestTimerCounter()
         %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3.
+        %This is therefore a special test, since I need all the timer lines
+        %in my rig.
         
         %first, the bare command reads the timer-counter configuration.
         r = lj.timerCounter();
@@ -375,7 +389,7 @@ function this = LabJackUE9Test(varargin)
         %In this test DAC0 should be connected to AIN0.
         
         lj.streamConfig...
-            ( 'Channels', [0 0]...
+            ( 'Channels', {'AIN13', 'AIN13'}...
             , 'Gains', [0 0]...
             , 'SampleFrequency', 1000 ...
             );
@@ -388,7 +402,7 @@ function this = LabJackUE9Test(varargin)
         try
             WaitSecs(0.1);
 
-            data = lj.streamRead();
+            data = lj.streamRead(); %you can call streamRead as often as you want here...
         catch
             lj.streamStop();
             rethrow(lasterror);
