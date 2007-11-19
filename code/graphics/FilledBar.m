@@ -9,6 +9,7 @@ function this = FilledBar(varargin)
     visible = 0;
     angle = 0;
 
+    persistent init__;
     this = autoobject(varargin{:});
 
     toPixels_ = @noop;

@@ -9,11 +9,11 @@ function this = PowermateInput(varargin)
 
 device = [];
 
+persistent init__; %#ok
 this = autoobject(varargin{:});
 
 position = 0;
 button = 0;
-direction = 0;
 options = struct...
     ( 'secs', 0 ...
     , 'print', 0 ...
@@ -38,7 +38,7 @@ function [release, params] = init(params)
     end
     
     PsychHID('ReceiveReports', device, options);
-    r = PsychHID('GiveMeReports', device);
+    PsychHID('GiveMeReports', device);
     position = 0;
     button = 0;
     release = @noop;
@@ -49,8 +49,6 @@ function [release, params] = begin(params)
     button = 0;
     release = @noop;
 end
-
-x = 0;
 
 function s = input(s)
     PsychHID('ReceiveReports', device);

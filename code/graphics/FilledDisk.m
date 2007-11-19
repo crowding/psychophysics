@@ -11,6 +11,7 @@ function this = FilledDisk(loc, radius, color, varargin)
 dotType = 1;
 visible = 0;
 
+persistent init__;
 this = autoobject(varargin{:});
 
 toPixels_ = [];

@@ -42,6 +42,8 @@ input = {};
 
 %support the old mainLoop(graphics, triggers) calling convention
 varargin = assignments(varargin, 'graphics', 'triggers');
+
+persistent init__;
 this = autoobject(varargin{:});
 
 
@@ -83,11 +85,11 @@ toDegrees_ = @noop;
             , graphicsInitializer()...
             , highPriority()...
             , startInput()...
-            , @doGo...
+            , @doGo_...
             );
     end
 
-    function params = doGo(params)
+    function params = doGo_(params)
         ng = numel(graphics);
         nt = numel(triggers);
         go_ = 1;
@@ -95,9 +97,7 @@ toDegrees_ = @noop;
         VBLStartline = params.screenInfo.VBLStartline;
         VBLEndline = params.screenInfo.VBLEndline;
         flipInterval = params.screenInterval;
-        hitcount = 0;
         skipcount = 0;
-        dontsync = params.dontsync;
         slowdown = max(params.slowdown, 1);
         
         %for better speed in the loop, eschew struct access?
@@ -280,7 +280,6 @@ toDegrees_ = @noop;
         graphics = interface(struct('draw',  {}, 'update', {}, 'init',   {}), graphics);
         
         init = currynamedargs(joinResource(graphics.init), varargin{:});
-%       init = currynamedargs(joinResource(graphics.init, keyboard.init, mouse.init), varargin{:});
     end
 
     function init = startInput()

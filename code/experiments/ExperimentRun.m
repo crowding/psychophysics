@@ -4,7 +4,6 @@ function this = ExperimentRun(varargin)
 defaults = namedargs(...
     'err', []...
     ,'trials', []...
-    ,'params.input', struct('keyboard', KeyboardInput(), 'mouse', MouseInput(), 'eyes', EyelinkInput)...
     ,'startDate', []...
     );
 
@@ -17,6 +16,10 @@ this = Object...
     , propertiesfromdefaults(defaults, 'params', varargin{:})...
     , public(@run)...
     );
+
+if ~isfield(this.params, 'input')
+    this.params.input', struct('keyboard', KeyboardInput(), 'mouse', MouseInput(), 'eyes', EyelinkInput());
+end
 
     function done = getTrialsDone
         done = trialsDone_;
@@ -88,7 +91,9 @@ this = Object...
                 dump(newParams, params.log, 'params');
                 dump(result, params.log)
 
-                this.trials.result(trial, result);
+                if ~isfield(result, 'err') || isempty(result.err)
+                    this.trials.result(trial, result);
+                end
             end
 
             %finally dump information about this run

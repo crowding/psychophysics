@@ -69,6 +69,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         
         n_frames_ = size(from_coords_, 2);
         
+        process_.reset();
+        
         prepared_ = 1;
 
         releaser = @release;

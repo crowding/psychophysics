@@ -3,6 +3,7 @@ function this = MessageTrial(varargin)
     key = 'Space';
     color = [0 0 0];
 
+    persistent init__;
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)
@@ -27,7 +28,7 @@ function this = MessageTrial(varargin)
         main.go(params);
         
         function endTrial(h)
-            result = struct('success', 1, 'keypress', 1);
+            result = struct('success', 1);
             g.setVisible(0); 
             r.set(main.stop, h.refresh + 1); %let a blank frame draw before stopping
         end

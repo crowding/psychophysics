@@ -12,6 +12,8 @@ set_ = 0;
 log = @noop;
 
 varargin = assignments(varargin, 'cwFn', 'cwThreshold', 'ccwFn', 'ccwThreshold');
+
+persistent init__;
 this = autoobject(varargin{:});
 
     function check(s)

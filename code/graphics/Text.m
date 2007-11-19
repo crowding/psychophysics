@@ -9,6 +9,7 @@ function this = Text(varargin)
     
     varargin = assignments(varargin, 'loc', 'text', 'color');
 
+    persistent init__;
     this = autoobject(varargin{:});
 
     toPixels_ = 0;

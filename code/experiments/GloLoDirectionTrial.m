@@ -115,7 +115,7 @@ end
             timer.set(@resetCue, round(s.refresh + cueDuration / interval));
             knob.set(@cwResponse, s.knobPosition + knobTurnThreshold, @ccwResponse, s.knobPosition - knobTurnThreshold);
             keydown.set(@cwResponse, cwKeyCode);
-            keydown.set(@cwResponse, cwKeyCode);
+            keydown.set(@ccwResponse, ccwKeyCode);
         end
         
         function resetCue(s)

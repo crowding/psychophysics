@@ -17,6 +17,7 @@ function this = CircularMotionProcess(varargin)
 
     counter_ = [0]; %counts how many of each target have been shown
 
+    persistent init__;
     this = autoobject(varargin{:});
 
 %-----

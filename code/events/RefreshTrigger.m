@@ -11,6 +11,7 @@ fn = @noop;
 log = @noop;
 
 %----- public interface -----
+persistent init__;
 this = autoobject(varargin{:});
 
 %----- methods -----
@@ -45,13 +46,14 @@ this = autoobject(varargin{:});
         % fn:    the function to call. If not given, unsets the trigger.
         % valid: if true, a valid eye position sample must be present to pass the
         %        call.
-        if nargin < 2
+        if ~isnumeric(refresh_)
+            error('refreshTrigger:badInput', 'input 2 must be numeric');
+        elseif nargin < 2
             isSet = 0;
         else
             refresh = refresh_;
             fn = fn_;
             valid = exist('valid_', 'var') && valid_;
-            
             isSet = 1;
         end
     end

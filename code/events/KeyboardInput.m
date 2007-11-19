@@ -3,6 +3,7 @@ function this = KeyboardInput(varargin)
     %single liner test/profile:
     %a = KeyboardInput; r = a.init(struct()); r2 = a.begin(struct()); for i = 1:10000; k = a.input(struct()); end; r2(); r();
 
+    persistent init__;
     this = autoobject(varargin{:});
     
     device = [];

@@ -7,8 +7,11 @@ function this = KnobDown(varargin)
     varargin = assignments(varargin, 'fn');
     if ~isempty(fn) && isempty(set_)
         set_ = 1;
+    elseif isempty(set_)
+        set_ = 0;
     end
-    
+
+    persistent init__;
     this = autoobject(varargin{:});
     
     function set(fn_)

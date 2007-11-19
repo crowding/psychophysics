@@ -1,6 +1,7 @@
 function this = MouseInput(varargin)
     %handles mouse input.
 
+    persistent init__;
     this = autoobject(varargin{:});
     
     window_ = [];

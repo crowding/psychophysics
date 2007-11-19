@@ -15,6 +15,7 @@ evtable = cell(size(last_));
 
 log = @noop;
 
+persistent init__;
 this = autoobject(varargin{:});
 
 if nargin >= 2
@@ -62,7 +63,11 @@ end
             if isnumeric(char)
                 evtable{char} = deal(fn);    
             elseif ischar(char) | iscell(char) | islogical(char)
-                evtable{KbName(char)} = deal(fn);
+                if iscell(fn)
+                    [evtable{KbName(char)}] = fn{:};
+                else
+                    [evtable{KbName(char)}] = deal(fn);
+                end
             else
                 error('KeyDown:badarg', 'bad argument');
             end

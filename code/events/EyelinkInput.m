@@ -5,6 +5,7 @@ function this = EyelinkInput(varargin)
     missingSampleCount = 0;
     goodSampleCount = 0;
     
+    persistent init__;
     this = autoobject(varargin{:});
     
     slowdown_ = [];
