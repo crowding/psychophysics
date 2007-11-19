@@ -41,6 +41,7 @@ function [release, params] = init(params)
     PsychHID('GiveMeReports', device);
     position = 0;
     button = 0;
+    setBrightness(0);
     release = @noop;
 end
 

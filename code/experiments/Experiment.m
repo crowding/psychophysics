@@ -116,7 +116,7 @@ end
         e = [];
         try
             [stat, host] = system('hostname');
-            if ~isempty(strfind(host, 'pastorianus'))  && (~isfield(params, 'dummy') || ~params.dummy)
+            if ~isempty(strfind(host, 'pastorianus')) && (~isfield(params, 'input') || isfield(params.input, 'eyes')) && (~isfield(params, 'dummy') || ~params.dummy)
                 switchscreen('videoIn', 2, 'videoOut', 1, 'immediate', 1);
                 theRun.run();
             else
@@ -124,7 +124,7 @@ end
             end
         catch
             theRun.err = lasterror;
-            if ~isempty(strfind(host, 'pastorianus')) && ~params.dummy
+            if ~isempty(strfind(host, 'pastorianus')) && (~isfield(params, 'input') || isfield(params.input, 'eyes')) && (~isfield(params, 'dummy') || ~params.dummy)
                 switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
             end
         end
