@@ -1,7 +1,7 @@
 function this = KnobAdjustmentTrialGenerator(varargin)
     %Logic/sequencing for doing adjustments.
     
-    blocksize = 18;
+    blocksize = 10;
     
     base = KnobAdjustmentTrial();
     running = 1;
@@ -51,6 +51,8 @@ function this = KnobAdjustmentTrialGenerator(varargin)
             adjustments(index) = {[]};
             
             base = trial;
+            
+            cons = velocity(index) * dx(index) > 0
             
             if mod(index, blocksize) == 1
                 trial = MessageTrial('message', sprintf('Trial %d/%d.\n Move the knob to adjust the position of the flash.\n Press to continue', index, numel(initialBarPhaseDisplacement)));

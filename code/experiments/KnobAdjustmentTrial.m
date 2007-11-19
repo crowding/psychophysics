@@ -55,7 +55,6 @@ function this = KnobAdjustmentTrial(varargin)
         barPhase = motion.getPhase() + barPhaseDisplacement;
         barPhase = barPhase(1);
         motionPhase = motion.getPhase();
-        [barPhase motionPhase barOnset motion.getT() motion.getDphase()]
         
         
         interval = params.cal.interval;
