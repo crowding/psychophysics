@@ -33,7 +33,7 @@ end
 
 [s, w] = system('hostname');
 if strfind(w, 'pastorianus')
-    addpath('/Users/peterm/work/eyetracking/trunk/switchbox/shadow', '/Users/peterm/work/eyetracking/trunk/switchbox');
+    addpath('/Users/peter/eyetracking/switchbox/shadow', '/Users/peter/eyetracking/switchbox');
 end
 
 function p = cleanpath(p)

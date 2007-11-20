@@ -1,6 +1,14 @@
 function i = switchscreen(varargin)
-    %an initializer that switches the specified video port on the the
-    %OceanMatrix video switchbox and switches back when done.
+%An initializer that switches the specified video port on the the
+%OceanMatrix video switchbox and switches back when done. Takes these 
+%named options (defaults in parentheses):
+%         'videoOut (1) The output port.
+%         'videoIn', (1) The input port.
+%         'immediate' (0) Switch immediately instead of making an initializer.
+%         'port', (2) Which serial port.
+%         'portconfig', ('9600,n,8,1') The serial port configuration.
+%         'machineNumber' (1) The address of the OMX.
+
     params = struct ...
         ( 'videoOut', 1 ...
         , 'videoIn', 1 ...
@@ -28,6 +36,7 @@ function i = switchscreen(varargin)
             comm('open', params.port, params.portconfig);
             r = @release;
             function release()
+                comm('purge', params.port);
                 comm('close', params.port);
             end
         end
@@ -90,7 +99,7 @@ function i = switchscreen(varargin)
         comm('purge', params.port);
         str = todevice + [command, input, output, params.machineNumber];
         comm('write', params.port, str);
-        WaitSecs(0.1);
+        pause(0.1);
         resp = comm('read', params.port, 4);
 
         if length(resp) == 4
