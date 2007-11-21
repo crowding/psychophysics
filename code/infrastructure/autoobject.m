@@ -6,6 +6,8 @@ function this = autoobject(varargin)
     %property__ and method__ carry around. Thus the subfunction and the
     %one-liner-ism here, as well as the recycling of variable names :-/
     
+    %Or maybe not. Matlab 7.4 kills this behavior. So much for that.
+
     %VERY FUCKING SNEAKY HERE! MATLAB's restriction on adding variables to
     %a static workspace apparently does not extend to persistent variables.
     %Therefore if we want to cache a value with a calling function and have
@@ -13,12 +15,11 @@ function this = autoobject(varargin)
     %recompiled) we can just stuff it in a persistent variable using
     %evalin!
     this = evalin('caller', 'whos(''init__'')');
-
-    %Buh. So much for that. Matlab 7.4 kills this behavior.
     if isempty(this)
         error('add a ''persistent init__;'' declaration before the call to autoobject');
     end
     %evalin('caller', 'persistent init__;');
+    
     this = evalin('caller', 'init__;');
     
     if isempty(this)

@@ -13,6 +13,13 @@ function this = LabJackUE9Test(varargin)
     %
     % Nothing special about these--just pins I'm not using in my
     % application.
+    %
+    % There are also some 'special' tests, which either require different
+    % connections or are destructive (erasing bootup params, memory, etc.)
+    %
+    % To run a special test, do
+    %
+    % runTests(LabJackUE9Test(), 'specialTestName');
 
     debug = 0; %pass debug = 1 to see the bytes go by.
     host = '100.1.1.3'; %fill in your host here...
@@ -24,7 +31,7 @@ function this = LabJackUE9Test(varargin)
     
     function initializer = init()
         %For semi-independent testing, must open/close the labjack for every test and reset pnet
-        initializer = joinResource(@resetPnet, lj.init());
+        initializer = joinResource(@resetPnet, lj.init);
     end
 
     function [release, params] = resetPnet(params)
@@ -160,32 +167,32 @@ function this = LabJackUE9Test(varargin)
         %set both to input
         r = lj.bitOut(0, 0, 0);
         assertIsEqual(r.channel, 'FIO0');
-        assertIsEqual(r.dir, 0);
+        assertIsEqual(r.dir, 'in');
         
         r = lj.bitOut(1, 0, 0);
         assertIsEqual(r.channel, 'FIO1');
-        assertIsEqual(r.dir, 0);
+        assertIsEqual(r.dir, 'in');
         
         r = lj.bitOut('FIO0', 1, 0);
         assertIsEqual(r.channel, 'FIO0');
-        assertIsEqual(r.dir, 1);
+        assertIsEqual(r.dir, 'out');
         assertIsEqual(r.state, 0);        
     end
 
     function testBitIO()
         %round trip test: assume CIO0 is connected to MIO2.
         %set both to input
-        lj.bitOut('CIO0', 0, 0);
-        lj.bitOut('CIO2', 0, 0);
+        lj.bitOut('CIO0', 'in', 0);
+        lj.bitOut('CIO2', 'in', 0);
 
         %read state
         r = lj.bitIn('CIO0');
-        assertIsEqual(r.dir, 0);
+        assertIsEqual(r.dir, 'in');
         
         %set 0 to output a 0
         lj.bitOut('CIO0', 1, 0);
         r = lj.bitIn('CIO0');
-        assertIsEqual(r.dir, 1);
+        assertIsEqual(r.dir, 'out');
         assertIsEqual(r.state, 0);
 
         %set channel to to output a 1
@@ -195,7 +202,7 @@ function this = LabJackUE9Test(varargin)
 
         %check connection to channel 1
         r = lj.bitIn('CIO2');
-        assertIsEqual(r.dir, 0);
+        assertIsEqual(r.dir, 'in');
         assertIsEqual(r.state, 1);
         
         lj.bitOut('CIO0', 1, 0);
@@ -289,11 +296,75 @@ function this = LabJackUE9Test(varargin)
     end
 
 %% TimerCounter
-    function specialTestTimerCounter()
+    function testTimerCounter()
+        %Without running any tests, the best we can do is reading the
+        %system timer/counter.
+        
+        %Will output on FIO1 and FIO2.
+        %first, the bare command reads the timer-counter configuration.
+        r = lj.timerCounter();
+
+        assert(isfield(r, 'Timer0'));
+        assert(isfield(r, 'Counter1'));
+        
+        %make them count up at 100 Hz
+        r = lj.timerCounter...
+            ( 'NumTimers', 2 ...
+            , 'Timer0.Mode', 'SystemTimerLow' ...
+            , 'Timer1.Mode', 'SystemTimerHigh' ...
+            );
+        
+        value1 = double(r.Timer0) + 65536*double(r.Timer1);
+        
+        WaitSecs(1);
+        
+        r2 = lj.timerCounter();
+        value2 = double(r2.Timer0) + 65536*double(r2.Timer1);
+        
+        lj.timerCounter('NumTimers', 0);
+        
+        assertClose(value2-value1, 750000);
+    end
+    
+    function specialTestTimerStop()
+        %For this test FIO2, 1, 0 all need to be ganged together.
+        %To run this test, 
+        %
+        %>> runTests(LabJackUE9Test(), 'SpecialTestTimerStop')
+        
+        %This clarifies some behavior on timer stopping.
+
+        lj.timerCounter('NumTimers', 0);
+        
+        lj.portOut('FIO', [1 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]); %ouput low to begin
+        
+        r = lj.timerCounter...
+            ( 'NumTimers', 2 ...
+            , 'Counter0Enabled', 1 ...
+            , 'UpdateReset.Counter0', 1 ...
+            , 'TimerClockBase', 'K750' ...
+            , 'TimerClockDivisor', 75 ...
+            , 'Timer0.Mode', 'Frequency' ...
+            , 'Timer0.Value', 50 ...           %1Khz
+            , 'Timer1.Mode', 'TimerStop' ...
+            , 'Timer1.Value', 12 ...         %waits for 120 
+            );
+        
+        WaitSecs(0.2);
+        r2 = lj.timerCounter('Timer1.Value', 20, 'Timer0.Value', 50)
+        WaitSecs(0.3);
+        r3 = lj.timerCounter()
+        r4 = lj.timerCounter('NumTimers', 0);
+        
+        assertIsEqual(r2.Counter0, 11);
+    end
+
+    function secialTestTimerCounter()
+        %older test, needs FIO2<->FIO0 and FIO3<->FIO2
         %For this test FIO0 needs to connect to FIO2 and FIO1 to FIO3.
         %This is therefore a special test, since I need all the timer lines
         %in my rig.
-        
+                
         %first, the bare command reads the timer-counter configuration.
         r = lj.timerCounter();
 
@@ -312,11 +383,10 @@ function this = LabJackUE9Test(varargin)
             ( 'NumTimers', 1 ...
             , 'Counter0Enabled', 1 ...
             , 'UpdateReset.Counter0', 1 ...
-            , 'Timer0.mode', 'FirmwareCounter' ...
+            , 'Timer0.Mode', 'FirmwareCounter' ...
             , 'Timer0.value', 0 ...
             );
         
-
         %Now toggle FIO2 two times and FIO3 three times.
         for i = 1:2
             lj.bitOut('FIO2', 1, 0);

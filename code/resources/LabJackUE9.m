@@ -1,24 +1,28 @@
 function this = LabJackUE9(varargin)
-%persistent init__;
 %An object that interfaces to the LabJack UE9 over TCP.
+%
+%Type 'hel LabJackUE9' to see a list of properties and methods.
+
 %hey here's the command to see what's goping on behind the scenes!
 %sudo tcpdump -i en1 -X port 52360 or port 52361
 
 host = '100.1.1.3'; %Address of the device.
-portA = 52360;
-portB = 52361;
-open = 0; %Are we presently open?
-readTimeout = 0.2;
-writeTimeout = 0.2;
-discoveryTimeout = 0.2;
-debug = 1;
-maxBacklog = 4096;   %how many orphan samples to keep
+portA = 52360; %The control command port
+portB = 52361; %The streaming port
+readTimeout = 0.2; %the TCP read timeout in seconds.
+writeTimeout = 0.2; %the TCP write timeout in seconds.
+discoveryTimeout = 1; %the UDP discovery timeout in seconds.
+debug = 0; %If set, will print out a hex dump of all communications
+debugstream = 0; %controls stream debugging separately
+maxBacklog = 4096;   %how many orphan samples to keep during streaming
 maxOutOfSync = 0.02; %if sync drifts by more than this many seconds,
-                     %issue a warning at the end of an AInScan.
+                     %issue a warning at stream stop.
+
+open_ = 0; %Indicates whether we are open.
 
 LE_ = struct('littleendian', 1);
 
-%Calibration params. These are copied from my personal labjack. Yalues from
+%Calibration params. These are copied from my personal labjack. Values from
 %your labjack will be will be loaded at initialization.
 calibration.ADCUnipolar = cell(1,4);
 calibration.ADCUnipolar{1,1}.slope = 7.7561940997839e-05;
@@ -55,7 +59,7 @@ calibration.ADCBipolarHighRes.offset = -2.3283064365387e-10;
 a_ = []; %TCP connection port handle
 b_ = [];
 
-persistent init__;
+persistent init__; %#ok
 this = autoobject(varargin{:});
 
     ERRORCODE_ =    enum(uint8(0) ...
@@ -99,21 +103,14 @@ this = autoobject(varargin{:});
         , 'INVALID_POWER_SETTING',  81 ...
         , 'PLL_NOT_LOCKED',  82 ...
         );
-        
-
-    function setOpen(o)
-        if (o ~= open)
-            error('LabJackUE9:ReadOnlyProperty', 'use the initializer to open the device.');
-        end
-    end
-
+    
     function setReadTimeout(t)
-        assertNotOpen();
+        assertNotOpen_();
         readTimeout = t;
     end
 
     function setWriteTimeout(t)
-        assertNotOpen();
+        assertNotOpen_();
         readTimeout = t;
     end
 
@@ -247,7 +244,10 @@ this = autoobject(varargin{:});
             size = pnet(params.socket, 'readpacket');
             while size
                 [commandNo, payload] = readPacket(params.socket);
-                discovery(end+1) = frombytes(payload, COMMCONFIG_COMMAND_.response);
+                discovery(end+1) = frombytes(payload, COMMCONFIG_COMMAND_.response); %#ok, 
+                %since I don't know how far it will grow, preallocation is pointless!
+                %fuckin' MATLAB with no vectors or normal data
+                %structures...
                 discovery(end) = flipaddress_(discovery(end));
                 size = pnet(params.socket, 'readpacket');
             end
@@ -506,7 +506,7 @@ this = autoobject(varargin{:});
             , 'TimerB',             uint16(0)...
             , 'TimerC',             uint16(0)...
             )...
-        );
+        ); %#ok
 
     function r = feedback(varargin)
         %The feedback command can read or write practically everything.
@@ -612,7 +612,7 @@ this = autoobject(varargin{:});
             , 'reserved1',          false...
             , 'AIN',                uint16(zeros(1, 16))...
             )...
-        );
+        ); %#ok
 
     function r = feedbackAlt(varargin)
         %Like 'Feedback' except that there is a 'AINChannelNumber' parameter that
@@ -671,9 +671,9 @@ this = autoobject(varargin{:});
         , 'AnalogOut',          5 ...
         );
     
-    SINGLEIO_DIR_ = struct ...
-        ('in',  0 ...
-        ,'out', 1 ...
+    SINGLEIO_DIR_ = enum(false ...
+        , 'in',  0 ...
+        , 'out', 1 ...
         );
     
     DIGITAL_IO_CHANNEL_ = enum(uint8(0) ...
@@ -708,7 +708,7 @@ this = autoobject(varargin{:});
         , 'format', struct...
             ( 'iotype',     SINGLEIO_IOTYPE_ ...
             , 'channel',    DIGITAL_IO_CHANNEL_ ...
-            , 'dir',        false ...       %false for input, true for output
+            , 'dir',        SINGLEIO_DIR_ ...       %false for input, true for output
             , 'reserved0',  false(1, 7) ...
             , 'state',      false ...
             , 'reserved1',  false(1, 23) ...
@@ -716,7 +716,7 @@ this = autoobject(varargin{:});
         , 'response', struct...
             ( 'iotype',     SINGLEIO_IOTYPE_ ...
             , 'channel',    DIGITAL_IO_CHANNEL_ ...
-            , 'dir',        false ...
+            , 'dir',        SINGLEIO_DIR_ ...
             , 'reserved0',  false(1, 7) ...
             , 'state',      false ...
             , 'reserved1',  false(1, 23) ...
@@ -861,7 +861,7 @@ this = autoobject(varargin{:});
         %slope/offset
         [slope, offset] = findSlopeOffset_(channel, gain, resolution);
             
-        value = [double(ain(:))] .* slope(:) + offset(:);
+        value = double(ain(:)) .* slope(:) + offset(:);
         value = reshape(value, size(ain));
     end
 
@@ -1067,7 +1067,7 @@ this = autoobject(varargin{:});
 
 %% TimerCounter
     TIMERCOUNTER_TIMERSPEC_ = struct...
-        ( 'mode', enum(uint8(0)...
+        ( 'Mode', enum(uint8(0)...
             , 'PWM16',                      0 ...
             , 'PWM8',                       1 ...
             , 'Rising32',                   2 ...
@@ -1078,12 +1078,12 @@ this = autoobject(varargin{:});
             , 'Frequency',                  7 ...
             , 'Quadrature',                 8 ...
             , 'TimerStop',                  9 ...
-            , 'SystemTimerLowRead',         10 ...
-            , 'SystemTimerHighRead',        11 ...
+            , 'SystemTimerLow',         10 ...
+            , 'SystemTimerHigh',        11 ...
             , 'Rising16',                   12 ...
             , 'Falling16',                  13 ...
             ) ...
-        , 'value', uint16(0)...
+        , 'Value', uint16(0)...
         );
 
     TIMERCOUNTER_COMMAND_ = struct...
@@ -1096,9 +1096,9 @@ this = autoobject(varargin{:});
             , 'Counter1Enabled', false ...
             , 'reserved0', false(1, 2)...
             , 'UpdateConfig', false ...
-            , 'TimerClockBase', enum(uint8(0)...
+            , 'TimerClockBase', enum(uint8(1)...
+                , 'M48', 1 ...
                 , 'K750', 0 ...
-                , 'System', 1 ...
                 )...
             , 'UpdateReset', struct ...
                 ( 'Timer0', false ...
@@ -1148,8 +1148,8 @@ this = autoobject(varargin{:});
         %unless in low power mode). Defaults to the system clock
         %
         %If using any of the above, 'UpdateConfig' will be set for you (so if
-        %setting the clock base, also enable the timers and counters in the
-        %same command!)
+        %setting the clock base, also enable the timers and counters and set\
+        %the timer modes in the same command!)
         %
         %To update the timer mode pass a value to 'TimerX.Mode' where X is
         %from 0 to 5. The mode can be an integer or a name from the enumeration:
@@ -1188,18 +1188,25 @@ this = autoobject(varargin{:});
         args = namedargs(varargin{:});
         
         if any(isfield(args, {'NumTimers', 'Counter0Enabled', 'Counter1Enabled', 'TimerClockDivisor'})) && ~isfield(args, 'UpdateConfig')
-            args.UpdateConfig = 1;
+            packet.UpdateConfig = 1;
         end
         
         for i = 0:5
             tname = sprintf('Timer%d', i);
-            if isfield(args, tname) && (~isfield(args, 'UpdateReset') || ~isfield(args.UpdateReset, tname));
-                args.UpdateReset.(sprintf('Timer%d', i)) = 1;
+            if isfield(args, tname)
+                if isfield(args.(tname), 'Mode')
+                    packet.NumTimers = i+1;
+                    packet.UpdateConfig = 1;
+                end
+                if isfield(args.(tname), 'Value')
+                    packet.UpdateReset.(tname) = 1;
+                end
             end
         end
-        args = namedargs(packet, args);
         
-        r = roundtrip(TIMERCOUNTER_COMMAND_, args);
+        packet = namedargs(packet, args);
+        
+        r = roundtrip(TIMERCOUNTER_COMMAND_, packet);
         r = rmfield(r, 'reserved0');
     end
 
@@ -1250,7 +1257,6 @@ this = autoobject(varargin{:});
     warnDataLoss_ = 0;
     warnSyncLoss_ = 0;
     
-    wrapping_ = 0;
     serialOffset_ = 0;
     
     maxSyncLoss_ = 0;
@@ -1419,9 +1425,9 @@ this = autoobject(varargin{:});
 %% StreamStop
 
     function [r, lostdata] = streamStop()
-        if ~configured_
-            error('LabJackUE9:notConfigured', 'Stream must be configured before use');
-        end
+        %if ~configured_
+        %    error('LabJackUE9:notConfigured', 'Stream must be configured before use');
+        %end
         
         pnet(a_, 'write', uint8([176 176]));
         if debug
@@ -1434,7 +1440,7 @@ this = autoobject(varargin{:});
         if numel(r) < 4
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
-        if (r(1) ~= 177)
+        if (r(2) ~= 177)
             error('LabJackUE9:mismatchedCommandNumbers', 'mismatched command response form streamStop');
         end
         s = sum(double(r([2 3 4])));
@@ -1479,7 +1485,7 @@ this = autoobject(varargin{:});
 
         callTime = GetSecs();
         alldata = double(pnet(b_, 'read', 65504, 'uint8', 'noblock'));
-        if debug
+        if debugstream && ~isempty(alldata)
             disp(strcat('+++ ', hexdump(alldata)));
         end
         
@@ -1723,13 +1729,13 @@ this = autoobject(varargin{:});
         );
 
     function c = loadCalibration()
-        for i = 0:4
-            block(i+1) = readMem(i);
-            block(i+1).data = block(i+1).data(:)';
+        for i = 4:-1:0
+            block(i+1) = readMem(i); %#ok, since growing downwards
+            block(i+1).data = block(i+1).data(:)'; %#ok
         end
         
         c = frombytes([block.data], CALIBRATION_FORMAT_, 'littleendian', 1);
-        c = rmfield(c, strcat('reserved', ['012345']'));
+        c = rmfield(c, strcat('reserved', ('012345')'));
         c = unfix(c);
         calibration = c;
         updateSpecialCalibrations_();
@@ -1747,7 +1753,7 @@ this = autoobject(varargin{:});
                 case 'cell'
                     c = cellfun(@unfix, c, 'UniformOutput', 0);
                 otherwise
-                    c = c;
+                    %c = c;
             end
         end
     end
@@ -1766,7 +1772,7 @@ this = autoobject(varargin{:});
            ) ...
         );
     
-    function writeMem(blocknum, data)
+    function response = writeMem(blocknum, data)
         if blocknum < 0 || blocknum > 7
             error('LabJackUE9:writeMem', 'invalid block number')
         end
@@ -1800,7 +1806,10 @@ this = autoobject(varargin{:});
         response = frombytes(response, command.response, LE_, varargin{:});
     end
     
-    function initializer = init(varargin)
+    function [release, params] = init(varargin)
+        %It is preferred that you you use this with REQUIRE instead of open()
+        %and close(). See the docs on 'require'.
+        assertNotOpen_();
         
         initializer = joinResource...
             ( openPort(portA, @setA)...
@@ -1810,7 +1819,7 @@ this = autoobject(varargin{:});
             , @getCal ...
             );
 
-        initializer = currynamedargs(initializer, varargin{:});
+        [release, params] = initializer(namedargs(varargin{:}));
         
         function opener = openPort(port, setter)
             opener = @i;
@@ -1845,11 +1854,11 @@ this = autoobject(varargin{:});
         end
         
         function [release, params] = setOpen(params)
-            open = 1;
+            open_ = 1;
             configured_ = 0;
             release = @close;
             function close()
-                open = 0;
+                open_ = 0;
                 configured_ = 0;
             end
         end
@@ -1869,16 +1878,27 @@ this = autoobject(varargin{:});
         end
     end
 
+    closer_ = @noop;
+    function params = open(varargin)
+        %Opens the device. Deprecated. Use INIT/REQUIRE in your programs.
+        [closer_, params] = init(varargin);
+    end
 
+    function close()
+        %Closes an open device, if is it open
+        r = closer_;
+        closer_ = @noop;
+        r();
+    end
 
     function assertOpen_()
-        if ~open
+        if ~open_
             error('LabJackUE9:DeviceNotOpen', 'Device must be opened. Use the initializer (see HELP REQUIRE.)');
         end
     end
 
     function assertNotOpen_()
-        if open
+        if open_
             error('LabJackUE9:DeviceOpen', 'Can''t do that while device is open');
         end
     end
@@ -1966,13 +1986,10 @@ this = autoobject(varargin{:});
             commandNo = xCommandNo;
             
         else
-            xData = [];
             if debug
                 disp(strcat('<<< ', hexdump([in data])));
             end
         end
-        
-            
     end
 
     
