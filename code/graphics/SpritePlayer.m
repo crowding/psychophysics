@@ -1,5 +1,5 @@
-function this = SpritePlayer(patch_, process_, log_)
-% function this = SpritePlayer(patch_, process_, log_)
+function this = SpritePlayer(varargin)
+% function this = SpritePlayer(patch, process, log)
 %
 % Working from a Patch and a location process, displays many concurrent,
 % overlapping copies of the movie shown in the Patch. The sprite is based
@@ -7,24 +7,28 @@ function this = SpritePlayer(patch_, process_, log_)
 % location to that requested. The location will be logged using the log
 % function given.
 %
-% A Location Process has a single method [coords] = process_.next().
+% A Location Process has a single method [coords] = process.next().
 % This method gives [x y t angle alpha] coordinates of the next appearance
 % of the sprite. Each successive call to next() gives another appearance of
 % the sprite -- the time coordinate must be non decreasing.
 % 
-% log_ gives a logging function. Each time (nominal, based on input, and
-% actual, based on the pixel and time grid) is counted.
+% log gives a logging function. Each time (nominal, based on input, and
+% actual, based on the pixel and time grid) is counted. TODO: this is not
+% written...
 
-this = final(...
-        @init, @update, @draw, @bounds, @loc, ...
-        @getVisible, @setVisible, @getDrawn, @setDrawn, @finishTime);
+patch = [];
+process = [];
+log = [];
+visible = 0; % a misnomer: setting visible means "start playing"
+drawn = 1; %by default, is drawn.
 
-visible_ = 0; % a misnomer: setting visible means "start playing"
-drawn_ = 1; %by default, is drawn.
+varargin = assignments(varargin, 'patch', 'process', 'log');
+
+persistent init__; %#ok
+this = autoobject(varargin{:});
+
 prepared_ = 0;
-
 toPixels_ = [];
-
 refreshCount_ = 0;  %which refresh we are about to do.
 onset_ = 0;         %the time to show the first frame
                     %(if displaying a sprite on refresh t=0)
@@ -65,11 +69,11 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
 
         %the textures...
         [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
-            gl_textures(patch_, params.window, params.cal);
+            gl_textures(patch, params.window, params.cal);
         
         n_frames_ = size(from_coords_, 2);
         
-        process_.reset();
+        process.reset();
         
         prepared_ = 1;
 
@@ -78,7 +82,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         advanceQueue(); %preload for the stimulus onset
         
         require(screenGL(params.window), @initglparams);
-        function initglparams(dummy)
+        function initglparams(unused) %#ok
             global GL;
             glDisable(GL.DEPTH_TEST);
             glMatrixMode(GL.PROJECTION);
@@ -100,7 +104,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %Deallocates all textures, etc. associated with the prepared
             %movie.
 
-            visible_ = 0;
+            visible = 0;
             prepared_ = 0;
 
             toPixels_ = [];
@@ -124,7 +128,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     end
 
     function update(frames)
-        if visible_
+        if visible
             refreshCount_ = refreshCount_ + frames;
         end
     end
@@ -139,6 +143,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     end
 
     function advanceQueue()
+        %{
         if head_ > tail_
             l1 = tail_ + 1; r1 = head_ - 1;
             l2 = 1; r2 = 0;
@@ -146,6 +151,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             l1 = tail_ + 1; r1 = max_sprites_;
             l2 = 1; r2 = head_ - 1;
         end
+        %}
         
         latestShown = refreshCount_;
         earliestShown = refreshCount_ - n_frames_ + 1;
@@ -171,7 +177,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             %the clock value. This is so that identical frame sequences are
             %shown for identical stimuli.
 
-            [x, y, t, a, color] = process_.next();
+            [x, y, t, a, color] = process.next();
             
             if isnan(t)
                 break;
@@ -196,7 +202,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     function draw(window, next)
         % was (1938 calls, 8.300 sec) with colors
         % was (2665 calls, 11.071 sec) still with colors
-        if ~visible_
+        if ~visible
             return
         end
 
@@ -224,7 +230,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             l2 = 1; r2 = head_ - 1;
         end
 
-        if ~drawn_
+        if ~drawn
             return;
         end
         
@@ -255,7 +261,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     end
 
     function v = getVisible()
-        v = visible_;
+        v = visible;
     end
 
     function stimOnset = setVisible(v, next)
@@ -266,7 +272,7 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         %        refresh for many movies)
         % ---
         % onset: the stimulus onset time.
-        visible_ = v;
+        visible = v;
         
         if v
             %starts at the first frame -- should already be initialized to
@@ -287,21 +293,21 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     end
 
     function setDrawn(s)
-        drawn_ = s;
+        drawn = s;
     end
 
     function d = getDrawn()
-        d = drawn_;
+        d = drawn;
     end
 
     function b = bounds()
         %ask the process for a "bounds" based on what refresh count we're
         %on. This depends on whether the motion process has a notion of
         %bounds.
-        b = process_.bounds(refreshCount_ * interval_);
+        b = process.bounds(refreshCount_ * interval_);
     end
 
     function l = loc()
-        l = process_.loc(refreshCount_ * interval_);
+        l = process.loc(refreshCount_ * interval_);
     end
 end

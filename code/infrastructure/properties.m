@@ -7,6 +7,16 @@ function this = properties(varargin)
 %
 %See also public, gettername, settername.
 
+persistent warned;
+if isempty(warned) 
+    warned = struct();
+end
+parent = evalin('caller', 'mfilename');
+if ~isfield(warned, parent)
+    warning('properties:deprecated', 'properties is obsolete, switch to autoobject');
+    warned.(parent) = 1;
+end
+
 %make the core structure
 if mod(nargin, 2)
     error('properties:illegalArgument', 'expected an even number of arguments');

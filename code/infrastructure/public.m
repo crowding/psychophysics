@@ -14,6 +14,16 @@ function this = public(varargin)
 
 %Start with a 'final' object. But we keep it in this closure, and will
 %instead return an indirection pointing to the core.
+persistent warned;
+if isempty(warned) 
+    warned = struct();
+end
+parent = evalin('caller', 'mfilename');
+if ~isfield(warned, parent)
+    warning('public:deprecated', 'public is obsolete, switch to autoobject');
+    warned.(parent) = 1;
+end
+
 this = final(varargin{:});
 this = publicize(this);
 

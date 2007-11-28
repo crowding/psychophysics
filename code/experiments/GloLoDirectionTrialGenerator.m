@@ -26,6 +26,7 @@ function this = GloLoDirectionTrialGenerator(varargin)
     
     results = {};
 
+    persistent init__;
     this = autoobject(varargin{:});
     
     which_ = [];

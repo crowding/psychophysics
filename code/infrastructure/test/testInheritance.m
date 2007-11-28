@@ -1,26 +1,11 @@
-function this = testInheritance
+function this = testInheritance(varargin)
 
-this = inherit(TestCase()...
-    ,public(...
-    @testNonOverride...
-    ,@testOverride...
-    ,@testDelegateToParent...
-    ,@testDelegateToChild...
-    ,@testDelegateToParentToOverridingChild...
-    ,@testOverrideDelegates...
-    ,@testDelegateToGrandparent...
-    ,@testDelegateToGrandchild...
-    ,@testDelegateToGrandparentToGrandchild...
-    ,@testParents...
-    ,@testPropertyMethod...
-    ,@testMethodMethod...
-    ,@testVersion...
-    ,@testInheritObjects...
-    ,@testGrandchildOverridesChild...
-    ));
+%persistent init__; %should have but don't...
+this = inherit(TestCase(), autoobject(varargin{:}));
 
-    function this = Parent
-        this = public(@bar,@foo,@quux,@boffo,@yip,@gravorsh);
+    function this = Parent(varargin);
+        persistent init__;
+        this = autoobject(varargin{:});
 
         function r = foo
             r = 'Parent';
@@ -47,8 +32,9 @@ this = inherit(TestCase()...
     end
 
     function this = Child
-        this = public(@bar, @baz, @quuux, @boffo, @grup, @flounce);
-        [this, parent_] = inherit(Parent(), this);
+        persistent init__;
+        this = autoobject(varargin);
+        [this, parent_] = inherit(Parent(), this); %TODO make this just object()
 
         function r = bar
             r = 'Child';
@@ -76,9 +62,9 @@ this = inherit(TestCase()...
         end
     end
 
-    function this = Grandchild
-        this = public(@gravorsh, @flurbl, @flounce);
-        this = inherit(Child(),this);
+    function this = Grandchild(varargin)
+        persistent init__;
+        this = inherit(Child(),autoobject(varargin{:}));
         
         function r = gravorsh
             r = 'Grandchild';
@@ -142,19 +128,24 @@ this = inherit(TestCase()...
     end
 
     function testParents
-        %inherited objects get a 'parent__' field that makes sure you know
-        %what was inherited.
+        %For inherited objects, you can call method__ with no arguments, and
+        %the third argument out extracts the parent objects.
+        %For non-inherited obejcts, the third output is am empty cell
+        %array.
         
         obj = inherit(one, two);
-        onep = obj.parents__{1};
-        twop = obj.parents__{2};
+        
+        [tmp, tmp, p] = obj.method__();
+        onep = p{1};
+        twop = p{2};
         
         assertEquals(obj.bar(), 'two');
         assertEquals(onep.bar(), 'one');
         assertEquals(twop.bar(), 'two');
         
-        function this = one
-            this = public(@foo, @bar);
+        function this = one(varargin)
+            persistent init__;
+            this = autoobject(varargin{:});
             
             function  v = foo
                 v = 'one';
@@ -166,7 +157,8 @@ this = inherit(TestCase()...
         end
         
         function this = two
-            this = public(@bar, @baz);
+            persistent init__;
+            this = autoobject(varargin{:});
             
             function v = bar
                 v = 'two';
@@ -176,20 +168,53 @@ this = inherit(TestCase()...
                 v = 'two';
             end
         end
+        
+        non = two();
+        [tmp, tmp, p] = non.method__();
+        assertIsEqual({}, p);
     end
 
     function testPropertyMethod
-        obj = inherit(...
-            properties('one', 1, 'two', 2)...
-            ,properties('one', 100, 'three', 3)...
-            );
+        obj = inherit(a(), b());
+        function this = a
+            one = 1;
+            two = 2;
+            
+            persistent init__;
+            this = autoobject();
+        end
+        function this = b
+            one = 100;
+            three = 3;
 
+            persistent init__;
+            this = autoobject();
+        end
         assertEquals({'one', 'three', 'two'}', sort(obj.property__()));
         assertEquals(100, obj.property__('one'));
         assertEquals(2, obj.property__('two'));
         assertEquals(3, obj.property__('three'));
-    end
+        
+        [tmp, st] = obj.property__();
+        assertIsEqual(struct('one', 100, 'two', 2, 'three', 3), st);
+        
+        %now try setting properties
+        obj.property__('one', 1000);
+        obj.property__('two', 20);
+        obj.property__('three', 30);
 
+        assertEquals(1000, obj.property__('one'));
+        assertEquals(20, obj.property__('two'));
+        assertEquals(30, obj.property__('three'));
+
+        assertEquals(1000, obj.getOne());
+        assertEquals(20, obj.getTwo());
+        assertEquals(30, obj.getThree());
+        
+        [tmp, st] = obj.property__();
+        assertIsEqual(struct('one', 1000, 'two', 20, 'three', 30), st);
+        
+    end
 
     function testMethodMethod
         obj = Child();

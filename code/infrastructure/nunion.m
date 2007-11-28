@@ -1,5 +1,5 @@
 function [C, varargout] = nunion(varargin)
-%[C, IA, IB, IC, ...] = nunion(A, B, C) produces the set union of its
+%[C, IA, IB, IC, ...] = nunion(A, B, C, ...) produces the set union of its
 %arguments (which may be numbers or strings.) It can take vactors or cell
 %arrays of strings. C is the union set, and IA, etc. are the indices taken
 %from each input argument. When two inputs contain the same element, the

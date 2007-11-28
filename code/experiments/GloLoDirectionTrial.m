@@ -23,6 +23,7 @@ cwResponseKey = 'x';
 ccwResponseKey = 'z';
 knobTurnThreshold = 3;
     
+persistent init__;
 this = autoobject(varargin{:});
 
 %complicated properties take too long especially if deep-cloning

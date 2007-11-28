@@ -82,9 +82,10 @@ function dumpit(prefix, obj, printer)
 
     switch class(obj)
         case 'struct'
-
             if isfield(obj, 'property__')
-                dumpobject(prefix, obj.property__, printer);
+                [names, struct] = obj.property__();                
+                
+                %dumpobject(prefix, obj.property__, printer);
                 %we should have a field naming the constructor to
                 %call. But it could just be a bare properties thing.
                 if isfield(obj, 'version__')

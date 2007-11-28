@@ -1,5 +1,15 @@
 function obj = finalize(obj)
 
+persistent warned;
+if isempty(warned)
+    warned = struct();
+end
+parent = evalin('caller', 'mfilename');
+if ~isfield(warned, parent)
+    warning('finalize:deprecated', 'finalize is obsolete, switch to autoobject');
+    warned.(parent) = 1;
+end
+
     if ~isfield(obj, 'method__')
         error('finalize:notAnObject', 'Argument is not an object and cannot be finalized.');
     end

@@ -1,5 +1,5 @@
 function u = structunion(varargin)
-    %builds a structure that is the unino of the 
+    %builds a structure that is the union of the argument structures.
     structargs = {};
     for i = varargin
         s = i{1};

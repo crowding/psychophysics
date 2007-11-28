@@ -20,6 +20,9 @@ function this = testAutoObjects()
             , @testOverrideSetter ...
             , @testOverrideGetter ...
             , @testVararginSetMethod ...
+            , @testDumpStruct ...
+            , @testCanonicalObject ...
+            , @testSetMethod ...
             ) ...
         );
     
@@ -27,6 +30,7 @@ function this = testAutoObjects()
     function testAutoSetters()
         function [this, getter] = obj()
             propA = 1;
+            persistent init__;
             this = autoobject();
             getter = @get;
 
@@ -45,6 +49,7 @@ function this = testAutoObjects()
     function testAutoSetV()
         function [this, getter] = obj()
             v = 1;
+            persistent init__;
             this = autoobject();
             getter = @get;
 
@@ -65,6 +70,7 @@ function this = testAutoObjects()
             
             propA = 1;
 
+            persistent init__;
             this = autoobject(); %the call to autoobject must happen AFTER all variables...
 
             setter = @set;
@@ -84,6 +90,7 @@ function this = testAutoObjects()
     function testAutoProperties()
         function this = obj();
             propA = 1;
+            persistent init__;
             this = autoobject();
         end
         
@@ -97,6 +104,7 @@ function this = testAutoObjects()
 
     function testNoAutoProperties()
         function this = obj()
+            persistent init__;
             this = autoobject();
         end
         
@@ -110,6 +118,7 @@ function this = testAutoObjects()
         function this = obj(varargin)
             propB_ = 2;
             propA = 1;
+            persistent init__;
             this = autoobject();
         end
         
@@ -148,6 +157,7 @@ function this = testAutoObjects()
         %Should grab variables that are defined after...
         function this = obj(varargin)
             propA = 1;
+            persistent init__;
             this = autoobject(varargin{:});
             
             %this is plum wacky. without putting this function here, the
@@ -173,6 +183,7 @@ function this = testAutoObjects()
         %Should grab variables that are undefined, if they come before the
         %call to autoobj.
         function this = obj(propA, varargin)
+            persistent init__;
             this = autoobject(varargin{:});
         end
         
@@ -193,6 +204,7 @@ function this = testAutoObjects()
     function testAutoRoundTrip()
         function this = obj()
             propA = 1;
+            persistent init__;
             this = autoobject();
         end
 
@@ -207,6 +219,7 @@ function this = testAutoObjects()
     function testVarargin()
         function this = obj(varargin)
             propA = 1;
+            persistent init__;
             this = autoobject(varargin{:});
         end
         
@@ -217,6 +230,7 @@ function this = testAutoObjects()
     function testVararginSetMethod()
         function this = obj(varargin)
             propA = 1;
+            persistent init__;
             this = autoobject(varargin{:});
             
             function setPropA(s)
@@ -232,6 +246,7 @@ function this = testAutoObjects()
     function testBadVarargin()
         function this = obj(varargin)
             propA = 1;
+            persistent init__;
             this = autoobject(varargin{:});
         end
         
@@ -246,6 +261,7 @@ function this = testAutoObjects()
     
     function testAutoMethods()
         function this = obj()
+            persistent init__;
             this = autoobject();
             
             function f = foobar()
@@ -259,6 +275,7 @@ function this = testAutoObjects()
 
     function testNoAutoMethods()
         function this = obj()
+            persistent init__;
             this = autoobject();
         end
         
@@ -268,6 +285,7 @@ function this = testAutoObjects()
 
     function testAutoMethodsExcludesUnderscore()
         function this = obj()
+            persistent init__;
             this = autoobject();
             
             function f = baz_()
@@ -301,6 +319,7 @@ function this = testAutoObjects()
             testProp = 3;
             
             %this = inherit(autoobject(), autoobject());
+            persistent init__;
             this = autoobject();
             
             function setTestProp(n)
@@ -320,6 +339,7 @@ function this = testAutoObjects()
             testProp = 3;
             
             %this = inherit(autoobject(), autoobject());
+            persistent init__;
             this = autoobject();
             
             function n = getTestProp(n)
@@ -333,4 +353,90 @@ function this = testAutoObjects()
         assertEquals(5, o.getTestProp());
     end
     
+    function testDumpStruct
+        function this = obj()
+            propA = 3;
+            propB = 4;
+            
+            persistent init__;
+            this = autoobject();
+            
+            function setPropA(x)
+                propA = x;
+            end
+            
+            function b = getPropB()
+                b = propB + 1;
+            end
+        end
+        
+        o = obj();
+        
+        [tmp, st] = o.property__(); %#ok
+        assertIsEqual(struct('propA', 3, 'propB', 5), st);
+    end
+
+    function testCanonicalObject
+        %the second output of 'method__()' returns the 'canonical' object
+        %structure. Required for inheritance.
+        
+        function this = obj()
+            
+            propA = 3;
+            
+            persistent init__;
+            this = autoobject();
+            rmfield(this, 'getPropA');
+        end
+        
+        o = obj();
+        
+        o = rmfield(o, 'getPropA');
+        
+        [methodnames, that] = o.method__(); %#ok
+
+        assert(isfield(that, 'setPropA'));
+        assert(isfield(that, 'getPropA'));
+    end
+
+    function testSetMethod()
+        %basic requirement for inheritance. 'method__' with two arguments
+        %sets 'this' INSIDE the method...
+        
+        function this = obj();
+            
+            propA = 3;
+            
+            persistent init__;
+            this = autoobject();
+            
+            function test()
+                assertEquals(this.foo, 'bar');
+            end
+        end
+        
+        o = obj();
+        o.method__('foo', 'bar');
+        o.test();
+    end
+
+    function testSetThis();
+        function this = obj();
+            
+            propA = 3;
+            
+            persistent init__;
+            this = autoobject();
+            
+            function test()
+                assertEquals(this.foo, 'bar');
+            end
+        end
+
+        o = obj();
+        o.method__(struct('foo', 'bar'));
+        o.test();
+        [a, b] = o.method__();
+        assertIsEqual(struct('foo', 'bar'), b);
+    end
 end

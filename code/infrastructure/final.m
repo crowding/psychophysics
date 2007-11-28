@@ -3,6 +3,16 @@ function s = final(varargin)
 %designed to be inherited from, and is consequently faster than PUBLIC 
 %(losing a level of indirection.)
 
+persistent warned;
+if isempty(warned) 
+    warned = struct();
+end
+parent = evalin('caller', 'mfilename');
+if ~isfield(warned, parent)
+    warning('final:deprecated', 'final is obsolete, switch to autoobject');
+    warned.(parent) = 1;
+end
+
 %Matlab annoyance:
 %
 %fn = @(varargin) size(varargin)
@@ -19,6 +29,7 @@ function s = final(varargin)
 %treat a [0 0] cell array different from a [1 0] cell array.
 %since I want my function to work for 0 arguments as well, I have to make
 %this defense:
+
 if (numel(varargin) == 0)
     varargin = cell([1 0]);
 end

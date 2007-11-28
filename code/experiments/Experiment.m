@@ -10,16 +10,13 @@ function this = Experiment(varargin)
 %
 % Any other named arguments are stuffed into the 'params' property and will
 % be passed down into the Eyelink and Screen setup routines.
-caller = getversion(2);
 
-props = struct ...
-    ( 'trials', ShuffledTrials()...
-    , 'subject', ''...
-    , 'filename','__auto__'...
-    , 'runs', {{}} ...
-    , 'description', ''...
-    , 'caller', caller...
-    );
+trials = ShuffledTrials();
+subject = '';
+filename = '__auto__';
+runs = {{}};
+description = '';
+caller = getversion(2);
 
 params = struct ...
     ( 'logfile', '__auto__'...
@@ -27,22 +24,10 @@ params = struct ...
     , 'continuing', 0 ...
     );
 
-this = Object(...
-    Identifiable()...
-    , propertiesfromdefaults(props, 'params', params, varargin{:})...
-    , public(@run)...
-    );
+persistent init__;
+this = Object(Identifiable(), autoobject(varargin{:}));
 
-params = this.params;
-
-if isempty(this.subject)
-    this.subject = input('Enter subject initials: ', 's');
-end
-
-if ~isvarname(this.subject)
-    error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
-end
-
+%{
 %if there is a previous unfinished experiment, load it.
 pattern = [this.subject '*' this.caller.function '.mat'];
 last = dir(fullfile(env('datadir'),pattern));
@@ -71,25 +56,32 @@ if ~isempty(last) && (~isfield(params, 'continuing') || params.continuing)
     end
     x = [];
 end
+%}
 
 %note the Experiment object is not dumped to the edf-file, only the
 %ExperimentRun object.
 
-    
-    function run(params)
-        if exist('params', 'var')
-            params = namedargs(this.params, params);
-            this.params = params;
-        else
-            params = this.params;
-        end
-
-        if isfield(this.trials, 'startBlock')
-            this.trials.startBlock(); %IT ARE BEING CALLD TWICE IF CONTINUED
+    function setParams(varargin)
+        params = namedargs(params, varargin{:});
+    end
+        
+    function run(varargin)
+        if isempty(subject)
+            subject = input('Enter subject initials: ', 's');
         end
         
-        if isequal(this.filename, '__auto__')
-            fname = this.caller.function;
+        if ~isvarname(subject)
+            error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
+        end
+
+        params = namedargs(params, varargin{:});
+
+        if isfield(trials, 'startBlock')
+            this.trials.startBlock(); %IT IS CALLED TWICE IF CONTINUED?
+        end
+        
+        if isequal(filename, '__auto__')
+            fname = caller.function;
             if ~isvarname(fname)
                 error('Experiment:badCallerName'...
                     ,'Caller name %s does not make a good filename.'...
@@ -100,14 +92,14 @@ end
         end
 
         if isequal(params.logfile, '__auto__')
-            this.params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
+            params.logfile = regexprep(this.filename, '\.mat()$|(.)$', '$1.log');
         end
         
         %TODO: perhaps see if there's a per-subject config?
 
         %an total experiment can have many runs. Each run will be saved.
         theRun = ExperimentRun...
-            ( this.params...
+            ( 'params', this.params...
             , 'trials', this.trials...
             , 'subject', this.subject...
             , 'description', this.description...

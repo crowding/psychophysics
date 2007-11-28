@@ -24,6 +24,11 @@ disp(cat(2,output{:}));
         if ~exist('indent', 'var')
             indent = '';
         end
+        if all(isfield(theErr, {'file', 'name', 'line'}))
+            %handle bare stacks too
+            arrayfun(@traceframe, theErr);
+            return;
+        end
         printErrorMessage(theErr);
         %disp([indent '??? ' theErr.identifier ': ' theErr.message]);
         arrayfun(@traceframe, theErr.stack);

@@ -42,7 +42,7 @@ function this = KnobAdjustmentTrial(varargin)
     this = autoobject(varargin{:});
    
     function [params, result] = run(params)
-        
+        checkpoint();
         %we will fill out this structure
         result = struct ...
             ( 'success', 0 ...
@@ -61,7 +61,7 @@ function this = KnobAdjustmentTrial(varargin)
         
         %we use these graphics objects
         fixationPoint = FilledDisk([0 0], fixationPointSize, [0 0 0]);
-        sprites = spritePlayer(patch, motion);
+        sprites = SpritePlayer(patch, motion);
         innerBar = FilledBar...
             ( 'x', (barRadius - (barGap + barInnerLength) / 2) * cos(barPhase)...
             , 'y', -(barRadius - (barGap + barInnerLength) / 2) * sin(barPhase)...
@@ -72,10 +72,11 @@ function this = KnobAdjustmentTrial(varargin)
             , 'y', -(barRadius + (barGap + barOuterLength) / 2) * sin(barPhase)...
             , 'length', barOuterLength, 'width', barWidth...
             , 'color', params.whiteIndex, 'angle', 180/pi*barPhase);
-
+        
         %use these triggers (depending on if we have the knob)
         keyDown = KeyDown(@abort, abortKey);
         timer = RefreshTrigger();
+        
         
         if (isfield(params.input, 'knob'))
              setResponse = @setKnobResponse;
@@ -85,24 +86,32 @@ function this = KnobAdjustmentTrial(varargin)
              knobThreshold = KnobThreshold();
              triggers = {keyDown, timer, knobDown, knobThreshold};
         else
-             input = {params.input.keyboard};
-             triggers = {keyDown, timer};
              setResponse = @setKeyboardResponse;
              unsetResponse = @unsetKeyboardResponse;
+             input = {params.input.keyboard};
+             triggers = {keyDown, timer};
         end
         
         %begin the trial with a variable delay
         timer.set(@isi, 0);
         
         %make and run the main loop
+
+        %The profiler LIES and tells me this is the bottleneck when it
+        %sure ain't...
+        checkpoint();
         main = mainLoop ...
             ( 'input', input ...
             , 'triggers', triggers ...
             , 'graphics', {sprites, fixationPoint, innerBar, outerBar} ...
             );
-        
+        checkpoint();
         main.go(params);
-        
+        checkpoint();
+        clear knobDown knobThreshold triggers main barPhase motionPhase interval fixationPoint sprites innerBar outerBar keyDown timer setResponse unsetResponse input
+        checkpoint();
+        %%%PERF NOTE clearing these variables takes FOREVER for some reason --44.9/24 trials)
+
         %event handler functions
         
         function isi(s)

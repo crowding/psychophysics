@@ -1,50 +1,102 @@
 function this = autoobject(varargin)
-    %combines the duties of autoprops and automethods into one faster
-    %function (no trip through finalize necessary.)
+    %Creates an object from the calling function. Each nested defines
+    %a method, except for subfunctions ending in an underscore. Each
+    %variable defines a property, which will have automatically generated
+    %get/set methods, except for variables ending in underscores.
+    %
+    %Example:
+    %
+    %function this = increment(varargin)
+    %   value = 0;
+    %
+    %   persistent init__;
+    %   this = autoobject(varargin{:}); %makes the object.
+    %
+    %   function n = next()
+    %       value = value + 1;
+    %       n = value;
+    %   end
+    %end
+    %
+    %This function creates an object 'increment'.
+    %
+    %You can use it thus:
+    %
+    %>> i = increment('value', 14);
+    %>> i.increment()
+    %ans = 14
+    %>> i.increment()
+    %ans = 15
+    %>> i.setValue(3);
+    %>> i.increment()
+    %ans = 4
+    %
+    %YOU MUST: Include the line 'persistent init__;' and you must assign the
+    %output of autoobject to the variable 'this'.
+    %
+    %Note, persistent and global variables are treated the same way as
+    %local variables! There's no way for me to tell the difference!
     
-    %For speed I want to minimize the number of lexical scope variables that
-    %property__ and method__ carry around. Thus the subfunction and the
-    %one-liner-ism here, as well as the recycling of variable names :-/
+    %You will note that I reuse variable names like 'this' for multiple
+    %purposes here. This is becuase more variables in a workspace seem to
+    %slow down calls to function handles created in the workspace.
     
-    %Or maybe not. Matlab 7.4 kills this behavior. So much for that.
-
-    %VERY FUCKING SNEAKY HERE! MATLAB's restriction on adding variables to
-    %a static workspace apparently does not extend to persistent variables.
+    %Objects are ultimately created by passing a long string to evalin.
+    %Building hte string is time consuming; so the strings should be cached.
+    
+    %THIS WAS A SNEAKY TRICK! MATLAB's restriction on adding variables to
+    %a static workspace apparently did not extend to persistent variables.
     %Therefore if we want to cache a value with a calling function and have
     %it associated with the function (and cleared whenever the function is
     %recompiled) we can just stuff it in a persistent variable using
     %evalin!
-    this = evalin('caller', 'whos(''init__'')');
-    if isempty(this)
-        error('add a ''persistent init__;'' declaration before the call to autoobject');
-    end
-    %evalin('caller', 'persistent init__;');
+
+    %evalin('caller', 'persistent init__;'); %allowed caching of
+    %function-specific data
+
+    %BUT: So much for that. Matlab 7.4 kills this behavior so we have to
+    %require the new boilerplate line:
     
-    this = evalin('caller', 'init__;');
+    tmp = evalin('caller', 'whos(''init__'')');
+    if isempty(tmp)
+        warning('autoobject:needsCache','For better speed, add the declaration ''persistent init__;'' before the call to autoobject');
+        this = [];
+    else
+        this = evalin('caller', 'init__;');
+    end
     
     if isempty(this)
         [this, prop_names, method_names] = makeObjString...
             ( evalin('caller', 'whos()') ...
             , dbstack('-completenames') );
         version = getversion(2);
-        tmp = evalin('caller', '@(varargin) eval(''init__ = varargin;'');');
-        tmp(this, prop_names, method_names, version);
-        clear tmp;
+        if ~isempty(tmp)
+            tmp = evalin('caller', '@(varargin) eval(''init__ = varargin;'');');
+            tmp(this, prop_names, method_names, version);
+            clear tmp;
+        end
     else
         [this, prop_names, method_names, version] = this{:};
     end
+
     
     this = evalin('caller', this);
     this{2} = this{2}(@property__, @method__, version);
     this{1}(namedargs(varargin{:}), this{2});
+    tostruct = this{3};
+    setmethod = this{4};
+    setthis = this{5};
     this = this{2};
 
     %convert prop_names into a struct for speed in property access?
   
-    function value = property__(name, value)
+    function [value, s] = property__(name, value)
         switch(nargin)
             case 0
                 value = prop_names;
+                if nargout > 1
+                    s = tostruct(this);
+                end
             case 1
                 if any(strcmp(name, prop_names))
                     value = this.(getterName(name))();
@@ -60,17 +112,25 @@ function this = autoobject(varargin)
         end
     end
 
-    function method = method__(name, value)
+    function [method, canonical, parents] = method__(name, value)
         switch(nargin)
             case 0
                 method = method_names;
+                canonical = this;
+                parents = {};
             case 1
-                method = this.(name);
+                if isstruct(name)
+                    %reasigning 'this' wholesale
+                    setthis(name);
+                    this = name;
+                else
+                    method = this.(name);
+                end
             case 2
                 this.(name) = value;
+                setmethod(name, value);
         end
     end
-%}
 
 
             
@@ -142,14 +202,16 @@ function this = autoobject(varargin)
         %write a matlab program to handle more than one, and it will likely
         %break at one or zero.
         
+        %Figure out which getters/setters to synthesize and which
+        %get/set methods to call as provided
+        
         getter_names = cellfun(@getterName, prop_names, 'UniformOutput', 0);
-        getters = getter_names;
+        [getmethod_names, getmethodi] = intersect(getter_names, method_names);
         [getter_names, getteri] = setdiff(getter_names, method_names);
         setter_names = cellfun(@setterName, prop_names, 'UniformOutput', 0);
-        setters = setter_names;
         [setmethod_names, setmethodi] = intersect(setter_names, method_names);
-        [getmethod_names, getmethodi] = intersect(getter_names, method_names);
         [setter_names, setteri] = setdiff(setter_names, method_names);
+        
         
         %assignments to the new obejct can be made directly, or by the
         %setters we are using.
@@ -173,16 +235,17 @@ function this = autoobject(varargin)
         %step, as a struct, in one eval();
         dumpstructgetters = cellfun ...
             ( @(prop_name) sprintf('''''%s'''', {%s}, ', prop_name, prop_name)  ...
-            , prop_names(:) ...
+            , prop_names(getteri(:)) ...
             , 'UniformOutput', 0 ...
             );
         dumpstructmethods = cellfun...
-            ( @(prop_name, getter_name) sprintf('''''%s'''', {%s()}, ', prop_name, getter_name)...
+            ( @(prop_name, getter_name) sprintf('''''%s'''', {this__.%s()}, ', prop_name, getter_name)...
             , prop_names(getmethodi(:)) ...
             , getmethod_names(:) ...
             , 'UniformOutput', 0 ...
             );
-        dumpstruct = sprintf('@()eval(''struct(  %s);'')', [dumpstructgetters{:} dumpstructmethods{:}]);
+        
+        dumpstruct = sprintf('@(this__)eval(''struct(  %s);'')', [dumpstructgetters{:} dumpstructmethods{:}]);
         dumpstruct(end-5:end-4) = [];
     
         setterstrings = cellfun ...
@@ -197,10 +260,6 @@ function this = autoobject(varargin)
             , method_names(:) ...
             , 'UniformOutput', 0 ...
             );
-        
-        %for faster dumping would like property__ to optionally return all
-        %the values too.
-        
 
         %There is also a setter string, which needs to be evaluated
         assignmentstrings = cellfun ...
@@ -216,7 +275,7 @@ function this = autoobject(varargin)
             , 'UniformOutput', 0 ...
             );
         
-        string = cat(2, '{@(assignments__, this__) eval(''', assignmentstrings{:}, settingstrings{:}, '''), @(property__, method__, version__) struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', property__, ''method__'', method__, ''version__'', version__)}');
+        string = cat(2, '{@(assignments__, this__) eval(''', assignmentstrings{:}, settingstrings{:}, '''), @(property__, method__, version__) struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', property__, ''method__'', method__, ''version__'', version__), ', dumpstruct, ', @(name__, func__)eval(''this.(name__) = func__;''), @(this__)eval(''this = this__;'')}');
         method_names = cat(1, getter_names(:), setter_names(:), method_names(:));
     end
 

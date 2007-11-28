@@ -1,10 +1,12 @@
-function this = TestCase
-    this = public(@init, @setUp, @tearDown);
+function this = TestCase(varargin)
+
+    persistent init__; %#ok
+    this = autoobject(varargin{:});
     
-    function setUp
+    function setUp()
     end
 
-    function tearDown
+    function tearDown()
     end
 
     function initializer = init()

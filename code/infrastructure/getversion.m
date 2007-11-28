@@ -7,6 +7,7 @@ function v = getversion(frameno)
 %'function' the full name of the function
 %'url' the full URL in the SVN repository
 %'revision' the last modified revision number
+%'parents' the versions of parent objects (for inherited objects)
 
 %grab the stack frame and the handle
 [st, i] = dbstack('-completenames');
@@ -25,7 +26,7 @@ if isempty(svnloc)
         svnloc = '/usr/local/bin/svn';
     else
         warning('getversion:svn', 'SVN not found!');
-        v = struct('function', frame.name, 'url', '', 'revision', NaN);
+        v = struct('function', frame.name, 'url', '', 'revision', NaN, 'parents', {{}});
         return;
     end
 end 
@@ -60,7 +61,7 @@ else
     [status, info] = system(sprintf('%s info %s', svnloc, frame.file));
     if status ~= 0
         warning('getversion:svn', 'couldn''t call svn on %s', frame.file);
-        v = struct('function', frame.name, 'url', '', 'revision', NaN);
+        v = struct('function', frame.name, 'url', '', 'revision', NaN, 'parents', {{}});
         return
     end
 
@@ -79,7 +80,7 @@ else
 
     revision = str2num(revision{1});
 
-    v = struct('function', frame.name, 'url', url{1}, 'revision', revision);
+    v = struct('function', frame.name, 'url', url{1}, 'revision', revision, 'parents', {{}});
     
     cache(1).(fieldname) = v;
 end

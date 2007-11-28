@@ -10,6 +10,16 @@ function this = publicize(this)
 %replace 'this' with a dereferenced implementation and a shadow full of
 %mutators.
 
+persistent warned;
+if isempty(warned) 
+    warned = struct();
+end
+parent = evalin('caller', 'mfilename');
+if ~isfield(warned, parent)
+    warning('pulicize:deprecated', 'publicize is obsolete, switch to autoobject');
+    warned.(parent) = 1;
+end
+
 names = fieldnames(this);
 names = names(~boolean(cellfun('prodofsize', regexp(names, '__$'))));
 
