@@ -81,12 +81,10 @@ toDegrees_ = @noop;
         %Initializes the event managers and sets high CPU priority before
         %running.
         params = require...
-            ( checkinit()...
-            , triggerInitializer(params)...
+            ( triggerInitializer(params)...
             , graphicsInitializer()...
             , highPriority()...
             , startInput()...
-            , checkinit()...
             , @doGo_...
             );
         %%% PERF NOTE between the end of doGo and here is a major
@@ -95,7 +93,6 @@ toDegrees_ = @noop;
     end
 
     function params = doGo_(params)
-        checkpoint();
         ng = numel(graphics);
         nt = numel(triggers);
         go_ = 1;
@@ -119,7 +116,6 @@ toDegrees_ = @noop;
         refresh = 1;    %the first refresh we draw is refresh 1.
 
         %the main loop
-        checkpoint();
         while(go_)
             %The loop is: Draw, Update, run Events, and Flip.
             %Draw happens right after Flip, to give as much time
@@ -225,14 +221,12 @@ toDegrees_ = @noop;
                 aviobj = addframe(aviobj, Screen('GetImage', window));
             end
         end
-        checkpoint();
 
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
         if (aviout_)
             close(aviobj); %TODO make this into a REQUIRE
         end
-        checkpoint();
     end
 
     function stop(s)

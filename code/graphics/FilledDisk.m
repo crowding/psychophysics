@@ -65,26 +65,20 @@ toPixels_ = [];
         loc = l;
     end
 
-%manually declare accessors, for speed inside the function.
-%{
     function r = getRadius
-        r = radius_;
+        r = radius;
     end
 
-    function r = setRadius(l)
-        radius_ = r;
+    function r = setRadius(r)
+        radius = r;
     end
 
     function c = getColor
-        c = color_;
+        c = color;
     end
 
     function c = setColor(c)
-        if ~exist('c', 'var')
-            noop;
-        end
-        color_ = c;
+        color = c;
     end
-%}
 
 end

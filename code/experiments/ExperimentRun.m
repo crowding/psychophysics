@@ -38,14 +38,13 @@ end
 
         function par = doRun(par)
             params = par; %to log initialization information
-            checkpoint(Inf);
             e = [];
             try
                 dump(this, params.log, 'beforeRun');
 
                 while trials.hasNext()
                     trial = trials.next(params);
-                    result = require(checkinit(), initparams(params), logEnclosed('TRIAL'), checkinit(), @runTrial);
+                    result = require(initparams(params), logEnclosed('TRIAL'), @runTrial);
                     if isfield(result, 'abort') && result.abort
                         break;
                     end
@@ -62,9 +61,7 @@ end
                 
                 newParams = params;
                 try
-                    checkpoint();
                     [newParams, result] = trial.run(params);
-                    checkpoint();
                     %%%PERF NOTE the simple exit from run() takes for-ever... 
 
                     %Strip out unchanging stuff from the trial
@@ -74,26 +71,21 @@ end
                             newParams = rmfield(newParams, i{1});
                         end
                     end
-                    checkpoint();
 
                 catch
                     e = lasterror;
                     result.err = e;
                 end
-                checkpoint();
                 %no exception handling around dump: if there's a
                 %problem with dumping data, end the experiment,
                 %please
-                checkpoint()
                 dump(trial, params.log);
                 dump(newParams, params.log, 'params');
                 dump(result, params.log);
-                checkpoint();
 
                 if ~isfield(result, 'err') || isempty(result.err)
                     trials.result(trial, result);
                 end
-                checkpoint();
             end
 
             %finally dump information about this run

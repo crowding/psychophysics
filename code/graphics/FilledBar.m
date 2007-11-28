@@ -73,7 +73,20 @@ function this = FilledBar(varargin)
          y = y_;
     end
 
+    function a_ = setLength(a_);
+        length = a_;
+    end
+
+    function a_ = setWidth(a_);
+        width = a_;
+    end
+
+    function a_ = setColor(a_);
+         color = a_;
+    end
+
     function a_ = setAngle(a_);
          angle = a_;
     end
+
 end

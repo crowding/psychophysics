@@ -19,7 +19,7 @@ function [out, extras] = interface(proto, in)
 %how difficult it is to isolate from the profiler.
 
     if ~iscell(in)
-        in = {in};
+        in = num2cell(in);
     end
     
     fn = fieldnames(proto)';
