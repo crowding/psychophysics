@@ -25,7 +25,7 @@ params = struct ...
     );
 
 persistent init__;
-this = Object(Identifiable(), autoobject(varargin{:}));
+this = Obj(inherit(Identifiable(), autoobject(varargin{:})));
 
 %{
 %if there is a previous unfinished experiment, load it.

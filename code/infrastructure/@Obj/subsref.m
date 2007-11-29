@@ -13,9 +13,9 @@ function varargout = subsref(this, subs)
             end
         else
             if numel(subs) <= 1
-                [varargout{1:nargout}] = builtin('subsref', wrapped, subs(1));
+                [varargout{1:nargout}] = subsref(wrapped, subs(1));
             else
-                [varargout{1:nargout}] = subsrefstep(builtin('subsref', wrapped, subs(1)), subs(2:end));
+                [varargout{1:nargout}] = subsrefstep(subsref(wrapped, subs(1)), subs(2:end));
             end
         end
     end

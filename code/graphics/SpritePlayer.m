@@ -287,8 +287,9 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             
             head_ = max_sprites_; %matlab 1-based index to where the newest IS.
             tail_ = max_sprites_; %matlab 1-based index to where the oldest WAS.
-            advanceQueue();
+            process.reset();
             refreshCount_ = 0;
+            advanceQueue();
         end
     end
 

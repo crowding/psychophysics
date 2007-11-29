@@ -1,15 +1,14 @@
-function u = structunion(varargin)
+function out = structunion(varargin)
     %builds a structure that is the union of the argument structures.
-    structargs = {};
-    for i = varargin
-        s = i{1};
-        f = fieldnames(s);
-        v = struct2cell(s);
-        sz = num2cell(size(v));
-        v = shiftdim(v, 1);
-        v = mat2cell(v, sz{2:end}, ones(sz{1}, 1));
-        sa = {f{:}; v{:}};
-        structargs = cat(2, structargs, sa(:)');
-    end
-    u = struct(structargs{:});
+    names = cellfun(@fieldnames, varargin, 'UniformOutput', false);
+    names = cat(1, names{:});
+    values = cellfun(@struct2cell, varargin, 'UniformOutput', false);
+    values = cat(1, values);
+    
+    [names, indices] = unique(names, 'last');
+    values = values(indices);
+    values = num2cell(values); %needed because STRUCT does what you don't want if some fields are cells and some aren't
+    
+    args = cat(1, names(:)', values(:)');
+    out = struct(args{:});
 end

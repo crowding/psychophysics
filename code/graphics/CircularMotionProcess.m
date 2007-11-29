@@ -22,6 +22,10 @@ function this = CircularMotionProcess(varargin)
 
 %-----
     
+    function r = getRadius()
+        r = radius;
+    end
+
     function setPhase(p)
         phase = p;
         reset();
