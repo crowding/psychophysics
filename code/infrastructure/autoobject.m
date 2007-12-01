@@ -56,7 +56,7 @@ function this = autoobject(varargin)
 
     %BUT: So much for that. Matlab 7.4 kills this behavior so we have to
     %require the new boilerplate line:
-    
+
     tmp = evalin('caller', 'whos(''init__'')');
     if isempty(tmp)
         warning('autoobject:needsCache','For better speed, add the declaration ''persistent init__;'' before the call to autoobject');
@@ -89,7 +89,6 @@ function this = autoobject(varargin)
     this = this{2};
 
     %convert prop_names into a struct for speed in property access?
-  
     function [value, s] = property__(name, value)
         switch(nargin)
             case 0

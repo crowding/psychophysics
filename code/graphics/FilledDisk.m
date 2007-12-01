@@ -1,4 +1,4 @@
-function this = FilledDisk(loc, radius, color, varargin)
+function this = FilledDisk(varargin)
 %function this = FilledDisk(loc_, width_, color_)
 %A graphics object that draws a disk at a specified location.
 %
@@ -10,7 +10,11 @@ function this = FilledDisk(loc, radius, color, varargin)
 
 dotType = 1;
 visible = 0;
+loc = [0 0];
+radius = [0 0];
+color = [0 0 0];
 
+varargin = assignments(varargin, 'loc', 'radius', 'color');
 persistent init__;
 this = autoobject(varargin{:});
 

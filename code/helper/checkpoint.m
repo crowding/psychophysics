@@ -20,6 +20,16 @@ function [history, stacks, transitioncounts, transitiontimes] = checkpoint(maxfr
 %transitioncounts -- count of transitions between the unique stacks (a square
 %                    matrix)
 %transitiontimes  -- total time spent in each transition (another sq. matrix)
+%
+%Typical format of a checkpoint run:
+%checkpoint(2); %vary granularity here
+%<<run code here>>
+%[hist, stacks, counts, times] = checkpoint();
+%[totaltimes, sortedstacks] = sort(-sum(times, 1))
+%
+%Then you can see the offending code via:
+%stacktrace(stacks{sortedstacks(1)})
+
 
 persistent stack_;
 persistent n_;
@@ -67,8 +77,8 @@ if nargout >= 1
     end
 else
     %build a linked list...
-    s = GetSecs();
-    ds = dbstack();
+    s = cputime();     %s = GetSecs(); 
+    ds = dbstack('-completenames');
     ds = ds(2:min(maxframes_+1,end));
     stack_ = {s ds stack_};
     n_ = n_ + 1;

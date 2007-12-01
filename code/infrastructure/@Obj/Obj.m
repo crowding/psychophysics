@@ -2,5 +2,9 @@
 
 function this = Obj(wrapped)
 
-this = struct('wrapped', {wrapped});
-this = class(this, 'Obj');
+if isa(wrapped, 'Obj')
+    this = wrapped;
+else
+    this = struct('wrapped', {wrapped});
+    this = class(this, 'Obj');
+end

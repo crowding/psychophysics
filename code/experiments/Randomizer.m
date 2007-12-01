@@ -5,32 +5,48 @@ if isempty(subs__)
 end
 
 base = MessageTrial('message', 'need a base trial!');
-randomizations = struct('subs', {}, 'values', {});
+blockTrial = MessageTrial('message', 'beginning of block');
+randomizers = struct('subs', {}, 'values', {});
+
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
-parameters = {}; %a history of the trial parameters.
-results = {}; %store a history of the trial results.
+parameters = {}; %a history of the trial parameters that were assigned.
+results = {}; %a history of the trial results.
+blockSize = 10;
+numBlocks = Inf;
+interTrialInterval = 0.5;
+
+%full factorial designs are harder, this should be factored into a
+%different class actually.
+fullFactorial = 0;
+design = {};
+designDone = [];
+designOrder = [];
 
 persistent init__;
-this = autoobject(varargin{:});
+
+this = Obj(autoobject(varargin{:}));
 
     function add(subs, values)
-        %adds a randomization.
+        %adds a randomizer.
+        if ~isempty(results)
+            error('won''t invalidate results!');
+        end
 
         if iscell(subs)
-            subs = cellfun(@subsrefize, subs, 'UniformOutput', 0);
+            subs = cellfun(@subsrefize_, subs, 'UniformOutput', 0);
         else
-            subs = subsrefize(subs);
+            subs = subsrefize_(subs);
         end
 
         if ~iscell(values) && ~isa(values, 'function_handle')
             error('Randomizer:invalidValues', 'Improper values');
         end
         
-        randomizations(end + 1) = struct('subs', {subs}, 'values', {values});
+        randomizers(end + 1) = struct('subs', {subs}, 'values', {values});
         reset();
     end
 
-    function subs = subsrefize(subs)
+    function subs = subsrefize_(subs)
         if ischar(subs)
             %convert to a substruct...
             try
@@ -53,12 +69,12 @@ this = autoobject(varargin{:});
             error('won''t throw results away!');
         end
         
-        parameterColumns = {randomizations.subs};
-        parameters = cell(0, numel(randomizations));
+        parameterColumns = {randomizers.subs};
+        parameters = cell(0, numel(randomizers));
         results = {};
     end
 
-    function setRandomizations(rands)
+    function setRandomizers(rands)
         error('Randomizer:ReadOnlyValue', 'that''s a read-only-value for now');
     end
 
@@ -70,45 +86,134 @@ this = autoobject(varargin{:});
         end
     end
 
-    function has = hasNext()
-        has = 1;
+    function has = hasNext(last, result)
+        if numel(results) < blockSize * numBlocks
+            if fullFactorial
+                if isempty(results)
+                    shuffle_();
+                end
+                has = any(~designDone);
+            else
+                has = 1;
+            end
+        else
+            has = 0;
+        end
     end
 
-    params_ = {};
+    params_ = {}; %the last params that were uaed in assignment
+    wasblock_ = 0;
     function n = next(params)
         %randomize according to plan...
-        params_ = cell(1, numel(randomizations));
-        for i = 1:numel(randomizations(:)')
-            r = randomizations(i);
-            if iscell(r.values)
-                val = randsample(r.values(:), 1);
-                val = val{1};
-            elseif isa(r.values, 'function_handle')
-                fn = r.values;
-                if nargin(fn) == 0
-                    val = fn();
-                else
-                    val = fn(base);
-                end
-            end
-            if iscell(r.subs)
-                for i = 1:numel(r.subs)
-                    fprintf('base%s = %s\n', substruct2str(r.subs{i}), smallmat2str(val{i}));
-                    base = subsasgn(base, r.subs{i}, val{i});
-                end
-            else
-                fprintf('base%s = %s\n', substruct2str(r.subs), smallmat2str(val));
-                base = subsasgn(base, r.subs, val);
-            end
-            params_{i} = val();
+        if mod(numel(results), blockSize) == 0 && ~wasblock_
+            n = blockTrial;
+            params_ = {};
+            wasblock_ = 1;
+        else
+            assignments = pick_();
+            [base, params_] = assign_(base, assignments, 'base');
+            
+            %unwrap because the rest of the apparatus uses the naked object
+            n = unwrap(base);
+            wasblock_ = 0;
         end
-        
-        %unwrap because the rest of the apparatus uses the naked object
-        n = unwrap(base);
     end
 
     function result(trial, result)
-        results{end+1} = result;
-        parameters(end+1,:) = params_;
+        if ~isfield(result, 'success') || result.success
+            if ~wasblock_
+                results{end+1} = result;
+                parameters(end+1,:) = params_;
+                if fullFactorial
+                    designDone(lastPicked_) = true;
+                end
+            end
+            %here is where you do can fit in staircasing by a
+            %similar mechanism (TODO)...
+        end
+        
+        if isfield(result, 'endTime') && isfield(base, 'startTime')
+            base.startTime = result.endTime + interTrialInterval;
+        else
+            disp('ignoring inter trial interval');
+        end
     end
+
+
+    function params = pick_()
+        if fullFactorial
+            params = pickWithoutReplacing();
+        else
+            params = pickReplacing_();
+        end
+    end
+
+    function params = pickReplacing_()
+        s = cellfun('prodofsize', {randomizers.values});
+        indices = ceil(rand(size(s)) .* s);
+        p = select_({randomizers.values}, indices);
+        params = randomizers;
+        [params.values] = deal(p{:});
+    end
+
+    lastPicked_ = []; %the last item we picked...
+    function params = pickWithoutReplacing_()
+        which = find(~designDone);
+        ix = ceil(rand*numel(which));
+        lastPicked_ = which(ix);
+        params = design(lastPicked_, :);
+    end
+    
+    function shuffle_()
+        r = randomizers(:,2)';
+        d = fullfact(cellfun('prodofsize', r));
+        design = cellfun(@(indices)select_(randomizers(:,1)', indices)...
+            , mat2cell(d, ones(size(d,1),1), size(d,2)), 'UniformOutput', 0);
+        designDone = false(size(design, 1), 1);
+    end
+    
+    function out = select_(list, indices)
+        %note we have to avoid invoking function handles, so we avoid
+        %subscripting any scalar.
+        out = cellfun(@pick, list, num2cell(indices), 'UniformOutput', 0);
+        
+        function out = pick(item, ix)
+            if numel(item) > 1
+                out = item(ix);
+            else
+                out = item;
+            end
+        end
+    end
+
+    function [base, params] = assign_(object, assignments, name)
+        params = cell(1, numel(assignments));
+        for i = 1:numel(assignments)
+
+            r = assignments(i);
+            val = r.values;
+            
+            if isa(r.values, 'function_handle')
+                fn = r.values;
+                
+                if nargin(fn) == 0
+                    val = fn();
+                else
+                    val = fn(object);
+                end
+            end
+            
+            if iscell(r.subs)
+                for j = 1:numel(r.subs)
+                    dump(val{i}, @fprintf, [name substruct2str(r.subs{j})]);
+                    object = subsasgn(object, r.subs{j}, val{j});
+                end
+            else
+                dump(val, @fprintf, [name substruct2str(r.subs)]);
+                base = subsasgn(base, r.subs, val);
+            end
+            params{i} = val;
+        end
+    end
+
 end

@@ -61,4 +61,4 @@ function e = GloLoAdjustment(varargin)
     e.trials.add('barPhase', @(b) b.motion.phase + (b.barOnset-b.motion.t(1))*b.motion.dphase./b.motion.dt);
 
     %Go!
-    e.run();
+    %e.run();

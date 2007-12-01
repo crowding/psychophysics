@@ -38,15 +38,16 @@ disp(cat(2,output{:}));
             %print out a stack frame with a helpful link.
             %The error URL is undocumented as far as I know.
             if desktop
-                printf('%s  In <a href="error:%s,%d,1">%s at %d</a>\n',...
+                %some stacks give partial file names...
+                fprintf('%s  In <a href="error:%s,%d,1">%s at %d</a>\n',...
                     indent, frame.file, frame.line, frame.name, frame.line);
             else
-                printf('%s  In %s at %d\n', indent, frame.name, frame.line);
+                fprintf('%s  In %s at %d\n', indent, frame.name, frame.line);
             end
             
             if isfield(frame, 'additional') && ~isempty(frame.additional)
-                printf(' \n');
-                printf('%s   which was caused by:\n', indent);
+                fprintf(' \n');
+                fprintf('%s   which was caused by:\n', indent);
                 for i = frame.additional(:)'
                     printStackTrace(i, [indent '    ']);
                 end

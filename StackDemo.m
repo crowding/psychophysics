@@ -10,18 +10,12 @@ function StackDemo()
         disp(sizes(i));
         %time the nested stack -- how a stack would be implemented if its
         %speed was at all acceptable.
-        [push, pop] = nestedStack();
-        a = cputime();
-        testStack(push, pop, sizes(i), sizes(i));
-        timesNested(i) = cputime() - a;
+        timesNested(i) = testStack(@nestedStack, sizes(i), sizes(i));
         
         %What happens when the stack is stored in a persistent, instead of
         %externally scoped variable. This is unusable for general purposes
         %because now there can only be one stack at a time.
-        [push, pop] = persistentStack();
-        a = cputime();
-        testStack(push, pop, sizes(i), sizes(i));
-        timesPersistent(i) = cputime() - a;
+        timesPersistent(i) = testStack(@persistentStack, sizes(i), sizes(i));
     end
     
     %plot the results.
@@ -32,21 +26,27 @@ function StackDemo()
     
 end
 
-function testStack(push, pop, n, m)
+function time = testStack(constructor, n, m)
+    [push, pop, look] = constructor();
+    a = cputime();
     for i = 1:n
         push(n);
+        look();
     end
     for i = 1:m
+        look();
         pop();
     end
+    time = cputime() - a;
 end
 
-function [pushFn, popFn] = nestedStack()
+function [pushFn, popFn, lookFn] = nestedStack()
     %implement a stack using nested functions.
     stack = {};
     
     pushFn = @push;
     popFn = @pop;
+    lookFn = @look;
     
     function push(what)
         stack = {what stack};
@@ -61,9 +61,14 @@ function [pushFn, popFn] = nestedStack()
             stack = stack{2};
         end
     end
+
+    function what = look()
+        what = stack{1};
+    end
+
 end
 
-function [pushFn, popFn] = persistentStack()
+function [pushFn, popFn, lookFn] = persistentStack()
     %same as above ut the stack is in a persistent var. 
     %NO GOOD FOR ACTUAL USE since you cannot have more than one stack this way.
     
@@ -71,6 +76,7 @@ function [pushFn, popFn] = persistentStack()
     
     pushFn = @push;
     popFn = @pop;
+    lookFn = @look;
     
     function push(what)
         stack = {what stack};
@@ -84,5 +90,9 @@ function [pushFn, popFn] = persistentStack()
             what = stack{1};
             stack = stack{2};
         end
+    end
+
+    function what = look()
+        what = stack{1};
     end
 end
