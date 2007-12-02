@@ -37,10 +37,6 @@ this = Obj(autoobject(varargin{:}));
         else
             subs = subsrefize_(subs);
         end
-
-        if ~iscell(values) && ~isa(values, 'function_handle')
-            error('Randomizer:invalidValues', 'Improper values');
-        end
         
         randomizers(end + 1) = struct('subs', {subs}, 'values', {values});
         reset();
@@ -89,7 +85,7 @@ this = Obj(autoobject(varargin{:}));
     function has = hasNext(last, result)
         if numel(results) < blockSize * numBlocks
             if fullFactorial
-                if isempty(results)
+                if isempty(results) || isempty(design)
                     shuffle_();
                 end
                 has = any(~designDone);
@@ -102,20 +98,26 @@ this = Obj(autoobject(varargin{:}));
     end
 
     params_ = {}; %the last params that were uaed in assignment
-    wasblock_ = 0;
+    
+    %state for blocking
+    lastblock_ = NaN; %what was the last block trial we sent?
+    wasblock_ = 0; %did we just send out a block trial?
+    
     function n = next(params)
+        assert(hasNext());
         %randomize according to plan...
-        if mod(numel(results), blockSize) == 0 && ~wasblock_
+        if mod(numel(results), blockSize) == 0 && (lastblock_ ~= numel(results));
             n = blockTrial;
             params_ = {};
+            lastblock_ = numel(results);
             wasblock_ = 1;
         else
+            wasblock_ = 0;
             assignments = pick_();
             [base, params_] = assign_(base, assignments, 'base');
             
             %unwrap because the rest of the apparatus uses the naked object
             n = unwrap(base);
-            wasblock_ = 0;
         end
     end
 
@@ -124,12 +126,14 @@ this = Obj(autoobject(varargin{:}));
             if ~wasblock_
                 results{end+1} = result;
                 parameters(end+1,:) = params_;
-                if fullFactorial
+                designOrder(end+1) = lastPicked_;
+                if ~isnan(lastPicked_)
                     designDone(lastPicked_) = true;
                 end
+                
+                %here is where you do can fit in staircasing by a
+                %similar mechanism (TODO)...
             end
-            %here is where you do can fit in staircasing by a
-            %similar mechanism (TODO)...
         end
         
         if isfield(result, 'endTime') && isfield(base, 'startTime')
@@ -142,7 +146,7 @@ this = Obj(autoobject(varargin{:}));
 
     function params = pick_()
         if fullFactorial
-            params = pickWithoutReplacing();
+            params = pickWithoutReplacing_();
         else
             params = pickReplacing_();
         end
@@ -151,24 +155,28 @@ this = Obj(autoobject(varargin{:}));
     function params = pickReplacing_()
         s = cellfun('prodofsize', {randomizers.values});
         indices = ceil(rand(size(s)) .* s);
+        
         p = select_({randomizers.values}, indices);
         params = randomizers;
         [params.values] = deal(p{:});
+        lastPicked_ = NaN;
     end
 
-    lastPicked_ = []; %the last item we picked...
+    lastPicked_ = NaN; %the last item we picked...
     function params = pickWithoutReplacing_()
         which = find(~designDone);
         ix = ceil(rand*numel(which));
+        indices = design(which(ix), :);
+        
+        p = select_({randomizers.values}, indices);
+        params = randomizers;
+        [params.values] = deal(p{:});
         lastPicked_ = which(ix);
-        params = design(lastPicked_, :);
     end
     
     function shuffle_()
-        r = randomizers(:,2)';
-        d = fullfact(cellfun('prodofsize', r));
-        design = cellfun(@(indices)select_(randomizers(:,1)', indices)...
-            , mat2cell(d, ones(size(d,1),1), size(d,2)), 'UniformOutput', 0);
+        r = {randomizers.values};
+        design = fullfact(cellfun('prodofsize', r));
         designDone = false(size(design, 1), 1);
     end
     
@@ -186,7 +194,7 @@ this = Obj(autoobject(varargin{:}));
         end
     end
 
-    function [base, params] = assign_(object, assignments, name)
+    function [object, params] = assign_(object, assignments, name)
         params = cell(1, numel(assignments));
         for i = 1:numel(assignments)
 
@@ -205,12 +213,12 @@ this = Obj(autoobject(varargin{:}));
             
             if iscell(r.subs)
                 for j = 1:numel(r.subs)
-                    dump(val{i}, @fprintf, [name substruct2str(r.subs{j})]);
+                    dump(val{j}, @printf, [name substruct2str(r.subs{j})]);
                     object = subsasgn(object, r.subs{j}, val{j});
                 end
             else
-                dump(val, @fprintf, [name substruct2str(r.subs)]);
-                base = subsasgn(base, r.subs, val);
+                dump(val, @printf, [name substruct2str(r.subs)]);
+                object = subsasgn(object, r.subs, val);
             end
             params{i} = val;
         end

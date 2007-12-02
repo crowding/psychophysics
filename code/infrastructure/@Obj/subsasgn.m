@@ -1,8 +1,6 @@
 function this = subsasgn(this, subs, what)
     %just pass the subsref on...
-    checkpoint();
     this.wrapped = subsasgnstep(this.wrapped, subs, what);
-    checkpoint();
 end
 
     function [wrapped, assign] = subsasgnstep(wrapped, subs, what)
@@ -48,7 +46,7 @@ end
                 if ~any(strcmp(wrapped.property__(), subs(1).subs))
                     error('Obj:noSuchProperty', 'No such property %s', subs(1).subs);
                 else
-                    rethrow(lastrerror);
+                    rethrow(lasterror);
                 end
             end
         else

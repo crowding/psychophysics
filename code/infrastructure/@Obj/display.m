@@ -30,6 +30,6 @@ function display(this)
                     , this.wrapped(1).version__.function));
         end
     else
-        builtin('disp', this.wrapped);
+        disp(this.wrapped);
     end
 end

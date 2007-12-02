@@ -51,10 +51,10 @@ function e = GloLoAdjustment(varargin)
     %tell the randomizer how to randomize the trial each time. TODO: think
     %about how to save this splendid mechanism to disk...
     
-    e.trials.add('patch.velocity', num2cell(e.trials.base.patch.velocity * [-1 1]));
-    e.trials.add('motion.dphase', num2cell([-1 1] ./ e.trials.base.motion.radius));
+    e.trials.add('patch.velocity', e.trials.base.patch.velocity * [-1 1]);
+    e.trials.add('motion.dphase', [-1 1] ./ e.trials.base.motion.radius);
     %randomly choose a range of temporal offsets and provide an initial
-    e.trials.add('barOnset', num2cell(e.trials.base.motion.t + e.trials.base.motion.dt * (0:0.25:e.trials.base.motion.n - 1)));
+    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * (0:0.25:e.trials.base.motion.n - 1));
     %Bar origin is random around the circle
     e.trials.add({'motion.phase', 'motion.angle'}, @()num2cell(rand()*2*pi * [1 180/pi] + [0 90]));
     %and for each trial pick an appropriate bar phase based on these
