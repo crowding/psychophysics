@@ -5,7 +5,7 @@ if isempty(subs__)
 end
 
 base = MessageTrial('message', 'need a base trial!');
-blockTrial = MessageTrial('message', 'beginning of block');
+blockTrial = MessageTrial('message', 'Block');
 randomizers = struct('subs', {}, 'values', {});
 
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
@@ -15,9 +15,11 @@ blockSize = 10;
 numBlocks = Inf;
 interTrialInterval = 0.5;
 
-%full factorial designs are harder, this should be factored into a
-%different class actually.
+%full factorial designs have to maintain a bunch of state and are harder;
+%this should be factored into a different class. Also it's a very good
+%application for using continuations in a language that supports that.
 fullFactorial = 0;
+reps = 1;
 design = {};
 designDone = [];
 designOrder = [];
@@ -25,6 +27,24 @@ designOrder = [];
 persistent init__;
 
 this = Obj(autoobject(varargin{:}));
+
+    function n = blocksLeft()
+        checkShuffle_();
+        if fullFactorial
+            n = ceil(numLeft() / blockSize());
+        else
+            n = ceil(numLeft() / blockSize());
+        end
+    end
+
+    function n = numLeft()
+        checkShuffle_();
+        if fullFactorial 
+            n = sum(~designDone);
+        else
+            n = blockSize * numBlocks - numel(results);
+        end
+    end
 
     function add(subs, values)
         %adds a randomizer.
@@ -85,15 +105,19 @@ this = Obj(autoobject(varargin{:}));
     function has = hasNext(last, result)
         if numel(results) < blockSize * numBlocks
             if fullFactorial
-                if isempty(results) || isempty(design)
-                    shuffle_();
-                end
+                checkShuffle_();
                 has = any(~designDone);
             else
                 has = 1;
             end
         else
             has = 0;
+        end
+    end
+
+    function checkShuffle_()
+        if fullFactorial && (isempty(results) || isempty(design))
+            shuffle_();
         end
     end
 
@@ -177,6 +201,7 @@ this = Obj(autoobject(varargin{:}));
     function shuffle_()
         r = {randomizers.values};
         design = fullfact(cellfun('prodofsize', r));
+        design = repmat(design, reps, 1);
         designDone = false(size(design, 1), 1);
     end
     

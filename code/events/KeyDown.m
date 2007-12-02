@@ -1,4 +1,4 @@
-function this = KeyDown(fn, char, varargin);
+function this = KeyDown(fn, char, varargin)
 %function this = KeyDown(fn, char);
 %Reacts to keys being pressed down.
 %fn = a function to call;
@@ -10,7 +10,6 @@ function this = KeyDown(fn, char, varargin);
 %particular character.
 
 last_ = false(size(getOutput(3, @KbCheck)));
-
 evtable = cell(size(last_));
 
 log = @noop;
@@ -27,11 +26,14 @@ end
 %------methods------
 
     function check(k)
-        now = k.keyCode;
-        new = now &~last_;
-        last_ = now;
+        now = k.keycodes;
+        
+        new = now(~last_(now));
+        last_(new) = 1;
+        last_(~new) = 0;
+        
         if any(new)
-            k.pressed = new;
+            k.pressed = 1;
             %Now, I'd like to index the function pointers in last_ to pull out
             %every function that needs to be called. But since I don't know the
             %orientation of 'last' or 'evtable', it is unrelible in matlab to
@@ -44,10 +46,10 @@ end
             %a vector.)
             %
             %One could build a table of
-            %all the special cases for indexing... asa a rhetorical tool.
+            %all the special cases for indexing... as a rhetorical tool.
             %In fact this would be a good rhetorical tool for lots of things,
             %so as to show how MATLAB is rather fucked up in its type system.
-            k.keysPressed = KbName(new);
+            k.keysPressed = new;
             for i = evtable(new)'
                 if ~isempty(i{1})
                     log('TRIGGER %s %s', func2str(i{:}), struct2str(k));

@@ -24,7 +24,18 @@ if iscell(mat)
     end
 else
 
-    if numel(mat) ~= 1
+    if numel(mat) == 0
+        if ~isequal(size(mat), [0 0])
+            m = ['zeros(' sprintf('%d,', size(mat)) ')'];
+            m(end-1) = [];
+        else
+            m = '[]';
+        end
+        if nargin > 1 && ~isa(mat, 'double')
+            m = [class(mat), '(', m, ')'];
+        end
+        
+    elseif numel(mat) ~= 1
         m = sprintf('%.15g ', mat');
         %FIXME: weird-zero-size-arrays
 
@@ -34,7 +45,7 @@ else
             m(spaceix(ncols:ncols:end-1)) = ';';
         end
 
-        if nargin > 1 && ~strcmp(class(mat), 'double')
+        if nargin > 1 && ~isa(mat, 'double')
             m(end) = ']';
             m = [class(mat), '([', m, ')'];
         else
@@ -43,7 +54,7 @@ else
         end
     else
         m = sprintf('%.15g', mat');
-        if nargin > 1
+        if nargin > 1 && ~isa(mat, 'double')
             m = [class(mat), '(', m, ')'];
         end
     end

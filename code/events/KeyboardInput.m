@@ -1,7 +1,7 @@
 function this = KeyboardInput(varargin)
     %handles keyboard input.
     %single liner test/profile:
-    %a = KeyboardInput; r = a.init(struct()); r2 = a.begin(struct()); for i = 1:10000; k = a.input(struct()); end; r2(); r();
+    %a = KeyboardInput; r = a.init(struct()); r2 = a.begin(struct()); for i = 1:10000; k = a.input(struct()), end; r2(); r();
 
     persistent init__;
     this = autoobject(varargin{:});
@@ -13,7 +13,8 @@ function this = KeyboardInput(varargin)
         );
 
     slowdown_ = [];
-    lastState_ = [];
+    [lastState_, lastState_, lastState_] = KbCheck(device);
+    lastState_ = find(lastState_);
     modifierCodes_ = [];
     
     %the initializer will be called once per experiment and does global
@@ -31,7 +32,7 @@ function this = KeyboardInput(varargin)
         release = @noop;
         PsychHID('ReceiveReports', device);
         PsychHID('GiveMeReports', device); %discard
-        lastState_ = false(size(getOutput(3, @()KbCheck(device))));
+        lastState = [];
         modifierCodes_ = KbName({'LeftControl','LeftShift','LeftAlt','LeftGUI','RightControl','RightShift','RightAlt','RightGUI'});
     end
 
@@ -64,28 +65,25 @@ function this = KeyboardInput(varargin)
         r = PsychHID('GiveMeReports', device);
         %process reports. Note that this discards reports in an attempt to
         %be more like kbCheck()! But it is possible to check the keyboard
-        %and make it more like 
+        %better...
         if ~isempty(r)
             k.keyT = r(end).time ./ slowdown_;
             %The USB keyboard sends a report on every state change.
             %the first byte of the keyboard report bitmasks modifier keys
             %as listed above:
-            keymap = false(size(lastState_));
             last = r(end).report;
-            if last(1) > 0
-                keymap(modifierCodes_(logical(dec2bin(last(1)) - '0'))) = 1;
-            end
-            
+
+            keycodes = sort([modifierCodes_(logical(dec2bin(last(1)) - '0')) last(find(last(2:6))+1)]);
+
+            lastState_ = keycodes;
             %Bytes 2-6 get all the keys that are pressed (if more than 5
             %keys are pressed, we get all ones here, just as in KbCheck)
-            last = last(2:6);
-            keymap(last(last ~= 0)) = 1;
-            k.keyIsDown = any(keymap);
-            k.keyCode = keymap;
+            k.keycodes = keycodes;
+            k.keyIsDown = ~isempty(keycodes);
         else
             k.keyT = GetSecs();
-            k.keyIsDown = any(lastState_);
-            k.keyCode = lastState_;
+            k.keyIsDown = ~isempty(lastState_);
+            k.keycodes = lastState_;
         end
     end
 end

@@ -39,31 +39,31 @@ init = currynamedargs(@initLog, defaults, varargin{:});
             %log a message with args like sprintf. If the eyelink is connected,
             %logs the message to the eyelink.
             str = sprintf(varargin{:});
-
-            chunksize = 128;
-            %the eyelink logs mesages with a maximum length of 139 chars,
-            %so we should wrap longer messages (placing a backslash at the
-            %end of message as reminder) into 139 char blocks.
-            stop = 0;
-            for i = 1:chunksize-1:numel(str)
-                if numel(str) > i + chunksize-1
-                    chunk = [str(i:i+chunksize-2) '\'];
-                else
-                    chunk = str(i:end);
-                    stop = 1;
-                end
                 
-                if file_ > 0
-                    fprintf(file_, '%s\n', chunk);
-                end
+            if file_ > 0
+                fprintf(file_, '%s\n', str);
+            end
+            
+            if Eyelink('IsConnected')
+                chunksize = 128;
+                %the eyelink logs mesages with a maximum length of 139 chars,
+                %so we should wrap longer messages (placing a backslash at the
+                %end of message as reminder) into 139 char blocks.
+                stop = 0;
+                for i = 1:chunksize-1:numel(str)
+                    if numel(str) > i + chunksize-1
+                        chunk = [str(i:i+chunksize-2) '\'];
+                    else
+                        chunk = str(i:end);
+                        stop = 1;
+                    end
 
-                if Eyelink('IsConnected')
                     try
                         %the eyelink toolbox is very picky and will crash eveything if
                         %the string is too long or contains incorrect format
                         %specifiers...
                         status = Eyelink('Message', '%s', chunk);
-                        
+
                         %generally we want to keep logging to the file when
                         %these may be a problem with the eyelink
                         if status ~= 0
@@ -75,10 +75,10 @@ init = currynamedargs(@initLog, defaults, varargin{:});
                         warning('openLog:eyelinkException', 'error logging to eyelink: %s', e);
                         fprintf(file_, 'WARNING error logging to eyelink: %s\n', e);
                     end
-                end
-                
-                if(stop)
-                    break;
+
+                    if(stop)
+                        break;
+                    end
                 end
             end
         end

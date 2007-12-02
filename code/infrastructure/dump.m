@@ -83,7 +83,7 @@ function dumpit(prefix, obj, printer)
     switch class(obj)
         case 'struct'
             if isfield(obj, 'property__')
-                [names, struct] = obj.property__();                
+                [names, st] = obj.property__();                
                 
                 %dumpobject(prefix, obj.property__, printer);
                 %we should have a field naming the constructor to
@@ -92,6 +92,7 @@ function dumpit(prefix, obj, printer)
                     dumpstruct([prefix '.version__'], obj.version__, printer);
                     printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
                 else
+                    dumpstruct(prefix, st, printer);
                     printer('%s = properties(%s);', prefix, prefix);
                 end
             else

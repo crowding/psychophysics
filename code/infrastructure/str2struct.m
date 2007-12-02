@@ -1,5 +1,5 @@
 function strct__ = str2struct(str__)
-%convert the 
+%convert the strings in log files back to structs
 
 %if it's assignments, this is easy. It is assigments if it contains an
 %equals sign. (Old style datas contain no equals signs.
