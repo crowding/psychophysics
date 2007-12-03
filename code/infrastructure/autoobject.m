@@ -81,12 +81,15 @@ function this = autoobject(varargin)
 
     
     this = evalin('caller', this);
-    this{2} = this{2}(@property__, @method__, version);
+    this{2} = this{2}();
     this{1}(namedargs(varargin{:}), this{2});
     tostruct = this{3};
     setmethod = this{4};
     setthis = this{5};
     this = this{2};
+    this.property__ = @property__;
+    this.method__ = @method__;
+    this.version__ = version;
 
     %convert prop_names into a struct for speed in property access?
     function [value, s] = property__(name, value)
@@ -274,7 +277,7 @@ function this = autoobject(varargin)
             , 'UniformOutput', 0 ...
             );
         
-        string = cat(2, '{@(assignments__, this__) eval(''', assignmentstrings{:}, settingstrings{:}, '''), @(property__, method__, version__) struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', property__, ''method__'', method__, ''version__'', version__), ', dumpstruct, ', @(name__, func__)eval(''this.(name__) = func__;''), @(this__)eval(''this = this__;'')}');
+        string = cat(2, '{@(assignments__, this__) eval(''', assignmentstrings{:}, settingstrings{:}, '''), @() struct(', getterstrings{:}, setterstrings{:}, methodstrings{:}, '''property__'', [], ''method__'', [], ''version__'', []), ', dumpstruct, ', @(name__, func__)eval(''this.(name__) = func__;''), @(this__)eval(''this = this__;'')}');
         method_names = cat(1, getter_names(:), setter_names(:), method_names(:));
     end
 

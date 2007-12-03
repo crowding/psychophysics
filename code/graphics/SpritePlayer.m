@@ -193,7 +193,11 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
             
             refreshes_(head_) = round((t + onset_) / interval_);
             ccolor = (color(:) * [1 1 1 1]);
-            colors_(:,head_) = ccolor(:);
+            try
+                colors_(:,head_) = ccolor(:);
+            catch
+                noop
+            end
 
             %TODO log the scheduled, (& discretized) stimulus onset here
         end

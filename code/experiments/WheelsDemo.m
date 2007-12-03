@@ -7,9 +7,10 @@ function WheelsDemo(varargin)
         , 'hideCursor', 0 ...
         , 'aviout', '' ...
         );
+    
     params = namedargs(params, varargin{:});
-
-    require(setupEyelinkExperiment(params), @runDemo);
+    
+    require(getScreen(params), @runDemo);
     function runDemo(params)
         
         interval = params.cal.interval; %screen refresh interval
@@ -83,20 +84,23 @@ function WheelsDemo(varargin)
         fixation2 = FilledDisk([-base/2 base/2/sqrt(3)], 0.1, 0, 'visible', 1);
         fixation3 = FilledDisk([0 -base/sqrt(3)], 0.1, 0, 'visible', 1);
 
+        keyboardInput = KeyboardInput();
+        
         timer = RefreshTrigger();
         timer2 = RefreshTrigger();
         stopKey = KeyDown();
+        
        
         main = mainLoop ...
-            ( {sprites, fixation1, fixation2, fixation3} ...
-            , {timer, timer2} ...
-            , 'keyboard', {stopKey} ...
+            ( 'graphics', {sprites, fixation1, fixation2, fixation3} ...
+            , 'triggers', {stopKey, timer, timer2} ...
+            , 'input', {keyboardInput} ...
             );
         
         stopKey.set(main.stop, 'q');
         timer.set(@start, 0);
         
-        params = main.go(params);
+        params = require(initparams(params), keyboardInput.init, main.go);
         
         function start(h)
             sprites.setVisible(1, h.next);

@@ -40,8 +40,7 @@ function this = KeyboardInput(varargin)
     function [release, params] = begin(params)
         if isfield(params, 'slowdown')
             slowdown_ = params.slowdown;
-        end
-        PsychHID('ReceiveReports', device);
+        end        PsychHID('ReceiveReports', device);
         PsychHID('GiveMeReports', device); %discard
         ListenChar(2); %disable keyboard input to matlab...
 
