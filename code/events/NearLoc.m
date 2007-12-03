@@ -41,4 +41,8 @@ this = autoobject();
         end
     end
 
+    function [release, params] = init(params)
+        release = @noop;
+    end
+
 end
