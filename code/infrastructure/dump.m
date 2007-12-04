@@ -88,11 +88,11 @@ function dumpit(prefix, obj, printer)
                 %dumpobject(prefix, obj.property__, printer);
                 %we should have a field naming the constructor to
                 %call. But it could just be a bare properties thing.
+                dumpstruct(prefix, st, printer);
                 if isfield(obj, 'version__')
                     dumpstruct([prefix '.version__'], obj.version__, printer);
                     printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
                 else
-                    dumpstruct(prefix, st, printer);
                     printer('%s = properties(%s);', prefix, prefix);
                 end
             else

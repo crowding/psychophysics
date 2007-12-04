@@ -24,7 +24,7 @@ disp(cat(2,output{:}));
         if ~exist('indent', 'var')
             indent = '';
         end
-        if all(isfield(theErr, {'file', 'name', 'line'}))
+        if ~(isfield(theErr, 'message'))
             %handle bare stacks too
             arrayfun(@traceframe, theErr);
             return;
@@ -39,15 +39,15 @@ disp(cat(2,output{:}));
             %The error URL is undocumented as far as I know.
             if desktop
                 %some stacks give partial file names...
-                fprintf('%s  In <a href="error:%s,%d,1">%s at %d</a>\n',...
+                printf('%s  In <a href="error:%s,%d,1">%s at %d</a>\n',...
                     indent, frame.file, frame.line, frame.name, frame.line);
             else
-                fprintf('%s  In %s at %d\n', indent, frame.name, frame.line);
+                printf('%s  In %s at %d\n', indent, frame.name, frame.line);
             end
             
             if isfield(frame, 'additional') && ~isempty(frame.additional)
-                fprintf(' \n');
-                fprintf('%s   which was caused by:\n', indent);
+                printf(' \n');
+                printf('%s   which was caused by:\n', indent);
                 for i = frame.additional(:)'
                     printStackTrace(i, [indent '    ']);
                 end

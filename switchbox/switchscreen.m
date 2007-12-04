@@ -78,7 +78,7 @@ function i = switchscreen(varargin)
             
             response = getresponse(params, 1, params.videoIn, params.videoOut); 
             
-            if ~issame(response, [1, params.videoIn, params.videoOut])
+            if ~isequal(response, [1, params.videoIn, params.videoOut])
                 release();
                 error('switchscreen:switchFailed', 'failed to switch screen');
             end
@@ -100,11 +100,17 @@ function i = switchscreen(varargin)
         str = todevice + [command, input, output, params.machineNumber];
         comm('write', params.port, str);
         pause(0.1);
-        resp = comm('read', params.port, 4);
-
+        resp = [];
+        s = getSecs();
+        while (GetSecs - s) < 0.2 && numel(resp) < 4
+            resp = [resp comm('read', params.port, 4 - numel(resp))]; %#ok
+        end
+        
         if length(resp) == 4
             resp = double(resp(:)') - [64 128 128 128];
             resp(end) = [];
+        else
+            noop();
         end
     end
 
