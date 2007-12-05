@@ -10,6 +10,7 @@ log = [];
 
 set_ = 0;
 
+persistent init__;
 this = autoobject();
 
     function check(s)

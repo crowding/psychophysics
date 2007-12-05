@@ -49,6 +49,7 @@ function this = SingleSaccadeTrial(varargin)
     successTones = [750 0.05 0 750 0.2 0.9];
     failureTones = repmat([500 0.1 0.9 0 0.1 0], 1, 3);
     
+    persistent init__;
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)

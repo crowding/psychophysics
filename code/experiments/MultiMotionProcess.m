@@ -17,6 +17,7 @@ color = [0.5 0.5; 0.5 0.5; 0.5 0.5;];
 %one private variable...
 counter_ = [0 0];
 
+persistent init__;
 this = autoobject(varargin{:});
 
     function setOnsetT(o)

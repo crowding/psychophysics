@@ -6,6 +6,7 @@ function this = EyelinkInput(varargin)
     goodSampleCount = 0;
     
     doInitialTrackerSetup = 1;
+    streamData = 0; %data streaming would be good but is too slow...
     
     persistent init__;
     this = autoobject(varargin{:});
@@ -257,29 +258,67 @@ function this = EyelinkInput(varargin)
             %do nothing
             release = @noop;
         else
-%            status = require(HighPriority('Priority', 0), @start);
-            status = Eyelink('StartRecording');
+            status = Eyelink('StartRecording', 1, 1, 1, 1);
 
             %It retuns -1 but still records! WTF!@!!
             %if status ~= 0
             %    error('EyelinkInput:error', 'status %d starting recording', status);
             %end
             
+            %the samples and events are recorded anew each trial.
+            samples_ = {};
+            nsamples_ = 0;
+            events_ = {};
+            nevents_ = 0;
+            
             release = @doRelease;
-        end
-        
-        
-        function status = start()
-            WaitSecs(0.1);
-            status = Eyelink('StartRecording');
-            WaitSecs(0.1);
         end
 
         function doRelease
-            %no return status here...
+            %clean up our data
+            if streamdata
+                s = samples_;
+                ns = nsamples_;
+                e = events_;
+                ne = nevents_;
+
+                samples_ = {};
+                nsamples_ = 0;
+                events_ = {};
+                nevents_ = 0;
+            end
+            
+            %stop recording
             Eyelink('StopRecording');
+            
+            if streamdata
+                %concatenate the trace...
+                if ns > 0
+                    ss = s{1};
+                    ss(ns) = ss;
+                    s = s{2};
+                    for i = 2:ns
+                        ss(i) = s{1};
+                        s = s{2};
+                    end
+
+                    %concatenate further
+                    for i = fieldnames(ss)'
+                        ss(1).(i{:}) = cat(1, ss.(i{:}));
+                    end
+
+                    ss = ss(1);
+                end
+            end
+            
+            %TODO log to disk...
         end
     end
+
+samples_ = {};
+nsamples_ = 0;
+events_ = {};
+nevents_ = 0;
 
 %% actual input function
     function k = input(k)
@@ -300,6 +339,25 @@ function this = EyelinkInput(varargin)
             end
         else
             %obtain a new sample from the eye.
+            if streamdata
+                %unfortunately this is half baked and hte library's not
+                %fast enough to keep up...
+                datatype = Eyelink('GetNextDataType');
+                while(datatype)
+                    if datatype == el_.SAMPLE_TYPE
+                        data = Eyelink('GetFloatData', datatype);
+                        samples_ = {data samples_};
+                        nsamples_ = nsamples_ + 1;
+                    else
+                        % an event
+                        %data = Eyelink('GetFloatData', datatype);
+                        %events = {data events};
+                        %nevents_ = nevents_ + 1;
+                    end
+                    datatype = Eyelink('GetNextDataType');
+                end
+            end
+            
             if Eyelink('NewFloatSampleAvailable') == 0;
                 x = NaN;
                 y = NaN;
