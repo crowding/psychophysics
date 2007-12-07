@@ -15,8 +15,6 @@ discoveryTimeout = 1; %the UDP discovery timeout in seconds.
 debug = 0; %If set, will print out a hex dump of all communications
 debugstream = 0; %controls stream debugging separately
 maxBacklog = 4096;   %how many orphan samples to keep during streaming
-maxOutOfSync = 0.02; %if sync drifts by more than this many seconds,
-                     %issue a warning at stream stop.
 
 open_ = 0; %Indicates whether we are open.
 
@@ -1244,10 +1242,8 @@ this = autoobject(varargin{:});
     
     
     %private state variables used during stream operations.
-    fActual_ = [];
     fNominal_ = [];
     tBegin_ = [];
-    tFirstPacket_ = [];
     lastserial_ = [];
 
     incompleteSamples_ = [];
@@ -1255,16 +1251,12 @@ this = autoobject(varargin{:});
     incompleteData_ = [];
     
     warnDataLoss_ = 0;
-    warnSyncLoss_ = 0;
     
     serialOffset_ = 0;
-    
-    maxSyncLoss_ = 0;
     
     configured_ = 0;
     calibrationSlope_ = 0; %will be a column vector...
     calibrationOffset_ = 0; %should be a column vector...
-    clockDrift_ = 0;
     
     function r = streamConfig(varargin)
         %Configures the LabJack for streamimg. 
@@ -1291,9 +1283,8 @@ this = autoobject(varargin{:});
         % 'DivideBy256', divides the stream clock by 256.
         % 'ScanInterval', value from 1-65535.
         %
-        % In any case the estimated actual frequency will be returned in
-        % the SampleFrequency field and the nominal frequency in teh
-        % NominalSampleFrequency field.
+        % In any case the nominal sample frequency will be found in the
+        % SampleFrequency field of the result.
         
         assertOpen_();
         configured_ = 0;
@@ -1357,11 +1348,9 @@ this = autoobject(varargin{:});
         
         packet = namedargs(packet, args);
         r = roundtrip(STREAMCONFIG_COMMAND_, packet);
-        r.NominalSampleFrequency = cf(enumToNumber(packet.ClockFrequency, STREAM_CLOCK_FREQUENCY_)+1)/div(packet.DivideBy256+1)/packet.ScanInterval;
-        r.SampleFrequency = r.NominalSampleFrequency;
+        r.SampleFrequency = cf(enumToNumber(packet.ClockFrequency, STREAM_CLOCK_FREQUENCY_)+1)/div(packet.DivideBy256+1)/packet.ScanInterval;
         
-        fNominal_ = r.NominalSampleFrequency;
-        fActual_ = r.NominalSampleFrequency; %FIXME invent timing calibration
+        fNominal_ = r.SampleFrequency;
         r = rmfield(r, 'reserved0');
         
         configured_ = strcmp(r.errorcode, 'NOERROR');
@@ -1371,11 +1360,12 @@ this = autoobject(varargin{:});
 
 % since we are apt to synchronize acquisition with things, this should be
 % made to run fast.
-    streamStart_ = 0;
     function r = streamStart(tBegin)
         if ~configured_
             error('LabJackUE9:notConfigured', 'Stream must be configured before starting');
         end
+        
+        pnet(a_, 'write', uint8([168 168]));
         
         if (nargin >= 1)
             tBegin_ = tBegin;
@@ -1383,8 +1373,7 @@ this = autoobject(varargin{:});
             tBegin_ = 0;
         end
         
-        %initialize our brivate buffers etc.
-        tFirstPacket_ = [];
+        %initialize our private buffers etc.
         lastserial_ = -1;
 
         incompleteSamples_ = [];
@@ -1392,13 +1381,9 @@ this = autoobject(varargin{:});
         incompleteData_ = [];
 
         warnDataLoss_ = 0;
-        warnSyncLoss_ = 0;
-        maxSyncLoss_ = 0;
         
         serialOffset_ = 0;
         
-        pnet(a_, 'write', uint8([168 168]));
-        streamStart_ = GetSecs();
         if debug
             disp(strcat('>>> ', hexdump([168 168])));
         end
@@ -1441,7 +1426,7 @@ this = autoobject(varargin{:});
             error('LabJackUE9:ReadTimeOut', 'packet read timeout');
         end
         if (r(2) ~= 177)
-            error('LabJackUE9:mismatchedCommandNumbers', 'mismatched command response form streamStop');
+            error('LabJackUE9:mismatchedCommandNumbers', 'mismatched command response from streamStop');
         end
         s = sum(double(r([2 3 4])));
         s = s + floor(s/256);
@@ -1459,9 +1444,6 @@ this = autoobject(varargin{:});
         else
             lostdata = 0;
         end
-        if warnSyncLoss_
-             warning('LabJackUE9:outOfSync', 'Timing of packet receipt drifted out of sync with sample count. Consider calibrating the clock on this device.');
-        end
         
         flush();
     end
@@ -1477,13 +1459,13 @@ this = autoobject(varargin{:});
         %This is adapted from the routine I wrote for the PMD1208FS.m.
         %Hoever the labjack streams over a TCP connection so that
         %sequencing is guaranteed, which means this algorithm is a bit too
-        %complicagted (the PMD1208FS code had to deal with the report
+        %complicated (the PMD1208FS code had to deal with the report
         %buffer in PsychHID, which did not always report in order.)
         if ~configured_
             error('LabJackUE9:notConfigured', 'Stream must be configured before use');
         end
 
-        callTime = GetSecs();
+        latest = GetSecs();
         alldata = double(pnet(b_, 'read', 65504, 'uint8', 'noblock'));
         if debugstream && ~isempty(alldata)
             disp(strcat('+++ ', hexdump(alldata)));
@@ -1504,11 +1486,7 @@ this = autoobject(varargin{:});
             
             %ignore data coming from errors
             alldata(:, logical(alldata(12, :))) = [];
-            
-            if isempty(tFirstPacket_)
-                tFirstPacket_ = min(callTime);
-            end
-            
+                        
             %each packet also contains a 'reserved" timestamp
             timestamps = [1 256 65536 16777216] * alldata(7:10, :);
             
@@ -1578,23 +1556,8 @@ this = autoobject(varargin{:});
             assembled(channels+1 + size(assembled, 1)*(samples - firstSample)) = data;
             
             samples = (firstSample:lastSample);
-            times = samples / fNominal_ ./(1+clockDrift_);
+            times = samples / fNominal_;
             times = times + tBegin_;
-            
-            %Inspect for the discrepancy of time packets received versus
-            %time indicated. (i.e. clock skew between labjack and PC.)
-            latest = callTime;
-            
-            sync = (max(times) - tBegin_ + (samplesPer-1)/c/fActual_) ...
-                 - (latest - streamStart_);
-             
-            if abs(sync) > maxOutOfSync
-                warnSyncLoss_ = 1;
-            end
-
-            if abs(sync) > maxSyncLoss_
-                maxSyncLoss_ = sync;
-            end
             
             %we only return scans where we have all samples
             bf = ~isnan(assembled);
@@ -1618,7 +1581,6 @@ this = autoobject(varargin{:});
             r.rawdata = data;
             r.t = t;
             r.latest = latest;
-            r.sync = sync;
             r.timestamps = timestamps;
             if err
                 r.errorcode = enumToString(err, ERRORCODE_);
@@ -1632,7 +1594,6 @@ this = autoobject(varargin{:});
             r.errorcode = 'NOERROR';
             r.t = zeros(1, 0);
             r.latest = zeros(0, 1);
-            r.sync = zeros(0, 1);
         end
     end
 
@@ -2064,4 +2025,58 @@ this = autoobject(varargin{:});
         end
     end
 
+    function packet = lowlevel(packet, responsebytes)
+        %FAST FAST FAST;
+        %use this to send raw packets. The checksum and byte counts will be
+        %computed for you, but that's it. Otherwise you have to provide the
+        %entire packet INCLUDING spaces for the packet to go.
+        assertOpen_();
+
+        if bitand(packet(2), 120) == 120
+            %extended checksum
+            cksum = sum(packet(7:end));
+            packet(5) = bitand(cksum, 255);
+            packet(6) = bitshift(cksum, -8);
+            packet(3) = numel(packet) / 2 - 3;
+            cksum = sum(packet(2:6));
+            cksum = bitand(cksum, 255) + bitshift(cksum, -8);
+            packet(1) = bitand(cksum, 255) + bitshift(cksum, -8);
+        else
+            packet(2) = bitand(packet(1), 7) + numel(packet) / 2 - 1;
+            cksum = sum(packet(2:min(16,end)));
+            cksum = bitand(cksum, 255) + bitshift(cksum, -8);
+            packet(1) = bitand(cksum, 255) + bitshift(cksum, -8);
+        end
+        
+        pnet(a_, 'write', uint8(packet));
+        if debug
+            disp(strcat('>>> ', hexdump([packet])));
+        end
+
+        packet = pnet(a_, 'read', responsebytes, 'uint8');
+        if debug
+            disp(strcat('<<< ', hexdump([packet])));
+        end
+        
+        assert(numel(packet) == responsebytes, 'response packet length failure');
+        if numel(packet) < responsebytes
+            error('LabJackUE9:ReadTimeOut', 'packet read timeout');
+        end
+
+        %check checksums
+        if bitand(packet(2), 120) == 120
+            cksum = sum(packet(7:end));
+            assert(packet(5) == bitand(cksum, 255), 'Extended checksum failure');
+            assert(packet(6) == bitshift(cksum, -8), 'Extended checksum failure');
+            assert(packet(3) == numel(packet) / 2 - 3, 'Response packet length failure');
+            cksum = sum(packet(2:6));
+            cksum = bitand(cksum, 255) + bitshift(cksum, -8);
+            assert(packet(1) == bitand(cksum, 255) + bitshift(cksum, -8), 'Checksum failure');
+        else
+            assert(packet(2) == bitand(packet(1), 7) + numel(packet) / 2 - 1, 'Response packet length failure');
+            cksum = sum(packet(2:min(16,end)));
+            cksum = bitand(cksum, 255) + bitshift(cksum, -8);
+            packet(packet(1) == bitand(cksum, 255) + bitshift(cksum, -8), 'checksum failure');
+        end
+    end
 end
