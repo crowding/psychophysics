@@ -1264,24 +1264,26 @@ this = autoobject(varargin{:});
         %Optional arguments are passed as name/value pairs:
         %
         % 'Channels', an array of up to 128 channel numbers or a cell
-        % arrray of names.
-        % 'Gains', an array of gains or cell array of strings; (must have
-        %   an equal number of elements as Channels. See under analogIn
+        % arrray of channel names. Required.
+        % 'Gains', an array of gains or cell array of strings; must have
+        %   an equal number of elements as Channels. See under AnalogIn
         %   for the values. Required.
-        % 'Resolution', the sampling resolution for all channels. DEFAULT
-        % IS 12.
-        % 'SettlingTime', the settling time see under AnalogIn.
+        % 'Resolution', the sampling resolution for all channels. Default
+        %   is 12.
+        % 'SettlingTime', the settling time. See AnalogIn.
         % 'TriggerEnabled', enables the external trigger (scans on falling
-        %   edge of counter1)
-        % 'PulseEnabled', pulses Counter1 low before each scan.
+        %   edge of the Counter1 input)
+        % 'PulseEnabled', pulses Counter1 output low before each scan.
         % 'SampleFrequency' A sample frequency in Hz. If this is provided
-        %   the function will configure a sampling frequency to suit.
+        %   the function will configure a sampling frequency to suit. The
+        %   frequency chosen is returned in the SamplingFrequency
+        %   field of the output.
         % 
         % If you wish to configure the sampling rate manually, you can
         % provide these arguments:
-        % 'ClockFrequency', one of 'M4', 'M48', 'k750', or 'M24'
+        % 'ClockFrequency', one of 'M4', 'M48', 'k750', or 'M24'.
         % 'DivideBy256', divides the stream clock by 256.
-        % 'ScanInterval', value from 1-65535.
+        % 'ScanInterval', value from 0-65535.
         %
         % In any case the nominal sample frequency will be found in the
         % SampleFrequency field of the result.

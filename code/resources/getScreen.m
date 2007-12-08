@@ -1,4 +1,4 @@
-function initializer = GetScreen(varargin)
+function initializer = getScreen(varargin)
 %initScreen(arguments)
 %
 %Produces an intialization function for use with REQUIRE, which:
@@ -10,6 +10,7 @@ function initializer = GetScreen(varargin)
 %Optional init structure fields:
 %
 %input structure fields:
+%   screenNumber - the screen number of the display
 %   backgroundcolor - the normalized background color to use. default 0.5
 %   foregroundcolor - the foreground color, scale from 0 to 1. default 0.
 %   preferences - the screen preferences to be set, as a structure. Default
