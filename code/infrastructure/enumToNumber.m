@@ -14,6 +14,8 @@ function v = enumToNumber(v, enum)
             else
                 v = enum.(v);
             end
+        elseif isempty(v)
+            v = [];
         else
             error('enum:unknownValue', 'Unknown value(s) %s (options are %s)'...
                  , join(', ', setdiff(v, fieldnames(enum))) ...

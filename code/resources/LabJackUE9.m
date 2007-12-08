@@ -906,7 +906,7 @@ this = autoobject(varargin{:});
         %lookup special channels that bypass normal signal acquisition
         s(specialChannels_(channel+1)) = specialCalibrations_(channel(specialChannels_(channel+1))+1);
         
-        if any(~numel(s.slope))
+        if any(~cellfun('prodofsize', {s.slope}))
             error('LabJackUE9:invalidGainValue', 'invalid gain value for this resolution');
         end
         slope = reshape([s.slope], size(channel));
@@ -1302,7 +1302,7 @@ this = autoobject(varargin{:});
         args.Gains = enumToNumber(args.Gains, ANALOG_IN_GAIN_);
         
         nc = numel(args.Channels);
-        if nc < 1 || nc > 128 || nc ~= numel(args.Gains)
+        if nc < 0 || nc > 128 || nc ~= numel(args.Gains)
             error('LabJackUE9:BadArgs', 'channels and gains must be the same size and <= 128 elements');
         end
         

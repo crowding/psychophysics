@@ -13,6 +13,10 @@ function LabJackTimerDemo()
 %
 %%
 lj = LabJackUE9();
+
+slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
+offset = [0;0]; % the eye position offset
+
 lj.setDebug(0);
 demo();
 
@@ -20,24 +24,30 @@ w = 0;
 
 %% init function
     function [release, params] = init(params)
+        defaults = struct...
+            ( 'streamconfig', struct...
+                ( 'Channels', {{'AIN0', 'AIN1', 'Counter0'}}...
+                , 'Gains', {{'Bipolar', 'Bipolar', 'x1'}} ...
+                , 'Resolution', 14 ...
+                , 'SampleFrequency', 1000 ...
+                , 'PulseEnabled', 1 ...
+                )...
+            );
+        
         x = joinResource(lj.init, @myInit);
-        [release, params] = x(params);
+        [release, params] = x(namedargs(defaults, params));
 
         function [release, params] = myInit(params)
             lj.streamStop();
             lj.flush();
             lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 1 0 1 0 1 0]);
 
-            streamconf = lj.streamConfig...
-                ( 'Channels', {'AIN2', 'AIN3', 'Counter0', 'Timer1', 'TC_Capture', 'Timer3'} ...
-                , 'Gains', {'Bipolar', 'Bipolar', 'x1', 'x1', 'x1', 'x1'} ...
-                , 'Resolution', 12 ...
-                , 'SampleFrequency', 1000 ...
-                , 'PulseEnabled', 1 ...
-                );
+            response = lj.streamConfig(params.streamconfig);
 
-            assert(strcmp(streamconf.errorcode, 'NOERROR'), 'error configuring stream');
+            assert(strcmp(response.errorcode, 'NOERROR'), 'error configuring stream');
 
+            params.streamConfig.obtainedSampleFrequency = response.SampleFrequency;
+            
             release = @close;
             function close()
                 lj.streamStop();
@@ -49,12 +59,15 @@ w = 0;
 
 
 %% begin trial function
+    streamStartTime_ = 0;
     function [release, params] = begin(params)
         queue_ = {};
         samples_ = 0;
 
+        streamStartTime_ = GetSecs();
         lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
 
+        
         release = @close;
 
         function close
@@ -71,22 +84,61 @@ queue_ = {};
 samples_ = 0;
 refresh0HWCount_ = 0;
 
-        function data = extractData()
-            %collapse the linked list
-            data = zeros(size(queue_{1}.data,1), samples_);
-            while ~isempty(queue_)
-                d = queue_{1}.data;
-                data(:,samples_-size(d, 2)+1:samples_) = d;
-                samples_ = samples_ - size(d,2);
-                d = [];
-                queue_ = queue_{2};
-            end
-            queue_ = {};
-            samples_ = 0;
+    lastX_ = NaN;
+    lastY_ = NaN;
+    lastT_ = NaN;
+    
+    function h = check(h)
+        x = lj.streamRead();
+        raw = x.data([1 2], :);
+        h.rawEyeX = raw(1,:);
+        h.rawEyeY = raw(2,:);
+        h.eyeT = x.t + (2*streamStartTime_ - syncTime_);
+        h.eyeRefreshes = x.data(3,:);
+        
+        calibrated = slope*raw+offset(:,ones(1,size(raw, 2)));
+        h.eyeX = calibrated(1,:);
+        h.eyeY = calibrated(2,:);
+        
+        if ~isempty(x.data)
+            %store the data and remember it
+            queue_ = {x queue_}; %#ok;
+            samples_ = samples_ + size(x.data, 2);
+            lastX_ = calibrated(1,end);
+            lastY_ = calibrated(2,end);
+            lastT_ = h.eyeT(end);
         end
+        h.x = lastX_;
+        h.y = lastY_;
+        h.t = lastT_;
+    end
+
+    function [data, t] = extractData()
+        %collapse the linked list
+        data = zeros(size(queue_{1}.data,1), samples_);
+        t = zeros(1, samples_);
+        while ~isempty(queue_)
+            d = queue_{1};
+            n = size(d.data, 2);
+            data(:,samples_-n+1:samples_) = d.data;
+            t(:,samples_-n+1:samples_) = d.t + (streamStartTime_ - syncTime_);
+            samples_ = samples_ - n;
+            d = [];
+            queue_ = queue_{2};
+        end
+        queue_ = {};
+        samples_ = 0;
+    end
 
     function demo()
-        [params, data] = require(HighPriority(), getScreen('screenNumber', 1, 'requireCalibration', 0), @init, @begin, @collectData);
+        
+        sc = struct...
+            ( 'Channels', {{'AIN2', 'AIN3', 'Counter0', 'Timer1', 'TC_Capture', 'Timer3'}} ...
+            , 'Gains', {{'Bipolar', 'Bipolar', 'x1', 'x1', 'x1', 'x1'}} ...
+            , 'Resolution', 12 ...
+            );
+        
+        [params, data, t] = require(HighPriority('streamconfig', sc), getScreen('screenNumber', 1, 'requireCalibration', 0), @init, @begin, @collectData);
 
         actualclock = data(3,find(data(1,501:end) > 3.3, 1, 'first')+500);
         actualreward = data(3,find(data(2,501:end) > 3.3, 1, 'first')+500);
@@ -96,34 +148,30 @@ refresh0HWCount_ = 0;
         figure(1); clf;
 
         hold on;
-        d = 1:size(data, 2);
-        [ax, h1, h2] = plotyy(d, data(3,:), d, data(1,:));
+        [ax, h1, h2] = plotyy(t, data(3,:), t, data(1,:));
         hold(ax(1), 'on');
-        h3 = plot(ax(1), data(4,:));  %Timer1 low, stop target
-        h4 = plot(ax(1), data(6,:));  %Timer1 high, edges seen
+        h3 = plot(ax(1), t, data(4,:));  %Timer1 low, stop target
+        h4 = plot(ax(1), t, data(6,:));  %Timer1 high, edges seen
         hold(ax(2), 'on');
-        h5 = plot(ax(2), d, data(2,:));
-        legend([h1 h2], 'Sync', 'Reward');%, 'Frame Count', 'Timer1Lo', 'Timer3Lo', 'Location', 'NorthEastOutside');
+        h5 = plot(ax(2), t, data(2,:));
+%        legend([h1 h2], 'Sync', 'Reward');%, 'Frame Count', 'Timer1Lo', 'Timer3Lo', 'Location', 'NorthEastOutside');
 
         hold off;
 
-        legend('FIO0', 'FIO2', 'Location', 'NorthEastOutside');
-        hold off;
-        
-        function [params, data] = collectData(params)
+        function [params, data, t] = collectData(params)
             w = params.window;
 
-            t = getSecs();
+            t = GetSecs();
             setupSync();
             
-            collectUntil(t+0.5);
+            collectUntil(t+0.2);
             
-            predictedreward = setReward(120, 100);
-            predictedclock = setClock(150);
+            predictedreward = setReward(120, 100)
+            predictedclock = setClock(150)
 
             collectUntil(t+2);
 
-            data = extractData();
+            [data, t] = extractData();
         end
 
         function setupSync()
@@ -137,25 +185,26 @@ refresh0HWCount_ = 0;
         end
 
         function collectUntil(t)
-            while (GetSecs()) < t;
-                x = lj.streamRead();
-                if ~isempty(x.data)
-                    queue_ = {x queue_}; %#ok;
-                    samples_ = samples_ + size(x.data, 2);
-                end
+            x.t = 0
+            while (x.t) < t;
+                x = check(struct());
             end
         end
     end
 
 
     refresh0HWCount_ = 0;
+    syncTime_ = 0;
     function params = sync(params)
-        %resp = lj.lowlevel([72 248 12 24 36 7 1 142 1 127 0 255 255 9 0 0 0 255 255 9 0 0 0 255 255 9 0 0 0 0], 40);
-        %48F80C18 2407018E 017F00FF FF090000 00FFFF09 000000FF FF090000 0000
-
+        refresh0HWCount_ = params.refresh0HWCount;
+        syncTime_ = GetSecs();
+        %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
+        resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
+        assert( resp(7) == 0, 'labjack returned error setting timers' );
         %which means:
         %
-        refresh0HWCount_ = params.refresh0HWCount;
+        %{
+        lj.setDebug(1);
         resp = lj.timerCounter...
             ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
             , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 0 ...
@@ -167,6 +216,8 @@ refresh0HWCount_ = 0;
             , 'Counter1Enabled', 0 ...
             , 'UpdateReset.Counter0', 1 ...
             );
+        assert(strcmp(resp.errorcode, 'NOERROR'));
+        lj.setDebug(0);
         %}
     end
 
@@ -201,12 +252,14 @@ refresh0HWCount_ = 0;
 
         %equivalent to:
         %
+        a = GetSecs();
         timerconf = lj.timerCounter...
             ( 'Timer2.Value', 0 ...
             , 'Timer3.Value', rewardCounts ...
             , 'Timer4.Value', 0 ...
             , 'Timer5.Value', rewardLength ...
             );
+        timerlength = GetSecs() - a
         predictedreward = timerconf.Counter0 + rewardCounts;
         %}
     end
