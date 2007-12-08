@@ -2044,7 +2044,7 @@ this = autoobject(varargin{:});
             cksum = bitand(cksum, 255) + bitshift(cksum, -8);
             packet(1) = bitand(cksum, 255) + bitshift(cksum, -8);
         else
-            packet(2) = bitand(packet(1), 7) + numel(packet) / 2 - 1;
+            packet(2) = bitand(packet(2), 248) + numel(packet) / 2 - 1;
             cksum = sum(packet(2:min(16,end)));
             cksum = bitand(cksum, 255) + bitshift(cksum, -8);
             packet(1) = bitand(cksum, 255) + bitshift(cksum, -8);
@@ -2075,10 +2075,10 @@ this = autoobject(varargin{:});
             cksum = bitand(cksum, 255) + bitshift(cksum, -8);
             assert(packet(1) == bitand(cksum, 255) + bitshift(cksum, -8), 'Checksum failure');
         else
-            assert(packet(2) == bitand(packet(1), 7) + numel(packet) / 2 - 1, 'Response packet length failure');
+            assert(bitand(packet(2), 7) == numel(packet) / 2 - 1, 'Response packet length failure');
             cksum = sum(packet(2:min(16,end)));
             cksum = bitand(cksum, 255) + bitshift(cksum, -8);
-            packet(packet(1) == bitand(cksum, 255) + bitshift(cksum, -8), 'checksum failure');
+            assert(packet(1) == bitand(cksum, 255) + bitshift(cksum, -8), 'checksum failure');
         end
     end
 end

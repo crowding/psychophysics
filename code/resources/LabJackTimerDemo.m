@@ -164,12 +164,13 @@ refresh0HWCount_ = 0;
             t = GetSecs();
             setupSync();
             
-            collectUntil(t+0.2);
-            
-            predictedreward = setReward(120, 100)
-            predictedclock = setClock(150)
+            for i = 0.5:0.1:10
+                collectUntil(t+i);
+                predictedreward = setReward(0, 5);
+%                predictedclock = eventCode(i*120 + 10, 42)
+            end
 
-            collectUntil(t+2);
+            collectUntil(t+10);
 
             [data, t] = extractData();
         end
@@ -185,7 +186,7 @@ refresh0HWCount_ = 0;
         end
 
         function collectUntil(t)
-            x.t = 0
+            x.t = 0;
             while (x.t) < t;
                 x = check(struct());
             end
@@ -237,34 +238,59 @@ refresh0HWCount_ = 0;
         current = info.VBLCount - refresh0HWCount_;
         rewardCounts = max(1, rewardAt - current);
 
-        %{
-        %5EF80C18 3C050100 013C0000 00000000 00FFFF00 9E0000FF FF006400 0000
-        packet = [94 248 12 24 60 5 1 0 1 60 0 0 0 0 0 0 0 255 255 0 158 0 0 255 255 0 100 0 0 0]
-        packet(18) = bitand(rewardCounts, 255);
-        packet(19) = bitshift(rewardCounts, -8);
-        packet(24) = bitand(rewardLength, 255);
-        packet(25) = bitshift(rewardLength, -8);
+        %
+        %1DF80C18 FF000100 013C0000 00000000 00000000 5D000000 00006400 0000
+        packet = [29 248 12 24 255 0 1 0 1 60 0 0 0 0 0 0 0 0 0 0 93 0 0 0 0 0 100 0 0 0];
+        packet(21) = bitand(rewardCounts, 255);
+        packet(22) = bitshift(rewardCounts, -8);
+        packet(27) = bitand(rewardLength, 255);
+        packet(28) = bitshift(rewardLength, -8);
         response = lj.lowlevel(packet, 40);
-
-        predictedreward = double(response(33:36))*[1;256;65536;1677216] + rewardCounts;
-        fprintf('Predicting reward signal at %d\n', predictedreward);
+        assert(response(7) == 0, 'error setting timer');
+        predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts;
         %}
 
         %equivalent to:
-        %
-        a = GetSecs();
+        %{
+        lj.setDebug(1);
         timerconf = lj.timerCounter...
             ( 'Timer2.Value', 0 ...
             , 'Timer3.Value', rewardCounts ...
             , 'Timer4.Value', 0 ...
             , 'Timer5.Value', rewardLength ...
             );
-        timerlength = GetSecs() - a
+        lj.setDebug(0);
         predictedreward = timerconf.Counter0 + rewardCounts;
         %}
     end
 
-    function predictedclock = setClock(clockAt)
+    %send out an 8-bit event code.
+    function predictedclock = eventCode(clockAt, code)
+        %D1A30301 FF2A0000
+        
+        packet1 = [209 163 3 1 255 42 0 0];
+        packet1(6) = code;
+        resp = lj.lowlevel(packet1, 8);
+        assert(resp(7) == 0, 'error outputting code');
+        
+        
+        info = Screen('GetWindowInfo', w);
+        current = info.VBLCount - refresh0HWCount_;
+        clockCounts = max(1, clockAt - current);
+
+        %9AF80C18 7D000100 01030000 00007800 00000000 00000000 00000000 0000
+        packet2 = [154 248 12 24 125 0 1 0 1 3 0 0 0 0 120 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+        packet2(15) = bitand(clockCounts, 255);
+        packet2(16) = bitshift(clockCounts, -8);
+        resp = lj.lowlevel(packet2, 40);
+        assert(resp(7) == 0, 'error setting timer');
+        predictedclock = double(resp(33:36))*[1;256;65536;16777216] + clockCounts;
+
+        %equivalent to:
+        %{
+        lj.setDebug(1);
+        lj.portOut('EIO', 255, code);
+        
         info = Screen('GetWindowInfo', w);
         current = info.VBLCount - refresh0HWCount_;
         clockCounts = max(1, clockAt - current);
@@ -274,5 +300,8 @@ refresh0HWCount_ = 0;
             , 'Timer1.Value', clockCounts ...
             );
         predictedclock = timerconf.Counter0 + clockCounts;
+        lj.setDebug(0);
+        %}
     end
+
 end
