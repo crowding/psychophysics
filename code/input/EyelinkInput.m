@@ -251,9 +251,9 @@ function this = EyelinkInput(varargin)
         dummy_ = details.dummy;
         window_ = details.window;
 
-        %[details.clockoffset, details.clockoffsetMeasured] = getclockoffset(details);
-        %clockoffset_ = details.clockoffset
-        
+        [details.clockoffset, details.clockoffsetMeasured] = getclockoffset(details);
+        clockoffset_ = details.clockoffset;
+
         if dummy_
             %do nothing
             release = @noop;

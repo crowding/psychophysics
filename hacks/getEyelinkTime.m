@@ -7,22 +7,37 @@ function [time1, time2, before_request, before_request2, offset] = getEyelinkTim
     %{
         %select and eval this part after defining your function...
         Eyelink('Initialize');
+        Priority(9);
 
-        [time1, time2, before1, before2, offsets] = deal(zeros(3000,1));
+        [time1, time2, before1, before2, offsets] = deal(zeros(1000,1));
 
-        for i = 1:numel(time1)
-            [time1(i), time2(i), before1(i), before2(i), offsets(i)] = getEyelinkTime(0.05);
-            WaitSecs(0.01);
-        end
+            begin = GetSecs()
+            for i = 1:numel(time1)
+                [time1(i), time2(i), before1(i), before2(i), offsets(i)] = getEyelinkTime(0.05);
+                WaitSecs(0.01);
+                if GetSecs() - begin > 10
+                    time1(i+1:end) = [];
+                    time2(i+1:end) = [];
+                    before1(i+1:end) = [];
+                    before2(i+1:end) = [];
+                    offsets(i+1:end) = [];
+                    break;
+                end
+            end
 
+        Priority(0);
         plot( before1 - before1(1), (time1 - time1(1))/1000 - before1 + before1(1), 'r-'...
             , before2 - before2(1), (time2 - time2(1))/1000 - before2 + before2(1), 'b-'...
             , before2 - before2(1), (offsets - offsets(1))/1000, 'g-');
 
         title('Time offsets');
-        legend('Using TrackerTime', 'Using RequestTime/ReadTime', 'Using TimeOffset');
+        ylabel('offset (s)');
+        legend('Using TrackerTime', 'Using RequestTime/ReadTime', 'Using TimeOffset', 'Location', 'SouthOutside');
 
+        xlabel('time of measurement (s)');
+    
         Eyelink('ShutDown');
+
     %}
 
     %requests the time from the eyelink, and the time before and after
@@ -44,15 +59,15 @@ function [time1, time2, before_request, before_request2, offset] = getEyelinkTim
 
     start = before_request;
     time2 = 0;
-    timeout = start;
     time2 = Eyelink('ReadTime');
     while(time2 == 0)
         s = GetSecs();
         if (s - start) > timeout
-            error('getclockoffset:timeout', ...
-                  'timeout waiting for clock information from eyelink');
+            disp('timeout');
+            time2 = NaN;
+            break;
         end
-        WaitSecs(0.0001);
+        WaitSecs(0.0005);
         time2 = Eyelink('ReadTime');
     end
 end

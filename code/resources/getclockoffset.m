@@ -59,7 +59,7 @@ end
 %welp, that didn't work, we have to do this the hard way.
 
 if nargin < 2
-    nsamples = 50; %good enough for 100 usec precision...
+    nsamples = 25; %good enough for 100 usec precision...
 end
 
 if details.dummy
@@ -85,7 +85,8 @@ end
 % Polling for the eyelink time does not appear to work when we are at
 % a high priority--timeout errors are likely. So set a lower priority.
 [time, pre_request, post_request] = deal(zeros(1,nsamples));
-require(HighPriority('priority', 0), @collect);
+collect();
+%require(HighPriority('priority', 0), @collect);
     function collect()
         for i = 1:nsamples
             [time(i), pre_request(i), post_request(i)] = getTime();
@@ -169,7 +170,6 @@ offsetOffset_ = lastOffset_ - timeoffset;
         end
 
         start = before_request;
-        time = 0;
         time = Eyelink('ReadTime');
         while(time == 0)
             s = GetSecs();
@@ -177,6 +177,7 @@ offsetOffset_ = lastOffset_ - timeoffset;
                 error('getclockoffset:timeout', ...
                       'timeout waiting for clock information from eyelink');
             end
+            WaitSecs(0.0001);
             time = Eyelink('ReadTime');
         end
     end

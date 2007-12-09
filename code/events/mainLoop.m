@@ -122,7 +122,7 @@ toDegrees_ = @noop;
         refresh = 0;    %the first flip in the loop is flip 0
                         %(the first that draws anything is flip 1)
 
-        while(go_)
+        while(1)
             %The loop is: Flip, Draw, Update, run Events.
             %Draw happens right after Flip, to keep its pipeline as full
             %as possible. This minimizes frame skipping but has a downside:
@@ -157,7 +157,11 @@ toDegrees_ = @noop;
                 aviobj = addframe(aviobj, Screen('GetImage', window));
             end
 
-            
+            if (~go_)
+                %the loop test is here, so that the final frame gets drawn
+                %to the screen.
+                break;
+            end
             %-----Draw phase: Draw all the objects for the next refresh.
             for i = 1:ng
                 graphics(i).draw(window, VBL + interval);
