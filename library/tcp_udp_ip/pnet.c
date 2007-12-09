@@ -94,6 +94,7 @@
 #include <arpa/inet.h> 
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #define nonblockingsocket(s)  fcntl(s,F_SETFL,O_NONBLOCK)
 #endif
 
@@ -409,7 +410,7 @@ void __debug_view_con_status(char *str)
 /********************************************************************/
 /* Portable time function using matlabs NOW                         */
 double my_now(){
-    double sec;
+#ifdef WIN32
     double dotimenow;
     static double lastdotime;
     mxArray *plhs[1]={NULL};
@@ -424,6 +425,14 @@ double my_now(){
 	    lastdotime= dotimenow;
     }
     return sec;
+#else
+    //PBM -- mexCallMATLAB takes way too long per call
+    double sec;
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    sec = (double)tp.tv_sec + ((double)tp.tv_usec)/1000000;
+    return sec;
+#endif
 }
 
 /*******************************************************************************/
@@ -860,59 +869,61 @@ int read2buff(const int len,int newline,int noblock)
 
     /* Resize readbuffer to needed size */
     if(con[con_index].read.len<len)
-	newbuffsize(&con[con_index].read,len);
-
+        newbuffsize(&con[con_index].read,len);
+    
     while(1){
-	int readlen=len-con[con_index].read.pos;
-//	mexPrintf("DEBUG: READLINE: readlen:%d\n",readlen);
-	if(readlen>0){
-	    if(IS_STATUS_CONNECTED(con[con_index].status))
-		retval=recv(con[con_index].fid,&con[con_index].read.ptr[con[con_index].read.pos],readlen ,MSG_NOSIGNAL);
-	    else{
-		struct sockaddr_in my_addr;
-		int fromlen=sizeof(my_addr); 
-
-		// Copy 0.0.0.0 adress and 0 port to remote_addr as init-value.
-		memset(&my_addr,0,sizeof(my_addr));
-		con[con_index].remote_addr.sin_addr = my_addr.sin_addr;
-		con[con_index].remote_addr.sin_port = my_addr.sin_port;
-		retval=recvfrom(con[con_index].fid,&con[con_index].read.ptr[con[con_index].read.pos],
-				readlen,MSG_NOSIGNAL,(struct sockaddr *)&my_addr, &fromlen);
-		if (retval>0){
-		    con[con_index].remote_addr.sin_addr = my_addr.sin_addr;
-		    con[con_index].remote_addr.sin_port = htons((unsigned short int)ntohs(my_addr.sin_port));
-		}
-	    }
-	    if( retval==0){
-		mexPrintf("\nREMOTE HOST DISCONNECTED\n");
-		con[con_index].status=STATUS_NOCONNECT;
-		break;
-	    }
-	    if(retval<0 && s_errno!=EWOULDBLOCK
-	       //	       IFWINDOWS( && s_errno!=WSAECONNRESET )// DEBUG: REMOVE THIS LINE?
-	       ) {
-		con[con_index].status=STATUS_NOCONNECT;
-		perror( "recvfrom() or recv()" );
-		break;
-	    }
-	}
-	//	fprintf(stderr,"RET:%d/%d ",retval,s_errno);
-	readlen=retval>0?retval:0;
-	con[con_index].read.pos+=readlen;
-	if( !IS_STATUS_TCP_CONNECTED(con[con_index].status) && con[con_index].read.pos>0 )
-	    break;
-	if( con[con_index].read.pos>=len )
-	    break;
-	if(timeoutat<=my_now() || noblock)
-	    break;
-	if(newline){
-	    int n;
-	    for(n=0;n<con[con_index].read.pos;n++)
-		if(con[con_index].read.ptr[n]=='\n')
-		    return con[con_index].read.pos;
-	}
-	if(readlen<1000)
-	    usleep(DEFAULT_USLEEP);
+        int readlen=len-con[con_index].read.pos;
+        // mexPrintf("DEBUG: READLINE: readlen:%d, noblock:%d\n",readlen, noblock);
+        if(readlen>0){
+            if(IS_STATUS_CONNECTED(con[con_index].status))
+                retval=recv(con[con_index].fid,&con[con_index].read.ptr[con[con_index].read.pos],readlen ,MSG_NOSIGNAL);
+            else{
+                struct sockaddr_in my_addr;
+                int fromlen=sizeof(my_addr);
+                
+                // Copy 0.0.0.0 adress and 0 port to remote_addr as init-value.
+                memset(&my_addr,0,sizeof(my_addr));
+                con[con_index].remote_addr.sin_addr = my_addr.sin_addr;
+                con[con_index].remote_addr.sin_port = my_addr.sin_port;
+                retval=recvfrom(con[con_index].fid,&con[con_index].read.ptr[con[con_index].read.pos],
+                readlen,MSG_NOSIGNAL,(struct sockaddr *)&my_addr, &fromlen);
+                if (retval>0){
+                    con[con_index].remote_addr.sin_addr = my_addr.sin_addr;
+                    con[con_index].remote_addr.sin_port = htons((unsigned short int)ntohs(my_addr.sin_port));
+                }
+            }
+            if( retval==0){
+                mexPrintf("\nREMOTE HOST DISCONNECTED\n");
+                con[con_index].status=STATUS_NOCONNECT;
+                break;
+            }
+            if(retval<0 && s_errno!=EWOULDBLOCK
+            //	       IFWINDOWS( && s_errno!=WSAECONNRESET )// DEBUG: REMOVE THIS LINE?
+            ) {
+                con[con_index].status=STATUS_NOCONNECT;
+                perror( "recvfrom() or recv()" );
+                break;
+            }
+        }
+        //	fprintf(stderr,"RET:%d/%d ",retval,s_errno);
+        readlen=retval>0?retval:0;
+        con[con_index].read.pos+=readlen;
+        if( !IS_STATUS_TCP_CONNECTED(con[con_index].status) && con[con_index].read.pos>0 )
+            break;
+        if( con[con_index].read.pos>=len )
+            break;
+        if(timeoutat<=my_now() || noblock) {
+            // mexPrintf("DEBUG: breaking, readlen:%d, noblock:%d\n",readlen, noblock);
+            break;
+        }
+        if(newline){
+            int n;
+            for(n=0;n<con[con_index].read.pos;n++)
+                if(con[con_index].read.ptr[n]=='\n')
+                    return con[con_index].read.pos;
+        }
+        if(readlen<1000)
+            usleep(DEFAULT_USLEEP);
     }
     return con[con_index].read.pos;
 }

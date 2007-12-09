@@ -117,4 +117,8 @@ function setBrightness(n)
     PsychHID('SetReport', device, 2, 0, uint8([1 n]))
 end
 
+    function sync(n)
+        %nothing needed
+    end
+
 end

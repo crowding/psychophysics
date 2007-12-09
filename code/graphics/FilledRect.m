@@ -1,9 +1,14 @@
-function this = FilledRect(rect, color)
+function this = FilledRect(varargin)
 
     %A filled rectangle object that is part of displays.
     visible = 0;
     
-    this = finalize(inherit(autoprops(), automethods()));
+    rect = [0 0 0 0];
+    color = [0];
+    
+    persistent init__;
+    varargin = assignments(varargin, 'rect', 'color');
+    this = autoobject(varargin{:});
     
     toPixels_ = @noop;
 %----- methods -----

@@ -7,6 +7,8 @@ log = [];
 fn = [];
 
 varargin = assignments(varargin, 'fn');
+
+persistent init__;
 this = autoobject(varargin{:});
 
 if isempty(fn)

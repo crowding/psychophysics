@@ -320,6 +320,11 @@ nsamples_ = 0;
 events_ = {};
 nevents_ = 0;
 
+%% sync
+    function sync(n)
+        %%nothing needed
+    end
+
 %% actual input function
     function k = input(k)
         %Takes a sample from the eye, or mouse if the eyelink is not

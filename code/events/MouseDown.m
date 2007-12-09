@@ -4,6 +4,7 @@ function this = MouseDown(varargin)
 log = @noop;
 fntable = {};
 
+persistent init__;
 this = autoobject(varargin{:});
 
 lastButtons_ = [];

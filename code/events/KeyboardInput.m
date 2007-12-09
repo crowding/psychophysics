@@ -86,4 +86,8 @@ function this = KeyboardInput(varargin)
             k.keycodes = lastState_;
         end
     end
+
+    function sync(n)
+        %nothing needed
+    end
 end

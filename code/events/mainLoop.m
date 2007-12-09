@@ -111,19 +111,52 @@ toDegrees_ = @noop;
             aviobj = avifile(aviout_, 'fps', 1 / interval);
         end
 
-        VBL = Screen('Flip', params.window) / slowdown;
-        prevVBL = VBL - interval; %meaningless fakery
-        refresh = 1;    %the first refresh we draw is refresh 1.
+        VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
+        
+        %if this is correct we should be in refresh 0 right now?
+        %Synchronize what needs synchronizing...
+        for i = 1:numel(input)
+            input(i).sync(-1);
+        end
+        
+        refresh = 0;    %the first flip in the loop is flip 0
+                        %(the first that draws anything is flip 1)
 
-        %the main loop
         while(go_)
-            %The loop is: Draw, Update, run Events, and Flip.
-            %Draw happens right after Flip, to give as much time
-            %to the graphics card as possible. This minimizes frame
-            %skipping but has a downside:
-            %event handlers are preparing things for frame X+2 while frame
+            %The loop is: Flip, Draw, Update, run Events.
+            %Draw happens right after Flip, to keep its pipeline as full
+            %as possible. This minimizes frame skipping but has a downside:
+            %
+            %Event handlers are preparing things for frame X+2 while frame
             %X is at the display. It also takes one extra frame to recover
             %from a drop.
+            
+            %-----Flip phase: Flip the screen buffers and note the time at
+            %which the change occurred.
+            prevVBL = VBL;
+            
+            deadline = (VBL + interval) * slowdown - interval/2;
+            [tmp, tmp, FlipTimestamp]...
+                = Screen('Flip', window, deadline, [], 1);
+            beampos = Screen('GetWindowInfo', params.window, 1);
+            %Estimate of when the next blank happens
+            VBL = FlipTimestamp + (VBLStartline-beampos)/VBLEndline*flipInterval;
+            
+            if (deadline > VBL)
+                %figure it hit anyway, since this only happens in slowdown
+                %mode.
+                VBL = VBL + ceil((deadline - VBL) * interval) + interval;
+            end
+
+            VBL = VBL / slowdown;
+            
+            if (aviout_)
+                frame = Screen('GetImage', window);
+                size(frame)
+                class(frame)
+                aviobj = addframe(aviobj, Screen('GetImage', window));
+            end
+
             
             %-----Draw phase: Draw all the objects for the next refresh.
             for i = 1:ng
@@ -194,32 +227,6 @@ toDegrees_ = @noop;
             for i = 1:numel(triggers)
                 triggers(i).check(s);
             end
-
-            %-----Flip phase: Flip the screen buffers and note the time at
-            %which the change occurred.
-            prevVBL = VBL;
-            
-            deadline = (VBL + interval) * slowdown - interval/2;
-            [tmp, tmp, FlipTimestamp]...
-                = Screen('Flip', window, deadline, [], 1);
-            beampos = Screen('GetWindowInfo', params.window, 1);
-            %Estimate of when the next blank happens
-            VBL = FlipTimestamp + (VBLStartline-beampos)/VBLEndline*flipInterval;
-            
-            if (deadline > VBL)
-                %figure it hit anyway, since this only happens in slowdown
-                %mode.
-                VBL = VBL + ceil((deadline - VBL) * interval) + interval;
-            end
-
-            VBL = VBL / slowdown;
-            
-            if (aviout_)
-                frame = Screen('GetImage', window);
-                size(frame)
-                class(frame)
-                aviobj = addframe(aviobj, Screen('GetImage', window));
-            end
         end
 
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
@@ -287,7 +294,7 @@ toDegrees_ = @noop;
     end
 
     function init = startInput()
-        input = interface(struct('input', {}, 'begin', {}), input);
+        input = interface(struct('input', {}, 'begin', {}, 'sync', {}), input);
         init = joinResource(input.begin);
     end
         

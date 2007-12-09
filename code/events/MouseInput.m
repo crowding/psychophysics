@@ -33,4 +33,8 @@ function this = MouseInput(varargin)
         k.mouset = GetSecs() * slowdown_;
         [k.mousex_deg, k.mousey_deg] = toDegrees_(k.mousex, k.mousey);
     end
+
+    function sync(n)
+        %nothing needed
+    end
 end

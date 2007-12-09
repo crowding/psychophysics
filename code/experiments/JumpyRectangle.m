@@ -2,6 +2,10 @@ function JumpyRectangle(varargin)
 
 defaults = struct ...
     ( 'edfname', '' ...
+    , 'input', struct ...
+        ( 'eyes', EyelinkInput() ...
+        , 'mouse', MouseInput() ...
+        )...
     );
 
 params = namedargs(defaults, varargin{:});
@@ -11,13 +15,16 @@ params = namedargs(defaults, varargin{:});
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
-require(setupEyelinkExperiment(params), @runDemo);
+inputs = interface(struct('init', {}), struct2cell(params.input));
+
+require(setupEyelinkExperiment(params), inputs.init, @runDemo);
     function runDemo(details)
         indegrees = transformToDegrees(details.cal);
 
         patch = MoviePlayer(CauchyPatch);
         rect = FilledRect([-2 -2 2 2], details.blackIndex);
-        disk = FilledDisk([-2 2], 0.5, details.whiteIndex);
+        disk1 = FilledDisk([-2 2], 0.5, details.whiteIndex);
+        disk2 = FilledDisk([-2 2], 0.25, [details.whiteIndex details.whiteIndex details.blackIndex]);
         text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
         triggers = TriggerDrawer();
         
@@ -31,13 +38,14 @@ require(setupEyelinkExperiment(params), @runDemo);
         abortTrigger = MouseDown();
         
         rect.setVisible(1);
-        disk.setVisible(1);
+        disk1.setVisible(1);
+        disk2.setVisible(1);
         text.setVisible(1);
         triggers.setVisible(1);
         
         % ----- the main loop. -----
         main = mainLoop ...
-            ( {rect, disk, text, patch} ...
+            ( {rect, disk1, disk2, text, patch} ...
             , {moveTrigger, startTrigger, playTrigger, stopTrigger} ...
             , 'mouse', {followTrigger, abortTrigger} ...
             );
@@ -69,8 +77,9 @@ require(setupEyelinkExperiment(params), @runDemo);
 
         function r = followDisk(s)
             %make the disk follow the mouse
-            disk.setLoc([s.mousex_deg s.mousey_deg]);
-            text.setText(sprintf('%0.2f, %0.2f\n%0.3f, %0.3f', s.mousex_deg, s.mousey_deg, s.mouset, GetSecs()));
+            disk1.setLoc([s.mousex_deg s.mousey_deg]);
+            disk2.setLoc([s.x s.y]);
+            text.setText(sprintf('%0.2f, %0.2f | %0.2f, %0.2f | %0.3f, %0.3f', s.mousex_deg, s.mousey_deg, s.x, s.y, s.mouset, GetSecs()));
         end
 
         function r = randomRect(bounds)

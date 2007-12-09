@@ -1,4 +1,4 @@
-function this = MoviePlayer(patch_)
+function this = MoviePlayer(varargin)
 
 %Interface between my old-style graphics objects and the new object system.
 %Note that the stimulus onset will be keyed to the visible() command and
@@ -7,18 +7,18 @@ function this = MoviePlayer(patch_)
 %Will count off frames without having to draw each one.
 
 %constants
-GL_BLEND_EQUATION = hex2dec('8009');
-GL_BLEND_DST = hex2dec('0BE0');
-GL_BLEND_SRC = hex2dec('0BE1');
+GL_BLEND_EQUATION_ = hex2dec('8009');
 
-this = final(...
-        @init, @update, @draw, ...
-        @bounds, @getVisible, @setVisible, @finishTime);
+patch = [];
+visible = 0;
+
+persistent init__;
+varargin = assignments(varargin, 'patch');
+this = autoobject(varargin{:});
 
 textures_ = [];
 refreshCount_ = 1; %whcih frame we are about to show
 frameIndex_ = 1; %the index into the teture array (may be different from frame index
-visible_ = 0;
 prepared_ = 0;
 toDegrees_ = [];
 
@@ -33,7 +33,7 @@ toDegrees_ = [];
                     'Attempted to prepare an already-prepared graphics object.');
             end
             prepared_ = 1;
-            textures_ = texture_movie(patch_, params.window, params.cal);
+            textures_ = texture_movie(patch, params.window, params.cal);
             toDegrees_ = transformToDegrees(params.cal);
         catch
             err = lasterror;
@@ -71,9 +71,8 @@ toDegrees_ = [];
             totry{end+1} = @cldrawing;
             function cldrawing
                 prepared_ = 0;
-                visible_ = 0;
+                visible = 0;
                 frameIndex_ = 1;
-                frameCounter = 1;
             end
 
             tryAll(totry{:});
@@ -88,7 +87,7 @@ toDegrees_ = [];
         %occurring on schedule, and giving extra update() calls if frames
         %are skipped.
         
-        if visible_
+        if visible
             refreshCount_ = refreshCount_ + frames;
             while frameIndex_ <= numel(textures_) && textures_(frameIndex_).frame < refreshCount_
                 frameIndex_ = frameIndex_ + 1;
@@ -102,8 +101,8 @@ toDegrees_ = [];
     end
 
     function draw(window, next)
-        if visible_
-            beq = glGetIntegerv(GL_BLEND_EQUATION);
+        if visible
+            beq = glGetIntegerv(GL_BLEND_EQUATION_);
             [src, dst] = Screen('BlendFunction', window);
 
             
@@ -130,8 +129,8 @@ toDegrees_ = [];
         b = toDegrees_(textures_(frameIndex_).playrect);
     end
 
-    function v = getVisible();
-        v = visible_;
+    function v = getVisible()
+        v = visible;
     end
 
     function onset = setVisible(v, next)
@@ -142,7 +141,7 @@ toDegrees_ = [];
         %        refresh for many movies)
         % ---
         % onset: the stimulus onset time.
-        visible_ = v;
+        visible = v;
         
         if v
             %start at the first frame
