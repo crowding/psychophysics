@@ -1,4 +1,4 @@
-function LabJackTimerDemo()
+function this = LabJackEyes(varargin)
 
 %A circuit attached to the lapjack helps produce the following signals:
 %
@@ -13,14 +13,14 @@ function LabJackTimerDemo()
 %
 %%
 lj = LabJackUE9();
-
 slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
 offset = [0;0]; % the eye position offset
 
-lj.setDebug(0);
-demo();
+persistent init__;
+this = autoobject(varargin{:});
 
-w = 0;
+w_ = 0;
+log_ = @noop;
 
 %% init function
     function [release, params] = init(params)
@@ -66,34 +66,76 @@ w = 0;
 
         streamStartTime_ = GetSecs();
         lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
-
         
+        w_ = params.window
+        
+        if isfield(params, 'log')
+            log_ = params.log;
+        else
+            log = @noop;
+        end
+
         release = @close;
 
         function close
             lj.streamStop();
             %TODO sample and log to the log here...
             queue_ = {};
-            samples_ = 0
+            samples_ = 0;
             lj.flush();
         end
     end
 
-w = 0;
-queue_ = {};
-samples_ = 0;
-refresh0HWCount_ = 0;
+
+%% sync (called just before refresh 1?
+    refresh0HWCount_ = 0;
+    syncTime_ = 0;
+    function sync(refresh)
+        syncTime_ = GetSecs();
+        syncInfo = Screen('GetWindowInfo', w_);
+        refresh0HWCount_ = syncInfo.VBLCount - refresh;
+        
+        
+        %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
+        resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
+        assert( resp(7) == 0, 'labjack returned error setting timers' );
+        %which means:
+        %
+        %{
+        lj.setDebug(1);
+        resp = lj.timerCounter...
+            ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
+            , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 0 ...
+            , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
+            , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 0 ...
+            , 'Timer4.Mode', 'PWM8',               'Timer4.Value',  0 ...
+            , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 0 ...
+            , 'Counter0Enabled', 1 ...
+            , 'Counter1Enabled', 0 ...
+            , 'UpdateReset.Counter0', 1 ...
+            );
+        assert(strcmp(resp.errorcode, 'NOERROR'));
+        lj.setDebug(0);
+        %}
+    end
+
+
+
+    queue_ = {};
+    samples_ = 0;
+    refresh0HWCount_ = 0;
 
     lastX_ = NaN;
     lastY_ = NaN;
     lastT_ = NaN;
     
-    function h = check(h)
+    function h = input(h)
+        waitSecs(0.0005);
         x = lj.streamRead();
         raw = x.data([1 2], :);
         h.rawEyeX = raw(1,:);
         h.rawEyeY = raw(2,:);
-        h.eyeT = x.t + (2*streamStartTime_ - syncTime_);
+        h.eyeT = x.t + streamStartTime_;
         h.eyeRefreshes = x.data(3,:);
         
         calibrated = slope*raw+offset(:,ones(1,size(raw, 2)));
@@ -113,7 +155,7 @@ refresh0HWCount_ = 0;
         h.t = lastT_;
     end
 
-    function [data, t] = extractData()
+    function [data, t, latest] = extractData()
         %collapse the linked list
         data = zeros(size(queue_{1}.data,1), samples_);
         t = zeros(1, samples_);
@@ -154,72 +196,37 @@ refresh0HWCount_ = 0;
         h4 = plot(ax(1), t, data(6,:));  %Timer1 high, edges seen
         hold(ax(2), 'on');
         h5 = plot(ax(2), t, data(2,:));
-%        legend([h1 h2], 'Sync', 'Reward');%, 'Frame Count', 'Timer1Lo', 'Timer3Lo', 'Location', 'NorthEastOutside');
+%       legend([h1 h2], 'Sync', 'Reward');%, 'Frame Count', 'Timer1Lo', 'Timer3Lo', 'Location', 'NorthEastOutside');
 
         hold off;
 
         function [params, data, t] = collectData(params)
-            w = params.window;
-
+            w_ = params.window;
+            
             t = GetSecs();
             setupSync();
-            
-            for i = 0.5:0.1:10
-                collectUntil(t+i);
-                predictedreward = setReward(0, 5);
-%                predictedclock = eventCode(i*120 + 10, 42)
-            end
-
-            collectUntil(t+10);
-
+            collectUntil(t + 0.5);
+            predictedreward = reward(120, 250)
+            predictedclock = eventCode(150, 42)
+            collectUntil(t + 2.0);
             [data, t] = extractData();
         end
 
         function setupSync()
-            Screen('Flip', w); %this marks refresh 0...
-            startInfo = Screen('GetWindowInfo', w);
-            Screen('FillRect', w,127);
-            Screen('DrawingFinished', w);
-            params.refresh0HWCount = startInfo.VBLCount;
-            params = sync(params);
-            Screen('Flip', w); %this will be refresh 1...
+            Screen('Flip', w_); %this marks refresh 0...
+            sync(0);
+            Screen('FillRect', w_,127);
+            Screen('DrawingFinished', w_);
+            Screen('Flip', w_); %this will be refresh 1...
         end
 
         function collectUntil(t)
             x.t = 0;
-            while (x.t) < t;
-                x = check(struct());
+            n = 0;
+            while max(x.t, GetSecs()) < t;
+                x = input(struct());
             end
         end
-    end
-
-
-    refresh0HWCount_ = 0;
-    syncTime_ = 0;
-    function params = sync(params)
-        refresh0HWCount_ = params.refresh0HWCount;
-        syncTime_ = GetSecs();
-        %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
-        resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
-        assert( resp(7) == 0, 'labjack returned error setting timers' );
-        %which means:
-        %
-        %{
-        lj.setDebug(1);
-        resp = lj.timerCounter...
-            ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
-            , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 0 ...
-            , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
-            , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 0 ...
-            , 'Timer4.Mode', 'PWM8',               'Timer4.Value',  0 ...
-            , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 0 ...
-            , 'Counter0Enabled', 1 ...
-            , 'Counter1Enabled', 0 ...
-            , 'UpdateReset.Counter0', 1 ...
-            );
-        assert(strcmp(resp.errorcode, 'NOERROR'));
-        lj.setDebug(0);
-        %}
     end
 
     function resp = stopTimers()
@@ -232,9 +239,9 @@ refresh0HWCount_ = 0;
         %}
     end
 
-    function predictedreward = setReward(rewardAt, rewardLength)
+    function predictedreward = reward(rewardAt, rewardLength)
         %ask the screen for a current refresh count...
-        info = Screen('GetWindowInfo', w);
+        info = Screen('GetWindowInfo', w_);
         current = info.VBLCount - refresh0HWCount_;
         rewardCounts = max(1, rewardAt - current);
 
@@ -262,6 +269,8 @@ refresh0HWCount_ = 0;
         lj.setDebug(0);
         predictedreward = timerconf.Counter0 + rewardCounts;
         %}
+        
+        log_('REWARD %d %d %d', rewardAt, rewardLength, predictedreward);
     end
 
     %send out an 8-bit event code.
@@ -274,7 +283,7 @@ refresh0HWCount_ = 0;
         assert(resp(7) == 0, 'error outputting code');
         
         
-        info = Screen('GetWindowInfo', w);
+        info = Screen('GetWindowInfo', w_);
         current = info.VBLCount - refresh0HWCount_;
         clockCounts = max(1, clockAt - current);
 
@@ -302,6 +311,8 @@ refresh0HWCount_ = 0;
         predictedclock = timerconf.Counter0 + clockCounts;
         lj.setDebug(0);
         %}
+        
+        log_('EVENT_CODE %d %d %d', clockAt, code, predictedclock);
     end
 
 end
