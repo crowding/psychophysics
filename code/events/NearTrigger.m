@@ -45,5 +45,4 @@ log_ = [];
     function fn = getFn()
         fn = fn_;
     end
-
 end
