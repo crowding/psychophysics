@@ -24,7 +24,6 @@ function [out, extras] = interface(proto, in)
     
     fn = fieldnames(proto)';
     funcs = cell(size(fn));
-    proto = fieldnames(proto);
     
     for i = 1:numel(fn);
         x = cell(size(in));

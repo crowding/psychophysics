@@ -1,33 +1,38 @@
-function this = TriggerDrawer(main_)
+function this = TriggerDrawer(varargin)
 %function this = TriggerDrawer(main_)
 %
 %Draws the triggers.
 %Make sure to call set() after creation to point it mack to the main loop.
 
-this = final(@draw, @getVisible, @setVisible, @update, @init, @set);
+    main = [];
+    visible = 0;
 
-    visible_ = 0;
+    varargin = assignments(varargin, 'main');
+    
+    persistent init__;
+    this = autoobject(varargin{:});
+    
     toPixels_ = [];
 
     function draw(window, next)
-        if visible_
+        if visible
             main_.drawTriggers(window, toPixels_);
         end
     end
 
     function v = getVisible
-        v = visible_;
+        v = visible;
     end
 
     function v = setVisible(v)
-        visible_ = v;
+        visible = v;
     end
 
     function update(frames)
     end
     
     function set(m)
-        main_ = m;
+        main = m;
     end
 
     function [release, params] = init(params)

@@ -2,7 +2,8 @@ function f = atMost(fieldname, value)
     f = @check;
     
     function [t, s] = check(s)
-        if s.(fieldname) >= value
+%        fprintf('atLeast %s %g? %g\n', fieldname, value, s.(fieldname));
+        if s.(fieldname) <= value
             s.triggerFieldName = fieldname;
             s.triggerValue = value;
             t = 1;

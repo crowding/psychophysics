@@ -1,6 +1,6 @@
-function this = LabJackEyes(varargin)
+function this = LabJackInput(varargin)
 
-%A circuit attached to the lapjack helps produce the following signals:
+%A logic circuit attached to the lapjack helps produce the following signals:
 %
 %     FIO0 outputs high until plexon scheduled clock
 %     FIO1 receives rising edges of monitor VSYNC
@@ -11,6 +11,15 @@ function this = LabJackEyes(varargin)
 %     FIO6 recieves inverted VSYNC signal (falling edges) for Counter0
 %     FIO7 outputs falling edges at 1Khz sampling rate.
 %
+% IMPORTANT NOTE FOR INTEL MACS: If you are not geting good latency out of
+% this hardware you need to turn off the delayed ACK feature in OS X.
+%
+% To to this, issue the command:
+% sudo systcl -w net.inet.tcp.delayed_ack=0
+%
+% To do it semipermanently, add "net.inet.tcp.delayed_ack=0" to the file
+% /etc/sysctl.conf (you can create this file if it doesn't exist.)
+
 %%
 lj = LabJackUE9();
 slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
@@ -25,7 +34,7 @@ log_ = @noop;
 %% init function
     function [release, params] = init(params)
         defaults = struct...
-            ( 'streamconfig', struct...
+            ( 'streamConfig', struct...
                 ( 'Channels', {{'AIN0', 'AIN1', 'Counter0'}}...
                 , 'Gains', {{'Bipolar', 'Bipolar', 'x1'}} ...
                 , 'Resolution', 14 ...
@@ -39,14 +48,7 @@ log_ = @noop;
 
         function [release, params] = myInit(params)
             lj.streamStop();
-            lj.flush();
             lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 1 0 1 0 1 0]);
-
-            response = lj.streamConfig(params.streamconfig);
-
-            assert(strcmp(response.errorcode, 'NOERROR'), 'error configuring stream');
-
-            params.streamConfig.obtainedSampleFrequency = response.SampleFrequency;
             
             release = @close;
             function close()
@@ -60,29 +62,44 @@ log_ = @noop;
 
 %% begin trial function
     streamStartTime_ = 0;
+    push_ = @noop;
+    readout_ = @noop;
     function [release, params] = begin(params)
-        queue_ = {};
-        samples_ = 0;
+        resp = lj.streamConfig(params.streamConfig);
+        lj.flush();
+        assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
+            
+        params.streamConfig.obtainedSampleFrequency = resp.SampleFrequency;
 
         streamStartTime_ = GetSecs();
-        lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
+        resp = lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
+        if ~strcmp(resp.errorcode, 'NOERROR')
+            @noop;
+        end
         
-        w_ = params.window
+        w_ = params.window;
         
         if isfield(params, 'log')
             log_ = params.log;
         else
-            log = @noop;
+            log_ = @noop;
         end
+        
+        [push_, readout_] = linkedlist(2); %concatenate horizontally
+        
+        streamRead_ = lj.streamRead; %access just the function, not the whole struct, for speed
 
         release = @close;
 
         function close
+            stopTimers();
             lj.streamStop();
-            %TODO sample and log to the log here...
-            queue_ = {};
-            samples_ = 0;
+            %final data capture
+            input(struct());
             lj.flush();
+
+            %TODO log it here...
+            readout_();
         end
     end
 
@@ -121,17 +138,15 @@ log_ = @noop;
 
 
 
-    queue_ = {};
-    samples_ = 0;
     refresh0HWCount_ = 0;
 
     lastX_ = NaN;
     lastY_ = NaN;
     lastT_ = NaN;
+    streamRead_ = lj.streamRead;
     
     function h = input(h)
-        waitSecs(0.0005);
-        x = lj.streamRead();
+        x = streamRead_();
         raw = x.data([1 2], :);
         h.rawEyeX = raw(1,:);
         h.rawEyeY = raw(2,:);
@@ -143,9 +158,8 @@ log_ = @noop;
         h.eyeY = calibrated(2,:);
         
         if ~isempty(x.data)
-            %store the data and remember it
-            queue_ = {x queue_}; %#ok;
-            samples_ = samples_ + size(x.data, 2);
+            %build up a trace
+            push_([x.data;x.t]);
             lastX_ = calibrated(1,end);
             lastY_ = calibrated(2,end);
             lastT_ = h.eyeT(end);

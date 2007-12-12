@@ -99,6 +99,7 @@ toDegrees_ = @noop;
         interval = params.cal.interval;
         VBLStartline = params.screenInfo.VBLStartline;
         VBLEndline = params.screenInfo.VBLEndline;
+        hasBeampos = logical(params.screenInfo.VideoRefreshFromBeamposition);
         flipInterval = params.screenInterval;
         skipcount = 0;
         slowdown = max(params.slowdown, 1);
@@ -113,17 +114,17 @@ toDegrees_ = @noop;
 
         VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
         
-        %if this is correct we should be in refresh 0 right now?
+        %if this is correct the next VBL should mark refresh 0
         %Synchronize what needs synchronizing...
         for i = 1:numel(input)
             input(i).sync(-1);
         end
         
-        refresh = 0;    %the first flip in the loop is flip 0
+        refresh = 0;    %the first flip in the loop is refresh 0
                         %(the first that draws anything is flip 1)
 
         while(1)
-            %The loop is: Flip, Draw, Update, run Events.
+            %The loop is: Flip, Update, Draw, run Events.
             %Draw happens right after Flip, to keep its pipeline as full
             %as possible. This minimizes frame skipping but has a downside:
             %
@@ -131,24 +132,46 @@ toDegrees_ = @noop;
             %X is at the display. It also takes one extra frame to recover
             %from a drop.
             
+            %Note this is like loops 2/4 in the flip timing test...what of
+            %loop 3?
+            
             %-----Flip phase: Flip the screen buffers and note the time at
             %which the change occurred.
             prevVBL = VBL;
             
-            deadline = (VBL + interval) * slowdown - interval/2;
-            [tmp, tmp, FlipTimestamp]...
-                = Screen('Flip', window, deadline, [], 1);
-            beampos = Screen('GetWindowInfo', params.window, 1);
-            %Estimate of when the next blank happens
-            VBL = FlipTimestamp + (VBLStartline-beampos)/VBLEndline*flipInterval;
-            
-            if (deadline > VBL)
-                %figure it hit anyway, since this only happens in slowdown
-                %mode.
-                VBL = VBL + ceil((deadline - VBL) * interval) + interval;
-            end
+            if (hasBeampos)
+                [tmp, tmp, FlipTimestamp]...
+                    = Screen('Flip', window, [], [], 1);
+                beampos = Screen('GetWindowInfo', params.window, 1);
+                %Estimate of when the next blank happens
+                VBL = FlipTimestamp/slowdown + (VBLStartline-beampos)/VBLEndline*flipInterval;
+                skipped = round((VBL/slowdown - lastVBL) / flipInterval) - 1;
 
-            VBL = VBL / slowdown;
+                %FIXME this is prob. wrong in slowdown
+                
+                %if we hit ahead of schedule adjust the VBL estimate.
+                if skipped < 0
+                    VBL = VBL - flipInterval * skipped;
+                    skipped = 0;
+                end
+            else
+                %alternate routine for lack of beampos, not quite as high
+                %throughput due to the scheduled flip.
+                Screen('Flip', params.window, prevVBL*slowdown + (slowdown-0.9)*interval, [], 1);
+                info = Screen('getWindowInfo', params.window);
+                
+                VBL = info.LastVBLTime/slowdown; %FIXME this is def wrong in slowdown...
+                
+                skipped = round((VBL - prevVBL) / flipInterval);
+                
+                if skipped <= 0
+                    VBL = VBL - flipInterval*skipped + flipInterval; 
+                    skipped = 0;
+                else
+                    VBL = VBL + interval;
+                end
+            end
+                
             
             if (aviout_)
                 frame = Screen('GetImage', window);
@@ -156,57 +179,34 @@ toDegrees_ = @noop;
                 class(frame)
                 aviobj = addframe(aviobj, Screen('GetImage', window));
             end
-
-            if (~go_)
-                %the loop test is here, so that the final frame gets drawn
-                %to the screen.
-                break;
-            end
-            %-----Draw phase: Draw all the objects for the next refresh.
-            for i = 1:ng
-                graphics(i).draw(window, VBL + interval);
-            end
-
-            Screen('DrawingFinished', window);
             
             %-----Update phase: 
             %reacts to the difference in VBL times, and updates
             %the number of refreshes.
             if (params.skipFrames)
-                steps = round((VBL - prevVBL) / interval);
-                skipcount = skipcount + steps - 1;
-
-                if steps > 1
-                    %The log entry notes that the refresh X, intended for
-                    %time T, was actually shown at refresh X', T'. Because 
-                    %we've already drawn the next frame, refresh (X+1, T+dt)
-                    %will probably be shown as the slot (X'+1, T'+dt). But
-                    %following that we will catch up and refresh
-                    %X'+2,t'+2dt should happen on schedule. (This is mostly
-                    %academic: before collecting data 
-                    %you will optimize your code until there are
-                    %no frame skips under normal conditions.
+                if skipped > 0
+                    %Logged fields:
                     %Logged fields: Number of skipped frames, VBL of last
-                    %frame before skip, VBL of frame just delivered,
-                    %refresh index of... the frame that has been delayed
-                    %(work out what it means later.)
-                    log('FRAME_SKIP %d %f %f %d', steps-1, prevVBL, VBL, refresh);
+                    %frame before skip, VBL of delayed frame just shown,
+                    %refresh index of the same frame
+                    log('FRAME_SKIP %d %f %f %d', skipped, prevVBL, VBL, refresh);
                 end
 
-                if steps > 60
+                if skipped >= 60
                     error('mainLoop:drawingStuck', ...
                         'got stuck doing frame updates...');
                 end
             else
-                %pretend there are not skips.
+                %pretend there are not skips, even in timestamps.
                 %TODO: be even more faking about this -- in the events and
                 %with the option to produce a aviout rendering.
-                steps = 1;
+                skipped = 0;
+                VBL = prevVBL + flipInterval;
             end
             
             %tell each graphic object how far to step.
             for i = 1:ng
-                graphics(i).update(steps);
+                graphics(i).update(skipped + 1);
             end
 
             %Events phase:
@@ -214,16 +214,31 @@ toDegrees_ = @noop;
             %Having finished drawing this refresh, Starting with these
             %Event handlers we are now working on the next
             %refresh.
-            refresh = refresh + steps;
+            refresh = refresh + skipped + 1;
+
+            if (~go_)
+                %the loop test is here, so that the final frame gets
+                %flipped to the screen.
+                break;
+            end
+            %-----Draw phase: Draw all the objects for the next refresh.
+            for i = 1:ng
+                graphics(i).draw(window, VBL + flipInterval);
+            end
+
+            Screen('DrawingFinished', window);
 
             %We currently take events from eye movements, keyboard and the
             %mouse; each event type calls up its own list of event checkers.
             %This may be generalised to a variety of event sources.
 
-            %Eye movement events...
-            s = struct('next', VBL + 2*interval, 'refresh', refresh);
+            %Now start in on event checking.
+            
+            %start with an estimate of when your frame will hit the screen,
+            %and what refresh...
+            s = struct('next', VBL + 2*flipInterval, 'refresh', refresh);
 
-            %generic events...
+            %read from all input devices and process event handlers
             for i = 1:numel(input)
                 s = input(i).input(s);
             end

@@ -1,9 +1,10 @@
-function FlipTimingTest
+function FlipTimingTest(varargin)
+    params = namedargs(varargin{:})
     %test several timing loops withthe aim of maximizing the amount of crap
     %you can get done in the loop, while preserving the ability to hit
     %every frame and detect skips.
 
-    require(getScreen('requireCalibration', 0), highPriority(), @runTest);
+    require(getScreen('requireCalibration', 0, params), highPriority(), @runTest);
     function runTest(params)
         delay = linspace(0, params.cal.interval*1.05, 500);
 
@@ -12,17 +13,32 @@ function FlipTimingTest
 
         i = 0;
         nRects = 30;
+        if info.VideoRefreshFromBeamposition
+            loops = {@loop0, @loop1, @loop2, @loop3, @loop4};
+        else
+            fprintf('No beampos, not running loops 2, 3\n');
+            loops = {@loop0, @loop1, @loop4};
+        end
         
-        printf('Loop 0, regular:    %f', staircase(@loop0,             0, 0.001, 3, 1, 10));
-        printf('Loop 0, occasional: %f', staircase(occasional(@loop0), 0, 0.001, 3, 1, 10));
-        printf('Loop 1, regular:    %f', staircase(@loop1,             0, 0.001, 3, 1, 10));
-        printf('Loop 1, occasional: %f', staircase(occasional(@loop1), 0, 0.001, 3, 1, 10));
-        printf('Loop 2, regular:    %f', staircase(@loop2,             0, 0.001, 3, 1, 10));
-        printf('Loop 2, occasional: %f', staircase(occasional(@loop2), 0, 0.001, 3, 1, 10));
-        printf('Loop 3, regular:    %f', staircase(@loop3,             0, 0.001, 3, 1, 10));
-        printf('Loop 3, occasional: %f', staircase(occasional(@loop3), 0, 0.001, 3, 1, 10));
+        for l = loops(:)'
+            for condition = {@(x)x, @occasional; '   regular', 'occasional'}
+                i = 0; %will be incremented each draw...
+                [fn, desc] = condition{:};
+                [value, skips, values, totalvbls, vbls] = staircase(fn(l{:}), 0, 0.001, 5, 1, 0.75, 16);
+                fprintf('%45s %f, %d skips detected, should detect %d\n', [func2str(l{:}), ', ' desc ':'], value, sum(skips), totalvbls - i - 1);
+
+                figure(1);
+                subplot(3, 1, 1);
+                plot(1:count, skips);
+                subplot(3, 1, 2);
+                plot(1:count, values, 'b.');
+                subplot(3, 1, 3);
+                plot(diff(vbls));
+                drawnow;
+            end
+        end
         
-        function [value, skips, values] = staircase(fn, value, step, nup, ndown, nreversals)
+        function [value, skips, values, totalvbls, vbls] = staircase(fn, value, step, nup, ndown, reduction, nreversals)
             %Given a timing loop 'fn' that draws something to the screen,
             %executes a flip, incorporates some processing delay,
             %and determines whether the timing deadlines
@@ -43,15 +59,22 @@ function FlipTimingTest
             reversals = 0;
             upCount = 0;
             downCount = 0;
+            total = 0;
             
-            [skips, values] = deal(zeros(1000, 1));
+            [skips, values, vbls] = deal(zeros(1000, 1));
             count = 0;
             
             lastVBL = Screen('Flip', params.window);
+            %begin with number of VBLs
+            info = Screen('GetWindowInfo', params.window);
+            beginVBLcount = info.VBLCount;
+            
             while(reversals < nreversals && count < 1000)
                 count = count + 1;
-                [skips(count), lastVBL] = fn(value, lastVBL);
+                [skips(count), vbls(count)] = fn(value, lastVBL, total);
+                lastVBL = vbls(count);
                 values(count) = value;
+                total = total + skips(count);
                 
                 if (skips(count) > 0) %skipped, need to go down.
                     upCount = 0;
@@ -59,109 +82,184 @@ function FlipTimingTest
                     if downCount >= ndown
                         if direction > 0
                             reversals = reversals + 1;
-                            step = step/2;
+                            step = step*reduction;
                             direction = -1;
                         end
-                        value = value + step * direction;
+                        value = max(value + step * direction, 0);
                     end
                     
-                else %no skip, need to go up
+                elseif (skips(count) == 0) || value < step %no skip, need to go up
                     downCount = 0;
                     upCount = upCount + 1;
                     if upCount >= nup
                         if direction < 0
                             reversals = reversals + 1;
-                            step = step/2;
+                            step = step*reduction;
                             direction = 1;
                         end
-                        value = value + step*direction;
+                        value = max(value + step * direction, 0);
                     end
-                    
                 end
             end
             
+            %push a few low-work frames out to get skips out of the
+            %system.
+            for x = 1:10
+                count = count + 1;
+                [skips(count), vbls(count)] = fn(0, lastVBL, total);
+                lastVBL = vbls(count);
+                values(count) = 0;
+                total = total + skips(count);
+            end
+            lastVBL = Screen('Flip', params.window);
+            info = Screen('GetWindowInfo', params.window);
+            endVBLcount = info.VBLCount;
+
             skips(count+1:end) = [];
             values(count+1:end) = [];
-            figure(1);
-            subplot(2, 1, 1);
-            plot(1:count, skips);
-            subplot(2, 1, 2);
-            plot(1:count, values, 'b.');
-            drawnow;
+            vbls(count+1:end) = [];
             
-            if (count >= 1000)
-                noop();
-            end
+            totalvbls = endVBLcount - beginVBLcount;
         end
         
         function fn = occasional(loop)
             %Tests tolerance for occasional large delays, by executing the
-            %delay only one out of 6 frames.
+            %delay only one out of 11 frames.
             fn = @f;
-            function [skipped, VBL] = f(delay, lastVBL)
+            function [skipped, lastVBL] = f(delay, lastVBL, total)
                 skipped = 0;
-                for i = 1:5
-                    [skip, lastVBL] = loop(0, lastVBL);
+                for x = 1:5
+                    [skip, lastVBL] = loop(0, lastVBL, total+skipped);
                     skipped = skipped + skip;
                 end
-                [skip, VBL] = loop(delay, lastVBL);
+                [skip, lastVBL] = loop(delay, lastVBL, total+skipped);
                 skipped = skipped + skip;
+                for x = 1:5
+                    [skip, lastVBL] = loop(0, lastVBL, total+skipped);
+                    skipped = skipped + skip;
+                end
             end
         end
         
-        function [skipped, VBL] = loop0(delay, lastVBL)
-                %the 'low latency' timing loop. Executes delay before
-                %drawing and calling flip.
-                WaitSecs(delay); %here is where you would put your input checking etc.
-                randRects(nRects, params.window, params.rect);
-                VBL = Screen('Flip', params.window, [], [], 0);
-                skipped = round((VBL - lastVBL) / interval) - 1;
+        function [skipped, VBL] = loop0(delay, lastVBL, total)
+            %The 'low latency' timing loop.
+            %
+            %Do sundry processing, draw, then execute flip.
+            %
+            %Get VBL/frame skips directly from flip.
+
+            WaitSecs(delay); %here is where you would put your input checking etc.
+            randRects(nRects, params.window, params.rect, total);
+            VBL = Screen('Flip', params.window, [], [], 0);
+            skipped = round((VBL - lastVBL) / interval) - 1;
         end
         
-        function [skipped, VBL] = loop1(delay, lastVBL)
-                %the 'standard' timing loop. Executes delay after drawing
-                %and calling DrawingFinished, then executes flip.
-                randRects(nRects, params.window, params.rect);
-                Screen('DrawingFinished', params.window);
-                WaitSecs(delay); %here is where you would put your input checking etc.
-                VBL = Screen('Flip', params.window, [], [], 0);
-                skipped = round((VBL - lastVBL) / interval) - 1;
+        
+        function [skipped, VBL] = loop1(delay, lastVBL, total)
+            %'standard' timing loop.
+            %
+            %Draw, call DrawingFinished, do sundry processsing, then flip.
+            %
+            %Get frame skips/VBL from Flip directly.
+ 
+            randRects(nRects, params.window, params.rect, total);
+            Screen('DrawingFinished', params.window);
+            WaitSecs(delay); %here is where you would put your input checking etc.
+            VBL = Screen('Flip', params.window, [], [], 0);
+            skipped = round((VBL - lastVBL) / interval) - 1;                
         end
 
-        function [skipped, VBL] = loop2(delay, lastVBL)
-            %experimental loop 1. Executed delay after drawing and calling
-            %DrawingFinished, then calls Flip returning immediately,
-            %estimating frame skips from the beam position after flip.
+        %so I think I need to use info for all skip diagnostics...
+        function [skipped, VBL] = loop2(delay, lastVBL, total)
+            %High throughput loop.
+            %
+            %Draw, call DrawingFinished, do sundry processing, Flip returning immediately.
+            %
+            %Estimate VBL/frame skips from beampos.
             
-            randRects(nRects, params.window, params.rect);
+            randRects(nRects, params.window, params.rect, total);
             Screen('DrawingFinished', params.window);
             WaitSecs(delay); %here is where you would put your input checking etc.
             [tmp, tmp, FlipTimestamp]...
                 = Screen('Flip', params.window, [], [], 1);
-            Beampos = Screen('GetWindowInfo', params.window, 1);
+            info = Screen('GetWindowInfo', params.window);
+            Beampos = info.Beamposition;
             VBL = FlipTimestamp + (info.VBLStartline - Beampos)/info.VBLEndline*interval;
+            
             skipped = round((VBL - lastVBL) / interval) - 1;
+            
+            %if we hit ahead of schedule, adjust the VBL estimate...
+            if skipped < 0
+                VBL = VBL - interval*skipped;
+                skipped = 0;
+            end
+            
+            if round((VBL-lastVBL)/interval - 1) ~= skipped
+                noop();
+            end
         end
         
-        function [skipped, VBL] = loop3(delay, lastVBL)
-            %experimental loop 2. draws, flips, and returns immediately, 
-            %then does the delay.
+        function [skipped, VBL] = loop3(delay, lastVBL, total)
+            %High throughput loop 2.
+            %
+            %Draw, flip returning immediately, then do sundry processing.
+            %
+            %Estimate VBL/frame skips form beampos
             
-            randRects(nRects, params.window, params.rect);
-            [tmp, tmp, FlipTimestamp]...
+            randRects(nRects, params.window, params.rect, total);
+            [tmp, tmp, FlipTimestamp, tmp, Beampos]...
                 = Screen('Flip', params.window, [], [], 1);
             Beampos = Screen('GetWindowInfo', params.window, 1);
             VBL = FlipTimestamp + (info.VBLStartline - Beampos)/info.VBLEndline*interval;
             skipped = round((VBL - lastVBL) / interval) - 1;
-
+            
+            %if we draw ahead of schedule, adjust the VBL estimate.
+            if skipped < 0
+                VBL = VBL - interval*skipped;
+                skipped = 0;
+            end
+            
             WaitSecs(delay); %here is where you would put your input checking etc.
         end
         
-        function [skipped, VBL] = loop4(delay, lastVBL)
+        function [skipped, VBL] = loop4(delay, lastVBL, total)
+            %Alternate high throughput loop for machines without
+            %beamposition...
+            %
+            %Draw, flip returning immediately, then do sundry processing.
+            %
+            %Estimate VBL/frame skips from lastVBL value in Screen('GetWindowInfo')
+            
+            randRects(nRects, params.window, params.rect, total);
+            
+            %schedule the flip for the next VBL...
+            [tmp, tmp, flipTime, missed] = Screen('Flip', params.window, lastVBL + interval/10, [], 1);
+            info = Screen('GetWindowInfo', params.window);
+
+            %the previous info structure contains the estimated refresh
+            %count and VBL time of the last drawn frame...
+            
+            VBL = info.LastVBLTime;
+            
+            skipped = round((VBL - lastVBL) / interval); %if targeted VBL has already hit, we've skipped, probably.
+            
+            
+            if skipped <= 0 %if we've scheduled the flips, we shouldn't have to 
+                VBL = VBL - interval*skipped + interval; %estimate the VBL time since we haven't really got there yet
+                skipped = 0;
+            else
+                VBL = VBL + interval; %estimate the frame will hit the following VBL. Scheduling will make it so.
+            end
+            WaitSecs(delay); %here is where you would put your input checking etc.
+        end
+        
+        
+        
+        function [skipped, VBL] = loop5(delay, lastVBL, total)
             %experimental loop 4. Draws a number of rectangles for a longer
             %drawing period...
             
-            randRects(nRects, params.window, params.rect);
+            randRects(nRects, params.window, params.rect, total);
             Screen('DrawingFinished', params.window);
             WaitSecs(delay); %here is where you would put your input checking etc.
             [tmp, tmp, FlipTimestamp]...
@@ -171,21 +269,22 @@ function FlipTimingTest
             skipped = round((VBL - lastVBL) / interval) - 1;
         end
 
-        function randRects(n, window, bounds)
-            Screen('FillRect', params.window, mod(i, 2)*255);
+        function randRects(n, window, bounds, total)
+            Screen('FillRect', window, mod(i, 2)*255);
             for j = 1:n
-                Screen('FillRect', params.window, rand() * 255, randomRect(bounds));
+                Screen('FillRect', window, rand() * 255, randomRect(bounds));
             end
+            Screen('TextSize', window, 30);
+            Screen('DrawText', window, num2str(total), 0, 0, [255 255 0], [0 0 0]);
             i = i + 1;
         end
         
         function r = randomRect(bounds)
-            origin = bounds([1 2]);
-            size = bounds([3 4]) - origin;
+            origin = bounds([1 2]) * 0.75 + bounds([3 4]) * 0.25;
+            size = (bounds([3 4]) - bounds([1 2]))*0.5; %leave a border
             r = sort(rand(2,2) .* [size;size] + [origin;origin]);
             r = r([1 3 2 4]);
-        end
-        
+        end        
     end
 
         %{

@@ -28,7 +28,7 @@ function this = Trigger(varargin)
         %Note, only single shot makes sense with this method. (think about
         %why-- for multishot or panics there is no effective difference.
         checkers = varargin(1:2:end);
-        fns = varargin(2:2:numel(checkers) * 2)
+        fns = varargin(2:2:numel(checkers) * 2);
         triggers_(end+1,:) = {checkers, fns, 1};
     end
 
@@ -38,11 +38,11 @@ function this = Trigger(varargin)
     end
 
     function s = check(s)
-        nd = 0; %number deleted
+        ndeleted = 0; %number deleted
         for i = 1:size(triggers_, 1)
-            ch = triggers_{i-nd, 1};
-            fn = triggers_{i-nd, 2};
-            delete = triggers_{i-nd, 3};
+            ch = triggers_{i-ndeleted, 1};
+            fn = triggers_{i-ndeleted, 2};
+            delete = triggers_{i-ndeleted, 3};
             
             if iscell(ch) %a mutex
                 for j = 1:numel(ch)
@@ -53,13 +53,13 @@ function this = Trigger(varargin)
                     
                     if whether
                         mfn(s);
-                        log_('TRIGGER %s %s', func2str(mfn), struct2str(s));
+                        log('TRIGGER %s %s', func2str(mfn), struct2str(s));
                         if delete == 1
-                            triggers_{i,:} = [];
+                            triggers_{i,:} = []
                             ndeleted = ndeleted + 1;
                         elseif delete == 2
                             %panic and delete all
-                            triggers_ = cell(0,3);
+                            triggers_ = cell(0,3)
                             return; %nothing more to do
                         end
                     end
@@ -70,10 +70,10 @@ function this = Trigger(varargin)
                 if whether
                     
                     fn(s);
-                    log_('TRIGGER %s %s', func2str(fn), struct2str(s));
+                    log('TRIGGER %s %s', func2str(fn), struct2str(s));
                     
                     if delete == 1
-                        triggers_{i,:} = [];
+                        triggers_(i-ndeleted,:) = []
                         ndeleted = ndeleted + 1;
                     elseif delete == 2
                         %panic and delete all
@@ -85,5 +85,8 @@ function this = Trigger(varargin)
         end
     end
 
+    function [release, params] = init(params)
+        release = @noop;
+    end
 
 end

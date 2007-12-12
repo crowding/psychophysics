@@ -36,6 +36,11 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
         abortTrigger = MouseDown();
+        if isfield(details.input.eyes, 'reward')
+            reward = details.input.eyes.reward;
+        else
+            reward = @noop;
+        end
         
         rect.setVisible(1);
         disk1.setVisible(1);
@@ -72,6 +77,7 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
 
         function r = moveRect(s)
             %set the rectangle to a random color and shape
+            reward(s.refresh, 100);
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 

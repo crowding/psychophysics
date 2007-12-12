@@ -11,7 +11,7 @@ randomizers = struct('subs', {}, 'values', {});
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
 parameters = {}; %a history of the trial parameters that were assigned.
 results = {}; %a history of the trial results.
-blockSize = 10;
+blockSize = Inf;
 numBlocks = Inf;
 interTrialInterval = 0.5;
 
@@ -128,7 +128,7 @@ this = Obj(autoobject(varargin{:}));
     wasblock_ = 0; %did we just send out a block trial?
     
     function n = next(params)
-        assert(hasNext());
+        assert(logical(hasNext()));
         %randomize according to plan...
         if mod(numel(results), blockSize) == 0 && (lastblock_ ~= numel(results));
             n = blockTrial;
@@ -182,7 +182,12 @@ this = Obj(autoobject(varargin{:}));
         
         p = select_({randomizers.values}, indices);
         params = randomizers;
-        [params.values] = deal(p{:});
+        
+        %"a dot name structure assignment is illegal when the structure is
+        %empty." Why, MATLAB, can't you do the obvious thing, i.e. nothing?
+        if ~isempty(p)
+            [params.values] = deal(p{:});
+        end
         lastPicked_ = NaN;
     end
 

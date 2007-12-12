@@ -6,7 +6,9 @@ function is = isfield(this, c)
     end
     
     names = names(:)';
-    names(2,end) = {[]};
+    if ~isempty(names)
+        names(2,end) = {[]};
+    end
     s = struct(names{:});
     
     is = isfield(s, c);
