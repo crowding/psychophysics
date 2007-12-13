@@ -8,6 +8,11 @@ function this = EyelinkInput(varargin)
     doInitialTrackerSetup = 1;
     streamData = 0; %data streaming would be good but is too slow...
     
+    recordFileSamples = 1;
+    recordFileEvents = 0;
+    recordLinkSamples = 1;
+    recordLinkEvents = 0;
+    
     persistent init__;
     this = autoobject(varargin{:});
     
@@ -237,6 +242,10 @@ function this = EyelinkInput(varargin)
 
     clockoffset_ = 0;
     slowdown_ = 1;
+    
+    push_ = @noop; %the function to record some data...
+    readout_ = @noop; %the function to store data...
+    
     function [release, details] = begin(details)
         badSampleCount = 0;
         missingSampleCount = 0;
@@ -258,71 +267,36 @@ function this = EyelinkInput(varargin)
             %do nothing
             release = @noop;
         else
-            status = Eyelink('StartRecording', 1, 1, 1, 1);
-
+            [push_, readout_] = linkedlist(2);
+            
+            status = Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
+            
             %It retuns -1 but still records! WTF!@!!
             %if status ~= 0
             %    error('EyelinkInput:error', 'status %d starting recording', status);
             %end
             
             %the samples and events are recorded anew each trial.
-            samples_ = {};
-            nsamples_ = 0;
-            events_ = {};
-            nevents_ = 0;
-            
             release = @doRelease;
         end
 
         function doRelease
             %clean up our data
-            if streamdata
-                s = samples_;
-                ns = nsamples_;
-                e = events_;
-                ne = nevents_;
-
-                samples_ = {};
-                nsamples_ = 0;
-                events_ = {};
-                nevents_ = 0;
-            end
             
             %stop recording
             Eyelink('StopRecording');
             
             if streamdata
-                %concatenate the trace...
-                if ns > 0
-                    ss = s{1};
-                    ss(ns) = ss;
-                    s = s{2};
-                    for i = 2:ns
-                        ss(i) = s{1};
-                        s = s{2};
-                    end
-
-                    %concatenate further
-                    for i = fieldnames(ss)'
-                        ss(1).(i{:}) = cat(1, ss.(i{:}));
-                    end
-
-                    ss = ss(1);
-                end
+                readout_();
             end
             
             %TODO log to disk...
         end
     end
 
-samples_ = {};
-nsamples_ = 0;
-events_ = {};
-nevents_ = 0;
-
 %% sync
     function sync(n)
-        %%nothing needed
+        %%nothing needed.
     end
 
 %% actual input function
@@ -343,27 +317,32 @@ nevents_ = 0;
                 goodSampleCount = goodSampleCount + 1;
             end
         else
-            %obtain a new sample from the eye.
+            %obtain new samples from the eye.
+            data = [];
             if streamdata
-                %unfortunately this is half baked and hte library's not
-                %fast enough to keep up...
+                %This would be nice to have. Unfortunately the eyelink
+                %library's not fast enough to keep up?
                 datatype = Eyelink('GetNextDataType');
                 while(datatype)
                     if datatype == el_.SAMPLE_TYPE
-                        data = Eyelink('GetFloatData', datatype);
-                        samples_ = {data samples_};
-                        nsamples_ = nsamples_ + 1;
+                        if ~isempty(data)
+                            data = Eyelink('GetFloatData', datatype);
+                        else
+                            data(end+1) = Eyelink('GetFloatData', datatype;
+                        end
                     else
-                        % an event
-                        %data = Eyelink('GetFloatData', datatype);
-                        %events = {data events};
-                        %nevents_ = nevents_ + 1;
+                        % an event. As of now we don't record events.
+                        data = Eyelink('GetFloatData', datatype);
                     end
                     datatype = Eyelink('GetNextDataType');
+                end
+                if ~isempty(data)
+                    push_(data);
                 end
             end
             
             if Eyelink('NewFloatSampleAvailable') == 0;
+                %no data?
                 x = NaN;
                 y = NaN;
                 t = GetSecs() / slowdown_;

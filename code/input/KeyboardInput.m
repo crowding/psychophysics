@@ -29,11 +29,15 @@ function this = KeyboardInput(varargin)
             device = ix(1);
         end
         
-        release = @noop;
+        release = @stop;
         PsychHID('ReceiveReports', device);
         PsychHID('GiveMeReports', device); %discard
         lastState = [];
         modifierCodes_ = KbName({'LeftControl','LeftShift','LeftAlt','LeftGUI','RightControl','RightShift','RightAlt','RightGUI'});
+        
+        function stop
+            PsychHID('ReceiveReportsStop', device);
+        end
     end
 
     %this initializer will be called once per trial and does local setup.

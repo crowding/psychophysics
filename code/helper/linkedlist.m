@@ -1,5 +1,6 @@
 function [push, readout] = linkedlist(dim)
-%godawful function to record a list of data in memory.
+%godawful function to record a list of data (e.g. streaming eye position or other
+%streaming input data) in memory.
 
 persistent lists;
 persistent counter;

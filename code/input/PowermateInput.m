@@ -42,7 +42,11 @@ function [release, params] = init(params)
     position = 0;
     button = 0;
     setBrightness(0);
-    release = @noop;
+    release = @stop;
+    
+    function stop
+        PsychHID('ReceiveReportsStop', device);
+    end
 end
 
 function [release, params] = begin(params)
@@ -52,7 +56,7 @@ function [release, params] = begin(params)
 end
 
 function s = input(s)
-    PsychHID('ReceiveReports', device);
+    PsychHID('ReceiveReports', device, options);
     r = PsychHID('GiveMeReports', device);
     
     if ~isempty(r)
@@ -75,8 +79,9 @@ function s = input(s)
         
         %{
         %The powermate is not a 1-1 device. It drops a count when the knob
-        %reverses direction. But it also drops counts when the kno is
-        %turning quickly?
+        %reverses direction. But it also drops counts when the knob is
+        %turning quickly? commented code here is an attempt to compensate
+        %for reversal, whick I've adandoned.
         
         %sometimes you have a button press w/ no shift but we want to know
         %the last-known-direction at each step. Here's how to propagate it
