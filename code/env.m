@@ -7,11 +7,11 @@ if isempty(e)
     %this dir is the code dir
     e.codedir = fileparts(mfilename('fullpath'));
 
-    %the base directory is hte parent of the code directory
+    %the base directory is the parent of the code directory
     e.basedir = fileparts(e.codedir);
 
-    %experiment results are saved in the data dir
-    e.datadir = fullfile(fileparts(e.codedir), 'data');
+    %experiment results are saved in the data dir, outside the trunk dir
+    e.datadir = fullfile(fileparts(fileparts(e.codedir)), 'data');
 
     %calibrations are stored in a subdirectory
     e.calibrationdir = fullfile(e.datadir, 'calibration');
