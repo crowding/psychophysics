@@ -28,8 +28,6 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
         text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
         triggers = TriggerDrawer();
         
-        go = 1;
-
         moveTrigger = InsideTrigger(rect.bounds, 0, [0 0], @moveRect);
         followTrigger = UpdateTrigger(@followDisk);
         startTrigger = UpdateTrigger(@start);
@@ -75,13 +73,13 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
             playTrigger.set(s.triggerTime + 5, @play); %trigger every five seconds
         end
 
-        function r = moveRect(s)
+        function s = moveRect(s)
             %set the rectangle to a random color and shape
-            reward(s.refresh, 100);
+            reward(s.refresh, 10);
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 
-        function r = followDisk(s)
+        function s = followDisk(s)
             %make the disk follow the mouse
             disk1.setLoc([s.mousex_deg s.mousey_deg]);
             disk2.setLoc([s.x s.y]);

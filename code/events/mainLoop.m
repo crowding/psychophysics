@@ -145,7 +145,7 @@ toDegrees_ = @noop;
                 beampos = Screen('GetWindowInfo', params.window, 1);
                 %Estimate of when the next blank happens
                 VBL = FlipTimestamp/slowdown + (VBLStartline-beampos)/VBLEndline*flipInterval;
-                skipped = round((VBL/slowdown - lastVBL) / flipInterval) - 1;
+                skipped = round((VBL/slowdown - prevVBL) / flipInterval) - 1;
 
                 %FIXME this is prob. wrong in slowdown
                 

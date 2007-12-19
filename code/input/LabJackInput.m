@@ -171,19 +171,9 @@ log_ = @noop;
 
     function [data, t, latest] = extractData()
         %collapse the linked list
-        data = zeros(size(queue_{1}.data,1), samples_);
-        t = zeros(1, samples_);
-        while ~isempty(queue_)
-            d = queue_{1};
-            n = size(d.data, 2);
-            data(:,samples_-n+1:samples_) = d.data;
-            t(:,samples_-n+1:samples_) = d.t + (streamStartTime_ - syncTime_);
-            samples_ = samples_ - n;
-            d = [];
-            queue_ = queue_{2};
-        end
-        queue_ = {};
-        samples_ = 0;
+        data = readout_();
+        t = data(end,:);
+        data(end,:) = [];
     end
 
     function demo()
@@ -194,7 +184,10 @@ log_ = @noop;
             , 'Resolution', 12 ...
             );
         
-        [params, data, t] = require(HighPriority('streamconfig', sc), getScreen('screenNumber', 1, 'requireCalibration', 0), @init, @begin, @collectData);
+        [params, data, t] = require...
+            ( HighPriority('streamConfig', sc)...
+            , getScreen('screenNumber', 1, 'requireCalibration', 0)...
+            , @init, @begin, @collectData);
 
         actualclock = data(3,find(data(1,501:end) > 3.3, 1, 'first')+500);
         actualreward = data(3,find(data(2,501:end) > 3.3, 1, 'first')+500);
@@ -204,12 +197,18 @@ log_ = @noop;
         figure(1); clf;
 
         hold on;
-        [ax, h1, h2] = plotyy(t, data(3,:), t, data(1,:));
-        hold(ax(1), 'on');
-        h3 = plot(ax(1), t, data(4,:));  %Timer1 low, stop target
-        h4 = plot(ax(1), t, data(6,:));  %Timer1 high, edges seen
-        hold(ax(2), 'on');
-        h5 = plot(ax(2), t, data(2,:));
+        subplot(2, 1, 1);
+        plot(t, data(3,:), 'g-', t, data(4, :), 'r-', t, data(6, :), 'b-');
+        subplot(2, 1, 2);
+        plot(t, data(1,:), 'r-', t, data(2, :), 'b-');
+        
+        
+%       [ax, h1, h2] = plotyy(t, data(3,:), t, data(1,:));
+%       hold(ax(1), 'on');
+%       h3 = plot(ax(1), t, data(4,:), 'g-');  %Timer1 low, stop target
+%       h4 = plot(ax(1), t, data(6,:), 'g-');  %Timer3 low, stop target
+%       hold(ax(2), 'on');
+%       h5 = plot(ax(2), t, data(2,:), 'b-');
 %       legend([h1 h2], 'Sync', 'Reward');%, 'Frame Count', 'Timer1Lo', 'Timer3Lo', 'Location', 'NorthEastOutside');
 
         hold off;

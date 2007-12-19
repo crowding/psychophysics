@@ -328,7 +328,7 @@ function this = EyelinkInput(varargin)
                         if ~isempty(data)
                             data = Eyelink('GetFloatData', datatype);
                         else
-                            data(end+1) = Eyelink('GetFloatData', datatype;
+                            data(end+1) = Eyelink('GetFloatData', datatype);
                         end
                     else
                         % an event. As of now we don't record events.
