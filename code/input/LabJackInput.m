@@ -48,13 +48,13 @@ log_ = @noop;
 
         function [release, params] = myInit(params)
             lj.streamStop();
-            lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 1 0 1 0 1 0]);
+            lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 0 0 0 0 0 0]);
             
             release = @close;
             function close()
                 lj.streamStop();
                 stopTimers();
-                lj.portOut('FIO', [0 0 0 0 0 0 0 0], [0 0 0 0 0 0 0 0]);
+                lj.portOut('FIO', [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);
             end
         end
     end
@@ -72,6 +72,33 @@ log_ = @noop;
         params.streamConfig.obtainedSampleFrequency = resp.SampleFrequency;
 
         streamStartTime_ = GetSecs();
+        
+        % {
+        %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
+        resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
+        assert( resp(7) == 0, 'labjack returned error setting timers' );
+        % }
+        
+        %which means:
+        %
+        %{
+        %lj.setDebug(1);
+        resp = lj.timerCounter...
+            ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
+            , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 1 ...
+            , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
+            , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 1 ...
+            , 'Timer4.Mode', 'PWM8',               'Timer4.Value',  0 ...
+            , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 1 ...
+            , 'Counter0Enabled', 1 ...
+            , 'Counter1Enabled', 0 ...
+            , 'UpdateReset.Counter0', 1 ...
+            );
+        assert(strcmp(resp.errorcode, 'NOERROR'));
+        %lj.setDebug(0);
+        %}
+        
+        
         resp = lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
         if ~strcmp(resp.errorcode, 'NOERROR')
             @noop;
@@ -113,26 +140,32 @@ log_ = @noop;
         refresh0HWCount_ = syncInfo.VBLCount - refresh;
         
         
+        % {
         %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
         resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
         assert( resp(7) == 0, 'labjack returned error setting timers' );
+        %}
+        
+        %weirdness here. When you set the timers to zero, *usually* it all
+        %works, but then it stops. Setting timers to one fixes?
+        
         %which means:
         %
         %{
-        lj.setDebug(1);
+        %lj.setDebug(1);
         resp = lj.timerCounter...
             ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
-            , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 0 ...
+            , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 1 ...
             , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
-            , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 0 ...
+            , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 1 ...
             , 'Timer4.Mode', 'PWM8',               'Timer4.Value',  0 ...
-            , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 0 ...
+            , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 1 ...
             , 'Counter0Enabled', 1 ...
             , 'Counter1Enabled', 0 ...
             , 'UpdateReset.Counter0', 1 ...
             );
         assert(strcmp(resp.errorcode, 'NOERROR'));
-        lj.setDebug(0);
+        %lj.setDebug(0);
         %}
     end
 
@@ -179,9 +212,9 @@ log_ = @noop;
     function demo()
         
         sc = struct...
-            ( 'Channels', {{'AIN2', 'AIN3', 'Counter0', 'Timer1', 'TC_Capture', 'Timer3'}} ...
-            , 'Gains', {{'Bipolar', 'Bipolar', 'x1', 'x1', 'x1', 'x1'}} ...
-            , 'Resolution', 12 ...
+            ( 'Channels', {{'AIN2', 'AIN3', 'Counter0', 'Timer1', 'TC_Capture'}} ...
+            , 'Gains', {{'Bipolar', 'Bipolar', 'x1', 'x1', 'x1'}} ...
+            , 'Resolution', 10 ...
             );
         
         [params, data, t] = require...
@@ -198,9 +231,11 @@ log_ = @noop;
 
         hold on;
         subplot(2, 1, 1);
-        plot(t, data(3,:), 'g-', t, data(4, :), 'r-', t, data(6, :), 'b-');
+        plot(t, data(3,:), 'k-', t, data(4, :), 'c-', t, data(5, :), 'r-');
+        legend('Counter0', 'Timer1Lo', 'Timer1Hi');
         subplot(2, 1, 2);
         plot(t, data(1,:), 'r-', t, data(2, :), 'b-');
+        legend('AIN2', 'AIN3')
         
         
 %       [ax, h1, h2] = plotyy(t, data(3,:), t, data(1,:));
@@ -219,7 +254,7 @@ log_ = @noop;
             t = GetSecs();
             setupSync();
             collectUntil(t + 0.5);
-            predictedreward = reward(120, 250)
+            predictedreward = reward(120, 75)
             predictedclock = eventCode(150, 42)
             collectUntil(t + 2.0);
             [data, t] = extractData();
@@ -259,6 +294,7 @@ log_ = @noop;
         rewardCounts = max(1, rewardAt - current);
 
         %
+        % {
         %1DF80C18 FF000100 013C0000 00000000 00000000 5D000000 00006400 0000
         packet = [29 248 12 24 255 0 1 0 1 60 0 0 0 0 0 0 0 0 0 0 93 0 0 0 0 0 100 0 0 0];
         packet(21) = bitand(rewardCounts, 255);
@@ -268,7 +304,7 @@ log_ = @noop;
         response = lj.lowlevel(packet, 40);
         assert(response(7) == 0, 'error setting timer');
         predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts;
-        %}
+        % }
 
         %equivalent to:
         %{
@@ -290,11 +326,11 @@ log_ = @noop;
     function predictedclock = eventCode(clockAt, code)
         %D1A30301 FF2A0000
         
+        % {
         packet1 = [209 163 3 1 255 42 0 0];
         packet1(6) = code;
         resp = lj.lowlevel(packet1, 8);
         assert(resp(7) == 0, 'error outputting code');
-        
         
         info = Screen('GetWindowInfo', w_);
         current = info.VBLCount - refresh0HWCount_;
@@ -307,22 +343,26 @@ log_ = @noop;
         resp = lj.lowlevel(packet2, 40);
         assert(resp(7) == 0, 'error setting timer');
         predictedclock = double(resp(33:36))*[1;256;65536;16777216] + clockCounts;
-
+        % }
+        
         %equivalent to:
         %{
-        lj.setDebug(1);
+        %lj.setDebug(1);
         lj.portOut('EIO', 255, code);
         
-        info = Screen('GetWindowInfo', w);
+        info = Screen('GetWindowInfo', w_);
         current = info.VBLCount - refresh0HWCount_;
         clockCounts = max(1, clockAt - current);
 
         timerconf = lj.timerCounter...
             ( 'Timer0.Value', 0 ...
             , 'Timer1.Value', clockCounts ...
-            );
+            )
         predictedclock = timerconf.Counter0 + clockCounts;
-        lj.setDebug(0);
+        x = lj.timerCounter()
+        [bitshift(x.Timer1, -16) bitand(x.Timer1, 65535)]
+
+        %lj.setDebug(0);
         %}
         
         log_('EVENT_CODE %d %d %d', clockAt, code, predictedclock);
