@@ -93,4 +93,6 @@ function params = setupEyelink(params)
     end
 
     params.eyelinkSettings = settings;
+    
+    params.eyeSampleRate = 1000; %FIXME how do I query this?
 end

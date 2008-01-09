@@ -117,6 +117,8 @@ log_ = @noop;
         streamRead_ = lj.streamRead; %access just the function, not the whole struct, for speed
 
         release = @close;
+        
+        params.eyeSampleRate = params.streamConfig.obtainedSampleFrequency;
 
         function close
             stopTimers();

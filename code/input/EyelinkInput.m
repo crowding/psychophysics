@@ -13,7 +13,7 @@ function this = EyelinkInput(varargin)
     recordLinkSamples = 1;
     recordLinkEvents = 0;
     
-    persistent init__;
+    persistent init__; %#ok
     this = autoobject(varargin{:});
     
     slowdown_ = [];
@@ -137,16 +137,20 @@ function this = EyelinkInput(varargin)
         e = env;
 
         if ~isfield(details, 'edfname')
-            %pick some kind of unique filename by combining a prefix with
-            %a 7-letter encoding of the date and time
+            if (recordFileSamples || recordFileEvents)
+                %pick some kind of unique filename by combining a prefix with
+                %a 7-letter encoding of the date and time
 
-            pause(1); % to make it likely that we get a unique filename, hah!
-                      % oh, why is the eyelink so dumb?q
-            details.edfname = ['z' clock2filename(clock) '.edf'];
+                pause(1); % to make it likely that we get a unique filename, hah!
+                % oh, why is the eyelink so dumb?
+                details.edfname = ['z' clock2filename(clock) '.edf'];
+            else
+                details.edfname = '';
+            end
         end
         
         if ~isfield(details, 'localname') || (~isempty(details.edfname) && isempty(details.localname))
-            %make a note of where we will find the file locally
+            %choose a place to download the EDF file to
             
             %if we're in an experiment, use those values...
             if all(isfield(details, {'subject', 'caller'}))
@@ -214,8 +218,6 @@ function this = EyelinkInput(varargin)
 
 %% tracker setup: do calibration
     %we need to keep these to interpret the data coming down the pipe
-    eventfields_ = {};
-    samplefields_ = {};
 
     function details = doTrackerSetup(details)
         details = setupEyelink(details);
@@ -232,10 +234,6 @@ function this = EyelinkInput(varargin)
         
         %repeat it again since doTrackerSetup turns on filtering, FFS
         details = setupEyelink(details);
-        
-        %remember the order of the data coming down the pipe
-        samplefields_ = splitstr(',', details.eyelinkSettings.link_sample_data);
-        eventfields_ = splitstr(',', details.eyelinkSettings.link_event_data);
     end
 
 %% begin (called each trial)
@@ -269,7 +267,8 @@ function this = EyelinkInput(varargin)
         else
             [push_, readout_] = linkedlist(2);
             
-            status = Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
+            %status = 
+            Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
             
             %It retuns -1 but still records! WTF!@!!
             %if status ~= 0
@@ -286,7 +285,7 @@ function this = EyelinkInput(varargin)
             %stop recording
             Eyelink('StopRecording');
             
-            if streamdata
+            if streamData
                 readout_();
             end
             
@@ -295,7 +294,7 @@ function this = EyelinkInput(varargin)
     end
 
 %% sync
-    function sync(n)
+    function sync(n) %#ok
         %%nothing needed.
     end
 
@@ -319,7 +318,7 @@ function this = EyelinkInput(varargin)
         else
             %obtain new samples from the eye.
             data = [];
-            if streamdata
+            if streamData
                 %This would be nice to have. Unfortunately the eyelink
                 %library's not fast enough to keep up?
                 datatype = Eyelink('GetNextDataType');
@@ -328,7 +327,7 @@ function this = EyelinkInput(varargin)
                         if ~isempty(data)
                             data = Eyelink('GetFloatData', datatype);
                         else
-                            data(end+1) = Eyelink('GetFloatData', datatype);
+                            data(end+1) = Eyelink('GetFloatData', datatype); %#ok
                         end
                     else
                         % an event. As of now we don't record events.

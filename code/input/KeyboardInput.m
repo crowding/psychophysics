@@ -30,7 +30,7 @@ function this = KeyboardInput(varargin)
         end
         
         release = @stop;
-        PsychHID('ReceiveReports', device);
+        PsychHID('ReceiveReports', device, options);
         PsychHID('GiveMeReports', device); %discard
         lastState = [];
         modifierCodes_ = KbName({'LeftControl','LeftShift','LeftAlt','LeftGUI','RightControl','RightShift','RightAlt','RightGUI'});
@@ -45,7 +45,7 @@ function this = KeyboardInput(varargin)
         if isfield(params, 'slowdown')
             slowdown_ = params.slowdown;
         end
-        PsychHID('ReceiveReports', device);
+        PsychHID('ReceiveReports', device, options);
         PsychHID('GiveMeReports', device); %discard
         ListenChar(2); %disable keyboard input to matlab...
 
