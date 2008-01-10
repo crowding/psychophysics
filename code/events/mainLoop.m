@@ -222,6 +222,10 @@ toDegrees_ = @noop;
                 break;
             end
             %-----Draw phase: Draw all the objects for the next refresh.
+            %To begin drawing, the preious frame must be on its way to the
+            %screen, hso here is an opportunity to wait...
+            WaitSecs(GetSecs - VBL);
+            
             for i = 1:ng
                 graphics(i).draw(window, VBL + flipInterval);
             end

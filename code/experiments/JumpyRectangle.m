@@ -3,21 +3,22 @@ function JumpyRectangle(varargin)
 defaults = struct ...
     ( 'edfname', '' ...
     , 'input', struct ...
-        ( 'eyes', EyelinkInput() ...
-        , 'mouse', MouseInput() ...
+        ( 'mouse', MouseInput()...
+        , 'velocity', EyeVelocityFilter()...
         )...
     );
 
-params = namedargs(defaults, varargin{:});
+params = namedargs(localExperimentParams(), defaults, varargin{:});
 
 % a simple gaze-contingent graphics demo. Demonstrates the use of triggers.
+% Also uses a velocity filter...
 
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
 inputs = interface(struct('init', {}), struct2cell(params.input));
 
-require(setupEyelinkExperiment(params), inputs.init, @runDemo);
+require(getScreen(params), inputs.init, @runDemo);
     function runDemo(details)
         indegrees = transformToDegrees(details.cal);
 
@@ -25,6 +26,8 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
         rect = FilledRect([-2 -2 2 2], details.blackIndex);
         disk1 = FilledDisk([-2 2], 0.5, details.whiteIndex);
         disk2 = FilledDisk([-2 2], 0.25, [details.whiteIndex details.whiteIndex details.blackIndex]);
+        disk3 = FilledDisk([-2 2], 0.25, [details.whiteIndex details.blackIndex details.whiteIndex]);
+        disk4 = FilledDisk([-2 2], 0.25, [details.blackIndex details.whiteIndex details.whiteIndex]);
         text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
         triggers = TriggerDrawer();
         
@@ -43,14 +46,16 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
         rect.setVisible(1);
         disk1.setVisible(1);
         disk2.setVisible(1);
+        disk3.setVisible(1);
+        disk4.setVisible(1);
         text.setVisible(1);
         triggers.setVisible(1);
         
         % ----- the main loop. -----
         main = mainLoop ...
-            ( {rect, disk1, disk2, text, patch} ...
-            , {moveTrigger, startTrigger, playTrigger, stopTrigger} ...
-            , 'mouse', {followTrigger, abortTrigger} ...
+            ( 'input', {params.input.eyes, params.input.mouse, params.input.velocity}...
+            , 'graphics', {rect, disk1, disk2, disk3, disk4, text, patch} ...
+            , 'triggers', {moveTrigger, startTrigger, playTrigger, stopTrigger, followTrigger, abortTrigger} ...
             );
         %   , 'keyboard', {keyTrigger} ...
             
@@ -83,6 +88,10 @@ require(setupEyelinkExperiment(params), inputs.init, @runDemo);
             %make the disk follow the mouse
             disk1.setLoc([s.mousex_deg s.mousey_deg]);
             disk2.setLoc([s.x s.y]);
+            if ~isempty(s.eyeFx)
+                disk3.setLoc([s.eyeFx(end) s.eyeFy(end)]);
+                disk4.setLoc([s.eyeFx(end)+s.eyeVx(end)*0.02 s.eyeFy(end)+s.eyeVy(end)*0.02]);
+            end            
             text.setText(sprintf('%0.2f, %0.2f | %0.2f, %0.2f | %0.3f, %0.3f', s.mousex_deg, s.mousey_deg, s.x, s.y, s.mouset, GetSecs()));
         end
 

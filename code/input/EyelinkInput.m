@@ -6,7 +6,7 @@ function this = EyelinkInput(varargin)
     goodSampleCount = 0;
     
     doInitialTrackerSetup = 1;
-    streamData = 0; %data streaming would be good but is too slow...
+    streamData = 1; %data streaming would be good...
     
     recordFileSamples = 1;
     recordFileEvents = 0;
@@ -178,8 +178,8 @@ function this = EyelinkInput(varargin)
             end
 
             %destructive step: open the file
-            %FIXME - what data can I get out of here?
-            Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,AREA');
+            %FIXME - adjust this according to what data we save...
+            Eyelink('command', 'link_sample_data = GAZE');
             status = Eyelink('OpenFile', details.edfname);
             if (status < 0)
                 error('getEyelink:fileOpenError', ...
@@ -217,7 +217,6 @@ function this = EyelinkInput(varargin)
     end
 
 %% tracker setup: do calibration
-    %we need to keep these to interpret the data coming down the pipe
 
     function details = doTrackerSetup(details)
         details = setupEyelink(details);
@@ -265,7 +264,7 @@ function this = EyelinkInput(varargin)
             %do nothing
             release = @noop;
         else
-            [push_, readout_] = linkedlist(2);
+            [push_, readout_] = linkedlist(1);
             
             %status = 
             Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
@@ -286,7 +285,8 @@ function this = EyelinkInput(varargin)
             Eyelink('StopRecording');
             
             if streamData
-                readout_();
+                data = readout_();
+                %TODO log this to the log...
             end
             
             %TODO log to disk...
@@ -295,14 +295,20 @@ function this = EyelinkInput(varargin)
 
 %% sync
     function sync(n) %#ok
-        %%nothing needed.
+        %discard data...
+        while (Eyelink('GetNextDataType'))
+        end
     end
 
 %% actual input function
     function k = input(k)
-        %Takes a sample from the eye, or mouse if the eyelink is not
-        %connected. Returns x and y == NaN if the sample has invalid
-        %coordinates. Otherwise returns a value in degrees.
+        %Brings in samples from the eyelink and adds them to the structure
+        %given as input.
+        %Fields added are:
+        %   eyeX, eyeY, eyeT (complete traces) and
+        %   x, y, t (the latest sample each call).
+        %Translates the x and y values to degrees of visual angle.        
+        %Coordinates will be NaN if the eye position is not available.
 
         if dummy_
             [x, y, buttons] = GetMouse(window_);
@@ -317,68 +323,96 @@ function this = EyelinkInput(varargin)
             end
         else
             %obtain new samples from the eye.
-            data = [];
             if streamData
-                %This would be nice to have. Unfortunately the eyelink
-                %library's not fast enough to keep up?
+                data = [];
+                
+                %calling this pulls in data in high priority mode?
+                Eyelink('NewFloatSampleAvailable');
+                
                 datatype = Eyelink('GetNextDataType');
                 while(datatype)
                     if datatype == el_.SAMPLE_TYPE
-                        if ~isempty(data)
+                        if isempty(data)
                             data = Eyelink('GetFloatData', datatype);
                         else
+                            %this grows an array, to be sure...
                             data(end+1) = Eyelink('GetFloatData', datatype); %#ok
                         end
                     else
                         % an event. As of now we don't record events.
-                        data = Eyelink('GetFloatData', datatype);
+                        % data = Eyelink('GetFloatData', datatype);
                     end
                     datatype = Eyelink('GetNextDataType');
                 end
-                if ~isempty(data)
-                    push_(data);
-                end
-            end
-            
-            if Eyelink('NewFloatSampleAvailable') == 0;
-                %no data?
-                x = NaN;
-                y = NaN;
-                t = GetSecs() / slowdown_;
-                missingSampleCount = missingSampleCount + 1;
-            else
-                % Probably don't need to do this eyeAvailable check every
-                % frame. Profile this call?
-                eye = Eyelink('EyeAvailable');
-                switch eye
-                    case el_.BINOCULAR
-                        error('eyeEvents:binocular',...
-                            'don''t know which eye to use for events');
-                    case el_.LEFT_EYE
-                        eyeidx = 1;
-                    case el_.RIGHT_EYE
-                        eyeidx = 2;
-                end
 
-                sample = Eyelink('NewestFloatSample');
-                x = sample.gx(eyeidx);
-                y = sample.gy(eyeidx);
-                if x == -32768 %no position -- blinking?
-                    badSampleCount = badSampleCount + 1;
+                if isempty(data)
+                    [k.eyeX, k.eyeY, k.eyeT] = deal(zeros(0,1));
+                    k.x = NaN;
+                    k.y = NaN;
+                    k.t = GetSecs() / slowdown_;
+                else
+                    x = cat(1, data.gx);
+                    x = x(:,1);
+                    y = cat(1, data.gy);
+                    y = y(:,1);
+
+                    x(x == -32768) = NaN;
+                    y(isnan(x)) = NaN;
+
+                    [k.eyeX, k.eyeY] = toDegrees_(x, y);
+                    k.eyeT = ([data.time]' - clockoffset_) / 1000 / slowdown_;
+
+                    push_([k.eyeX k.eyeY k.eyeT]);
+
+                    %backwards compat -- already written experiments expect
+                    %x, y, t to be the latest samples.
+                    k.x = k.eyeX(end);
+                    k.y = k.eyeY(end);
+                    k.t = k.eyeT(end);
+                end
+            else
+                %If you don't want to stream everything into matlab, just 
+                %gather the latest sample on every refresh. 
+                if Eyelink('NewFloatSampleAvailable') == 0;
+                    %no data?
                     x = NaN;
                     y = NaN;
+                    t = GetSecs() / slowdown_;
+                    missingSampleCount = missingSampleCount + 1;
                 else
-                    goodSampleCount = goodSampleCount + 1;
-                end
+                    % Probably don't need to do this eyeAvailable check every
+                    % frame. Profile this call?
+                    eye = Eyelink('EyeAvailable');
+                    switch eye
+                        case el_.BINOCULAR
+                            error('eyeEvents:binocular',...
+                                'don''t know which eye to use for events');
+                        case el_.LEFT_EYE
+                            eyeidx = 1;
+                        case el_.RIGHT_EYE
+                            eyeidx = 2;
+                    end
 
-                t = (sample.time - clockoffset_) / 1000 / slowdown_;
+                    sample = Eyelink('NewestFloatSample');
+                    x = sample.gx(eyeidx);
+                    y = sample.gy(eyeidx);
+                    if x == -32768 %no position -- blinking?
+                        badSampleCount = badSampleCount + 1;
+                        x = NaN;
+                        y = NaN;
+                    else
+                        goodSampleCount = goodSampleCount + 1;
+                    end
+
+                    t = (sample.time - clockoffset_) / 1000 / slowdown_;
+                end
+                [x, y] = toDegrees_(x, y);
+
+                k.x = x;
+                k.y = y;
+                k.t = t;
             end
         end
-        [x, y] = toDegrees_(x, y);
-        
-        k.x = x;
-        k.y = y;
-        k.t = t;
     end
 
 end

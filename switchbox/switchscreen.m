@@ -101,7 +101,7 @@ function i = switchscreen(varargin)
         comm('write', params.port, str);
         pause(0.1);
         resp = [];
-        s = getSecs();
+        s = GetSecs();
         while (GetSecs - s) < 0.2 && numel(resp) < 4
             resp = [resp comm('read', params.port, 4 - numel(resp))]; %#ok
         end
