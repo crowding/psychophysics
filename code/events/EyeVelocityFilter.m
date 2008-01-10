@@ -1,12 +1,16 @@
 function this = EyeVelocityFilter(varargin)
-    %Adds fields 'eyeVx' and 'eyeVy' which contain filtered velocity
-    %traces.
+    %Filters the position and velocity of the raw eye position. Adds fields
+    %eyeFx, eyeFy, eyeFt, eyeVx, eyeVy, eyeVt 
 
     %should be placed in INPUT list, after the input that gives eye
     %position.
 
-    cutoff = 100; %filter cutoff in Hz
-    order = 6; %the order of the filter.
+    cutoff = 100; %Position filter cutoff in Hz
+    order = 3; %the order of the positionfilter.
+    
+    vcutoff = 25; %cutoff of the velocity filter
+    vorder = 4; %order of the velocity filter
+
     log = @noop; %log not used...
     
     persistent init__;
@@ -17,13 +21,16 @@ function this = EyeVelocityFilter(varargin)
     
     a_ = [];
     b_ = [];
+    va_ = [];
+    vb_ = [];
     
     stateX_ = [];
     stateY_ = [];
     stateVx_ = [];
     stateVy_ = [];
-    lastX_ = 0;
-    lastY_ = 0;
+    
+    lastX_ = 0; %last X value for differentiation
+    lastY_ = 0; %last Y value for differentiation
     
     function [release, params] = init(params)
         %called when experiment input begins...
@@ -46,13 +53,22 @@ function this = EyeVelocityFilter(varargin)
 
     function [release, params] = begin(params)
         %called at the start of each trial
-        release = @noop;
         stateVx_ = filtic(b_, a_, zeros(size(b_)), zeros(size(a_)));
         stateVy_ = filtic(b_, a_, zeros(size(b_)), zeros(size(a_)));
+        
+                release = @cl;
+        function cl
+            stateX_ = [];
+            stateY_ = [];
+            lastX_ = [];
+            lastY_ = [];
+            stateVx_ = [];
+            stateVy_ = [];
+        end
     end
 
     function sync(frame)
-        %no synch required
+        %no sync required
     end
 
     function event = input(event)
@@ -76,20 +92,22 @@ function this = EyeVelocityFilter(varargin)
                     stateY_ = filtic(b_, a_, zeros(size(b_)) + y(1), zeros(size(a_)) + y(1));
                 end
 
-                %filtered position and first derivative.
+                %filtered position
                 [event.eyeFx, stateX_] = filter(b_, a_, x, stateX_);
                 [event.eyeFy, stateY_] = filter(b_, a_, y, stateY_);
                 event.eyeFt = t - delay_;
 
-                vx = (event.eyeFx - [lastX_;event.eyeFx(1:end-1)]) / interval_;
-                vy = (event.eyeFy - [lastY_;event.eyeFy(1:end-1)]) / interval_;
+                %raw derivative
+                vx = (x - [lastX_;x(1:end-1)]) / interval_;
+                vy = (x - [lastY_;y(1:end-1)]) / interval_;
 
-                [event.eyeVx, stateVx_] = filter(b_, a_, vx, stateVx_);
-                [event.eyeVy, stateVy_] = filter(b_, a_, vy, stateVy_);
-                [event.eyeVt] = (event.eyeFt - interval_/2 - delay_);
+                %filtered derivative
+                [event.eyeVx, stateVx_] = filter(vb_, va_, vx, stateVx_);
+                [event.eyeVy, stateVy_] = filter(vb_, va_, vy, stateVy_);
+                [event.eyeVt] = (t - interval_/2 - delay_);
                 
-                lastX_ = event.eyeFx(end);
-                lastY_ = event.eyeFy(end);
+                lastX_ = x(end);
+                lastY_ = y(end);
             else
                 [event.eyeFx,event.eyeFy,event.eyeFt,event.eyeVx,event.eyeVy,event.eyeVt] = deal(zeros(0,1));
             end
