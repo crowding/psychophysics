@@ -73,14 +73,14 @@ params = require(...
         reading = [];
         while (length(reading) < params.oversample) & (tries < params.retry)
             %talk to the photometer and try to obtain 3 readings.
-            comm('write', params.port, sprintf('!\r'));
+            SerialComm('write', params.port, sprintf('!\r'));
             WaitSecs(0.1);
-            comm('purge', params.port);
-            comm('write', params.port, sprintf('!NEW %d\r', params.oversample));
+            SerialComm('purge', params.port);
+            SerialComm('write', params.port, sprintf('!NEW %d\r', params.oversample));
             time = GetSecs;
             response = '';
             while (length(reading) < params.oversample) && (GetSecs < time + params.timeout)
-                response = comm('readl', params.port);
+                response = SerialComm('readl', params.port);
                 disp(response);
                 %use regexp to match...
                 response = regexp(response, '\d[^\n\r]*', 'match');
@@ -100,9 +100,9 @@ params = require(...
                 end
             end
         end
-        comm('write', params.port, sprintf('!\r'));
+        SerialComm('write', params.port, sprintf('!\r'));
         WaitSecs(0.1);
-        comm('purge', params.port);
+        SerialComm('purge', params.port);
     end
 
 
@@ -111,10 +111,10 @@ params = require(...
         init = currynamedargs(@doOpenComm, varargin{:});
         
         function [releaser, params] = doOpenComm(params)
-            comm('open', params.port, params.portconfig);
-            comm('write', params.port, sprintf('!NEW\r'));
+            SerialComm('open', params.port, params.portconfig);
+            SerialComm('write', params.port, sprintf('!NEW\r'));
             WaitSecs(1);
-            string = comm('readl', params.port);
+            string = SerialComm('readl', params.port);
             if (length(string) == 0)
                 release();
                 error('no photometer detected');
@@ -122,7 +122,7 @@ params = require(...
             releaser = @release;
             
             function release
-                comm('close', params.port);
+                SerialComm('close', params.port);
             end
         end
     end

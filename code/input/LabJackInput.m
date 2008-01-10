@@ -45,10 +45,16 @@ log_ = @noop;
         
         x = joinResource(lj.init, @myInit);
         [release, params] = x(namedargs(defaults, params));
+        params.eyeSampleRate = params.streamConfig.SampleFrequency;
 
         function [release, params] = myInit(params)
             lj.streamStop();
             lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 0 0 0 0 0 0]);
+            
+            resp = lj.streamConfig(params.streamConfig);
+            assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
+
+            params.streamConfig.obtainedSampleFrequency = resp.SampleFrequency;
             
             release = @close;
             function close()
@@ -65,11 +71,7 @@ log_ = @noop;
     push_ = @noop;
     readout_ = @noop;
     function [release, params] = begin(params)
-        resp = lj.streamConfig(params.streamConfig);
         lj.flush();
-        assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
-            
-        params.streamConfig.obtainedSampleFrequency = resp.SampleFrequency;
 
         streamStartTime_ = GetSecs();
         
@@ -78,6 +80,9 @@ log_ = @noop;
         resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
         assert( resp(7) == 0, 'labjack returned error setting timers' );
         % }
+
+        %WEIRDO ISSUE: if the labjack doesn't timer properly, set the
+        %timers to 1 once...
         
         %which means:
         %

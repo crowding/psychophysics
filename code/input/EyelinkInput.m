@@ -352,15 +352,15 @@ function this = EyelinkInput(varargin)
                     k.t = GetSecs() / slowdown_;
                 else
                     x = cat(1, data.gx);
-                    x = x(:,1);
+                    x = x(:,1)';
                     y = cat(1, data.gy);
-                    y = y(:,1);
+                    y = y(:,1)';
 
                     x(x == -32768) = NaN;
                     y(isnan(x)) = NaN;
 
                     [k.eyeX, k.eyeY] = toDegrees_(x, y);
-                    k.eyeT = ([data.time]' - clockoffset_) / 1000 / slowdown_;
+                    k.eyeT = ([data.time] - clockoffset_) / 1000 / slowdown_;
 
                     push_([k.eyeX k.eyeY k.eyeT]);
 

@@ -80,7 +80,7 @@ require(getScreen(params), inputs.init, @runDemo);
 
         function s = moveRect(s)
             %set the rectangle to a random color and shape
-            reward(s.refresh, 10);
+            reward(s.refresh, 100);
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 

@@ -6,10 +6,10 @@ function this = EyeVelocityFilter(varargin)
     %position.
 
     cutoff = 100; %Position filter cutoff in Hz
-    order = 3; %the order of the positionfilter.
+    order = 4; %the order of the positionfilter.
     
     vcutoff = 25; %cutoff of the velocity filter
-    vorder = 4; %order of the velocity filter
+    vorder = 5; %order of the velocity filter
 
     log = @noop; %log not used...
     
@@ -38,6 +38,7 @@ function this = EyeVelocityFilter(varargin)
         interval_ = 1/rate;
         %make a Butterworth filter with the appropriate cutoff...
         [b_, a_] = butter(order, cutoff*2/rate);
+        [vb_, va_] = butter(vorder, vcutoff*2/rate);
         stateX_ = [];
         stateY_ = [];
         
@@ -53,8 +54,8 @@ function this = EyeVelocityFilter(varargin)
 
     function [release, params] = begin(params)
         %called at the start of each trial
-        stateVx_ = filtic(b_, a_, zeros(size(b_)), zeros(size(a_)));
-        stateVy_ = filtic(b_, a_, zeros(size(b_)), zeros(size(a_)));
+        stateVx_ = filtic(vb_, va_, zeros(size(vb_)), zeros(size(va_)));
+        stateVy_ = filtic(vb_, va_, zeros(size(vb_)), zeros(size(va_)));
         
                 release = @cl;
         function cl
@@ -98,8 +99,8 @@ function this = EyeVelocityFilter(varargin)
                 event.eyeFt = t - delay_;
 
                 %raw derivative
-                vx = (x - [lastX_;x(1:end-1)]) / interval_;
-                vy = (x - [lastY_;y(1:end-1)]) / interval_;
+                vx = (x - [lastX_ x(1:end-1)]) / interval_;
+                vy = (y - [lastY_ y(1:end-1)]) / interval_;
 
                 %filtered derivative
                 [event.eyeVx, stateVx_] = filter(vb_, va_, vx, stateVx_);
