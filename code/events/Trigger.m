@@ -39,6 +39,7 @@ function this = Trigger(varargin)
 
     function s = check(s)
         ndeleted = 0; %number deleted
+        nt = size(triggers_, 1);
         for i = 1:size(triggers_, 1)
             ch = triggers_{i-ndeleted, 1};
             fn = triggers_{i-ndeleted, 2};
@@ -47,15 +48,15 @@ function this = Trigger(varargin)
             if iscell(ch) %a mutex
                 for j = 1:numel(ch)
                     mcheck = ch{j};
-                    mfn = ch{j};
+                    mfn = fn{j};
                     
                     [whether, s] = mcheck(s);
                     
-                    if whether
+                    if any(whether)
                         mfn(s);
                         log('TRIGGER %s %s', func2str(mfn), struct2str(s));
                         if delete == 1
-                            triggers_{i,:} = []
+                            triggers_(i,:) = [];
                             ndeleted = ndeleted + 1;
                         elseif delete == 2
                             %panic and delete all
@@ -67,17 +68,17 @@ function this = Trigger(varargin)
             else
                 [whether, s] = ch(s);
                 
-                if whether
+                if any(whether)
                     
                     fn(s);
                     log('TRIGGER %s %s', func2str(fn), struct2str(s));
                     
                     if delete == 1
-                        triggers_(i-ndeleted,:) = []
+                        triggers_(i-ndeleted,:) = [];
                         ndeleted = ndeleted + 1;
                     elseif delete == 2
                         %panic and delete all
-                        triggers_ = cell(0,3);
+                        triggers_(1:nt-ndeleted, :) = [];
                         return; %nothing more to do
                     end
                 end

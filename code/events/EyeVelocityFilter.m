@@ -18,6 +18,7 @@ function this = EyeVelocityFilter(varargin)
     
     interval_ = NaN;
     delay_ = 0;
+    vdelay_ = 0;
     
     a_ = [];
     b_ = [];
@@ -33,6 +34,10 @@ function this = EyeVelocityFilter(varargin)
     lastY_ = 0; %last Y value for differentiation
     
     function [release, params] = init(params)
+        [release, params] = begin(params);
+    end
+
+    function [release, params] = begin(params)
         %called when experiment input begins...
         rate = params.eyeSampleRate;
         interval_ = 1/rate;
@@ -44,20 +49,13 @@ function this = EyeVelocityFilter(varargin)
         
         %approximate the filter delay with the group delay at 0 Hz
         delay_ = mean(grpdelay(b_,a_,[0 0],1000)) * interval_;
+        delay_ = mean(grpdelay(vb_,va_,[0 0],1000)) * interval_ + interval_/2;
         
-        release = @cl;
-        function cl
-            stateX_ = [];
-            stateY_ = [];
-        end
-    end
-
-    function [release, params] = begin(params)
         %called at the start of each trial
         stateVx_ = filtic(vb_, va_, zeros(size(vb_)), zeros(size(va_)));
         stateVy_ = filtic(vb_, va_, zeros(size(vb_)), zeros(size(va_)));
         
-                release = @cl;
+        release = @cl;
         function cl
             stateX_ = [];
             stateY_ = [];
@@ -72,12 +70,16 @@ function this = EyeVelocityFilter(varargin)
         %no sync required
     end
 
+    function event = check(event)
+        event = input(event);
+    end
+
     function event = input(event)
         %filter and add eye velocity fields to the event
         
         if ~isempty(event.eyeX)
-            %Remove NaNs before filtering, since the IIR filter
-            %propagates NANs.
+            %Remove NaNs before filtering, since the IIR filters
+            %propagate NANs.
             numbers = ~isnan(event.eyeX);
             x = event.eyeX(numbers);
             y = event.eyeY(numbers);
@@ -97,7 +99,7 @@ function this = EyeVelocityFilter(varargin)
                 [event.eyeFx, stateX_] = filter(b_, a_, x, stateX_);
                 [event.eyeFy, stateY_] = filter(b_, a_, y, stateY_);
                 event.eyeFt = t - delay_;
-
+                
                 %raw derivative
                 vx = (x - [lastX_ x(1:end-1)]) / interval_;
                 vy = (y - [lastY_ y(1:end-1)]) / interval_;
@@ -105,7 +107,7 @@ function this = EyeVelocityFilter(varargin)
                 %filtered derivative
                 [event.eyeVx, stateVx_] = filter(vb_, va_, vx, stateVx_);
                 [event.eyeVy, stateVy_] = filter(vb_, va_, vy, stateVy_);
-                [event.eyeVt] = (t - interval_/2 - delay_);
+                [event.eyeVt] = (t - vdelay_);
                 
                 lastX_ = x(end);
                 lastY_ = y(end);

@@ -1,4 +1,5 @@
 function f = atLeast(fieldname, value)
+%function f = atLeast(fieldname, value) a trigger condition.
     f = @check;
     
     function [t, s] = check(s)

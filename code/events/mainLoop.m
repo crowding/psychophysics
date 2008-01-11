@@ -248,7 +248,7 @@ toDegrees_ = @noop;
             end
             
             for i = 1:numel(triggers)
-                triggers(i).check(s);
+                s = triggers(i).check(s);
             end
         end
 

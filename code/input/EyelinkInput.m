@@ -31,14 +31,23 @@ function this = EyelinkInput(varargin)
 
     %the initializer will be called once per experiment and does global
     %setup of everything.
+    freq_ = [];
+    pahandle_ = [];
+    interval_ = [];
+    log_ = @noop;
     function [release, params] = init(params)
         if doInitialTrackerSetup
-            a = joinResource(@connect_, @initDefaults_, @doSetup_, @openEDF_);
+            a = joinResource(@connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
         else
-            a = joinResource(@connect_, @initDefaults_, @openEDF_);
+            a = joinResource(@connect_, @initDefaults_, getSound(), @openEDF_);
         end
         
+        interval_ = params.screenInterval;
+        log_ = params.log;
+        
         [release, params] = a(namedargs(defaults, params));
+        freq_ = params.freq;
+        pahandle_ = params.pahandle;
     end
 
     function [release, details] = connect_(details)
@@ -264,7 +273,7 @@ function this = EyelinkInput(varargin)
             %do nothing
             release = @noop;
         else
-            [push_, readout_] = linkedlist(1);
+            [push_, readout_] = linkedlist(2);
             
             %status = 
             Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
@@ -287,6 +296,7 @@ function this = EyelinkInput(varargin)
             if streamData
                 data = readout_();
                 %TODO log this to the log...
+                log_('EYE_DATA %s', smallmat2str(data));
             end
             
             %TODO log to disk...
@@ -301,6 +311,8 @@ function this = EyelinkInput(varargin)
     end
 
 %% actual input function
+    refresh_ = []; 
+    next_ = [];
     function k = input(k)
         %Brings in samples from the eyelink and adds them to the structure
         %given as input.
@@ -310,6 +322,9 @@ function this = EyelinkInput(varargin)
         %Translates the x and y values to degrees of visual angle.        
         %Coordinates will be NaN if the eye position is not available.
 
+        refresh_ = k.refresh;
+        next_ = k.next;
+        
         if dummy_
             [x, y, buttons] = GetMouse(window_);
             
@@ -321,6 +336,12 @@ function this = EyelinkInput(varargin)
             else
                 goodSampleCount = goodSampleCount + 1;
             end
+
+            [x, y] = toDegrees_(x, y);
+
+            k.x = x;
+            k.y = y;
+            k.t = t;
         else
             %obtain new samples from the eye.
             if streamData
@@ -362,7 +383,7 @@ function this = EyelinkInput(varargin)
                     [k.eyeX, k.eyeY] = toDegrees_(x, y);
                     k.eyeT = ([data.time] - clockoffset_) / 1000 / slowdown_;
 
-                    push_([k.eyeX k.eyeY k.eyeT]);
+                    push_([k.eyeX;k.eyeY;k.eyeT]);
 
                     %backwards compat -- already written experiments expect
                     %x, y, t to be the latest samples.
@@ -414,5 +435,14 @@ function this = EyelinkInput(varargin)
             end
         end
     end
-
+    
+    function reward(rewardAt, duration)
+        %for psychophysics, just produce a beep...
+        %generate a buffer...
+        PsychPortAudio('Stop', pahandle_);
+        a = 0.9 * sin(linspace(0, duration/1000*750*2*pi, duration/1000*freq_));
+        PsychPortAudio('FillBuffer', pahandle_, a, 0);
+        startTime = PsychPortAudio('Start', pahandle_, 1, 0); %next_ + (rewardAt - refresh_) * interval_);
+        log_('REWARD %d %d %d %f', rewardAt, duration, refresh_ + round(startTime - next_)/interval_, startTime);
+    end
 end

@@ -32,7 +32,7 @@ function this = KeyboardInput(varargin)
         release = @stop;
         PsychHID('ReceiveReports', device, options);
         PsychHID('GiveMeReports', device); %discard
-        lastState = [];
+        lastState_ = [];
         modifierCodes_ = KbName({'LeftControl','LeftShift','LeftAlt','LeftGUI','RightControl','RightShift','RightAlt','RightGUI'});
         
         function stop
