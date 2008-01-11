@@ -18,7 +18,7 @@ else
 end
 
     %methods
-    function check(s)
+    function s = check(s)
         if set_
             log('TRIGGER %s %s', func2str(fn), struct2str(s));
             fn(s); %call function always

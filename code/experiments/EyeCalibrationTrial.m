@@ -79,8 +79,8 @@ function this = EyeCalibrationTrial(varargin)
         function success(s)
             target.setVisible(0);
             result.success = 1;
-            params.input.eyes.reward(s.next, rewardDuration);
-            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
+            params.input.eyes.reward(s.refresh, rewardDuration);
+            trigger.singleshot(atLeast('next', s.next+rewardDuration + .100), main.stop);
             disp('success');
         end
         

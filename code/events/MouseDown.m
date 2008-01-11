@@ -18,7 +18,7 @@ lastButtons_ = [];
         release = @noop;
     end
 
-    function check(m)
+    function m = check(m)
         b = m.mouseButtons & ~lastButtons_;
         if any(b)
             m.buttonsDown = b;

@@ -54,7 +54,7 @@ log_ = @noop;
             resp = lj.streamConfig(params.streamConfig);
             assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
 
-            params.streamConfig.obtainedSampleFrequency = resp.SampleFrequency;
+            params.obtainedSampleFrequency = resp.SampleFrequency;
             
             release = @close;
             function close()
@@ -73,8 +73,13 @@ log_ = @noop;
     function [release, params] = begin(params)
         lj.flush();
 
+        resp = lj.streamConfig(params.streamConfig);
+        assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
+
+        params.obtainedSampleFrequency = resp.SampleFrequency;
+
         streamStartTime_ = GetSecs();
-        
+
         % {
         %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
         resp = lj.lowlevel([75 248 12 24 45 1 1 142 1 127 1 0 0 9 0 0 1 0 0 9 0 0 1 0 0 9 0 0 0 0], 40);
@@ -123,7 +128,7 @@ log_ = @noop;
 
         release = @close;
         
-        params.eyeSampleRate = params.streamConfig.obtainedSampleFrequency;
+        params.eyeSampleRate = params.obtainedSampleFrequency;
 
         function close
             stopTimers();
@@ -133,7 +138,8 @@ log_ = @noop;
             lj.flush();
 
             %TODO log it here...
-            readout_();
+            data = readout_();
+            log_('EYE_DATA %s', smallmat2str(data));
         end
     end
 

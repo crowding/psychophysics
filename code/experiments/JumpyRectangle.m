@@ -69,7 +69,7 @@ require(getScreen(params), inputs.init, @runDemo);
 
         function start(s)
             playTrigger.set(s.next + 5, @play);
-            stopTrigger.set(s.next + 100, main.stop);
+            stopTrigger.set(s.next + 1000, main.stop);
             startTrigger.unset();
         end
         

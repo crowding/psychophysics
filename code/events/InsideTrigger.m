@@ -11,7 +11,7 @@ log_ = [];
 
 this = final(@check, @draw, @set, @unset, @setLog, @getFn, @init);
 
-    function check(s)
+    function s = check(s)
         if set_ && inRect(...
                 bounds_() + range_ .* [-1 -1 1 1] + [offset_, offset_],...
                 s.x, s.y)
