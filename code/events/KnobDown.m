@@ -19,7 +19,7 @@ function this = KnobDown(varargin)
         set_ = 1;
     end
     
-    function check(s)
+    function s = check(s)
         if set_ && s.knobDown > 0
             log('TRIGGER %s %s', func2str(fn), struct2str(s));
             fn(s);

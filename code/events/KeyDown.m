@@ -25,7 +25,7 @@ end
 
 %------methods------
 
-    function check(k)
+    function k = check(k)
         now = k.keycodes;
         
         new = now(~last_(now));

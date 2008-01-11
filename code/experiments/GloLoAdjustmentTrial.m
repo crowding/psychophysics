@@ -23,11 +23,13 @@ function this = GloLoAdjustmentTrial(varargin)
         , 'size', [0.5 0.75 0.1]...
         );
     
-    barLength = 1;            %length of the bars
+    barLength = 2;            %length of the bars
     barWidth = 0.1;           %width of the bars
-    barRadius = 6;       %the radius of the bar(s)
+    barRadius = 8;       %the radius of the bar(s)
     barPhase = 0; %the displacement of the bar around the circle CCW from the initial position of the object.
-    barPhaseStep = 2*pi/768;     %how big the bar's step is in phase-around-circle terms
+    barPhaseStep = 2*pi/1024;     %how big the bar's step is in phase-around-circle terms
+                                 %there are 'about' 96 steps per knob
+                                 %revolution so this is like a 16:1 reduction
     barBackgroundColor = [0.55 0.55 0.55]; %the color of the bar when it's not flashing (the background)
     barFlashColor = [1 1 1];  %the color of the bar when it's flashing
     

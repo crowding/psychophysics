@@ -15,7 +15,7 @@ persistent init__;
 this = autoobject(varargin{:});
 
 %----- methods -----
-    function check(s)
+    function s = check(s)
         % Checks the sample and if the time is at or after the trigger's set
         % time, calls the trigger function. If a valid sample is required,
         % checks that x any y are not NaN before calling the trigger

@@ -146,7 +146,9 @@ function this = EyelinkInput(varargin)
         e = env;
 
         if ~isfield(details, 'edfname')
-            if (recordFileSamples || recordFileEvents)
+            %default behavior is to rocord to EDF, if NOT streaming data
+            %(if streaming data goes into the log which is easier.)
+            if (recordFileSamples || recordFileEvents) && ~streamData
                 %pick some kind of unique filename by combining a prefix with
                 %a 7-letter encoding of the date and time
 
@@ -230,9 +232,7 @@ function this = EyelinkInput(varargin)
     function details = doTrackerSetup(details)
         details = setupEyelink(details);
         
-        if details.dummy
-            @noop;
-        else
+        if ~details.dummy && flagged(details,'doTrackerSetup')
             message(details, 'Do tracker setup now');
             status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
             if status < 0
@@ -295,11 +295,8 @@ function this = EyelinkInput(varargin)
             
             if streamData
                 data = readout_();
-                %TODO log this to the log...
                 log_('EYE_DATA %s', smallmat2str(data));
             end
-            
-            %TODO log to disk...
         end
     end
 
