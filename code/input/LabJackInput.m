@@ -28,6 +28,15 @@ offset = [0;0]; % the eye position offset
 persistent init__;
 this = autoobject(varargin{:});
 
+%keep track of how much fluid was given this session
+persistent fluidToday;
+fluidInSession = 0;
+fluidSchedule = [0 0;75 0.07;125 0.07;200 0.13;500 0.38]; %this should come from somewhere....
+
+if isempty(fluidToday)
+    fluidToday = 0;
+end
+
 w_ = 0;
 log_ = @noop;
 
@@ -43,7 +52,7 @@ log_ = @noop;
                 )...
             );
         
-        x = joinResource(lj.init, @myInit);
+        x = joinResource(lj.init, @logFluid, @myInit);
         [release, params] = x(namedargs(defaults, params));
         params.eyeSampleRate = params.streamConfig.SampleFrequency;
 
@@ -56,11 +65,28 @@ log_ = @noop;
 
             params.obtainedSampleFrequency = resp.SampleFrequency;
             
+            if isfield(params, 'log')
+                log_ = params.log;
+            else
+                log_ = @noop;
+            end
+            
             release = @close;
             function close()
                 lj.streamStop();
                 stopTimers();
                 lj.portOut('FIO', [1 0 0 0 0 0 0 0], [1 0 0 0 0 0 0 0]);
+            end
+        end
+        
+        function [release, params] = logFluid(params)
+            release = @l
+            
+            fluidInSession = 0;
+            
+            function l()
+                fprintf('%5f ml fluid this run  (%5f ml today)\n', fluidInSession, fluidToday);
+                log_('FLUID run=%f;today=%f', fluidInSession, fluidToday);
             end
         end
     end
@@ -116,12 +142,6 @@ log_ = @noop;
         
         w_ = params.window;
         
-        if isfield(params, 'log')
-            log_ = params.log;
-        else
-            log_ = @noop;
-        end
-        
         [push_, readout_] = linkedlist(2); %concatenate horizontally
         
         streamRead_ = lj.streamRead; %access just the function, not the whole struct, for speed
@@ -151,7 +171,6 @@ log_ = @noop;
         syncTime_ = GetSecs();
         syncInfo = Screen('GetWindowInfo', w_);
         refresh0HWCount_ = syncInfo.VBLCount - refresh;
-        
         
         % {
         %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
@@ -232,7 +251,7 @@ log_ = @noop;
         
         [params, data, t] = require...
             ( HighPriority('streamConfig', sc)...
-            , getScreen('screenNumber', 1, 'requireCalibration', 0)...
+            , getScreen('screenNumber', 1, 'requireCalibration', 0, 'skipSyncTests', 1)...
             , @init, @begin, @collectData);
 
         actualclock = data(3,find(data(1,501:end) > 3.3, 1, 'first')+500);
@@ -266,10 +285,10 @@ log_ = @noop;
             
             t = GetSecs();
             setupSync();
-            collectUntil(t + 0.5);
-            predictedreward = reward(120, 75)
-            predictedclock = eventCode(150, 42)
-            collectUntil(t + 2.0);
+            collectUntil(t + 0.2);
+            predictedreward = reward(60, 200)
+            predictedclock = eventCode(70, 42)
+            collectUntil(t + 1.0);
             [data, t] = extractData();
         end
 
@@ -306,6 +325,10 @@ log_ = @noop;
         current = info.VBLCount - refresh0HWCount_;
         rewardCounts = max(1, rewardAt - current);
 
+        fprintf('%f\n', rewardLength);
+        %calculate the fluid amount
+        fluid = interp1(fluidSchedule(:,1), fluidSchedule(:,2), rewardLength, 'cubic', 'extrap');
+        
         %
         % {
         %1DF80C18 FF000100 013C0000 00000000 00000000 5D000000 00006400 0000
@@ -316,7 +339,7 @@ log_ = @noop;
         packet(28) = bitshift(rewardLength, -8);
         response = lj.lowlevel(packet, 40);
         assert(response(7) == 0, 'error setting timer');
-        predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts;
+        predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts
         % }
 
         %equivalent to:
@@ -331,8 +354,11 @@ log_ = @noop;
         lj.setDebug(0);
         predictedreward = timerconf.Counter0 + rewardCounts;
         %}
+
+        fluidInSession = fluidInSession + fluid;
+        fluidToday = fluidToday + fluid;
         
-        log_('REWARD %d %d %d', rewardAt, rewardLength, predictedreward);
+        log_('REWARD %d %d %d %f %f', rewardAt, rewardLength, predictedreward, fluid);
     end
 
     %send out an 8-bit event code.

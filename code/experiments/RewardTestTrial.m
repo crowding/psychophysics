@@ -3,6 +3,9 @@ function this = RewardTestTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
+    rewardSize = 75;
+    rewardTime = 0.1;
+    
     function [params, result] = run(params)
         result = struct('success', 1);
         
@@ -12,26 +15,19 @@ function this = RewardTestTrial(varargin)
         
         main = mainLoop('graphics', {rect}, 'input', {params.input.eyes}, 'triggers', {trigger});
 
-        trigger.singleshot(atLeast('y', 0), @up);
-        trigger.singleshot(atLeast('next', 0), @setEnd);
+        trigger.singleshot(atLeast('next', 0), @start);
         
         params = main.go(params);
         
-        function setEnd(s)
-            trigger.singleshot(atleast('next', s.next + 10), main.stop);
+        function start(s)
+            trigger.singleshot(atleast('next', s.next + rewardTime), @up);
         end
        
         function up(s)
-            reward(s.refresh, 100);
+            reward(s.refresh, rewardSize);
             %go down
             rect.setRect([-50 -50 50 0]);
-            trigger.singleshot(atMost('y', 0), @down);
-        end
-        
-        function down(s)
-            reward(s.refresh, 100);
-            rect.setRect([-50 0 50 50]);
-            trigger.singleshot(atLeast('y', 0), @up);
+            trigger.singleshot(atLeast('next', s.next + rewardSize/1000 + 0.1), main.stop);
         end
     end
 end

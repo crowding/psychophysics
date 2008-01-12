@@ -39,8 +39,10 @@ require(getScreen(params), inputs.init, @runDemo);
         abortTrigger = MouseDown();
         if isfield(details.input.eyes, 'reward')
             reward = details.input.eyes.reward;
+            sync = details.input.eyes.eventCode;
         else
             reward = @noop;
+            sync = @noop;
         end
         
         rect.setVisible(1);
@@ -81,6 +83,7 @@ require(getScreen(params), inputs.init, @runDemo);
         function s = moveRect(s)
             %set the rectangle to a random color and shape
             reward(s.refresh, 100);
+            sync(s.refresh, 0);
             rect.setRect(randomRect(indegrees(details.rect)));
         end
 
@@ -92,13 +95,13 @@ require(getScreen(params), inputs.init, @runDemo);
                 disk3.setLoc([s.eyeFx(end) s.eyeFy(end)]);
                 disk4.setLoc([s.eyeFx(end)+s.eyeVx(end)*0.02 s.eyeFy(end)+s.eyeVy(end)*0.02]);
             end            
-            text.setText(sprintf('%0.2f, %0.2f | %0.2f, %0.2f | %0.3f, %0.3f', s.mousex_deg, s.mousey_deg, s.x, s.y, s.mouset, GetSecs()));
+            text.setText(sprintf('%0.2f, %0.2f | %0.3f', s.x, s.y, s.t));
         end
 
         function r = randomRect(bounds)
             origin = bounds([1 2]);
             size = bounds([3 4]) - origin;
-            r = sort(rand(2,2) .* [size;size] + [origin;origin]);
+            r = sort(rand(2,2) .* [size-1;size-1] + [origin;origin]) + [0 0;1 1];
             %r = [minX minY
             %     maxX maxY]; permute
             r = r([1 3 2 4]);
