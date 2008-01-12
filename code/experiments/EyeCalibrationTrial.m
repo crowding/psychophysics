@@ -41,13 +41,13 @@ function this = EyeCalibrationTrial(varargin)
         trigger.panic(keyIsDown('q'), @abort);
 
         old = params.log;
-        params.log = @printf;
+        %params.log = @printf;
         params = main.go(params);
-        params.log = old;
+        %params.log = old;
 
         function begin(s)
             %set a watchdog timer...
-            trigger.panic(atLeast('next', s.next + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1, 'next'), @failedWatchdog);
+            trigger.panic(atLeast('next', s.next + onset + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1, 'next'), @failedWatchdog);
             
             %begin the trial...
             trigger.singleshot(atLeast('next', s.next + onset), @show);
