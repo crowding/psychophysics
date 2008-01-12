@@ -6,7 +6,7 @@ function f = magnitudeAtMost(fieldname1, fieldname2, timefield, value)
         t = sqrt(s.(fieldname1).^2 + s.(fieldname2).^2) <= value;
         if any(t)
             i = find(t, 1, 'first');
-            s.triggerValue = [s.(fieldname1)(i) s.(fieldname2)(i)]
+            s.triggerValue = [s.(fieldname1)(i) s.(fieldname2)(i)];
             s.triggerTime = i;
         end
     end

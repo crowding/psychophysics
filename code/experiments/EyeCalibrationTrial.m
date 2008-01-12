@@ -6,7 +6,7 @@ function this = EyeCalibrationTrial(varargin)
     velocityThreshold = 40; %the velocity threshold for detecting a saccade.
     
     minLatency = .150; %the minimum latency 
-    maxLatency = .250; %the maximum latency for the saccade.
+    maxLatency = .400; %the maximum latency for the saccade.
     saccadeMaxDuration = .200; %the max duration for the saccade.
     
     saccadeEndThreshold = 20; %when eye velocity drops below this, the saccade ends.
@@ -41,13 +41,13 @@ function this = EyeCalibrationTrial(varargin)
         trigger.panic(keyIsDown('q'), @abort);
 
         old = params.log;
-        %params.log = @printf;
+        params.log = @printf;
         params = main.go(params);
-        %params.log = old;
+        params.log = old;
 
         function begin(s)
             %set a watchdog timer...
-            trigger.panic(atLeast('next', s.next + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration + 1, 'next'), @abort);
+            trigger.panic(atLeast('next', s.next + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1, 'next'), @failedWatchdog);
             
             %begin the trial...
             trigger.singleshot(atLeast('next', s.next + onset), @show);
@@ -99,6 +99,13 @@ function this = EyeCalibrationTrial(varargin)
             result.success = 1;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .100), main.stop);
             disp('success');
+        end
+
+        function failedWatchdog(s)
+            disp failedWatchdog
+            target.setVisible(0);
+            result.success = 0;
+            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
         end
 
         function failedBegin(s)

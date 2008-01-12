@@ -442,4 +442,9 @@ function this = EyelinkInput(varargin)
         startTime = PsychPortAudio('Start', pahandle_, 1, 0); %next_ + (rewardAt - refresh_) * interval_);
         log_('REWARD %d %d %d %f', rewardAt, duration, refresh_ + round(startTime - next_)/interval_, startTime);
     end
+
+    function predictedclock = eventCode(clockAt, code)
+        predictedClock = clockAt;
+        log_('EVENT_CODE %d %d %d', clockAt, code, clockAt);
+    end
 end

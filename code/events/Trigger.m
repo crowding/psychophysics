@@ -58,6 +58,7 @@ function this = Trigger(varargin)
                         if delete == 1
                             triggers_(i,:) = [];
                             ndeleted = ndeleted + 1;
+                            break; %mutex must break!
                         elseif delete == 2
                             %panic and delete all
                             triggers_ = cell(0,3)
