@@ -14,13 +14,13 @@ function this = Trigger(varargin)
     end
         
     function singleshot(checker, fn)
-        triggers_(end+1,:) = {checker, fn, 1};
+        triggers_(end+1,:) = {runSingle_(checker, fn), 1};
     end
 
     function multishot(checker, fn)
         %adds a checker persistently. There is no removing other than by a
-        %panic function
-        triggers_(end+1,:) = {checker, fn, 0};
+        %panic trigger.
+        triggers_(end+1,:) = {runSingle_(checker, fn), 0};
     end
 
     function mutex(varargin)
@@ -29,12 +29,44 @@ function this = Trigger(varargin)
         %why-- for multishot or panics there is no effective difference.
         checkers = varargin(1:2:end);
         fns = varargin(2:2:numel(checkers) * 2);
-        triggers_(end+1,:) = {checkers, fns, 1};
+        triggers_(end+1,:) = {runMultiple_(checkers, fns), 1};
     end
 
     function panic(checker, fn)
         %adds a checker that will clear out all checkers including itself.
-        triggers_(end+1,:) = {checker, fn, 2};
+        triggers_(end+1,:) = {runSingle_(checker, fn), 2};
+    end
+
+    function first(varargin)
+        %In the case that multiple conditions prove true furing a frame,
+        %takes the first one and executes it, removing itself afterwards.
+        %To accomplish this, each condition must have an associated time
+        %coordinate.
+        error('not written');
+    end
+
+    function c = runMultiple_(checkers, fns)
+        c = @f;
+        function [t, k] = f(k)
+            for i = 1:numel(checkers)
+                [t, k] = checkers{i}(k);
+                if any(t)
+                    log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
+                    fns{i}(k);
+                end
+            end
+        end
+    end
+
+    function c = runSingle_(checker, fn)
+        c = @f;
+        function [t, k] = f(k)
+            [t,k] = checker(k)
+            if any(t)
+                log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
+                k = fn(k);
+            end
+        end
     end
 
     function s = check(s)
@@ -42,46 +74,18 @@ function this = Trigger(varargin)
         nt = size(triggers_, 1);
         for i = 1:size(triggers_, 1)
             ch = triggers_{i-ndeleted, 1};
-            fn = triggers_{i-ndeleted, 2};
-            delete = triggers_{i-ndeleted, 3};
-            
-            if iscell(ch) %a mutex
-                for j = 1:numel(ch)
-                    mcheck = ch{j};
-                    mfn = fn{j};
-                    
-                    [whether, s] = mcheck(s);
-                    
-                    if any(whether)
-                        mfn(s);
-                        log('TRIGGER %s %s', func2str(mfn), struct2str(s));
-                        if delete == 1
-                            triggers_(i,:) = [];
-                            ndeleted = ndeleted + 1;
-                            break; %mutex must break!
-                        elseif delete == 2
-                            %panic and delete all
-                            triggers_ = cell(0,3)
-                            return; %nothing more to do
-                        end
-                    end
-                end
-            else
-                [whether, s] = ch(s);
-                
-                if any(whether)
-                    
-                    fn(s);
-                    log('TRIGGER %s %s', func2str(fn), struct2str(s));
-                    
-                    if delete == 1
-                        triggers_(i-ndeleted,:) = [];
-                        ndeleted = ndeleted + 1;
-                    elseif delete == 2
-                        %panic and delete all
-                        triggers_(1:nt-ndeleted, :) = [];
-                        return; %nothing more to do
-                    end
+            delete = triggers_{i-ndeleted, 2};
+
+            [whether, s] = ch(s);
+
+            if any(whether)
+                if delete == 1
+                    triggers_(i-ndeleted,:) = [];
+                    ndeleted = ndeleted + 1;
+                elseif delete == 2
+                    %panic and delete all
+                    triggers_(1:nt-ndeleted, :) = [];
+                    return; %nothing more to do
                 end
             end
         end
