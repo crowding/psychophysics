@@ -49,7 +49,7 @@ function this = EyeVelocityFilter(varargin)
         
         %approximate the filter delay with the group delay at 0 Hz
         delay_ = mean(grpdelay(b_,a_,[0 0],1000)) * interval_;
-        delay_ = mean(grpdelay(vb_,va_,[0 0],1000)) * interval_ + interval_/2;
+        vdelay_ = mean(grpdelay(vb_,va_,[0 0],1000)) * interval_ + interval_/2;
         
         %called at the start of each trial
         stateVx_ = filtic(vb_, va_, zeros(size(vb_)), zeros(size(va_)));

@@ -91,7 +91,7 @@ function this = KeyboardInput(varargin)
         end
     end
 
-    function sync(n)
+    function sync(n, t)
         %nothing needed
     end
 end

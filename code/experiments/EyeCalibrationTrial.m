@@ -5,15 +5,15 @@ function this = EyeCalibrationTrial(varargin)
     
     velocityThreshold = 40; %the velocity threshold for detecting a saccade.
     
-    minLatency = .150; %the minimum latency 
+    minLatency = .03; %the minimum latency (quite short!)
     maxLatency = .400; %the maximum latency for the saccade.
-    saccadeMaxDuration = .200; %the max duration for the saccade.
+    saccadeMaxDuration = .100; %the max duration for the saccade.
     
     saccadeEndThreshold = 20; %when eye velocity drops below this, the saccade ends.
-    settleTime = 0.1;
+    settleTime = 0.1; %100 ms for settling
     
-    fixWindow = 5; %the window in which to maintain fixation...
-    fixDuration = .30; %the minimum fixation time 
+    fixWindow = 2; %the window in which to maintain fixation...
+    fixDuration = 1; %the minimum fixation time 
     
     targetX = [0];
     targetY = [0];
@@ -40,57 +40,55 @@ function this = EyeCalibrationTrial(varargin)
         trigger.singleshot(atLeast('refresh', 1), @begin);
         trigger.panic(keyIsDown('q'), @abort);
 
-        old = params.log;
+        %old = params.log;
         %params.log = @printf;
         params = main.go(params);
         %params.log = old;
 
         function begin(s)
             %set a watchdog timer...
-            trigger.panic(atLeast('next', s.next + onset + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1, 'next'), @failedWatchdog);
+            trigger.panic(atLeast('next', s.next + onset + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1), @failed);
             
             %begin the trial...
             trigger.singleshot(atLeast('next', s.next + onset), @show);
         end
         
+        onset_ = 0;
         function show(s)
             target.setVisible(1);
+            onset_ = s.next;
             params.input.eyes.eventCode(s.refresh, 0);
-            trigger.mutex...
-                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @failedBegin ...
-                , atLeast('next', s.next + minLatency), @awaitSaccade ...
+            trigger.first...
+                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @failed,  'eyeVt' ...
+                , atLeast('eyeVt', s.next + minLatency), @awaitSaccade,                 'eyeVt' ...
                 );
         end
         
         function awaitSaccade(s)
-            trigger.mutex...
-                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @beginSaccade ...
-                , atLeast('next', s.next + maxLatency - minLatency), @failedSaccade ...
+            trigger.first...
+                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @beginSaccade,      'eyeVt' ...
+                , atLeast('eyeVt', s.triggerTime + maxLatency - minLatency), @failed, 'eyeVt' ...
                 )
         end
         
         function beginSaccade(s)
-            trigger.mutex...
-                ( magnitudeAtMost('eyeVx', 'eyeVy', 'eyeVt', saccadeEndThreshold), @settle ...
-                , atLeast('next', s.next + saccadeMaxDuration), @failedEndSaccade ...
+            trigger.first...
+                ( magnitudeAtMost('eyeVx', 'eyeVy', saccadeEndThreshold), @settle,  'eyeVt'  ...
+                , atLeast('eyeVt', s.next + saccadeMaxDuration), @failed, 'eyeVt' ...
                 );
         end
         
         function settle(s)
-            trigger.singleshot...
-                ( atLeast('eyeFt', s.triggerTime + settleTime, 'eyeFt'), @fixate ...
+            trigger.first...
+                ( atLeast('eyeFt', s.triggerTime + settleTime), @fixate, 'eyeFt' ...
                 );
         end
         
         function fixate(s)
-            try
-            trigger.mutex ...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [s.x s.y], fixWindow), @failedFixate ...
-                , atLeast('eyeFt', s.triggerTime + fixDuration, 'eyeFt'), @success ...
+            trigger.first ...
+                ( circularWindowExit('eyeFx', 'eyeFy', [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex)], fixWindow), @failed, 'eyeFt' ...
+                , atLeast('eyeFt', s.triggerTime + fixDuration), @success, 'eyeFt' ...
                 );
-            catch
-                rethrow(lasterror);
-            end
         end
         
         function success(s)
@@ -98,39 +96,10 @@ function this = EyeCalibrationTrial(varargin)
             target.setVisible(0);
             result.success = 1;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .100), main.stop);
-            disp('success');
+            %disp('success');
         end
 
-        function failedWatchdog(s)
-            disp failedWatchdog
-            target.setVisible(0);
-            result.success = 0;
-            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
-        end
-
-        function failedBegin(s)
-            disp failedBegin
-            target.setVisible(0);
-            result.success = 0;
-            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
-        end
-        
-        function failedFixate(s)
-            disp failedFixate
-            target.setVisible(0);
-            result.success = 0;
-            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
-        end
-        
-        function failedEndSaccade(s)
-            disp failedEndSaccade
-            target.setVisible(0);
-            result.success = 0;
-            trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
-        end
-        
-        function failedSaccade(s)
-            disp failedSaccade
+        function failed(s)
             target.setVisible(0);
             result.success = 0;
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);

@@ -296,15 +296,20 @@ function this = EyelinkInput(varargin)
             if streamData
                 data = readout_();
                 log_('EYE_DATA %s', smallmat2str(data));
+                %figure(1);
+                %plot(data(3,:) - startTime_, data(1,:), 'b-', data(3,:) - startTime_, data(2,:), 'r-');
+                %drawnow;
             end
         end
     end
 
 %% sync
-    function sync(n) %#ok
+    startTime_ = 0;
+    function sync(n, t) %#ok
         %discard data...
         while (Eyelink('GetNextDataType'))
         end
+        startTime_ = t + n * interval_;
     end
 
 %% actual input function

@@ -1,4 +1,4 @@
-function f = magnitudeAtMost(fieldname1, fieldname2, timefield, value)
+function f = magnitudeAtMost(fieldname1, fieldname2, value)
 %function f = magnitudeAtLeast(fieldname1, fieldname2, value) a trigger condition.
     f = @check;
     

@@ -26,7 +26,7 @@ Eyelink('Shutdown');
 %Eyelink('TimeOffset') whcih will shave 50 msec off our overhead during
 %inter trial intervals we have to maintain another offset!
 
-%(
+%{
 persistent offsetOffset_;
 persistent lastOffset_;
 persistent lastTrackerTime_;

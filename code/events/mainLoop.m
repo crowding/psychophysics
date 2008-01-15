@@ -117,7 +117,7 @@ toDegrees_ = @noop;
         %if this is correct the next VBL should mark refresh 0
         %Synchronize what needs synchronizing...
         for i = 1:numel(input)
-            input(i).sync(-1);
+            input(i).sync(-1, VBL + flipInterval);
         end
         
         refresh = 0;    %the first flip in the loop is refresh 0
@@ -191,6 +191,8 @@ toDegrees_ = @noop;
                     %refresh index of the same frame
                     log('FRAME_SKIP %d %f %f %d', skipped, prevVBL, VBL, refresh);
                 end
+                
+                skipcount = skipcount + skipped;
 
                 if skipped >= 60
                     error('mainLoop:drawingStuck', ...
