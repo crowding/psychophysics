@@ -12,6 +12,7 @@ function this = EyeCalibrationTrial(varargin)
     saccadeEndThreshold = 20; %when eye velocity drops below this, the saccade ends.
     settleTime = 0.1; %100 ms for settling
     
+    absoluteWindow = 100; %the absolute fixaiton window...
     fixWindow = 2; %the window in which to maintain fixation...
     fixDuration = 1; %the minimum fixation time 
     
@@ -47,17 +48,55 @@ function this = EyeCalibrationTrial(varargin)
         
         figure(1); clf
         
+        %% here is the part where we plot
+
         %show the trial results.
         d = params.input.eyes.getData();
         e = trigger.getEvents();
         
         hold on;
+        
+        %x- any y- locations of the trace
         plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
-        plot([e{:,1}]' - onset_,zeros(size(e,1),1) - 21, 'c+');
-        text([e{:,1}]' - onset_,zeros(size(e,1),1) - 20, e(:,2), 'rotation', 90);
+        plot(0, targetX, 'ro', 0, targetY, 'bo')
+
+        ylim([-15 15]);
+        
+        %draw labels...
+        %what height should we draw text at
+        labels = regexprep(e(:,2), '.*/', '');
+        times = [e{:,1}]' - onset_;
+        heights = interp1(max(d(1,isnan(d(1,:)), d(2,isnan(d(1,:))))),d(3,:), times, 'pchip', 'extrap');
+        t = text(times, heights, labels, 'rotation', 90);
+        %make sure the graph is big enough to hold the labels
+        xs = get(t, 'Extent');
+        mn = min(cat(1,xs{:}));
+        mx = mx(cat(1,xs{:}));
+        ylim([min(-15 mn(2)) max(15, mx(2) + mx(4));
         hold off;
-        ylim([-21 21]);
-        drawnow
+        
+        figure(2);
+        
+        hold on;
+        plot(d(1,:), d(3,:), 'r-');
+        plot(targetX, targetY, 'bo');
+        
+        xloc = interp1(d(1,isnan(d(1,:)), d(3,:), times, 'pchip', 'extrap');
+        yloc = interp1(d(2,isnan(d(2,:)), d(3,:), times, 'pchip', 'extrap');
+        
+        plot(xloc, yloc, 'g.');
+        
+        t = text(xloc + 1, yloc, labels);
+        
+        xs = get(t, 'Extent');
+        mn = min(cat(1,xs{:}));
+        mx = max(cat(1,xs{:}));
+        
+        xlim(  [ min([-15,mn(1),d(1,:)]), max(15,mx(1+mx(3)),d(1,:)) ]  );
+        ylim(  [ min([-15,mn(2),d(2,:)]), max(15,mx(2+mx(4)),d(2,:)) ]  );
+        axis equal;
+        
+        drawnow;
         
         function begin(s)
             %set a watchdog timer...
@@ -99,8 +138,10 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function fixate(s)
+            result.location = [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex))];
             trigger.first ...
                 ( circularWindowExit('eyeFx', 'eyeFy', [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex)], fixWindow), @failed, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', [targetX targetY], absoluteWindow), @failed, 'eyeFt' ...
                 , atLeast('eyeFt', s.triggerTime + fixDuration), @success, 'eyeFt' ...
                 );
         end

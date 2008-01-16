@@ -23,6 +23,7 @@ reps = 1;
 design = {};
 designDone = [];
 designOrder = [];
+displayFunc = @noop; %called after every successful trial....
 
 persistent init__;
 
@@ -157,6 +158,7 @@ this = Obj(autoobject(varargin{:}));
                 
                 %here is where you do can fit in staircasing by a
                 %similar mechanism (TODO)...
+                resultFunc(result);
             end
         end
         
