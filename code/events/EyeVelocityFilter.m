@@ -66,7 +66,7 @@ function this = EyeVelocityFilter(varargin)
         end
     end
 
-    function sync(frame)
+    function sync(frame, time)
         %no sync required
     end
 

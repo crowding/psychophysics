@@ -34,7 +34,7 @@ function this = MouseInput(varargin)
         [k.mousex_deg, k.mousey_deg] = toDegrees_(k.mousex, k.mousey);
     end
 
-    function sync(n)
+    function sync(n, t)
         %nothing needed
     end
 end

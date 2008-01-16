@@ -161,6 +161,7 @@ log_ = @noop;
 
             %TODO log it here...
             data = readout_();
+            data([3 4],:) = data([4 3], :);
             log_('EYE_DATA %s', smallmat2str(data));
         end
     end
@@ -169,7 +170,7 @@ log_ = @noop;
 %% sync (called just before refresh 1?
     refresh0HWCount_ = 0;
     syncTime_ = 0;
-    function sync(refresh)
+    function sync(refresh, time)
         syncTime_ = GetSecs();
         syncInfo = Screen('GetWindowInfo', w_);
         refresh0HWCount_ = syncInfo.VBLCount - refresh;
@@ -226,7 +227,7 @@ log_ = @noop;
         
         if ~isempty(x.data)
             %build up a trace
-            push_([x.data;x.t]);
+            push_([x.data;x.t + streamStartTime_]);
             lastX_ = calibrated(1,end);
             lastY_ = calibrated(2,end);
             lastT_ = h.eyeT(end);

@@ -53,7 +53,8 @@ function this = EyeCalibrationTrial(varargin)
         
         hold on;
         plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
-        t = text([e{:,1}]' - onset_,zeros(size(e,1),1) - 20, e(:,2), 'rotation', 90);
+        plot([e{:,1}]' - onset_,zeros(size(e,1),1) - 21, 'c+');
+        text([e{:,1}]' - onset_,zeros(size(e,1),1) - 20, e(:,2), 'rotation', 90);
         hold off;
         ylim([-21 21]);
         drawnow
