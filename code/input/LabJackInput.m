@@ -37,6 +37,8 @@ if isempty(fluidToday)
     fluidToday = 0;
 end
 
+data = zeros(0,3);
+
 w_ = 0;
 log_ = @noop;
 

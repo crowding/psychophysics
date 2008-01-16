@@ -44,7 +44,20 @@ function this = EyeCalibrationTrial(varargin)
         %params.log = @printf;
         params = main.go(params);
         %params.log = old;
-
+        
+        figure(1); clf
+        
+        %show the trial results.
+        d = params.input.eyes.getData();
+        e = trigger.getEvents();
+        
+        hold on;
+        plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
+        t = text([e{:,1}]' - onset_,zeros(size(e,1),1) - 20, e(:,2), 'rotation', 90);
+        hold off;
+        ylim([-21 21]);
+        drawnow
+        
         function begin(s)
             %set a watchdog timer...
             trigger.panic(atLeast('next', s.next + onset + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1), @failed);
@@ -96,7 +109,6 @@ function this = EyeCalibrationTrial(varargin)
             target.setVisible(0);
             result.success = 1;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .100), main.stop);
-            %disp('success');
         end
 
         function failed(s)

@@ -26,6 +26,8 @@ function this = EyelinkInput(varargin)
         ( 'hideCursor', 0 ... %whether we should hide the mouse cursor
         , 'dummy', 0 ... %whether to simulate eyelink input with the mouse
         );
+    
+    data = zeros(0,3);
 
 %% initialization routines
 
@@ -44,6 +46,8 @@ function this = EyelinkInput(varargin)
         
         interval_ = params.screenInterval;
         log_ = params.log;
+        
+        data = zeros(0,3);
         
         [release, params] = a(namedargs(defaults, params));
         freq_ = params.freq;
@@ -294,6 +298,7 @@ function this = EyelinkInput(varargin)
             Eyelink('StopRecording');
             
             if streamData
+                %read out data...
                 data = readout_();
                 log_('EYE_DATA %s', smallmat2str(data));
                 %figure(1);

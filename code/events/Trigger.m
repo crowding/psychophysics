@@ -5,6 +5,7 @@ function this = Trigger(varargin)
 
     triggers_ = cell(0,2);
     log = @noop;
+    events = cell(0,2);
     
     persistent init__;
     this = autoobject(varargin{:});
@@ -21,6 +22,7 @@ function this = Trigger(varargin)
             if any(t)
                 log('TRIGGER %s %s', func2str(fn), struct2str(k));
                 fn(k);
+                events(end+1,:) = {k.next, func2str(fn)};
             end
         end
     end
@@ -35,6 +37,7 @@ function this = Trigger(varargin)
             if any(t)
                 log('TRIGGER %s %s', func2str(fn), struct2str(k));
                 fn(k);
+                events(end+1,:) = {func2str(fn), k.next};
             end
         end
     end
@@ -48,6 +51,7 @@ function this = Trigger(varargin)
             if any(t)
                 log('TRIGGER %s %s', func2str(fn), struct2str(k));
                 fn(k);
+                events(end+1,:) = {k.next, func2str(fn)};
             end
         end
     end
@@ -67,6 +71,7 @@ function this = Trigger(varargin)
                 if any(t)
                     fns{i}(k);
                     log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
+                    events(end+1,:) = {k.next, func2str(fn)};
                     break;
                 end
             end
@@ -106,7 +111,8 @@ function this = Trigger(varargin)
                 k.triggerTime = tt;
                 k.triggerIndex = ii;
                 ffn(k);
-                log('TRIGGER %s %s', func2str(ffn), struct2str(k)); 
+                log('TRIGGER %s %s', func2str(ffn), struct2str(k));
+                events(end+1,:) = {k.triggerTime, func2str(ffn)};
             end
         end
     end
@@ -135,6 +141,7 @@ function this = Trigger(varargin)
     end
 
     function [release, params] = init(params)
+        events = cell(0,2);
         release = @noop;
     end
 
