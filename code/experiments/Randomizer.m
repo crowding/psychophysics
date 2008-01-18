@@ -147,7 +147,7 @@ this = Obj(autoobject(varargin{:}));
     end
 
     function result(trial, result)
-        if ~isfield(result, 'success') || result.success
+        if (~isfield(result, 'success') || result.success) && (~isfield(result, 'abort') || ~result.abort);
             if ~wasblock_
                 results{end+1} = result;
                 parameters(end+1,:) = params_;
@@ -158,7 +158,7 @@ this = Obj(autoobject(varargin{:}));
                 
                 %here is where you do can fit in staircasing by a
                 %similar mechanism (TODO)...
-                resultFunc(result);
+                displayFunc(results);
             end
         end
         

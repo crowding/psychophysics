@@ -19,6 +19,7 @@ function this = EyeCalibrationTrial(varargin)
     targetX = [0];
     targetY = [0];
     targetRadius = 0.5;
+    targetInnerRadius = 0.10;
 
     rewardDuration = 100;
     
@@ -26,16 +27,17 @@ function this = EyeCalibrationTrial(varargin)
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)
-        result = struct();
+        result = struct('target', [targetX targetY]);
         
         target = FilledDisk('loc', [targetX targetY], 'radius', targetRadius, 'color', [0 0 0], 'visible', 0);
+        targetCenter = FilledDisk('loc', [targetX targetY], 'radius', targetInnerRadius, 'color', [0 0 0] + params.whiteIndex, 'visible', 0);
         
         trigger = Trigger();
         
         main = mainLoop...
             ( 'input', {params.input.keyboard, params.input.eyes}...
             , 'triggers', {EyeVelocityFilter(), trigger} ...
-            , 'graphics', {target} ...
+            , 'graphics', {target, targetCenter} ...
             );
         
         trigger.singleshot(atLeast('refresh', 1), @begin);
@@ -66,35 +68,42 @@ function this = EyeCalibrationTrial(varargin)
         %what height should we draw text at
         labels = regexprep(e(:,2), '.*/', '');
         times = [e{:,1}]' - onset_;
-        heights = interp1(max(d(1,isnan(d(1,:)), d(2,isnan(d(1,:))))),d(3,:), times, 'pchip', 'extrap');
-        t = text(times, heights, labels, 'rotation', 90);
+        heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
+        t = text(times, heights+1, labels, 'rotation', 90);
+
         %make sure the graph is big enough to hold the labels
-        xs = get(t, 'Extent');
-        mn = min(cat(1,xs{:}));
-        mx = mx(cat(1,xs{:}));
-        ylim([min(-15 mn(2)) max(15, mx(2) + mx(4));
+        %this doesn't deal well with rotation.../
+%        xs = get(t, 'Extent');
+%        mn = min(cat(1,xs{:}));
+%        mx = max(cat(1,xs{:}));
+%        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
+        ylim([-20 20]);
         hold off;
         
         figure(2);
-        
+        clf;
         hold on;
-        plot(d(1,:), d(3,:), 'r-');
+        plot(d(1,:), d(2,:), 'r-');
         plot(targetX, targetY, 'bo');
         
-        xloc = interp1(d(1,isnan(d(1,:)), d(3,:), times, 'pchip', 'extrap');
-        yloc = interp1(d(2,isnan(d(2,:)), d(3,:), times, 'pchip', 'extrap');
+        xloc = interp1(d(3,~isnan(d(1,:))) - onset_, d(1,~isnan(d(1,:))), times, 'lienar', 'extrap');
+        yloc = interp1(d(3,~isnan(d(2,:))) - onset_, d(2,~isnan(d(2,:))), times, 'linear', 'extrap');
         
         plot(xloc, yloc, 'g.');
         
         t = text(xloc + 1, yloc, labels);
         
-        xs = get(t, 'Extent');
-        mn = min(cat(1,xs{:}));
-        mx = max(cat(1,xs{:}));
+        %xs = get(t, 'Extent');
+        %mn = min(cat(1,xs{:}));
+        %mx = max(cat(1,xs{:}));
         
-        xlim(  [ min([-15,mn(1),d(1,:)]), max(15,mx(1+mx(3)),d(1,:)) ]  );
-        ylim(  [ min([-15,mn(2),d(2,:)]), max(15,mx(2+mx(4)),d(2,:)) ]  );
+        %xlim(  [ min([-15,mn(1),d(1,:)]), max(15,mx(1+mx(3)),d(1,:)) ]  );
+        %ylim(  [ min([-15,mn(2),d(2,:)]), max(15,mx(2+mx(4)),d(2,:)) ]  );
+ 
+        xlim([-20 20]);
+        ylim([-20 20]);
         axis equal;
+        hold off;
         
         drawnow;
         
@@ -109,6 +118,7 @@ function this = EyeCalibrationTrial(varargin)
         onset_ = 0;
         function show(s)
             target.setVisible(1);
+            targetCenter.setVisible(1);
             onset_ = s.next;
             params.input.eyes.eventCode(s.refresh, 0);
             trigger.first...
@@ -138,7 +148,7 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function fixate(s)
-            result.location = [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex))];
+            result.endpoint = [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex)];
             trigger.first ...
                 ( circularWindowExit('eyeFx', 'eyeFy', [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex)], fixWindow), @failed, 'eyeFt' ...
                 , circularWindowExit('eyeFx', 'eyeFy', [targetX targetY], absoluteWindow), @failed, 'eyeFt' ...
@@ -147,20 +157,23 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function success(s)
-            params.input.eyes.reward(s.refresh, rewardDuration);
+            params.input.eyes.reward(s.refresh+1, rewardDuration);
             target.setVisible(0);
+            targetCenter.setVisible(0);
             result.success = 1;
-            trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .100), main.stop);
+            trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .200), main.stop);
         end
 
         function failed(s)
             target.setVisible(0);
+            targetCenter.setVisible(0);
             result.success = 0;
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
         end
         
         function abort(s)
             target.setVisible(0);
+            targetCenter.setVisible(0);
             result.abort = 1;
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
         end

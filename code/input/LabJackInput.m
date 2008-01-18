@@ -54,13 +54,35 @@ log_ = @noop;
                 )...
             );
         
-        x = joinResource(lj.init, @logFluid, @myInit);
+        x = joinResource(@ljReset, lj.init, @logFluid, @myInit);
         [release, params] = x(namedargs(defaults, params));
         params.eyeSampleRate = params.streamConfig.SampleFrequency;
 
+        function [release, params] = ljReset(params)
+            lj.open();
+            lj.reset(1);
+            waitSecs(5);
+            lj.close();
+            release = @noop;
+        end
+        
         function [release, params] = myInit(params)
             lj.streamStop();
             lj.portOut('FIO', [1 0 1 0 1 0 1 0], [1 0 0 0 0 0 0 0]);
+            
+            %weirdness --- setting the timers to something other than 0
+            %seems to be necessary to get out of a bad mode...
+            resp = lj.timerCounter...
+                ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
+                , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 1 ...
+                , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
+                , 'Timer3.Mode', 'TimerStop',           'Timer3.Value', 1 ...
+                , 'Timer4.Mode', 'PWM8',               'Timer4.Value',  0 ...
+                , 'Timer5.Mode', 'TimerStop',           'Timer5.Value', 1 ...
+                , 'Counter0Enabled', 1 ...
+                , 'Counter1Enabled', 0 ...
+                , 'UpdateReset.Counter0', 1 ...
+                );
             
             resp = lj.streamConfig(params.streamConfig);
             assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
@@ -73,6 +95,10 @@ log_ = @noop;
                 log_ = @noop;
             end
             
+
+            assert(strcmp(resp.errorcode, 'NOERROR'));
+        
+            
             release = @close;
             function close()
                 lj.streamStop();
@@ -82,7 +108,7 @@ log_ = @noop;
         end
         
         function [release, params] = logFluid(params)
-            release = @l
+            release = @l;
             
             fluidInSession = 0;
             
@@ -342,7 +368,7 @@ log_ = @noop;
         packet(28) = bitshift(rewardLength, -8);
         response = lj.lowlevel(packet, 40);
         assert(response(7) == 0, 'error setting timer');
-        predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts
+        predictedreward = double(response(33:36))*[1;256;65536;16777216] + rewardCounts;
         % }
 
         %equivalent to:
@@ -361,7 +387,7 @@ log_ = @noop;
         fluidInSession = fluidInSession + fluid;
         fluidToday = fluidToday + fluid;
         
-        log_('REWARD %d %d %d %f %f', rewardAt, rewardLength, predictedreward, fluid);
+        log_('REWARD %d %d %d %f %f', rewardAt, rewardLength, predictedreward, info.LastVBLTime + info.VideoRefreshFromBeamposition * (predictedreward - info.VBLCount + refresh0HWCount_), fluid);
     end
 
     %send out an 8-bit event code.

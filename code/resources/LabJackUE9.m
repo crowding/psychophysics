@@ -1507,6 +1507,12 @@ persistent CONTROLCONFIG_COMMAND_;
             
             err = max([0 alldata(12, :)]);
             
+            %check for errors...
+            if any(alldata(12,:))
+                err = alldata(12,find(alldata(12,:)), 1, 'first');
+                error('LabJackUE9:StreamError', 'Error code %s', enumToString(err));
+            end
+            
             %ignore data coming from errors
             alldata(:, logical(alldata(12, :))) = [];
                         
