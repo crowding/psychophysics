@@ -26,8 +26,11 @@ toPixels_ = [];
         if visible
             center = toPixels_(loc);
             sz = norm(center - toPixels_(loc + [radius 0]));
-            Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
-            %Screen('gluDisk', window, color, center(1), center(2), sz);
+            if any(sz > 31)
+                Screen('gluDisk', window, color, center(1), center(2), sz);
+            else
+                Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+            end
         end
     end
 

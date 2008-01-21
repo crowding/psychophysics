@@ -261,6 +261,10 @@ log_ = @noop;
         h.x = lastX_;
         h.y = lastY_;
         h.t = lastT_;
+        
+        if GetSecs() - lastT_ > 0.5;
+            disp('WHAT HAPPENED:(');
+        end
     end
 
     function [data, t, latest] = extractData()
@@ -348,7 +352,7 @@ log_ = @noop;
         %}
     end
 
-    function predictedreward = reward(rewardAt, rewardLength)
+    function [predictedreward, time] = reward(rewardAt, rewardLength)
         %ask the screen for a current refresh count...
         info = Screen('GetWindowInfo', w_);
         current = info.VBLCount - refresh0HWCount_;
@@ -386,7 +390,7 @@ log_ = @noop;
 
         fluidInSession = fluidInSession + fluid;
         fluidToday = fluidToday + fluid;
-        
+        time = info.LastVBLTime + info.VideoRefreshFromBeamposition * (predictedreward - info.VBLCount + refresh0HWCount_);
         log_('REWARD %d %d %d %f %f', rewardAt, rewardLength, predictedreward, info.LastVBLTime + info.VideoRefreshFromBeamposition * (predictedreward - info.VBLCount + refresh0HWCount_), fluid);
     end
 

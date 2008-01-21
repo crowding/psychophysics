@@ -26,6 +26,11 @@ function this = EyeCalibrationTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
+    f1_ = figure(1); clf;
+    a1_ = axes();
+    f2_ = figure(2); clf;
+    a2_ = axes();
+    
     function [params, result] = run(params)
         result = struct('target', [targetX targetY]);
         
@@ -48,14 +53,13 @@ function this = EyeCalibrationTrial(varargin)
         params = main.go(params);
         %params.log = old;
         
-        figure(1); clf
-        
         %% here is the part where we plot
 
         %show the trial results.
         d = params.input.eyes.getData();
         e = trigger.getEvents();
         
+        axes(a1_); cla
         hold on;
         
         %x- any y- locations of the trace
@@ -80,8 +84,7 @@ function this = EyeCalibrationTrial(varargin)
         ylim([-20 20]);
         hold off;
         
-        figure(2);
-        clf;
+        axes(a2_); cla();
         hold on;
         plot(d(1,:), d(2,:), 'r-');
         plot(targetX, targetY, 'bo');

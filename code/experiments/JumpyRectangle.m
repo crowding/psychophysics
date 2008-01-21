@@ -23,20 +23,22 @@ require(getScreen(params), inputs.init, @runDemo);
         indegrees = transformToDegrees(details.cal);
 
         patch = MoviePlayer(CauchyPatch);
-        rect = FilledRect([-2 -2 2 2], details.blackIndex);
+        %rect = FilledRect([-2 -2 2 2], details.blackIndex);
         disk1 = FilledDisk([-2 2], 0.5, details.whiteIndex);
-        disk2 = FilledDisk([-2 2], 0.25, [details.whiteIndex details.whiteIndex details.blackIndex]);
-        disk3 = FilledDisk([-2 2], 0.25, [details.whiteIndex details.blackIndex details.whiteIndex]);
-        disk4 = FilledDisk([-2 2], 0.25, [details.blackIndex details.whiteIndex details.whiteIndex]);
+        disk2 = FilledDisk([-2 2], 0.1, [details.whiteIndex details.whiteIndex details.blackIndex]);
+        disk3 = FilledDisk([-2 2], 0.1, [details.whiteIndex details.blackIndex details.whiteIndex]);
+        disk4 = FilledDisk([-2 2], 0.1, [details.blackIndex details.whiteIndex details.whiteIndex]);
         text = Text([-5 -5], 'hello world!', [details.whiteIndex 0 0]);
         triggers = TriggerDrawer();
         
-        moveTrigger = InsideTrigger(rect.bounds, 0, [0 0], @moveRect);
+        %moveTrigger = InsideTrigger(rect.bounds, 0, [0 0], @moveRect);
         followTrigger = UpdateTrigger(@followDisk);
         startTrigger = UpdateTrigger(@start);
         playTrigger = TimeTrigger();
         stopTrigger = TimeTrigger();
-        abortTrigger = MouseDown();
+        abortTrigger = KeyDown();
+        flashTrigger = MouseDown();
+        unflashTrigger = MouseUp();
         if isfield(details.input.eyes, 'reward')
             reward = details.input.eyes.reward;
             sync = details.input.eyes.eventCode;
@@ -45,7 +47,7 @@ require(getScreen(params), inputs.init, @runDemo);
             sync = @noop;
         end
         
-        rect.setVisible(1);
+        %rect.setVisible(1);
         disk1.setVisible(1);
         disk2.setVisible(1);
         disk3.setVisible(1);
@@ -55,13 +57,12 @@ require(getScreen(params), inputs.init, @runDemo);
         
         % ----- the main loop. -----
         main = mainLoop ...
-            ( 'input', {params.input.eyes, params.input.mouse, params.input.velocity}...
-            , 'graphics', {rect, disk1, disk2, disk3, disk4, text, patch} ...
-            , 'triggers', {moveTrigger, startTrigger, playTrigger, stopTrigger, followTrigger, abortTrigger} ...
+            ( 'input', {params.input.eyes, params.input.mouse, params.input.keyboard, params.input.velocity}...
+            , 'graphics', {disk1, disk2, disk3, disk4, text, patch} ...
+            , 'triggers', {startTrigger, playTrigger, stopTrigger, followTrigger, abortTrigger, flashTrigger, unflashTrigger} ...
             );
-        %   , 'keyboard', {keyTrigger} ...
             
-        abortTrigger.set(main.stop, 1);
+        abortTrigger.set(main.stop, 'q');
         
         triggers.set(main);
 
@@ -73,6 +74,16 @@ require(getScreen(params), inputs.init, @runDemo);
             playTrigger.set(s.next + 5, @play);
             stopTrigger.set(s.next + 1000, main.stop);
             startTrigger.unset();
+            flashTrigger.set(@flash, 1);
+            unflashTrigger.set(@unflash, 1);
+        end
+        
+        function flash(s)
+            disk1.setRadius(2);
+        end
+        
+        function unflash(s)
+            disk1.setRadius(0.5);
         end
         
         function play(s)

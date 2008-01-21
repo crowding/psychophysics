@@ -1,5 +1,5 @@
-function this = MouseDown(varargin)
-%Mouse trigger fires when a mouse button is depressed.
+function this = MouseUp(varargin)
+%Mouse trigger fires when a mouse button is released.
 
 log = @noop;
 fntable = {};
@@ -19,9 +19,9 @@ lastButtons_ = [];
     end
 
     function m = check(m)
-        b = m.mouseButtons & ~lastButtons_;
+        b = ~m.mouseButtons & lastButtons_;
         if any(b)
-            m.buttonsDown = b;
+            m.buttonsUp = b;
             for i = fntable(b)
                 if ~isempty(i{1})
                     log('TRIGGER %s %s', func2str(i{1}), struct2str(m));

@@ -443,7 +443,7 @@ function this = EyelinkInput(varargin)
         end
     end
     
-    function reward(rewardAt, duration)
+    function [refresh, time] = reward(rewardAt, duration)
         %for psychophysics, just produce a beep...
         %generate a buffer...
         PsychPortAudio('Stop', pahandle_);
