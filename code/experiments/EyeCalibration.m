@@ -2,14 +2,15 @@ function e = EyeCalibration(varargin)
 
     e = Experiment(varargin{:});
     e.trials.base = EyeCalibrationTrial();
-    e.trials.base.absoluteWindow = 5;
+    e.trials.base.absoluteWindow = 3;
     e.trials.base.maxLatency = 0.5;
-    e.trials.base.fixDuration = 0.3;
-    e.trials.base.fixWindow = 3;
-    e.trials.base.rewardDuration = 100;
+    e.trials.base.fixDuration = 1.5;
+    e.trials.base.fixWindow = 2.5;
+    e.trials.base.rewardDuration = 200;
+    e.trials.base.settleTime = 0.2;
 
-    e.trials.add('targetY', [-10 -5 0 5 10]);
-    e.trials.add('targetX', [-5]);
+    e.trials.add('targetY', linspace(-10, 10, 9));
+    e.trials.add('targetX', linspace(-10, 10, 9));
 %    e.trials.add({'targetX', 'targetY'}, {{-10 0} {-5 0}, {0 0}, {5 0}, {10 0}, {0 -10}, {0 -5}, {0 0}, {0 5}, {0 10}});
     e.trials.add('onset', @()0.25 - 0.5*log(rand));
 

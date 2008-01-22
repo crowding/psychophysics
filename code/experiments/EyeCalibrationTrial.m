@@ -57,6 +57,7 @@ function this = EyeCalibrationTrial(varargin)
 
         %show the trial results.
         d = params.input.eyes.getData();
+        d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
         e = trigger.getEvents();
         
         axes(a1_); cla

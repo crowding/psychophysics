@@ -24,7 +24,7 @@ require(getScreen(params), inputs.init, @runDemo);
 
         patch = MoviePlayer(CauchyPatch);
         %rect = FilledRect([-2 -2 2 2], details.blackIndex);
-        disk1 = FilledDisk([-2 2], 0.5, details.whiteIndex);
+        disk1 = FilledDisk([-2 2], 0.2, 127);
         disk2 = FilledDisk([-2 2], 0.1, [details.whiteIndex details.whiteIndex details.blackIndex]);
         disk3 = FilledDisk([-2 2], 0.1, [details.whiteIndex details.blackIndex details.whiteIndex]);
         disk4 = FilledDisk([-2 2], 0.1, [details.blackIndex details.whiteIndex details.whiteIndex]);
@@ -52,7 +52,7 @@ require(getScreen(params), inputs.init, @runDemo);
         disk2.setVisible(1);
         disk3.setVisible(1);
         disk4.setVisible(1);
-        text.setVisible(1);
+        text.setVisible(0);
         triggers.setVisible(1);
         
         % ----- the main loop. -----
@@ -80,14 +80,16 @@ require(getScreen(params), inputs.init, @runDemo);
         
         function flash(s)
             disk1.setRadius(2);
+            disk1.setColor(details.blackIndex);
         end
         
         function unflash(s)
-            disk1.setRadius(0.5);
+            disk1.setRadius(0.2);
+            disk1.setColor(127);
         end
         
         function play(s)
-            patch.setVisible(1);
+            patch.setVisible(0);
             playTrigger.set(s.triggerTime + 5, @play); %trigger every five seconds
         end
 
