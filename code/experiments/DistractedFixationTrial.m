@@ -1,7 +1,5 @@
 function this = DistractedFixationTrial(varargin)
 
-    onset = 0;
-
     fixationPointLoc = [0 0];
     fixationPointSize = 0.2;
     fixationPointColor = 0;
@@ -28,6 +26,8 @@ function this = DistractedFixationTrial(varargin)
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)
+        onset_ = 0;
+
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
         
         result = struct('success', 0);
@@ -52,7 +52,6 @@ function this = DistractedFixationTrial(varargin)
             trigger.singleshot(atLeast('next', k.next + fixationOnset), @showFixationPoint);
         end
         
-        onset_ = 0;
         function showFixationPoint(k)
             onset_ = k.next;
             fix.setVisible(1);
@@ -84,9 +83,11 @@ function this = DistractedFixationTrial(varargin)
         end
             
         function success(k)
+            tic = GetSecs();
             fix.setVisible(0);
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rewardSize);
             trigger.singleshot(atLeast('next', when + rewardSize/1000 + 0.1), @endTrial);
+            GetSecs - tic
         end
 
         function endTrial(k)
@@ -110,6 +111,34 @@ function this = DistractedFixationTrial(varargin)
             result.abort = 1;
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
         end
+        
+        d = params.input.eyes.getData();
+        d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
+        e = trigger.getEvents();
+        
+        axes(a1_); cla
+        hold on;
+        
+        %x- any y- locations of the trace
+        plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
+        plot(0, fixationPointLoc(1), 'ro', 0, fixationPointLoc(2), 'bo')
+        plot(distractorOnset, fixationPointLoc(1) + cos(distractorPhase) * distractorRadius, 'rx', distractorOnset, fixationPointLoc(2) - sin(distractorPhase) * distractorRadius, 'bx')
+        ylim([-15 15]);
+        
+        %draw labels...
+        %what height should we draw text at
+        labels = regexprep(e(:,2), '.*/', '');
+        times = [e{:,1}]' - onset_;
+        heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
+        t = text(times, heights+1, labels, 'rotation', 90);
+
+        %make sure the graph is big enough to hold the labels
+        %this doesn't deal well with rotation.../
+%        xs = get(t, 'Extent');
+%        mn = min(cat(1,xs{:}));
+%        mx = max(cat(1,xs{:}));
+%        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
+        hold off;
     end
 end
     
