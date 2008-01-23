@@ -1,15 +1,21 @@
 function varargout = require(varargin)
 
-%the resources__ global keeps track of the stacktrace of every tiem
+%the resources__ global keeps track of the stacktrace of every time
 %require() or joinResource() was called and enforces that resources are
 %shut down properly.
 global resources__;
 
-%function varargout = require(resource, ..., protected)
+%Problem: How can we tell, if we are interrupted, whether we were?
+
+%function varargout = require(params, resource, ..., protected)
 %
 %REQUIRE acquires access to a limited resource before running a protected
 %function; guaranteed to release the resource after running the protected
 %function.
+%
+%The optional first argument is a parameter structure. This is passed to
+%the first initializer. The output from the first initializer is passed to
+%the second initializer, and so on.
 %
 %REQUIRE takes multiple resource arguments.
 %Each resource argument shoud be a function handle. When called, the
@@ -50,64 +56,93 @@ global resources__;
 % management is tricky even if you have good exception handling at your
 % disposal; I want to encapsulate most of the tricky exception handling.
 
-if (nargin < 2)
-    error('require:illegalArgument', 'require needs at least 2 arguments');
+if isstruct(varargin{1})
+    params = varargin{1};
+    varargin(1) = [];
+else
+    params = struct();
 end
 
-if (nargin > 2)
-    %if we have multiple initializers; use joinResource to combine them.
-
-    init = joinResource(varargin{1:end-1});
-    body = varargin{end};
-    [varargout{1:nargout}] = require(init, body);
-    return;
+if (numel(varargin) < 1)
+    error('require:illegalArgument', 'require needs at least 1 function handle');
 end
 
 %run the initializer, collecting from it a release function handle and an
 %optional output.
-initializer = varargin{1};
-body = varargin{2};
-
-if ~isa(initializer, 'function_handle')
+if ~isa(varargin{1}, 'function_handle')
     error('require:badInitializer', 'initializer must be a function handle');
 end
+if numel(varargin) > 1
+    %call the initializer here
+    s = resourcecheck();
+    if nargin(varargin{1}) == 0
+        varargin{1}(); %probably it's a rogue releaser, call it anyway.
+        error('require:notEnoughInputs', 'Initializers must take a struct input. Did you call the initializer by leaving off an @-sign?');
+    else
+        if nargout(varargin{1}) > 2
+            %a initializer can also give a 'next initializer' as output.
+            %This switches on nargout, whcih is fail, but better than
+            %nothing.
+            [releaser, params, next] = varargin{1}(params);
+            varargin{1} = next;
+        else
+            [releaser, params] = varargin{1}(params);
+            varargin(1) = [];
+        end
+    end
 
-s = dbstack();
-%resourcecheck(s);
-[releaser, output] = initializer(struct());
+    if ~isa(releaser, 'function_handle')
+        error('require:missingReleaser', 'initializer did not produce a releaser');
+    end
 
-if ~isa(releaser, 'function_handle')
-    error('require:missingReleaser', 'initializer did not produce a releaser');
-end
+    %CHECK IN
+    resourcecheck(s, releaser); %check in with this releaser
 
-%now run the body
-try
+    %now run the body
+    try
+        if (numel(varargin) > 0)
+            %recurse
+            [varargout{1:nargout}] = require(params, varargin{:});
+        else
+            body = varargin{2};
+            if nargin(body) ~= 0
+                [varargout{1:nargout}] = body(params);
+            else
+                [varargout{1:nargout}] = body();
+            end
+        end
+    catch
+        %if there is a problem, run the releaser and then rethrow the last error.
+        err = lasterror;
+        %log the error if a logger is among the parameters
+        try
+            if isfield(params, 'log')
+                params.log('ERROR %s', err.identifier);
+            end
+        catch
+            err = adderror(lasterror, err);
+        end
+        try
+            l = lasterror;
+            
+            resourcecheck(s);
+            releaser();
+        catch
+            err = adderror(lasterror, err);
+        end
+        rethrow(err);
+    end
+    
+    resourcecheck(s);
+    releaser();
+else
+    body = varargin{1};
     if nargin(body) ~= 0
-        [varargout{1:nargout}] = body(output);
+        [varargout{1:nargout}] = body(params);
     else
         [varargout{1:nargout}] = body();
     end
-catch
-    %if there is a problem, rethrow the last error.
-    err = lasterror;
-    %log the error if a logger is among the parameters
-    try
-        if isfield(output, 'log')
-            output.log('ERROR %s', err.identifier);
-        end
-    catch
-        err = adderror(lasterror, err);
-    end
-    try
-        l = lasterror;
-        releaser();
-    catch
-        err = adderror(lasterror, err);
-    end
-    rethrow(err);
 end
 
-%finally, release the resource.
-releaser();
 
 end

@@ -19,5 +19,5 @@ if ~errormatch(fragment, err.identifier)
     end
     
     %attach the failed error
-    error(adderror(newerr, err));
+    rethrow(adderror(newerr, err));
 end

@@ -38,13 +38,13 @@ defaults = namedargs ...
     );
 
 %curry arguments given now onto the initializer function
-initializer = currynamedargs(@doGetScreen, defaults, varargin{:});
+initializer = @doGetScreen;
     
-    function [release, details] = doGetScreen(details)
+    function [release, details, next] = doGetScreen(details)
         
         %The initializer is composed of sub-initializers.
-        initializer = joinResource(@checkOpenGL, @setPreferences, @setGamma, @openScreen, @blankScreen);
-        [release, details] = initializer(details);
+        initializer = joinResource(namedargs(defaults, varargin{:}), @checkOpenGL, @setPreferences, @setGamma, @openScreen, @blankScreen);
+        [release, details, next] = initializer(details);
 
         %Now we define the sub-initializers. Each one is set up and torn down
         %in turn by the initializer defined by joinResource.

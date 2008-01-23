@@ -1,3 +1,4 @@
+
 function this = RefreshTrigger(varargin)
 % Constructs a trigger that calls a function after a a certain number of
 % refreshes have elapsed (i.e. like TimeTrigger, but locked to the screen

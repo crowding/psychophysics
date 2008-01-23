@@ -1,4 +1,4 @@
-function this = testRequire
+function this = testRequire(varargin)
 %A test suite exercising the 'require' resource acquisition functions. 
 
 %public methods and properties
@@ -6,50 +6,11 @@ function this = testRequire
 %your interfaces, but for unit tests where you want to throw in a bunch of
 %test functions and make everything work, I can see the virtues of a
 %scanning technique.
-this = inherit(...
-    TestCase()...
-    ,public(...
-        @testRequiresTwoArguments,...
-        @testCanTakeVarargout,...
-        @testNeedsInitFunctionHandle,...
-        @testNeedsReleaseFunctionHandle,...
-        ...%@testRobustToTypos,... %these are not specified behavior right now
-        ...%@testRobustToMultipleTypos,...
-        @testNeedsOutputArg,...
-        @testFailedInit,...
-        @testFailedBody,...
-        @testFailedRelease,...
-        @testFailedReleaseAfterFailedBody,...
-        @testFailedReleaseLogsAdditionalError,...
-        @testOutputCollection,...
-        @testBodyOutput,...
-        ...
-        @testSuccessfulChain,...
-        @testFailedChainInit,...
-        @testFailedChainRelease,...
-        @testFailedChainBody,...
-        @testFailedChainBodyRelease,...
-        @testChainOutputCollection,...
-        ...
-        @testSuccessfulJoin,...
-        @testFailedJoinInit,...
-        @testFailedJoinRelease,...
-        @testFailedJoinBody,...
-        @testFailedJoinBodyRelease,...
-        @testJoinOutputCollection));
+persistent init__;
+this = inherit(TestCase(), autoobject(varargin{:}));
 
 %method definitions
 %---input constraint tests---
-    function testRequiresTwoArguments
-        %require takes at least two arguments
-        try
-            require(@noop);
-            fail('should have error')
-        catch
-            assertLastError('require:');
-        end
-    end
-
     function testNeedsInitFunctionHandle
         %require takes a function handle as first argument
         try
@@ -90,9 +51,10 @@ this = inherit(...
             require(init, @noop)
             fail('expected error');
         catch
-            assertLastError('testrequire:');
+            %actually this behavior is acceptable...
+            assertLastError('require:');
         end
-        assert(rflag);
+        assert(rflag == 1);
         
         function r = init
             r = @release;
@@ -101,13 +63,6 @@ this = inherit(...
                 rflag = 1;
             end
         end
-    end
-
-    function testRobustToMultipleTypos
-        %not sur whether I should make it pass this test, since it's a
-        %modification of otherwise reasonable behavior. If not havign
-        %it is a problem, we'll see.
-        fail('test not written')
     end
 
     function testNeedsOutputArg
@@ -129,7 +84,7 @@ this = inherit(...
             require(@init, @noop);
             fail('expected error');
         catch
-            assertLastError('require:');
+            assertLastError('MATLAB:TooManyOutputs');
         end
         
         function r = init(o)
@@ -181,7 +136,7 @@ this = inherit(...
             fail('expected error');
         catch
             assertLastError('testRequire:');
-            assert(releaseflag);
+            assert(releaseflag == 1);
         end
         
         function [r, o] = init(o)
@@ -221,7 +176,7 @@ this = inherit(...
             fail('expected an error');
         catch
             assertLastError('testRequire:expectedError');
-            assert(bflag);
+            assert(bflag == 1);
         end
         
         function [r, o] = init(o)
@@ -259,7 +214,7 @@ this = inherit(...
                     end
                 end
             end
-            assert(found, 'didn''t find attached exception');
+            assert(found == 1, 'didn''t find attached exception');
         end
         
         function [r, o] = init(o)
@@ -280,7 +235,7 @@ this = inherit(...
         %can be passed to the main body.
         bflag = 0;
         require(@init, @body);
-        assert(bflag);
+        assert(bflag == 1);
         
         function [r, o] = init(o)
             assertEquals(struct(), o);
@@ -351,7 +306,7 @@ this = inherit(...
             fail('expected error');
         catch
             assertLastError('testRequire:');
-            assert(rflag);
+            assert(rflag == 1);
         end
         
         function [r, o] = init1(o)
@@ -377,7 +332,7 @@ this = inherit(...
             fail('expected error');
         catch
             assertLastError('testRequire:');
-            assert(rflag); %the flag was released
+            assert(rflag == 1); %the flag was released
         end
         
         function [r, o] = init1(o)
@@ -433,8 +388,8 @@ this = inherit(...
             fail('expected an error');
         catch
             assertLastError('testRequire:releaser');
-            assert(rflag1);
-            assert(rflag2);
+            assert(rflag1 == 1);
+            assert(rflag2 == 1);
         end
         
         function [r,o] = init1(o)
@@ -465,7 +420,7 @@ this = inherit(...
 
         bflag = 0;
         require(@init1, @init2, @body);
-        assert(bflag);
+        assert(bflag == 1);
         
         function body(o)
             assertEquals(1, nargin); 
@@ -531,7 +486,7 @@ this = inherit(...
             fail('expected error');
         catch
             assertLastError('testRequire:');
-            assert(rflag);
+            assert(rflag == 1);
         end
         
         function [r, o] = init1(o)
@@ -557,7 +512,7 @@ this = inherit(...
             fail('expected error');
         catch
             assertLastError('testRequire:');
-            assert(rflag); %the flag was released
+            assert(rflag == 1); %the flag was released
         end
         
         function [r, o] = init1(o)
@@ -617,8 +572,8 @@ this = inherit(...
             fail('expected an error');
         catch
             assertLastError('testRequire:releaser');
-            assert(rflag1);
-            assert(rflag2);
+            assert(rflag1 == 1);
+            assert(rflag2 == 1);
         end
         
         function [r, o] = init1(o)
@@ -650,7 +605,7 @@ this = inherit(...
         bflag = 0;
         r = joinResource(@init1, @init2);
         require(r, @body);
-        assert(bflag);
+        assert(bflag == 1);
         
         function body(in)
             assertEquals(1, nargin); 

@@ -5,7 +5,7 @@ if isempty(subs__)
 end
 
 base = MessageTrial('message', 'need a base trial!');
-blockTrial = MessageTrial('message', 'Block');
+blockTrial = [];
 randomizers = struct('subs', {}, 'values', {});
 
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
@@ -131,7 +131,7 @@ this = Obj(autoobject(varargin{:}));
     function n = next(params)
         assert(logical(hasNext()));
         %randomize according to plan...
-        if mod(numel(results), blockSize) == 0 && (lastblock_ ~= numel(results));
+        if mod(numel(results), blockSize) == 0 && (lastblock_ ~= numel(results)) && ~isempty(blockTrial);
             n = blockTrial;
             params_ = {};
             lastblock_ = numel(results);

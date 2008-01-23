@@ -37,11 +37,11 @@ function this = EyelinkInput(varargin)
     pahandle_ = [];
     interval_ = [];
     log_ = @noop;
-    function [release, params] = init(params)
+    function [release, params, next] = init(params)
         if doInitialTrackerSetup
-            a = joinResource(@connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
+            a = joinResource(defaults, @connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
         else
-            a = joinResource(@connect_, @initDefaults_, getSound(), @openEDF_);
+            a = joinResource(defaults, @connect_, @initDefaults_, getSound(), @openEDF_);
         end
         
         interval_ = params.screenInterval;
@@ -49,9 +49,7 @@ function this = EyelinkInput(varargin)
         
         data = zeros(0,3);
         
-        [release, params] = a(namedargs(defaults, params));
-        freq_ = params.freq;
-        pahandle_ = params.pahandle;
+        [release, params, next] = a(params);
     end
 
     function [release, details] = connect_(details)
@@ -257,6 +255,10 @@ function this = EyelinkInput(varargin)
     readout_ = @noop; %the function to store data...
     
     function [release, details] = begin(details)
+        
+        freq_ = details.freq;
+        pahandle_ = details.pahandle;
+        
         badSampleCount = 0;
         missingSampleCount = 0;
         goodSampleCount = 0;
