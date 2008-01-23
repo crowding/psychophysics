@@ -83,11 +83,9 @@ function this = DistractedFixationTrial(varargin)
         end
             
         function success(k)
-            tic = GetSecs();
             fix.setVisible(0);
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rewardSize);
             trigger.singleshot(atLeast('next', when + rewardSize/1000 + 0.1), @endTrial);
-            GetSecs - tic
         end
 
         function endTrial(k)

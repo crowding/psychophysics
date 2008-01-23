@@ -296,7 +296,10 @@ function this = EyelinkInput(varargin)
             
             %stop recording
             Eyelink('StopRecording');
-            
+            %discard the rest...
+            while (Eyelink('GetNextDataType'))
+            end
+
             if streamData
                 %read out data...
                 data = readout_();
