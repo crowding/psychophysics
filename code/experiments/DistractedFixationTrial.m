@@ -21,6 +21,9 @@ function this = DistractedFixationTrial(varargin)
     
     rewardSize = 100;
     
+    f1_ = figure(1); clf;
+    a1_ = axes();
+
     persistent init__; %#ok
     this = autoobject(varargin{:});
     
@@ -37,7 +40,7 @@ function this = DistractedFixationTrial(varargin)
         trigger.singleshot(atLeast('refresh', 0), @begin);
         
         main = mainLoop ...
-            ( 'input', {params.input.eyes, params.input.keyboard, eyeVelocityFilter()} ...
+            ( 'input', {params.input.eyes, params.input.keyboard, EyeVelocityFilter()} ...
             , 'graphics', {fix, dist} ...
             , 'triggers', {trigger} ...
             );

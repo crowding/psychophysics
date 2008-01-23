@@ -14,7 +14,7 @@ function e = GloLoAdjustment(varargin)
         , varargin{:} ...
         );
     
-    e.trials = Randomizer('fullFactorial', 1, 'reps', 4, 'blockSize', 68);
+    e.trials = Randomizer('fullFactorial', 1, 'reps', 4, 'blockSize', 98);
     
     e.trials.base = GloLoAdjustmentTrial...
         ( 'barOnset', 0 ...                         %randomized below
@@ -52,7 +52,10 @@ function e = GloLoAdjustment(varargin)
     e.trials.add('motion.dphase', [-1 1] ./ e.trials.base.motion.radius);
     
     %The range of temporal offsets
-    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * (0:0.25:e.trials.base.motion.n - 1));
+    
+    %from the onset of the first flash to the onset of the fourth flash is
+    %49 timepoints at 120 fps
+    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(2,4,49));
     
     %The bar origin is random around the circle and orientation follows
     e.trials.add({'motion.phase', 'motion.angle'}, @()num2cell(rand()*2*pi * [1 180/pi] + [0 90]));

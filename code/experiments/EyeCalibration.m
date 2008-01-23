@@ -15,7 +15,7 @@ function e = EyeCalibration(varargin)
     e.trials.add('onset', @()0.25 - 0.5*log(rand));
 
     e.trials.setDisplayFunc(@showCalibration);
-
+    
     handle = figure(3); clf;
     ax = axes();
     history = 0;

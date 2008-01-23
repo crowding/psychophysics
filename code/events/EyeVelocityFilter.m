@@ -96,9 +96,13 @@ function this = EyeVelocityFilter(varargin)
                 end
 
                 %filtered position
-                [event.eyeFx, stateX_] = filter(b_, a_, x, stateX_);
-                [event.eyeFy, stateY_] = filter(b_, a_, y, stateY_);
-                event.eyeFt = t - delay_;
+                try
+                    [event.eyeFx, stateX_] = filter(b_, a_, x, stateX_);
+                    [event.eyeFy, stateY_] = filter(b_, a_, y, stateY_);
+                    event.eyeFt = t - delay_;
+                catch
+                    rethrow(lasterror);
+                end
                 
                 %raw derivative
                 vx = (x - [lastX_ x(1:end-1)]) / interval_;

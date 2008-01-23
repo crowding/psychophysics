@@ -23,14 +23,18 @@ toPixels_ = [];
 %----- methods -----
 
     function draw(window, next)
-        if visible
-            center = toPixels_(loc);
-            sz = norm(center - toPixels_(loc + [radius 0]));
-            if any(sz > 31)
-                Screen('gluDisk', window, color, center(1), center(2), sz);
-            else
-                Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+        try
+            if visible
+                center = toPixels_(loc);
+                sz = norm(center - toPixels_(loc + [radius 0]));
+                if any(sz > 31)
+                    Screen('gluDisk', window, color, center(1), center(2), sz);
+                else
+                    Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+                end
             end
+        catch
+            rethrow(lasterror)
         end
     end
 

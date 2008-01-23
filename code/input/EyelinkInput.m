@@ -5,7 +5,6 @@ function this = EyelinkInput(varargin)
     missingSampleCount = 0;
     goodSampleCount = 0;
     
-    doInitialTrackerSetup = 1;
     streamData = 1; %data streaming would be good...
     
     recordFileSamples = 1;
@@ -28,6 +27,9 @@ function this = EyelinkInput(varargin)
         );
     
     data = zeros(0,3);
+    
+    slope = 1 * eye(2); % a 2*2 matrix relating measured position to output position
+    offset = [0;0]; %the eye position offset
 
 %% initialization routines
 
@@ -38,11 +40,7 @@ function this = EyelinkInput(varargin)
     interval_ = [];
     log_ = @noop;
     function [release, params, next] = init(params)
-        if doInitialTrackerSetup
-            a = joinResource(defaults, @connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
-        else
-            a = joinResource(defaults, @connect_, @initDefaults_, getSound(), @openEDF_);
-        end
+        a = joinResource(defaults, @connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
         
         interval_ = params.screenInterval;
         log_ = params.log;
@@ -389,7 +387,15 @@ function this = EyelinkInput(varargin)
                     x(x == -32768) = NaN;
                     y(isnan(x)) = NaN;
 
-                    [k.eyeX, k.eyeY] = toDegrees_(x, y);
+                    
+                    [x, y] = toDegrees_(x, y);
+                    
+                    l = [x;y];
+                    l = slope*l+offset(:,ones(1,size(l, 2)));
+
+                    k.eyeX = l(1,:);
+                    k.eyeY = l(2,:);
+                    
                     k.eyeT = ([data.time] - clockoffset_) / 1000 / slowdown_;
 
                     push_([k.eyeX;k.eyeY;k.eyeT]);
@@ -445,14 +451,15 @@ function this = EyelinkInput(varargin)
         end
     end
     
-    function [refresh, time] = reward(rewardAt, duration)
+    function [refresh, startTime] = reward(rewardAt, duration)
         %for psychophysics, just produce a beep...
         %generate a buffer...
         PsychPortAudio('Stop', pahandle_);
         a = 0.9 * sin(linspace(0, duration/1000*750*2*pi, duration/1000*freq_));
         PsychPortAudio('FillBuffer', pahandle_, a, 0);
         startTime = PsychPortAudio('Start', pahandle_, 1, 0); %next_ + (rewardAt - refresh_) * interval_);
-        log_('REWARD %d %d %d %f', rewardAt, duration, refresh_ + round(startTime - next_)/interval_, startTime);
+        refresh = refresh_ + round(startTime - next_)/interval_;
+        log_('REWARD %d %d %d %f', rewardAt, duration, refresh, startTime);
     end
 
     function predictedclock = eventCode(clockAt, code)

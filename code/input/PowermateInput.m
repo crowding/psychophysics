@@ -1,3 +1,4 @@
+
 function this = PowermateInput(varargin)
 %Event-handler Object for communicating with a Griffin Powermate controller.
 %one liner test:
@@ -122,7 +123,7 @@ function setBrightness(n)
     PsychHID('SetReport', device, 2, 0, uint8([1 n]))
 end
 
-    function sync(n)
+    function sync(n, time)
         %nothing needed
     end
 
