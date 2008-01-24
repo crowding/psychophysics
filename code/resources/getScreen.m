@@ -62,7 +62,7 @@ initializer = @doGetScreen;
         end
 
         %Step 0.5: Set all screen preferences given.
-        function [release, details] = setPreferences(details)
+        function [release, details, next] = setPreferences(details)
             %construct and run a chain of sub-initializers
             initializers = cellfun ...
                 ( @preferenceSetter ...
@@ -79,7 +79,13 @@ initializer = @doGetScreen;
             
             initializer = joinResource(initializers{:});
             
-            [release, details] = initializer(details);
+            if nargout(initializer) > 2
+                [release, details, next] = initializer(details);
+            else
+                [release, details] = initializer(details);
+                next = @(params)deal(@noop, params);
+            end
+
         end
         
         %Step 1: Pick the screen, and set the gamma to a calibrated value.

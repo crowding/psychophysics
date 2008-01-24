@@ -1632,19 +1632,59 @@ persistent CONTROLCONFIG_COMMAND_;
     COMMAND_RESET_ = 3;
 
     function reset(hard)
-        if nargin > 0 && hard
-            sendPacket(COMMAND_RESET_, 1);
-            [commandNo, data] = readPacket();
-        else
-            sendPacket(COMMAND_RESET_, 0);
-            [commandNo, data] = readPacket();
+        hard = nargin > 0 && hard;
+        
+        require(openPort(portA, @setA), @setOpen, @doReset);
+        
+        function opener = openPort(port, setter)
+            opener = @i;
+            function [release, params] = i(params)
+                handle = pnet('tcpconnect', host, port); %does port matter?
+                if handle < 0
+                    error('LabJackUE9:connection', 'Could not connect');
+                end
+                pnet(handle, 'setreadtimeout', readTimeout);
+                pnet(handle, 'setwritetimeout', writeTimeout);
+                setter(handle);
+
+                release = @close;
+                function close()
+                    pnet(handle, 'close');
+                    WaitSecs(0.1); %labjack seems to require this
+                end
+            end
         end
         
-        if ~isequal(commandNo, COMMAND_RESET_)
-            error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
+        function setA(a)
+            a_ = a;
         end
-        if ~isequal(data, [0 0])
-            error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), enumToString(data(1), ERRORCODE_));
+        
+        function [release, params] = setOpen(params)
+            open_ = 1;
+            configured_ = 0;
+            release = @close;
+            closer_ = @close;
+            function close()
+                open_ = 0;
+                configured_ = 0;
+            end
+        end
+        
+        function doReset(params)
+            if hard
+                sendPacket(COMMAND_RESET_, 1);
+                [commandNo, data] = readPacket();
+            else
+                sendPacket(COMMAND_RESET_, 0);
+                [commandNo, data] = readPacket();
+            end
+
+            if ~isequal(commandNo, COMMAND_RESET_)
+                error('LabJackUE9:WrongCommandNumberInResponse', 'incorrect command number in response');
+            end
+            if ~isequal(data, [0 0])
+                error('LabJackUE9:errorReturned', 'error %d (%s) returned from Labjack', data(1), enumToString(data(1), ERRORCODE_));
+            end
         end
     end
 
@@ -1801,7 +1841,7 @@ persistent CONTROLCONFIG_COMMAND_;
         response = frombytes(response, command.response, LE_, varargin{:});
     end
     
-    function [release, params] = init(varargin)
+    function [release, params, next] = init(params)
         %It is preferred that you you use this with REQUIRE instead of open()
         %and close(). See the docs on 'require'.
         assertNotOpen_();
@@ -1814,7 +1854,7 @@ persistent CONTROLCONFIG_COMMAND_;
             , @getCal ...
             );
 
-        [release, params] = initializer(namedargs(varargin{:}));
+        [release, params, next] = initializer(params);
         
         function opener = openPort(port, setter)
             opener = @i;
@@ -1872,19 +1912,6 @@ persistent CONTROLCONFIG_COMMAND_;
                 debug = old;
             end
         end
-    end
-
-    closer_ = @noop;
-    function params = open(varargin)
-        %Opens the device. Deprecated. Use INIT/REQUIRE in your programs.
-        [closer_, params] = init(varargin);
-    end
-
-    function close()
-        %Closes an open device, if is it open
-        r = closer_;
-        closer_ = @noop;
-        r();
     end
 
     function assertOpen_()

@@ -43,7 +43,7 @@ w_ = 0;
 log_ = @noop;
 
 %% init function
-    function [release, params] = init(params)
+    function [release, params, next] = init(params)
         defaults = struct...
             ( 'streamConfig', struct...
                 ( 'Channels', {{'AIN0', 'AIN1', 'Counter0'}}...
@@ -54,15 +54,15 @@ log_ = @noop;
                 )...
             );
         
-        x = joinResource(@ljReset, lj.init, @logFluid, @myInit);
-        [release, params] = x(namedargs(defaults, params));
-        params.eyeSampleRate = params.streamConfig.SampleFrequency;
+        x = joinResource(defaults, @ljReset, lj.init, @logFluid, @myInit);
+        [release, params, next] = x(params);
 
         function [release, params] = ljReset(params)
-            lj.open();
+            disp resetting
             lj.reset(1);
-            waitSecs(5);
-            lj.close();
+%            require(lj.init, @()lj.reset(1));
+            disp waiting
+            %waitSecs(5);
             release = @noop;
         end
         
@@ -88,6 +88,7 @@ log_ = @noop;
             assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
 
             params.obtainedSampleFrequency = resp.SampleFrequency;
+            params.eyeSampleRate = params.streamConfig.SampleFrequency;
             
             if isfield(params, 'log')
                 log_ = params.log;
@@ -129,8 +130,6 @@ log_ = @noop;
 
         resp = lj.streamConfig(params.streamConfig);
         assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
-
-        params.obtainedSampleFrequency = resp.SampleFrequency;
 
         streamStartTime_ = GetSecs();
 

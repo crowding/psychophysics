@@ -28,9 +28,10 @@ function stack = resourcecheck(stack, release)
         case 1
             %check the stack
             if isempty(resources)
-                error('resourcecheck:missing', 'missing resource to back out!');
+                warning('resourcecheck:missing', 'missing resource to back out!');
             else
                 [oldstack] = resources{1}{1};
+                [oldr] = resources{1}{2};
                 if ~checkstack(oldstack, stack)
                     error('resourcecheck:unreleased', 'some resources were left open? Attempting to close...');
                     %resourcepanic(stack);
@@ -39,14 +40,27 @@ function stack = resourcecheck(stack, release)
                 end
                 resources = resources{2};
             end
-            %disp <<<popped
+            %fprintf('<<<popped %s\n', func2str(oldr));
         case 2
             resources = {{stack, release} resources};
-            %disp >>>pushed
+            %fprintf('>>>pushed %s\n', func2str(release));
     end
 
     function r = checkstack(oldstack, newstack)
-        r = isequal(oldstack(2:end), newstack(max(1, end-numel(oldstack)+2):end));
+        if numel(oldstack) > numel(newstack)
+            r = 0;
+            return;
+        end
+        %vector indexing annoyance dsfargeg........
+        %
+        os = oldstack(2:end);
+        ns = newstack(max(1, end-numel(oldstack)+2):end);
+        r = isequal(os(:), ns(:));
+        %add'ly check that we are in the same func at the top of oldstack.
+        if r
+            r = isequal(oldstack(1).file, newstack(end-numel(oldstack)+1).file) ...
+                && isequal(oldstack(1).name, newstack(end-numel(oldstack)+1).name) ;
+        end
     end
         
     function resourcepanic(stack)
