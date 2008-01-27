@@ -14,7 +14,7 @@ function e = GloLoAdjustment(varargin)
         , varargin{:} ...
         );
     
-    e.trials = Randomizer('fullFactorial', 1, 'reps', 4, 'blockSize', 98);
+    e.trials = Randomizer('fullFactorial', 1, 'reps', 2, 'blockSize', 98);
     
     e.trials.base = GloLoAdjustmentTrial...
         ( 'barOnset', 0 ...                         %randomized below
@@ -55,7 +55,7 @@ function e = GloLoAdjustment(varargin)
     
     %from the onset of the first flash to the onset of the fourth flash is
     %49 timepoints at 120 fps
-    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(2,4,49));
+    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(1,3,49));
     
     %The bar origin is random around the circle and orientation follows
     e.trials.add({'motion.phase', 'motion.angle'}, @()num2cell(rand()*2*pi * [1 180/pi] + [0 90]));
@@ -65,4 +65,4 @@ function e = GloLoAdjustment(varargin)
     e.trials.add('barPhase', @(b) (b.motion.phase + (b.barOnset-b.motion.t(1))*b.motion.dphase ./ b.motion.dt + round( randc(1)*b.motion.dphase / b.barPhaseStep ) * b.barPhaseStep ) );
     
     %the message to show between blocks
-    e.trials.blockTrial.message = @()sprintf('Press knob to continue. %d blocks remain', e.trials.blocksLeft());
+    e.trials.blockTrial = MessageTrial('message', @()sprintf('Press knob to continue. %d blocks remain', e.trials.blocksLeft()));

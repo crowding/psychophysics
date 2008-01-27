@@ -54,7 +54,7 @@ colors_ = zeros(12, max_sprites_) + 0.5; %the colors
 head_ = max_sprites_; %matlab index to where the newest IS.
 tail_ = max_sprites_; %matlab index to where the oldest WAS.
 
-    function [releaser, params] = init(params)
+    function [releaser, params, next] = init(params)
         %Renders the sprite frames; prepares for drawing.
         %
         %drawing: the Drawing object that manages the display.
@@ -64,66 +64,94 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
                 'Attempted to prepare an already-prepared graphics object.');
         end
         
-        toPixels_ = transformToPixels(params.cal);
-        interval_ = params.cal.interval;
-
-        %the textures...
-        [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
-            gl_textures(patch, params.window, params.cal);
+        i = joinResource(@initTextures, @initglparams);
+        [releaser, params, next] = i(params);
         
-        n_frames_ = size(from_coords_, 2);
-        
-        process.reset();
-        
-        prepared_ = 1;
-
-        releaser = @release;
-        
-        advanceQueue(); %preload for the stimulus onset
-        
-        require(screenGL(params.window), @initglparams);
-        function initglparams(unused) %#ok
-            global GL;
-            glDisable(GL.DEPTH_TEST);
-            glMatrixMode(GL.PROJECTION);
-            glLoadIdentity;
-            glOrtho(params.rect(1), params.rect(3), params.rect(4), params.rect(2), -10, 10);
-            glEnable(GL.TEXTURE_2D);
-            glEnable(GL.BLEND);
-
-            %use the same blend function both times
-            glBlendFunc(GL.SRC_ALPHA, GL.ONE);
-
-            %set up vertex array state
-            glEnableClientState(GL.TEXTURE_COORD_ARRAY);
-            glEnableClientState(GL.VERTEX_ARRAY);
-            glEnableClientState(GL.COLOR_ARRAY);
-        end
-        
-        function release()
-            %Deallocates all textures, etc. associated with the prepared
-            %movie.
-
-            visible = 0;
-            prepared_ = 0;
-
-            toPixels_ = [];
-            interval_ = 0;
-            addtex_ = 0;
-            subtex_ = 0;
+        function [release, params] = initTextures(params)
+            toPixels_ = transformToPixels(params.cal);
+            interval_ = params.cal.interval;
 
             head_ = max_sprites_;
             tail_ = max_sprites_;
 
-            %unallocate the textures
-            if any(Screen('Windows') == params.window)
-                require(screenGL(params.window), @() glDeleteTextures(2, [addtex_ subtex_]));
-            else
-                %try it anyway?
-                glDeleteTextures(2, [addtex_ subtex_]);
+            %the textures...
+            [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
+                gl_textures(patch, params.window, params.cal);
+
+            n_frames_ = size(from_coords_, 2);
+
+            process.reset();
+
+            prepared_ = 1;
+            
+            advanceQueue(); %preload for the stimulus onset
+
+            release = @r;
+
+            function r()
+                %unallocate the textures
+                if any(Screen('Windows') == params.window)
+                    %FIXME: using require() in the midst of a release
+                    %during a resource panic...
+                    %require(screenGL(params.window), @() glDeleteTextures(2, [addtex_ subtex_]));
+                    try
+                        Screen('BeginOpenGL', params.window);
+                    catch
+                    end
+                    try
+                        glDeleteTextures(2, [addtex_ subtex_]);
+                    catch
+                        Screen('EndOpenGL', params.window);
+                        rethrow(lasterror);
+                    end
+                    Screen('EndOpenGL', params.window);
+                else
+                    %try it anyway?
+                    glDeleteTextures(2, [addtex_ subtex_]);
+                end
+                %Deallocates all textures, etc. associated with the prepared
+                %movie.
+
+                visible = 0;
+                prepared_ = 0;
+
+                toPixels_ = [];
+                interval_ = 0;
+                addtex_ = 0;
+                subtex_ = 0;
+
+            end
+        end
+        
+        function [release, params] = initglparams(params) %#ok
+            global GL;
+            require(screenGL(params.window), @doInitParams);
+            
+            function doInitParams
+                glDisable(GL.DEPTH_TEST);
+                glMatrixMode(GL.PROJECTION);
+                glLoadIdentity;
+                glOrtho(params.rect(1), params.rect(3), params.rect(4), params.rect(2), -10, 10);
+                glEnable(GL.TEXTURE_2D);
+                glEnable(GL.BLEND);
+
+                %use the same blend function both times
+                glBlendFunc(GL.SRC_ALPHA, GL.ONE);
+
+                %set up vertex array state
+                glEnableClientState(GL.TEXTURE_COORD_ARRAY);
+                glEnableClientState(GL.VERTEX_ARRAY);
+                glEnableClientState(GL.COLOR_ARRAY);
+
+                release = @r;
             end
 
+            function r()
+                %do nothing
+            end
         end
+
+
 
     end
 
