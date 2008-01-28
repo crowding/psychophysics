@@ -25,8 +25,10 @@ toPixels_ = [];
     function draw(window, next)
         try
             if visible
-                center = toPixels_(loc);
-                sz = norm(center - toPixels_(loc + [radius 0]));
+                l = e(loc, next);
+                
+                center = toPixels_(l);
+                sz = norm(center - toPixels_(l + [radius;0]));
                 if any(sz > 31)
                     Screen('gluDisk', window, color, center(1), center(2), sz);
                 else
@@ -34,7 +36,7 @@ toPixels_ = [];
                 end
             end
         catch
-            rethrow(lasterror)
+            rethrow(lasterror);
         end
     end
 
@@ -73,7 +75,11 @@ toPixels_ = [];
     end
 
     function l = setLoc(l)
-        loc = l;
+        if isnumeric(l) && isvector(l)
+            loc = l(:);
+        else
+            loc = l;
+        end
     end
 
     function r = getRadius

@@ -25,7 +25,7 @@ lj = LabJackUE9();
 slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
 offset = [0;0]; % the eye position offset
 
-persistent init__;
+persistent init__; %#ok
 this = autoobject(varargin{:});
 
 %keep track of how much fluid was given this session
@@ -37,7 +37,7 @@ if isempty(fluidToday)
     fluidToday = 0;
 end
 
-data = zeros(0,3);
+data = zeros(3,0);
 
 w_ = 0;
 log_ = @noop;
@@ -58,10 +58,8 @@ log_ = @noop;
         [release, params, next] = x(params);
 
         function [release, params] = ljReset(params)
-            disp resetting
             lj.reset(1);
 %            require(lj.init, @()lj.reset(1));
-            disp waiting
             %waitSecs(5);
             release = @noop;
         end
@@ -72,7 +70,7 @@ log_ = @noop;
             
             %weirdness --- setting the timers to something other than 0
             %seems to be necessary to get out of a bad mode...
-            resp = lj.timerCounter...
+            lj.timerCounter...
                 ( 'Timer0.Mode', 'PWM8',               'Timer0.Value',  0 ...
                 , 'Timer1.Mode', 'TimerStop',           'Timer1.Value', 1 ...
                 , 'Timer2.Mode', 'PWM8',               'Timer2.Value',  0 ...
@@ -195,7 +193,7 @@ log_ = @noop;
 %% sync (called just before refresh 1?
     refresh0HWCount_ = 0;
     syncTime_ = 0;
-    function sync(refresh, time)
+    function sync(refresh, time)  %#ok
         syncTime_ = GetSecs();
         syncInfo = Screen('GetWindowInfo', w_);
         refresh0HWCount_ = syncInfo.VBLCount - refresh;
@@ -271,6 +269,7 @@ log_ = @noop;
         data = readout_();
         t = data(end,:);
         data(end,:) = [];
+        latest = t(end);
     end
 
     function demo()
@@ -334,7 +333,6 @@ log_ = @noop;
 
         function collectUntil(t)
             x.t = 0;
-            n = 0;
             while max(x.t, GetSecs()) < t;
                 x = input(struct());
             end
@@ -357,7 +355,6 @@ log_ = @noop;
         current = info.VBLCount - refresh0HWCount_;
         rewardCounts = max(1, rewardAt - current);
 
-        fprintf('%f\n', rewardLength);
         %calculate the fluid amount
         fluid = interp1(fluidSchedule(:,1), fluidSchedule(:,2), rewardLength, 'cubic', 'extrap');
         

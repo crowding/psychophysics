@@ -116,10 +116,10 @@ function this = EyeVelocityFilter(varargin)
                 lastX_ = x(end);
                 lastY_ = y(end);
             else
-                [event.eyeFx,event.eyeFy,event.eyeFt,event.eyeVx,event.eyeVy,event.eyeVt] = deal(zeros(0,1));
+                [event.eyeFx,event.eyeFy,event.eyeFt,event.eyeVx,event.eyeVy,event.eyeVt] = deal(zeros(1,0));
             end
         else
-            [event.eyeFx,event.eyeFy,event.eyeFt,event.eyeVx,event.eyeVy,event.eyeVt] = deal(zeros(0,1));
+            [event.eyeFx,event.eyeFy,event.eyeFt,event.eyeVx,event.eyeVy,event.eyeVt] = deal(zeros(1,0));
         end
     end
 end
