@@ -54,11 +54,18 @@ end
                 end
             catch
                 e = lasterror; %we still want to store the trials done
-                err = e;
             end
 
             function result = runTrial(params)
                 
+                %no exception handling around dump: if there's a
+                %problem with dumping data, end the experiment,
+                %please
+                
+                %we dump the trial structure BEFOREHAND to save the initial
+                %state, including any random number seeds etc.
+                dump(trial, params.log);
+
                 newParams = params;
                 try
                     [newParams, result] = trial.run(params);
@@ -76,10 +83,9 @@ end
                     e = lasterror;
                     result.err = e;
                 end
-                %no exception handling around dump: if there's a
-                %problem with dumping data, end the experiment,
-                %please
-                dump(trial, params.log);
+
+                %anything the trial produces should wind up in the 'result'
+                %structure.
                 dump(newParams, params.log, 'params');
                 dump(result, params.log);
 

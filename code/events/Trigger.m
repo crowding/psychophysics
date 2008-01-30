@@ -3,7 +3,17 @@ function this = Trigger(varargin)
     %not objects, but just functions so as to make for easier garbage
     %collecting. Probably won't work.
 
-    triggers_ = cell(0,2);
+    persistent triggers_;
+    persistent counter_;
+    if isempty(triggers_)
+        triggers_ = struct();
+        counter_ = 0;
+    end
+
+    name = sprintf('t%d', counter_);
+    triggers_.(name) = cell(0,3);
+    counter_ = counter_ + 1;
+    
     log = @noop;
     events = cell(0,2);
     
@@ -15,46 +25,30 @@ function this = Trigger(varargin)
     end
         
     function singleshot(checker, fn)
-        triggers_(end+1,:) = {@checkSingle, 1};
-        
-        function [t, k] = checkSingle(k)
-            [t,k] = checker(k);
-            if any(t)
-                log('TRIGGER %s %s', func2str(fn), struct2str(k));
-                fn(k);
-                events(end+1,:) = {k.next, func2str(fn)};
-            end
+        triggers_.(name)(end+1,:) = {@checkSingle_, 1, {checker, fn}};
+    end
+
+    function [t, k] = checkSingle_(k, checker, fn)
+        [t,k] = checker(k);
+        if any(t)
+            log('TRIGGER %s %s', func2str(fn), struct2str(k));
+            fn(k);
+            %events(end+1,:) = {func2str(fn), k.next};
         end
     end
 
     function multishot(checker, fn)
         %adds a checker persistently. There is no removing other than by a
         %panic trigger.
-        triggers_(end+1,:) = {@checkSingle, 0};
-        
-        function [t, k] = checkSingle(k)
-            [t,k] = checker(k);
-            if any(t)
-                log('TRIGGER %s %s', func2str(fn), struct2str(k));
-                fn(k);
-                events(end+1,:) = {func2str(fn), k.next};
-            end
-        end
+        triggers_.(name)(end+1,:) = {@checkSingle_, 0, {checker, fn}};
     end
+
 
     function panic(checker, fn)
         %adds a checker that will clear out all checkers including itself.
-        triggers_(end+1,:) = {@checkSingle, 2};
-                
-        function [t, k] = checkSingle(k)
-            [t,k] = checker(k);
-            if any(t)
-                log('TRIGGER %s %s', func2str(fn), struct2str(k));
-                fn(k);
-                events(end+1,:) = {k.next, func2str(fn)};
-            end
-        end
+        triggers_.(name)(end+1,:) = {@checkSingle_, 2, {checker, fn}};
     end
+
 
     function mutex(varargin)
         %checks for one of several mutually exclusive conditions. 
@@ -63,17 +57,17 @@ function this = Trigger(varargin)
         checkers = varargin(1:2:end);
         fns = varargin(2:2:numel(checkers) * 2);
         
-        triggers_(end+1,:) = {@checkMutex, 1};
-        
-        function [t, k] = checkMutex(k)
-            for i = 1:numel(checkers)
-                [t, k] = checkers{i}(k);
-                if any(t)
-                    fns{i}(k);
-                    log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
-                    events(end+1,:) = {k.next, func2str(fn)};
-                    break;
-                end
+        triggers_.(name)(end+1,:) = {@checkMutex_, 1, {checkers, fns}};
+    end
+
+    function [t, k] = checkMutex_(k, checkers, fns)
+        for i = 1:numel(checkers)
+            [t, k] = checkers{i}(k);
+            if any(t)
+                fns{i}(k);
+                log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
+                %events(end+1,:) = {k.next, func2str(fn)};
+                break;
             end
         end
     end
@@ -86,69 +80,81 @@ function this = Trigger(varargin)
         
         args = reshape(varargin, 3, []);
         
-        triggers_(end+1,:) = {@runFirst, 1};
-        
-        function [ttr,k] = runFirst(k)
-            tt = Inf;
-            ii = Inf;
-            ttr = [];
-            ffn = [];
-            for a = args
-                [check, fn, timeindex] = a{:};
-                [tr, k] = check(k);
-                if any(tr)
-                    i = find(tr, 1, 'first');
-                    try
-                        t = k.(timeindex)(i);
-                    catch
-                        Screen('Flip', 10);
-                        Screen('Flip', 10);
-                        noop();
-                    end
-                    if t < tt
-                        tt = t;
-                        ttr = tr;
-                        ii = i;
-                        ffn = fn;
-                    end
+        triggers_.(name)(end+1,:) = {@runFirst_, 1, {args}};
+    end
+
+    function [ttr,k] = runFirst_(k, args)
+        tt = Inf;
+        ii = Inf;
+        ttr = [];
+        ffn = [];
+        for a = args
+            [check, fn, timeindex] = a{:};
+            [tr, k] = check(k);
+            if any(tr)
+                i = find(tr, 1, 'first');
+                try
+                    t = k.(timeindex)(i);
+                catch
+                    Screen('Flip', 10);
+                    Screen('Flip', 10);
+                    noop();
+                end
+                if t < tt
+                    tt = t;
+                    ttr = tr;
+                    ii = i;
+                    ffn = fn;
                 end
             end
-            if ~isempty(ffn)
-                k.triggerTime = tt;
-                k.triggerIndex = ii;
-                ffn(k);
-                log('TRIGGER %s %s', func2str(ffn), struct2str(k));
-                events(end+1,:) = {k.triggerTime, func2str(ffn)};
-            end
+        end
+        if ~isempty(ffn)
+            k.triggerTime = tt;
+            k.triggerIndex = ii;
+            ffn(k);
+            log('TRIGGER %s %s', func2str(ffn), struct2str(k));
+            %events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end
     end
 
 
-    function s = check(s)
+    function s = check(s) %19368 calls, 32.881 sec
+        triggers = triggers_.(name);
         ndeleted = 0; %number deleted
-        nt = size(triggers_, 1);
-        for i = 1:size(triggers_, 1)
-            ch = triggers_{i-ndeleted, 1};
-            delete = triggers_{i-ndeleted, 2};
-
-            [whether, s] = ch(s);
-
+        nt = size(triggers, 1);
+        for i = 1:size(triggers, 1)
+            ch = triggers{i-ndeleted, 1};
+            delete = triggers{i-ndeleted, 2};
+            args = triggers{i-ndeleted, 3};
+            [whether, s] = ch(s, args{:});
+            triggers = triggers_.(name); %whoops, checking can add a trigger
+        
             if any(whether)
                 if delete == 1
-                    triggers_(i-ndeleted,:) = [];
+                    triggers(i-ndeleted,:) = [];
                     ndeleted = ndeleted + 1;
+                    triggers_.(name) = triggers;
                 elseif delete == 2
                     %panic and delete all
-                    triggers_(1:nt-ndeleted, :) = [];
-                    return; %nothing more to do
+                    triggers_.(name) = triggers;
+                    triggers(1:nt-ndeleted, :) = [];
+                    break; %nothing more to do
                 end
             end
         end
     end
 
     function [release, params] = init(params)
-        events = cell(0,2);
-        release = @noop;
+        %events = cell(0,2);
+        if ~isfield(triggers_, name)
+            triggers_.(name) = cell(0,3);
+        end
+        
+        release = @clear;
+        
+        function clear
+            triggers_ = rmfield(triggers_, name);
+        end
     end
 
 end

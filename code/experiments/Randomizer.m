@@ -24,6 +24,7 @@ design = {};
 designDone = [];
 designOrder = [];
 displayFunc = @noop; %called after every successful trial....
+seed = randseed();
 
 persistent init__;
 
@@ -92,7 +93,37 @@ this = Obj(autoobject(varargin{:}));
     end
 
     function setRandomizers(rands)
-        error('Randomizer:ReadOnlyValue', 'that''s a read-only-value for now');
+        error('not implemented');
+        if ~isempty(results)
+            error('won''t invalidate results!');
+        end
+%{
+        %make sure things are in struct format
+        rands = orderfields(rands, {'subs', 'values'});
+        
+        %normalize subscripts
+        rands = arrayfun(@checkvalues,{rands.subs});
+        function r = checksubs(r)
+            if iscell(r.subs) && iscell(r.values)
+                r.subs = cellfun(@subsrefize_, r.subs, 'UniformOutput', 0);
+                if ~isequal(size(r.subs), size(r.values)
+                    error('Randomizer:invalidRandomizers', 'one of subscript and value si a cell but the other is not');
+
+                end
+            elseif ~iscell(r.values) && iscell(r.values)
+                sub = {subsrefize_(subs)};
+                r.values = {r.values};
+            else
+                error('Randomizer:invalidRandomizers', 'value is a cell but subscriptis not');
+            end
+            if size(r.sub, r.value)
+                
+            end
+        end
+        
+        %normalize values
+        [rands.values] = cell2outputs(cellfun(@checkvalues,{rands.subs}));
+        %}
     end
 
     function setBase(b)
@@ -180,7 +211,9 @@ this = Obj(autoobject(varargin{:}));
 
     function params = pickReplacing_()
         s = cellfun('prodofsize', {randomizers.values});
+        rand('twister', seed);
         indices = ceil(rand(size(s)) .* s);
+        seed = rand('twister');
         
         p = select_({randomizers.values}, indices);
         params = randomizers;
@@ -196,7 +229,9 @@ this = Obj(autoobject(varargin{:}));
     lastPicked_ = NaN; %the last item we picked...
     function params = pickWithoutReplacing_()
         which = find(~designDone);
+        rand('twister', seed);
         ix = ceil(rand*numel(which));
+        seed = rand('twister');
         indices = design(which(ix), :);
         
         p = select_({randomizers.values}, indices);
@@ -233,24 +268,28 @@ this = Obj(autoobject(varargin{:}));
             r = assignments(i);
             val = r.values;
             
-            if isa(r.values, 'function_handle')
+            %{
+if isa(r.values, 'function_handle')
                 fn = r.values;
-                
+
                 if nargin(fn) == 0
                     val = fn();
                 else
                     val = fn(object);
                 end
-            end
+        end
+            %}
             
             if iscell(r.subs)
                 for j = 1:numel(r.subs)
-                    dump(val{j}, @printf, [name substruct2str(r.subs{j})]);
-                    object = subsasgn(object, r.subs{j}, val{j});
+                    v = ev(val{j}, object);
+                    dump(v, @printf, [name substruct2str(r.subs{j})]);
+                    object = subsasgn(object, r.subs{j}, v);
                 end
             else
-                dump(val, @printf, [name substruct2str(r.subs)]);
-                object = subsasgn(object, r.subs, val);
+                v = ev(val, object);
+                dump(v, @printf, [name substruct2str(r.subs)]);
+                object = subsasgn(object, r.subs, v);
             end
             params{i} = val;
         end
