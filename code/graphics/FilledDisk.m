@@ -15,6 +15,7 @@ radius = [0 0];
 color = [0 0 0];
 
 varargin = assignments(varargin, 'loc', 'radius', 'color');
+setLoc(loc);
 persistent init__;
 this = autoobject(varargin{:});
 
