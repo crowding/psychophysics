@@ -1,6 +1,6 @@
 function this = SimpleSaccadeTrial(varargin)
 
-    fixationOnset = 0.5; %measured from 'begin'
+    fixationOnset = 0.2; %measured from 'begin'
     fixationPointLoc = [0 0];
     fixationPointSize = 0.2;
     fixationPointColor = 0;

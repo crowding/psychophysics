@@ -2115,7 +2115,18 @@ persistent CONTROLCONFIG_COMMAND_;
             disp(strcat('>>> ', hexdump([packet])));
         end
 
-        packet = pnet(a_, 'read', responsebytes, 'uint8');
+        packet = [];
+        s = GetSecs();
+        packet = pnet(a_, 'read', responsebytes, 'uint8', 'noblock');
+        while isempty(packet)
+            WaitSecs(0.001);
+            if GetSecs() > s + 0.2;
+                error('packet read timeout');
+            end
+            packet = pnet(a_, 'read', responsebytes, 'uint8', 'noblock');
+        end
+%        packet = pnet(a_, 'read', responsebytes, 'uint8');
+
         if debug
             disp(strcat('<<< ', hexdump([packet])));
         end

@@ -4,6 +4,7 @@ function this = UniformDistribution(varargin)
 
     lower = 0;
     upper = 1;
+    rand('twister', sum(100*clock));
     seed = rand('twister');
     %NOTE! seed is useless for recalling state if the
     %save happens after the event. Dump out structures for trials before

@@ -40,8 +40,13 @@ mouse = {};
 %new hotness, input using a variable list of methods.
 input = {};
 
+
 %support the old mainLoop(graphics, triggers) calling convention
 varargin = assignments(varargin, 'graphics', 'triggers');
+
+%theoretically you can be gathering input up to 3 flip-intervals ahead of
+%when the input will affect the display. To reduce this, at the risk of more
+%frame skipping, try this.
 
 persistent init__;
 this = autoobject(varargin{:});
@@ -74,6 +79,7 @@ toDegrees_ = @noop;
             triggers = {triggers{:} mouse{:}};
             mouse = {};
         end
+        
 
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
@@ -103,6 +109,7 @@ toDegrees_ = @noop;
         flipInterval = params.screenInterval;
         skipcount = 0;
         slowdown = max(params.slowdown, 1);
+        maxLatency = params.maxLatency();
         
         %for better speed in the loop, eschew struct access?
         log = params.log;
@@ -113,9 +120,10 @@ toDegrees_ = @noop;
         end
 
         VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
-        
         %if this is correct the next VBL should mark refresh 0
         %Synchronize what needs synchronizing...
+        
+        %this needs to happen within a refresh or we're in trouble?
         for i = 1:numel(input)
             input(i).sync(-1, VBL + flipInterval);
         end
@@ -154,6 +162,8 @@ toDegrees_ = @noop;
                     VBL = VBL - flipInterval * skipped;
                     skipped = 0;
                 end
+                
+                %fprintf('%f %f\n', FlipTimestamp, VBL);
             else
                 %alternate routine for lack of beampos, not quite as high
                 %throughput due to the scheduled flip.
@@ -217,22 +227,27 @@ toDegrees_ = @noop;
             %Event handlers we are now working on the next
             %refresh.
             refresh = refresh + skipped + 1;
+            
+            %perhaps wait up here?
 
             if (~go_)
                 %the loop test is here, so that the final frame gets
                 %flipped to the screen.
                 break;
             end
-            %-----Draw phase: Draw all the objects for the next refresh.
-            %To begin drawing, the preious frame must be on its way to the
-            %screen, hso here is an opportunity to wait...
-            WaitSecs(GetSecs - VBL);
-            
+            %-----Draw phase: Draw all the objects for the next refresh.            
             for i = 1:ng
                 graphics(i).draw(window, VBL + flipInterval);
             end
 
             Screen('DrawingFinished', window);
+            %note this apparently just queues up graphics commands and doesn't
+            %necessarily draw them. So you may be working up to 3 frames
+            %ahead by this point.
+
+            %If we're running ahead of schedule, wait before gatherign
+            %input.
+            WaitSecs(VBL+2*flipInterval - GetSecs() - maxLatency);
 
             %We currently take events from eye movements, keyboard and the
             %mouse; each event type calls up its own list of event checkers.
@@ -302,6 +317,10 @@ toDegrees_ = @noop;
     function [release, params] = initVars(params)
         release = @noop;
         toDegrees_ = transformToDegrees(params.cal);
+        if ~isfield(params, 'maxLatency')
+            params.maxLatency = 3 * params.screenInterval;
+        end
+
     end
 
     function init = graphicsInitializer(varargin)

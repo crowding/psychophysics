@@ -129,7 +129,6 @@ log_ = @noop;
         resp = lj.streamConfig(params.streamConfig);
         assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
 
-        streamStartTime_ = GetSecs();
 
         % {
         %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000
@@ -159,7 +158,7 @@ log_ = @noop;
         %lj.setDebug(0);
         %}
         
-        
+        streamStartTime_ = GetSecs();
         resp = lj.streamStart(); %sync() is necessary as well, but should be called later in the main loop...
         if ~strcmp(resp.errorcode, 'NOERROR')
             @noop;
@@ -174,7 +173,7 @@ log_ = @noop;
         release = @close;
         
         params.eyeSampleRate = params.obtainedSampleFrequency;
-
+        
         function close
             stopTimers();
             lj.streamStop();
@@ -192,9 +191,7 @@ log_ = @noop;
 
 %% sync (called just before refresh 1?
     refresh0HWCount_ = 0;
-    syncTime_ = 0;
     function sync(refresh, time)  %#ok
-        syncTime_ = GetSecs();
         syncInfo = Screen('GetWindowInfo', w_);
         refresh0HWCount_ = syncInfo.VBLCount - refresh;
         
