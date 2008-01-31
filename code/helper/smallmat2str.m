@@ -13,49 +13,41 @@ function m = smallmat2str(mat, c)
 %What the hell kind of language has data types that can't possibly be
 %filled in from source literals, even in principle?
 %
-if iscell(mat)
-    m = mat;
-    for i = 1:numel(m)
-        if nargin > 1
-            m{i} = smallmat2str(m{i}, c);
-        else
-            m{i} = smallmat2str(m{i});
-        end
+if isscalar(mat)
+    m = sprintf('%.15g', mat');
+    if nargin > 1 && ~isa(mat, 'double')
+        m = [class(mat), '(', m, ')'];
     end
-else
+    m = sprintf('%.15g ', mat');
 
-    if numel(mat) == 0
-        if ~isequal(size(mat), [0 0])
-            m = ['zeros(' sprintf('%d,', size(mat)) ')'];
-            m(end-1) = [];
-        else
-            m = '[]';
-        end
-        if nargin > 1 && ~isa(mat, 'double')
-            m = [class(mat), '(', m, ')'];
-        end
-        
-    elseif numel(mat) ~= 1
-        m = sprintf('%.15g ', mat');
-        %FIXME: weird-zero-size-arrays
-
-        ncols = size(mat, 2);
-        if(size(mat, 1) > 1)
-            spaceix = find(m == ' ');
-            m(spaceix(ncols:ncols:end-1)) = ';';
-        end
-
-        if nargin > 1 && ~isa(mat, 'double')
-            m(end) = ']';
-            m = [class(mat), '([', m, ')'];
-        else
-            m = ['[', m];
-            m(end) = ']';
-        end
+elseif isempty(mat)
+    if ~isequal(size(mat), [0 0])
+        m = ['zeros(' sprintf('%d,', size(mat)) ')'];
+        m(end-1) = [];
     else
-        m = sprintf('%.15g', mat');
-        if nargin > 1 && ~isa(mat, 'double')
-            m = [class(mat), '(', m, ')'];
-        end
+        m = '[]';
     end
+    if nargin > 1 && ~isa(mat, 'double')
+        m = [class(mat), '(', m, ')'];
+    end
+
+
+else
+    m = sprintf('%.15g ', mat');
+    %FIXME: weird-zero-size-arrays
+
+    ncols = size(mat, 2);
+    if(size(mat, 1) > 1)
+        spaceix = find(m == ' ');
+        m(spaceix(ncols:ncols:end-1)) = ';';
+    end
+
+    if nargin > 1 && ~isa(mat, 'double')
+        m(end) = ']';
+        m = [class(mat), '([', m, ')'];
+    else
+        m = ['[', m];
+        m(end) = ']';
+    end
+end
 end

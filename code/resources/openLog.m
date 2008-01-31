@@ -21,6 +21,7 @@ init = currynamedargs(@initLog, defaults, varargin{:});
             params.log = @logMessage;
         end
         
+        
         %test line breaking (FIXME: should be a unit test)
         %logMessage([repmat('1234567890', 1, 22) '12']);
         %logMessage([repmat('1234567890', 1, 22) '123']);
@@ -35,6 +36,11 @@ init = currynamedargs(@initLog, defaults, varargin{:});
             end
         end
 
+        %now this is just unnecessary if we're not saving an EDF.
+        %But the EDF is just unnecessary if we're streaming...
+        %but since the Eyelink is opened after us we don't know if we're
+        %streaming...
+        
         function logMessage(varargin)
             %log a message with args like sprintf. If the eyelink is connected,
             %logs the message to the eyelink.
@@ -44,43 +50,6 @@ init = currynamedargs(@initLog, defaults, varargin{:});
                 fprintf(file_, '%s\n', str);
             end
             
-            if Eyelink('IsConnected')
-                chunksize = 128;
-                %the eyelink logs mesages with a maximum length of 139 chars,
-                %so we should wrap longer messages (placing a backslash at the
-                %end of message as reminder) into 139 char blocks.
-                stop = 0;
-                for i = 1:chunksize-1:numel(str)
-                    if numel(str) > i + chunksize-1
-                        chunk = [str(i:i+chunksize-2) '\'];
-                    else
-                        chunk = str(i:end);
-                        stop = 1;
-                    end
-
-                    try
-                        %the eyelink toolbox is very picky and will crash eveything if
-                        %the string is too long or contains incorrect format
-                        %specifiers...
-                        status = Eyelink('Message', '%s', chunk);
-
-                        %generally we want to keep logging to the file when
-                        %these may be a problem with the eyelink
-                        if status ~= 0
-                            warning('status %d logging to eyelink', status);
-                            fprintf(file_, 'WARNING status %d logging to eyelink\n', status);
-                        end
-                    catch
-                        e = lasterr;
-                        warning('openLog:eyelinkException', 'error logging to eyelink: %s', e);
-                        fprintf(file_, 'WARNING error logging to eyelink: %s\n', e);
-                    end
-
-                    if(stop)
-                        break;
-                    end
-                end
-            end
         end
     end
 end

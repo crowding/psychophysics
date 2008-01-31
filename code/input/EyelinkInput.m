@@ -118,6 +118,8 @@ function this = EyelinkInput(varargin)
             %resolution settings, there is no way to tell what the setings
             %were before, so there is nothing to be done for cleanup.
         end
+        
+        
     end
 
     function [release, params] = doSetup_(params)
@@ -135,6 +137,8 @@ function this = EyelinkInput(varargin)
             ShowCursor();
         end
     end
+
+    persistent samples_;
 
 
 %% remote EDF file opening and download
@@ -272,7 +276,9 @@ function this = EyelinkInput(varargin)
 
         [details.clockoffset, details.clockoffsetMeasured] = getclockoffset(details);
         clockoffset_ = details.clockoffset;
-
+        
+        samples_ = 0.9 * sin(linspace(0, 750*2*pi, freq_));
+        
         if dummy_
             %do nothing
             release = @noop;
@@ -355,20 +361,28 @@ function this = EyelinkInput(varargin)
         else
             %obtain new samples from the eye.
             if streamData
-                data = [];
                 
                 %calling this pulls in data in high priority mode?
-                Eyelink('NewFloatSampleAvailable');
+%                Eyelink('NewFloatSampleAvailable');
+                data = struct('time',{},'type',{},'flags',{},'px',{},'py',{},'hx',{},'hy',{},'pa',{},'gx',{},'gy',{},'rx',{},'ry',{},'status',{},'input',{},'buttons',{},'htype',{},'hdata',{});
                 
+                %really need a do-while loop here...
                 datatype = Eyelink('GetNextDataType');
+                if (datatype)
+                    if datatype == 200 %el_.SAMPLE_TYPE
+                        %this grows an array, to be sure...
+                        data = Eyelink('GetFloatData', datatype);
+                    else
+                        % an event. As of now we don't record events.
+                        % data = Eyelink('GetFloatData', datatype);
+                    end
+                    datatype = Eyelink('GetNextDataType');
+                end                    
                 while(datatype)
-                    if datatype == el_.SAMPLE_TYPE
-                        if isempty(data)
-                            data = Eyelink('GetFloatData', datatype);
-                        else
-                            %this grows an array, to be sure...
-                            data(end+1) = Eyelink('GetFloatData', datatype); %#ok
-                        end
+                    if datatype == 200 %el_.SAMPLE_TYPE
+                        %this grows an array, to be sure...
+                        d = Eyelink('GetFloatData', datatype);
+                        data(end+1) = d; %#ok
                     else
                         % an event. As of now we don't record events.
                         % data = Eyelink('GetFloatData', datatype);
@@ -453,13 +467,12 @@ function this = EyelinkInput(varargin)
             end
         end
     end
-    
+
     function [refresh, startTime] = reward(rewardAt, duration)
         %for psychophysics, just produce a beep...
         %generate a buffer...
         PsychPortAudio('Stop', pahandle_);
-        a = 0.9 * sin(linspace(0, duration/1000*750*2*pi, duration/1000*freq_));
-        PsychPortAudio('FillBuffer', pahandle_, a, 0);
+        PsychPortAudio('FillBuffer', pahandle_, samples_(1:floor(duration/1000*freq_)), 0);
         startTime = PsychPortAudio('Start', pahandle_, 1, 0); %next_ + (rewardAt - refresh_) * interval_);
         refresh = refresh_ + round(startTime - next_)/interval_;
         log_('REWARD %d %d %d %f', rewardAt, duration, refresh, startTime);

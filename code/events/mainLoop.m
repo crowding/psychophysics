@@ -17,7 +17,16 @@ function this = mainLoop(varargin)
 %
 %The main loop allows you to start and stop.
 
+%% timering
+%{
+persistent counter;
+if isempty(counter)
+    counter = 0;
+end
+%}
+
 %% Object properties
+
 defaults_ = struct...
     ( 'log', @noop ...
     , 'skipFrames', 1 ...
@@ -110,6 +119,8 @@ toDegrees_ = @noop;
         skipcount = 0;
         slowdown = max(params.slowdown, 1);
         maxLatency = params.maxLatency();
+        
+%        profile on -timer real -history -historysize 20000;
         
         %for better speed in the loop, eschew struct access?
         log = params.log;
@@ -267,6 +278,7 @@ toDegrees_ = @noop;
             for i = 1:numel(triggers)
                 s = triggers(i).check(s);
             end
+            %profile off;
         end
 
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
@@ -274,6 +286,14 @@ toDegrees_ = @noop;
         if (aviout_)
             close(aviobj); %TODO make this into a REQUIRE
         end
+        
+        %{
+        profile off;
+        if counter == 5
+            error('stop experiment');
+        end
+        counter = counter + 1;
+        %}
     end
 
     function stop(s)
