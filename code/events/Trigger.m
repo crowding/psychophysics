@@ -33,7 +33,7 @@ function this = Trigger(varargin)
         if any(t)
             log('TRIGGER %s %s', func2str(fn), struct2str(k));
             fn(k);
-            %events(end+1,:) = {func2str(fn), k.next};
+            events(end+1,:) = {k.next, func2str(fn)};
         end
     end
 
@@ -66,7 +66,7 @@ function this = Trigger(varargin)
             if any(t)
                 fns{i}(k);
                 log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
-                %events(end+1,:) = {k.next, func2str(fn)};
+                events(end+1,:) = {k.next, func2str(fn)};
                 break;
             end
         end
@@ -113,7 +113,7 @@ function this = Trigger(varargin)
             k.triggerIndex = ii;
             ffn(k);
             log('TRIGGER %s %s', func2str(ffn), struct2str(k));
-            %events(end+1,:) = {k.triggerTime, func2str(ffn)};
+            events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end
     end
 
@@ -145,7 +145,7 @@ function this = Trigger(varargin)
     end
 
     function [release, params] = init(params)
-        %events = cell(0,2);
+        events = cell(0,2);
         if ~isfield(triggers_, name)
             triggers_.(name) = cell(0,3);
         end

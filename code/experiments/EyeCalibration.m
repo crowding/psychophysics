@@ -12,7 +12,7 @@ function e = EyeCalibration(varargin)
     e.trials.add('targetY', linspace(-10, 10, 9));
     e.trials.add('targetX', linspace(-10, 10, 9));
 %    e.trials.add({'targetX', 'targetY'}, {{-10 0} {-5 0}, {0 0}, {5 0}, {10 0}, {0 -10}, {0 -5}, {0 0}, {0 5}, {0 10}});
-    e.trials.add('onset', @()0.25 - 0.5*log(rand));
+    e.trials.add('onset', ExponentialDistribution('offset', 0.25, 'tau', 0.5));
 
     e.trials.setDisplayFunc(@showCalibration);
     

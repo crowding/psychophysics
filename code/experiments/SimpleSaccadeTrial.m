@@ -1,12 +1,13 @@
 function this = SimpleSaccadeTrial(varargin)
 
-    fixationOnset = 0.2; %measured from 'begin'
+    fixationOnset = 0.5; %measured from 'begin'
     fixationPointLoc = [0 0];
     fixationPointSize = 0.2;
     fixationPointColor = 0;
     
-    fixationWindow = 3;
+    fixationWindow = 2;
     fixationTime = 1; %the maximum fixation time.
+    fixationLatency = 1; %how long to wait for acquiring fixation
     %If the target appears before then expect a saccade. Else just give a
     %reward.
     
@@ -22,12 +23,14 @@ function this = SimpleSaccadeTrial(varargin)
 
     targetBlank = 0.5; %after this much time on screen, the target will dim
     targetBlankColor = 0.75; %the target will dim to this color
-     
+    
     targetFixationTime = 0.5;
+    targetWindow = 5;
     
     errorTimeout = 1;
     
     rewardSize = 100;
+    rewardTargetBonus = 0.25; %ms reward per ms of tracking
     
     f1_ = figure(1); clf;
     a1_ = axes();
@@ -77,20 +80,22 @@ function this = SimpleSaccadeTrial(varargin)
             onset_ = k.next;
             fix.setVisible(1);
             trigger.first ...
-                ( atLeast('eyeFt', k.next + maxLatency), @failed, 'eyeFt' ...
+                ( atLeast('eyeFt', k.next + fixationLatency), @failed, 'eyeFt' ...
                 , circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @fixate, 'eyeFt' ...
                 );
         end
         
+        fixationOnset_ = 0;
         function fixate(k)
+            fixationOnset_ = k.triggerTime;
             if fixationTime < targetOnset
                 trigger.first ...
-                    ( atLeast('eyeFt', k.triggerTime + fixationTime), @success, 'eyeFt' ...
+                    ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt' ...
                     );
             else
                 trigger.first ...
-                    ( atLeast('eyeFt', k.triggerTime + targetOnset), @showTarget, 'eyeFt' ...
+                    ( atLeast('eyeFt', fixationOnset_ + targetOnset), @showTarget, 'eyeFt' ...
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt' ...
                     );
             end
@@ -100,11 +105,11 @@ function this = SimpleSaccadeTrial(varargin)
             targ.setVisible(1);
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
             if t > targetBlank
-                trigger.singleshot(atLeast('next', onset_ + targetOnset + targetBlank), @blankTarget);
+                trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
             else
                 trigger.first ...
                     ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt'...
-                    , atLeast('next', onset_ + targetOnset + t), @hideFixation, 'next'...
+                    , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
                     );
             end
         end
@@ -113,7 +118,7 @@ function this = SimpleSaccadeTrial(varargin)
             targ.setColor(color(targetBlankColor));
             trigger.first ...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt'...
-                , atLeast('next', onset_ + targetOnset + t), @hideFixation, 'next'...
+                , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
                 );
         end
 
@@ -121,7 +126,7 @@ function this = SimpleSaccadeTrial(varargin)
             fix.setVisible(0);
             
             trigger.first...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), fixationWindow), @fixateTarget, 'eyeFt'...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @fixateTarget, 'eyeFt'...
                 , atLeast('eyeFt', k.next + maxLatency), @failed, 'eyeFt' ...
                 );
         end
@@ -129,15 +134,16 @@ function this = SimpleSaccadeTrial(varargin)
         function fixateTarget(k)
             targ.setColor(color(targetColor));
             trigger.first...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), fixationWindow), @failed, 'eyeFt'...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @failed, 'eyeFt'...
                 , atLeast('eyeFt', k.triggerTime + targetFixationTime), @success, 'eyeFt'...
                 );
         end
             
         function success(k)
             fix.setVisible(0);
-            [rewardAt, when] = params.input.eyes.reward(k.refresh, rewardSize);
-            trigger.singleshot(atLeast('next', when + rewardSize/1000 + 0.1), @endTrial);
+            rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime)
+            [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
+            trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);
         end
         
         function failed(k)
