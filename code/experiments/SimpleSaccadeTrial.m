@@ -140,7 +140,7 @@ function this = SimpleSaccadeTrial(varargin)
             
         function success(k)
             fix.setVisible(0);
-            trigger.remove([blinkhandle_ dimhandle_]);
+            trigger.remove([blinkhandle_ blankhandle_]);
             rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime)
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
             trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);

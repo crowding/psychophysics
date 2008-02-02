@@ -1,6 +1,6 @@
 function this = DistractedFixationTrial(varargin)
 
-    fixationPointLoc = [0 0];
+    fixationPointLoc = [0;0];
     fixationPointSize = 0.2;
     fixationPointColor = 0;
     distractorSize = 1;
@@ -32,7 +32,7 @@ function this = DistractedFixationTrial(varargin)
         
         result = struct('success', 0);
         fix = FilledDisk('loc', fixationPointLoc, 'radius', fixationPointSize, 'color', color(fixationPointColor));
-        dist = FilledDisk('loc', fixationPointLoc + [cos(distractorPhase), -sin(distractorPhase)]*distractorRadius, 'radius', distractorSize, 'color', color(distractorColor));
+        dist = FilledDisk('loc', fixationPointLoc + [cos(distractorPhase);-sin(distractorPhase)]*distractorRadius, 'radius', distractorSize, 'color', color(distractorColor));
         
         trigger = Trigger();
 
@@ -60,14 +60,14 @@ function this = DistractedFixationTrial(varargin)
                 );
             trigger.first ...
                 ( atLeast('eyeFt', k.next + maxLatency), @failed, 'eyeFt' ...
-                , circularWindowEnter('eyeFx', 'eyeFy', fixationPointLoc, fixationWindow), @fixate, 'eyeFt' ...
+                , circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixationPointLoc, fixationWindow), @fixate, 'eyeFt' ...
                 );
         end
         
         function fixate(k)
             trigger.first ...
                 ( atLeast('eyeFt', onset_ + maxLatency + fixationTime), @success, 'eyeFt' ...
-                , circularWindowExit('eyeFx', 'eyeFy', fixationPointLoc, fixationWindow), @failed, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixationPointLoc, fixationWindow), @failed, 'eyeFt' ...
                 );
         end
         

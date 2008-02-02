@@ -106,8 +106,6 @@ end
     end
 
     function [release, params] = clearset(params)
-        clear PsychHID;
-        clear pnet;
         release = @noop;
     end
 

@@ -138,7 +138,11 @@ function this = Trigger(varargin)
         for i = 1:size(triggers, 1)
             [ch, delete, args, handle] = triggers{i-ndeleted, :};
             if handle
-                [whether, s] = ch(s, args{:});
+                try
+                    [whether, s] = ch(s, args{:});
+                catch
+                   rethrow(lasterror); 
+                end
                 triggers = triggers_.(name); %checking can add a trigger to the end or mark deleted.
                 
                 if any(whether)
@@ -170,7 +174,7 @@ function this = Trigger(varargin)
         %check() will actually delete them.
         triggers = triggers_.(name);
         [deleted, ia] = intersect([triggers{:,4}], handle);
-        triggers(4,ia) = {0};
+        triggers(ia,4) = {0};
         removed = numel(ia);
         triggers_.(name) = triggers;
     end
