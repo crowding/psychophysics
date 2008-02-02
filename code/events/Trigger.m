@@ -11,11 +11,13 @@ function this = Trigger(varargin)
     end
 
     name = sprintf('t%d', counter_);
-    triggers_.(name) = cell(0,3);
+    triggers_.(name) = cell(0,4);
     counter_ = counter_ + 1;
     
     log = @noop;
     events = cell(0,2);
+    
+    handlecounter_ = 1;
     
     persistent init__;
     this = autoobject(varargin{:});
@@ -24,8 +26,10 @@ function this = Trigger(varargin)
         log = s;
     end
         
-    function singleshot(checker, fn)
-        triggers_.(name)(end+1,:) = {@checkSingle_, 1, {checker, fn}};
+    function handle = singleshot(checker, fn)
+        handle = handlecounter_;
+        triggers_.(name)(end+1,:) = {@checkSingle_, 1, {checker, fn}, handlecounter_};
+        handlecounter_ = handlecounter_+1;
     end
 
     function [t, k] = checkSingle_(k, checker, fn)
@@ -37,27 +41,33 @@ function this = Trigger(varargin)
         end
     end
 
-    function multishot(checker, fn)
+    function handle = multishot(checker, fn)
         %adds a checker persistently. There is no removing other than by a
         %panic trigger.
-        triggers_.(name)(end+1,:) = {@checkSingle_, 0, {checker, fn}};
+        handle = handlecounter_;
+        triggers_.(name)(end+1,:) = {@checkSingle_, 0, {checker, fn}, handlecounter_};
+        handlecounter_ = handlecounter_+1;
     end
 
 
-    function panic(checker, fn)
+    function handle = panic(checker, fn)
         %adds a checker that will clear out all checkers including itself.
-        triggers_.(name)(end+1,:) = {@checkSingle_, 2, {checker, fn}};
+        handle = handlecounter_;
+        triggers_.(name)(end+1,:) = {@checkSingle_, 2, {checker, fn}, handlecounter_};
+        handlecounter_ = handlecounter_+1;
     end
 
 
-    function mutex(varargin)
+    function handle = mutex(varargin)
         %checks for one of several mutually exclusive conditions. 
         %Note, only single shot makes sense with this method. (think about
         %why-- for multishot or panics there is no effective difference.
         checkers = varargin(1:2:end);
         fns = varargin(2:2:numel(checkers) * 2);
         
-        triggers_.(name)(end+1,:) = {@checkMutex_, 1, {checkers, fns}};
+        handle = handlecounter_;
+        triggers_.(name)(end+1,:) = {@checkMutex_, 1, {checkers, fns}, handlecounter_};
+        handlecounter_ = handlecounter_+1;
     end
 
     function [t, k] = checkMutex_(k, checkers, fns)
@@ -72,7 +82,7 @@ function this = Trigger(varargin)
         end
     end
 
-    function first(varargin)
+    function handle = first(varargin)
         %In the case that multiple conditions prove true during a frame,
         %takes the first one and executes it, removing the trigger afterwards.
         %To accomplish this, each condition must have an associated time
@@ -80,7 +90,9 @@ function this = Trigger(varargin)
         
         args = reshape(varargin, 3, []);
         
-        triggers_.(name)(end+1,:) = {@runFirst_, 1, {args}};
+        handle = handlecounter_;
+        triggers_.(name)(end+1,:) = {@runFirst_, 1, {args}, handlecounter_};
+        handlecounter_ = handlecounter_ + 1;
     end
 
     function [ttr,k] = runFirst_(k, args)
@@ -117,31 +129,50 @@ function this = Trigger(varargin)
         end
     end
 
-
-    function s = check(s) %19368 calls, 32.881 sec
+    function s = check(s) %19368 calls, 32.881 sec on pastorianus
+        
         triggers = triggers_.(name);
         ndeleted = 0; %number deleted
+        
         nt = size(triggers, 1);
         for i = 1:size(triggers, 1)
-            ch = triggers{i-ndeleted, 1};
-            delete = triggers{i-ndeleted, 2};
-            args = triggers{i-ndeleted, 3};
-            [whether, s] = ch(s, args{:});
-            triggers = triggers_.(name); %whoops, checking can add a trigger
-        
-            if any(whether)
-                if delete == 1
-                    triggers(i-ndeleted,:) = [];
-                    ndeleted = ndeleted + 1;
-                    triggers_.(name) = triggers;
-                elseif delete == 2
-                    %panic and delete all
-                    triggers_.(name) = triggers;
-                    triggers(1:nt-ndeleted, :) = [];
-                    break; %nothing more to do
+            [ch, delete, args, handle] = triggers{i-ndeleted, :};
+            if handle
+                [whether, s] = ch(s, args{:});
+                triggers = triggers_.(name); %checking can add a trigger to the end or mark deleted.
+                
+                if any(whether)
+                    if delete == 1
+                        triggers(i-ndeleted,:) = [];
+                        ndeleted = ndeleted + 1;
+                        triggers_.(name) = triggers;
+                    elseif delete == 2
+                        %panic and delete all
+                        triggers_.(name) = triggers;
+                        triggers(1:nt-ndeleted, :) = [];
+                        triggers_.(name) = triggers;
+                        break; %nothing more to do
+                    end
                 end
+            else
+                %checkers marked 0 are to be deleted.
+                triggers(i-ndeleted,:) = [];
+                ndeleted = ndeleted + 1;
+                triggers_.(name) = triggers;
+                delete = 1;
             end
         end
+    end
+
+    function removed = remove(handle)
+        %deletes a trigger by its handle.
+        %This just marks the trigger deleted. (by setting the handle equal to 0).
+        %check() will actually delete them.
+        triggers = triggers_.(name);
+        [deleted, ia] = intersect([triggers{:,4}], handle);
+        triggers(4,ia) = {0};
+        removed = numel(ia);
+        triggers_.(name) = triggers;
     end
 
     function [release, params] = init(params)

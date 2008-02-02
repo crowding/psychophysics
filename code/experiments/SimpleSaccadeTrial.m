@@ -30,7 +30,7 @@ function this = SimpleSaccadeTrial(varargin)
     errorTimeout = 1;
     
     rewardSize = 100;
-    rewardTargetBonus = 0.25; %ms reward per ms of tracking
+    rewardTargetBonus = 0.0; %ms reward per ms of tracking
     
     f1_ = figure(1); clf;
     a1_ = axes();
@@ -68,8 +68,6 @@ function this = SimpleSaccadeTrial(varargin)
             , 'triggers', {trigger} ...
             );
         
-        params = main.go(params);
-        
         %EVENT HANDLERS
         
         function begin(k)
@@ -86,6 +84,7 @@ function this = SimpleSaccadeTrial(varargin)
         end
         
         fixationOnset_ = 0;
+        blinkhandle_ = -1;
         function fixate(k)
             fixationOnset_ = k.triggerTime;
             if fixationTime < targetOnset
@@ -99,27 +98,26 @@ function this = SimpleSaccadeTrial(varargin)
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt' ...
                     );
             end
+            
+            %from now on, blinks are not allowed. How to do this? It'd be
+            %nice to have handles to the triggers! Ah.
+            blinkhandle_ = trigger.singleshot ...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [0;0], 40), @failed);
         end
         
+        blankhandle_ = -1;
         function showTarget(k)
             targ.setVisible(1);
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
-            if t > targetBlank
-                trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
-            else
-                trigger.first ...
-                    ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt'...
-                    , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
-                    );
-            end
-        end
-        
-        function blankTarget(k)
-            targ.setColor(color(targetBlankColor));
+            blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
             trigger.first ...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt'...
                 , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
                 );
+        end
+        
+        function blankTarget(k)
+            targ.setColor(color(targetBlankColor));
         end
 
         function hideFixation(k)
@@ -133,6 +131,7 @@ function this = SimpleSaccadeTrial(varargin)
         
         function fixateTarget(k)
             targ.setColor(color(targetColor));
+            trigger.remove(blankhandle_);
             trigger.first...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @failed, 'eyeFt'...
                 , atLeast('eyeFt', k.triggerTime + targetFixationTime), @success, 'eyeFt'...
@@ -141,6 +140,7 @@ function this = SimpleSaccadeTrial(varargin)
             
         function success(k)
             fix.setVisible(0);
+            trigger.remove([blinkhandle_ dimhandle_]);
             rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime)
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
             trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);
@@ -148,7 +148,7 @@ function this = SimpleSaccadeTrial(varargin)
         
         function failed(k)
             result.success = 0;
-            
+            trigger.remove([blinkhandle_ blankhandle_]);
             fix.setVisible(0);
             targ.setVisible(0);
             targ.setColor(params.backgroundIndex); %hack, in case it shows...
@@ -168,13 +168,14 @@ function this = SimpleSaccadeTrial(varargin)
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
         end
         
-        %END
+        %END EVENT HANDLERS
+        params = main.go(params);
         
         d = params.input.eyes.getData();
         d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
         e = trigger.getEvents();
         
-        axes(a1_); cla
+        axes(a1_); cla;
         hold on;
         
         %x- any y- locations of the trace
