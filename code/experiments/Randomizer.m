@@ -266,7 +266,7 @@ this = Obj(autoobject(varargin{:}));
         for i = 1:numel(assignments)
 
             r = assignments(i);
-            val = r.values;
+            val = ev(r.values, object);
             
             %{
 if isa(r.values, 'function_handle')
@@ -282,7 +282,11 @@ if isa(r.values, 'function_handle')
             
             if iscell(r.subs)
                 for j = 1:numel(r.subs)
+                    try
                     v = ev(val{j}, object);
+                    catch
+                        rethrow(lasterror);
+                    end
                     dump(v, @printf, [name substruct2str(r.subs{j})]);
                     object = subsasgn(object, r.subs{j}, v);
                 end

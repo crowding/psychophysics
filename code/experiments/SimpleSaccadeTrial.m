@@ -139,6 +139,7 @@ function this = SimpleSaccadeTrial(varargin)
         end
             
         function success(k)
+            result.success = 1;
             fix.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
             rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime)
@@ -188,7 +189,11 @@ function this = SimpleSaccadeTrial(varargin)
         %what height should we draw text at
         labels = regexprep(e(:,2), '.*/', '');
         times = [e{:,1}]' - onset_;
-        heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
+        if size(d, 2) >= 2
+            heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
+        else
+            heights = zeros(size(times));
+        end
         t = text(times, heights+1, labels, 'rotation', 90);
 
         %make sure the graph is big enough to hold the labels

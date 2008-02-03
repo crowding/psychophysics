@@ -85,6 +85,7 @@ function this = EyeCalibrationTrial(varargin)
         ylim([-20 20]);
         hold off;
         
+%{
         axes(a2_); cla();
         hold on;
         plot(d(1,:), d(2,:), 'r-');
@@ -108,6 +109,7 @@ function this = EyeCalibrationTrial(varargin)
         ylim([-20 20]);
         axis equal;
         hold off;
+%}
         
         drawnow;
         
@@ -145,7 +147,9 @@ function this = EyeCalibrationTrial(varargin)
                 );
         end
         
+        settleTime_ = -1;
         function settle(s)
+            settleTime_ = s.triggerTime;
             trigger.first...
                 ( atLeast('eyeFt', s.triggerTime + settleTime), @fixate, 'eyeFt' ...
                 );
@@ -156,7 +160,7 @@ function this = EyeCalibrationTrial(varargin)
             trigger.first ...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [s.eyeFx(s.triggerIndex);s.eyeFy(s.triggerIndex)], fixWindow), @failed, 'eyeFt' ...
                 , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [targetX;targetY], absoluteWindow), @failed, 'eyeFt' ...
-                , atLeast('eyeFt', s.triggerTime + fixDuration), @success, 'eyeFt' ...
+                , atLeast('eyeFt', settleTime_ + fixDuration), @success, 'eyeFt' ...
                 );
         end
         

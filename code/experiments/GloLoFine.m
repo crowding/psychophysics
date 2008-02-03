@@ -58,7 +58,7 @@ function e = GloLoAdjustment(varargin)
     e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(1,3,49));
     
     %The bar origin is random around the circle and orientation follows
-    e.trials.add({'motion.phase', 'motion.angle'}, @()num2cell(rand()*2*pi * [1 180/pi] + [0 90]));
+    e.trials.add({'motion.phase', 'motion.angle'}, @(x)num2cell(rand()*2*pi * [1 180/pi] + [0 90]));
 
     %and for each trial pick an appropriate bar phase based on these
     %add some noise to the bar phase to avoid hysteresis

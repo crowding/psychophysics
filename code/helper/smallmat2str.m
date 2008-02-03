@@ -30,8 +30,6 @@ elseif isempty(mat)
     if nargin > 1 && ~isa(mat, 'double')
         m = [class(mat), '(', m, ')'];
     end
-
-
 else
     m = sprintf('%.15g ', mat');
     %FIXME: weird-zero-size-arrays

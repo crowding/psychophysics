@@ -36,7 +36,7 @@ function this = Trigger(varargin)
     function [t, k] = checkSingle_(k, checker, fn)
         [t,k] = checker(k);
         if any(t)
-            log('TRIGGER %s %s', func2str(fn), struct2str(rmfield(k,notlogged)));
+            log('TRIGGER %s %s', func2str(fn), struct2str(srmfield(k,notlogged)));
             fn(k);
             events(end+1,:) = {k.next, func2str(fn)};
         end
@@ -76,7 +76,7 @@ function this = Trigger(varargin)
             [t, k] = checkers{i}(k);
             if any(t)
                 fns{i}(k);
-                log('TRIGGER %s %s', func2str(fns{i}), struct2str(rmfield(k,notlogged)));
+                log('TRIGGER %s %s', func2str(fns{i}), struct2str(srmfield(k,notlogged)));
                 events(end+1,:) = {k.next, func2str(fn)};
                 break;
             end
@@ -125,7 +125,7 @@ function this = Trigger(varargin)
             k.triggerTime = tt;
             k.triggerIndex = ii;
             ffn(k);
-            log('TRIGGER %s %s', func2str(ffn), struct2str(rmfield(k,notlogged)));
+            log('TRIGGER %s %s', func2str(ffn), struct2str(srmfield(k,notlogged)));
             events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end
     end
@@ -187,8 +187,7 @@ function this = Trigger(varargin)
         release = @clear;
         
         function clear
-            triggers_ = rmfield(triggers_, name);
+            triggers_ = srmfield(triggers_, name);
         end
     end
-
 end
