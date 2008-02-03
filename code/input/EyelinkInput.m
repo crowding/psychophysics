@@ -277,6 +277,11 @@ function this = EyelinkInput(varargin)
         [details.clockoffset, details.clockoffsetMeasured] = getclockoffset(details);
         clockoffset_ = details.clockoffset;
         
+        %This field will be set to empty by mainLoop. I will tell it what
+        %event fields to remove from the log. Then trigger software will
+        %remove them before logging.
+        details.notlogged = union(details.notlogged, {'eyeX', 'eyeY', 'eyeT'});
+        
         samples_ = 0.9 * sin(linspace(0, 750*2*pi, freq_));
         
         if dummy_

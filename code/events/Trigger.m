@@ -15,6 +15,7 @@ function this = Trigger(varargin)
     counter_ = counter_ + 1;
     
     log = @noop;
+    notlogged = {};
     events = cell(0,2);
     
     handlecounter_ = 1;
@@ -35,7 +36,7 @@ function this = Trigger(varargin)
     function [t, k] = checkSingle_(k, checker, fn)
         [t,k] = checker(k);
         if any(t)
-            log('TRIGGER %s %s', func2str(fn), struct2str(k));
+            log('TRIGGER %s %s', func2str(fn), struct2str(rmfield(k,notlogged)));
             fn(k);
             events(end+1,:) = {k.next, func2str(fn)};
         end
@@ -75,7 +76,7 @@ function this = Trigger(varargin)
             [t, k] = checkers{i}(k);
             if any(t)
                 fns{i}(k);
-                log('TRIGGER %s %s', func2str(fns{i}), struct2str(k));
+                log('TRIGGER %s %s', func2str(fns{i}), struct2str(rmfield(k,notlogged)));
                 events(end+1,:) = {k.next, func2str(fn)};
                 break;
             end
@@ -124,7 +125,7 @@ function this = Trigger(varargin)
             k.triggerTime = tt;
             k.triggerIndex = ii;
             ffn(k);
-            log('TRIGGER %s %s', func2str(ffn), struct2str(k));
+            log('TRIGGER %s %s', func2str(ffn), struct2str(rmfield(k,notlogged)));
             events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end
     end
@@ -138,11 +139,7 @@ function this = Trigger(varargin)
         for i = 1:size(triggers, 1)
             [ch, delete, args, handle] = triggers{i-ndeleted, :};
             if handle
-                try
-                    [whether, s] = ch(s, args{:});
-                catch
-                   rethrow(lasterror); 
-                end
+                [whether, s] = ch(s, args{:});
                 triggers = triggers_.(name); %checking can add a trigger to the end or mark deleted.
                 
                 if any(whether)
@@ -163,7 +160,6 @@ function this = Trigger(varargin)
                 triggers(i-ndeleted,:) = [];
                 ndeleted = ndeleted + 1;
                 triggers_.(name) = triggers;
-                delete = 1;
             end
         end
     end
@@ -184,6 +180,9 @@ function this = Trigger(varargin)
         if ~isfield(triggers_, name)
             triggers_.(name) = cell(0,3);
         end
+        
+        %set the notlogged parameter to avoid logging some (tl;dr) fields.
+        notlogged = params.notlogged;
         
         release = @clear;
         

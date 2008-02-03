@@ -357,7 +357,7 @@ toDegrees_ = @noop;
 
     function init = startInput()
         input = interface(struct('input', {}, 'begin', {}, 'sync', {}), input);
-        init = joinResource(input.begin);
+        init = joinResource(struct('notlogged', {}), input.begin);
     end
         
     function drawTriggers(window, toPixels)
