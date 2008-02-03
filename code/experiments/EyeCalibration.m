@@ -2,12 +2,13 @@ function e = EyeCalibration(varargin)
 
     e = Experiment(varargin{:});
     e.trials.base = EyeCalibrationTrial();
-    e.trials.base.absoluteWindow = 3;
+    e.trials.base.absoluteWindow = 5;
     e.trials.base.maxLatency = 0.5;
-    e.trials.base.fixDuration = 1.5;
+    e.trials.base.fixDuration = 1.0;
     e.trials.base.fixWindow = 2.5;
     e.trials.base.rewardDuration = 200;
     e.trials.base.settleTime = 0.2;
+    e.trials.base.targetRadius = 0.2;
 
     e.trials.add('targetY', linspace(-10, 10, 9));
     e.trials.add('targetX', linspace(-10, 10, 9));
@@ -29,14 +30,31 @@ function e = EyeCalibration(varargin)
         r = results(max(1,end-history):end);
         i = interface(struct('target', {}, 'endpoint', {}), r);
         t = cat(1, i.target);
-        e = cat(1, i.endpoint);
+        endpoints = cat(1, i.endpoint);
         axes(ax); cla; hold on;
         plot(t(:,1), t(:,2), 'g.', e(:,1), e(:,2), 'rx');
-        line([t(:,1)';e(:,1)'], [t(:,2)';e(:,2)'], 'Color', 'b');
+        line([t(:,1)';endpoints(:,1)'], [t(:,2)';endpoints(:,2)'], 'Color', 'b');
         axis equal;
         drawnow;
         history = history + 1;
         
+        %solve the calibration...
+        orig_offset = e.params.input.eyes.getOffset();
+        orig_slope = e.params.input.eyes.getSlope();
+        raw = endpoints'/orig_slope - orig_offset(:, ones(1, numel(i)));
+        
+        if numel(i) >= 3
+            %this solution works easiest in affine coordinates
+            atarg = t';
+            atarg(3,:) = 1;
+            araw = raw;
+
+            %araw * amat = atarg (in least squares sense)
+            amat = araw \ atarg;
+            calib = araw * amat;
+            
+            plot(calib(1,:), calib(2,:), 'b+');
+        end
     end
     
 end
