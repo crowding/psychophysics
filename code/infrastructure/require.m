@@ -123,8 +123,6 @@ if numel(varargin) > 1
             err = adderror(lasterror, err);
         end
         try
-            l = lasterror;
-            
             resourcecheck(s);
             releaser();
         catch

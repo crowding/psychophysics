@@ -269,7 +269,7 @@ this = Obj(autoobject(varargin{:}));
             val = ev(r.values, object);
             
             %{
-if isa(r.values, 'function_handle')
+            if isa(r.values, 'function_handle')
                 fn = r.values;
 
                 if nargin(fn) == 0
@@ -277,7 +277,7 @@ if isa(r.values, 'function_handle')
                 else
                     val = fn(object);
                 end
-        end
+            end
             %}
             
             if iscell(r.subs)

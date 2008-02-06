@@ -53,6 +53,7 @@ function this = EyeCalibrationTrial(varargin)
         params = main.go(params);
         %params.log = old;
         
+        %{
         %% here is the part where we plot
 
         %show the trial results.
@@ -85,7 +86,7 @@ function this = EyeCalibrationTrial(varargin)
         ylim([-20 20]);
         hold off;
         
-%{
+        %{
         axes(a2_); cla();
         hold on;
         plot(d(1,:), d(2,:), 'r-');
@@ -109,9 +110,12 @@ function this = EyeCalibrationTrial(varargin)
         ylim([-20 20]);
         axis equal;
         hold off;
-%}
+        %}
         
         drawnow;
+
+        
+        %}
         
         function begin(s)
             %set a watchdog timer...

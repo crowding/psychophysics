@@ -21,9 +21,14 @@ function this = LabJackInput(varargin)
 % /etc/sysctl.conf (you can create this file if it doesn't exist.)
 
 %%
+persistent slope;
+persistent offset;
 lj = LabJackUE9();
-slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
-offset = [0;0]; % the eye position offset
+
+if isempty(slope)
+    slope = 10 * eye(2); % a 2*2 matrix relating voltage to eye position
+    offset = [0;0]; % the eye position offset
+end
 
 persistent init__; %#ok
 this = autoobject(varargin{:});

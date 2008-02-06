@@ -9,6 +9,7 @@ function e = EyeCalibration(varargin)
     e.trials.base.rewardDuration = 100;
     e.trials.base.settleTime = 0.4;
     e.trials.base.targetRadius = 0.2;
+    e.trials.base.onset = 0;
 
     e.trials.add('targetY', linspace(-10, 10, 5));
     e.trials.add('targetX', linspace(-10, 10, 5));
@@ -20,17 +21,34 @@ function e = EyeCalibration(varargin)
     handle = figure(3); clf;
     ax = axes();
     history = 0;
-    set(handle, 'ButtonDownFcn', @clear)
+    set(handle, 'ButtonDownFcn', @click)
     
     orig_offset = e.params.input.eyes.getOffset();
+    setOffset = e.params.input.eyes.setOffset;
     orig_slope = e.params.input.eyes.getSlope();
+    setSlope = e.params.input.eyes.setSlope;
+    amat = [orig_slope orig_offset ; 0 0 1];
 
-    function clear(x, y)
+    function click(src, eventdata, stuff)
         %for speed, we stop using e...
         e = [];
-        
-        history = 0;
+        switch get(src, 'selectiontype')
+            case 'normal' %left click
+                history = 0;
+            case 'alt' %right click
+                if history >= 5 && ~isempty(amat)
+                    %set the offset and slope...
+                    slope = amat([1 2], [1 2])
+                    setSlope(slope);
+                    orig_slope = slope;
+                    offset = amat([1 2], 3)
+                    setOffset(offset);
+                    orig_offset = offset;
+                end
+                history = 0;
+        end
     end
+
     
     function showCalibration(results)
         %for speed, we stop using e...
@@ -48,9 +66,9 @@ function e = EyeCalibration(varargin)
         history = history + 1;
         
         %solve the calibration...
-        raw = orig_slope\endpoints' - orig_offset(:, ones(1, numel(i)));
+        raw = orig_slope\(endpoints' - orig_offset(:, ones(1, numel(i))));
         
-        if numel(i) >= 3
+        if numel(i) >= 5
             %this solution works easiest in affine coordinates
             atarg = t';
             atarg(3,:) = 1;
@@ -62,7 +80,10 @@ function e = EyeCalibration(varargin)
             
             plot(calib(1,:), calib(2,:), 'b+');        
             line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
+            
+            %set the offset and slope...
         end
+        title('left click to clear. Right click to apply calibration.');
     end
     
 end

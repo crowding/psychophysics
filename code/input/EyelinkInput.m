@@ -7,7 +7,7 @@ function this = EyelinkInput(varargin)
     
     streamData = 1; %data streaming would be good...
     
-    recordFileSamples = 1;
+    recordFileSamples = 0;
     recordFileEvents = 0;
     recordLinkSamples = 1;
     recordLinkEvents = 0;
@@ -27,9 +27,13 @@ function this = EyelinkInput(varargin)
         );
     
     data = zeros(0,3);
-    
-    slope = 1 * eye(2); % a 2*2 matrix relating measured position to output position
-    offset = [0;0]; %the eye position offset
+
+    persistent slope;
+    persistent offset;
+    if isempty(slope)
+        slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
+        offset = [0;0]; % the eye position offset
+    end
 
 %% initialization routines
 
@@ -274,8 +278,10 @@ function this = EyelinkInput(varargin)
         dummy_ = details.dummy;
         window_ = details.window;
 
+        %t1 = GetSecs();
         [details.clockoffset, details.clockoffsetMeasured] = getclockoffset(details);
         clockoffset_ = details.clockoffset;
+        %t1 = GetSecs() - t1
         
         %This field will be set to empty by mainLoop. I will tell it what
         %event fields to remove from the log. Then trigger software will
@@ -291,7 +297,10 @@ function this = EyelinkInput(varargin)
             [push_, readout_] = linkedlist(2);
             
             %status = 
+            %t2 = GetSecs();
+            %this can take a half second if run with high priority?
             Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
+            %t2 = GetSecs() - t2
             
             %It retuns -1 but still records! WTF!@!!
             %if status ~= 0
@@ -306,7 +315,10 @@ function this = EyelinkInput(varargin)
             %clean up our data
             
             %stop recording
+            %t3 = GetSecs();
+            %this can take a half second if run with high priority?
             Eyelink('StopRecording');
+            %t3 = GetSecs() - t3
             %discard the rest...
             while (Eyelink('GetNextDataType'))
             end
@@ -484,7 +496,7 @@ function this = EyelinkInput(varargin)
     end
 
     function predictedclock = eventCode(clockAt, code)
-        predictedClock = clockAt;
+        predictedclock = clockAt;
         log_('EVENT_CODE %d %d %d', clockAt, code, clockAt);
     end
 end
