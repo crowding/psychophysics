@@ -134,7 +134,7 @@ log_ = @noop;
         resp = lj.streamConfig(params.streamConfig);
         assert(strcmp(resp.errorcode, 'NOERROR'), 'error configuring stream');
 
-        params.notlogged = union(params.notlogged, {'eyeX', 'eyeY', 'eyeT', 'rawEyeX', 'rawEyeY', 'rawEyeT'});
+        params.notlogged = union(params.notlogged, {'eyeX', 'eyeY', 'eyeT', 'rawEyeX', 'rawEyeY'});
 
         % {
         %4BF80C18 2D01018E 017F0100 00090000 01000009 00000100 00090000 0000

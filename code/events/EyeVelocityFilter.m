@@ -47,8 +47,13 @@ function this = EyeVelocityFilter(varargin)
         stateX_ = [];
         stateY_ = [];
         
-        params.notlogged = union(params.notlogged, {'eyeVx', 'eyeVy', 'eyeVt', 'eyeFx', 'eyeFy', 'eyeFt'});
-
+        if isfield(params, 'notlogged')
+            pl = params.notlogged;
+        else
+            pl = {};
+        end
+        params.notlogged = union(pl, {'eyeVx', 'eyeVy', 'eyeVt', 'eyeFx', 'eyeFy', 'eyeFt'});
+        
         %approximate the filter delay with the group delay at 0 Hz
         delay_ = mean(grpdelay(b_,a_,[0 0],1000)) * interval_;
         vdelay_ = mean(grpdelay(vb_,va_,[0 0],1000)) * interval_ + interval_/2;
