@@ -18,7 +18,7 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
         %parameters:
         %   'fifo' (in/out) the file
         
-        defaults = struct('fifo', [tempname '.fifo']);
+        defaults = struct('fifo', [tempname '.fifo'], 'matlabout', [tempname]);
         initializer = currynamedargs(@init, defaults, varargin{:});
 
         function [release, params] = init(params)
@@ -87,7 +87,7 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
         initializer = currynamedargs(@init, defaults, varargin{:});
         
         function [releaser, params] = init(params)
-            params = namedargs('env', struct('MATLAB_FIFO', params.fifoin, 'MAKE_FIFO', params.fifoout), params);
+            params = namedargs('env', struct('MATLAB_FIFO', params.fifoin, 'MAKE_FIFO', params.fifoout, 'MATLAB_OUT', params.matlabout), params);
             %'env' is a structure; convert it into initializer strings
             initstring = ...
                 join ...
@@ -100,7 +100,7 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
            
             %we want to execute the command and capture the process
             %ID it is executing under, redirecting the command's output to
-            %the console. (TODO: make it appear in the matlab window
+            %the console? (TODO: make it appear in the matlab window
             %somehow.)
             
             %"rm fifo > fifo" is a trick to open the fifo, delete it, and then
@@ -147,7 +147,7 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
 
     function processfifo(varargin)
         %reads lines from a fifo and evaluates them, until the process
-        %denited by a certain PID is ended.
+        %denoted by a certain PID is ended.
         %
         %parameters:
         %
@@ -180,7 +180,12 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
             %evaluate each line as a command, 
             cmds = splitstr(sprintf('\n'), text);
             cellfun(@disp, cmds);
-            cellfun(@eval, cmds, 'UniformOutput', 0);
+            output = cellfun(@evalc, cmds, 'UniformOutput', 0);
+            
+            %print the output to a temp output file...
+            f = fopen(params.matlabout, 'w+');
+            fprintf('%s\n', output{:});
+            fclose(f);
             
             if exist(params.fifoin, 'file')
                 %MATLAB signals back when its side is done by opening and
@@ -188,6 +193,5 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
                 [s, text] = system(sprintf('echo > %s', params.fifoout));
             end
         end
-        
     end
 end

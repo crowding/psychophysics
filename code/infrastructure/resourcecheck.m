@@ -57,7 +57,7 @@ function stack = resourcecheck(stack, release)
         ns = newstack(max(1, end-numel(oldstack)+2):end);
         r = isequal(os(:), ns(:));
         %add'ly check that we are in the same func at the top of oldstack.
-        if r
+        if r && ~isempty(os)
             r = isequal(oldstack(1).file, newstack(end-numel(oldstack)+1).file) ...
                 && isequal(oldstack(1).name, newstack(end-numel(oldstack)+1).name) ;
         end
