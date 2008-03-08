@@ -1,0 +1,1117 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN">
+<html xmlns:mwsh="http://www.mathworks.com/namespace/mcode/v1/syntaxhighlight.dtd">
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+      <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      -->
+      <title>fdephtml</title>
+      <meta name="generator" content="MATLAB 7.5">
+      <meta name="date" content="2007-11-14">
+      <meta name="m-file" content="fdephtml"><style>
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head>
+   <body>
+      <div class="content">
+         <h2>Contents</h2>
+         <div>
+            <ul>
+               <li><a href="#1">introduction</a></li>
+               <li><a href="#2">TFDEP1: dissection of an M-file</a></li>
+               <li><a href="#3">- prepare the environment</a></li>
+               <li><a href="#4">- the runtime output</a></li>
+               <li><a href="#5">- the listing's panels</a></li>
+               <li><a href="#6">- the contents of selected modules</a></li>
+               <li><a href="#7">- the dependency matrix</a></li>
+               <li><a href="#8">PFDEP4: disscetion of a P-file</a></li>
+               <li><a href="#9">- the runtime output</a></li>
+               <li><a href="#10">- the contents of selected modules</a></li>
+               <li><a href="#12">software developers</a></li>
+               <li><a href="#13">- find modules and show their summary</a></li>
+               <li><a href="#14">- find modules and retrieve their contents</a></li>
+               <li><a href="#19">- find modules in the dependency matrix</a></li>
+               <li><a href="#21">- debug a function</a></li>
+               <li><a href="#25">- checking the independence of a program for distribution</a></li>
+               <li><a href="#27">help</a></li>
+               <li><a href="#28">- for the listing's panels</a></li>
+               <li><a href="#29">- for FDEP [version 14-Nov-2007 13:16:06]</a></li>
+            </ul>
+         </div>
+         <h2>introduction<a name="1"></a></h2><pre class="codeinput"><span class="comment">% FDEP dissects a MATLAB (ML) file and iteratively looks</span>
+<span class="comment">% for all user defined functions (modules), which are</span>
+<span class="comment">% used during runtime</span>
+<span class="comment">%</span>
+<span class="comment">% FDEP retrieves for each module its</span>
+<span class="comment">%	- subfunctions</span>
+<span class="comment">%	- nested functions</span>
+<span class="comment">%	- anonymous functions</span>
+<span class="comment">%	- number of calls to f/eval constructs</span>
+<span class="comment">%    and all</span>
+<span class="comment">%	- ML stock functions</span>
+<span class="comment">%	- ML built-in functions</span>
+<span class="comment">%	- ML classes</span>
+<span class="comment">%	- ML toolboxes</span>
+<span class="comment">%    that it uses</span>
+<span class="comment">%</span>
+<span class="comment">% only ML entities can be extracted from P-files</span>
+<span class="comment">%</span>
+<span class="comment">% runtime options and returned macros create user-friendly,</span>
+<span class="comment">% comprehensible, and interactive GUIs, which</span>
+<span class="comment">%	- list the results in various panels</span>
+<span class="comment">%	- plot a full dependency matrix</span>
+<span class="comment">%</span>
+<span class="comment">% in essence, FDEP is a wrapper for DEPFUN and MLINT; however, due to</span>
+<span class="comment">% an efficient pruning engine it is considerably faster</span>
+<span class="comment">%</span>
+<span class="comment">% simple benchmark</span>
+<span class="comment">%	system 1		=	ic2 / 2*2.4ghz / 2gb  / winvista  / r2007b</span>
+<span class="comment">%	system 2		=	 p4 / 1.4ghz   / 512m / win2k.sp4 / r2007b</span>
+<span class="comment">%				no background jobs</span>
+<span class="comment">%				no internet connection</span>
+<span class="comment">%				computer restarted for each test</span>
+<span class="comment">%				result [s] of 5 runs in a loop</span>
+<span class="comment">%</span>
+<span class="comment">%				system 1		 system 2</span>
+<span class="comment">%	fdep('tfdep1');	=	 21.46		  72.46 s</span>
+<span class="comment">%	depfun('tfdep1');	=	458.27		2544.40 s</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% please use a small font size in your browser for best formatting results</span>
+<span class="comment">% of this HTML document</span>
+<span class="comment">%</span>
+<span class="comment">% us	14-Nov-2007 13:16:06</span>
+</pre><h2>TFDEP1: dissection of an M-file<a name="2"></a></h2><pre class="codeinput"><span class="comment">% NOTE</span>
+<span class="comment">% - some TFDEP test files contain proprietary functions, which you will NOT have</span>
+<span class="comment">%   therefore, this demo file - FDEPHTML.M - is NOT part of the package</span>
+<span class="comment">% - the test files are included for instructional purposes</span>
+<span class="comment">% - TFDEP3 will run in your environment</span>
+<span class="comment">% - look at this HTML in a small font to see proper formatting</span>
+</pre><h2>- prepare the environment<a name="3"></a></h2><pre class="codeinput"><span class="comment">% create P-files needed for TFDEP2 and TFDEP4</span>
+<span class="comment">% - the M-file associated TFDEP4.P</span>
+<span class="comment">% - the standalone PFDEP4.P</span>
+
+	delete	<span class="string">*fdep4.p</span>;
+	pcode	<span class="string">tfdep4</span>;
+	copyfile	<span class="string">tfdep4.p</span> <span class="string">pfdep4.p</span>;
+
+<span class="comment">% clear functions and variables, which will be assigned during this demo</span>
+
+	clear	<span class="string">fdep</span> <span class="string">d</span> <span class="string">m</span> <span class="string">p</span> <span class="string">pp</span> <span class="string">s</span>;
+</pre><h2>- the runtime output<a name="4"></a></h2><pre class="codeinput"><span class="comment">% SYNTAX</span>
+<span class="comment">%	runtime	:	p=fdep(FILE,OPT1,...,OPTn);</span>
+<span class="comment">%	off-line	:</span>
+<span class="comment">%			p.rtree</span>
+<span class="comment">%			- sparse runtime output as seen during in the command window</span>
+<span class="comment">%			  unless option [-q] is set</span>
+<span class="comment">%			p.tree</span>
+<span class="comment">%			- verbose runtime output</span>
+
+	p=fdep(<span class="string">'tfdep1'</span>,<span class="string">'-q'</span>);
+
+<span class="comment">%  column#	description</span>
+<span class="comment">%  ---------------------------------------------------------------------------</span>
+<span class="comment">%	1	# of the module when first detected during runtime</span>
+<span class="comment">%	2	callers depth of the module</span>
+<span class="comment">%	3	name of the module preceeded by a depth guide</span>
+<span class="comment">%	4	special attributes of the module</span>
+<span class="comment">%			R: module calls itself (recursive)</span>
+<span class="comment">%			E: module uses an EVAL/EVALIN/EVALC/FEVAL construct</span>
+<span class="comment">%			S: module is a SCRIPT</span>
+<span class="comment">%			P: moudle is or has a P-file</span>
+<span class="comment">%	5	# of calls to other modules in this function</span>
+<span class="comment">%	6	name of the module that is called -or-</span>
+<span class="comment">%		references to previously detected modules during runtime</span>
+<span class="comment">%</span>
+<span class="comment">%	example</span>
+<span class="comment">%		module	38 = &lt;chkoptn&gt; calls 2 previously found modules</span>
+<span class="comment">%			20 = &lt;getoptn&gt;</span>
+<span class="comment">%			24 = &lt;setoptn&gt;</span>
+
+	disp(p.rtree);
+</pre><pre class="codeoutput">1    1 : | tfdep1             RE   1: F:\usr\matlab\dmap\eastat.m         
+2    2 :   | eastat                1: F:\usr\matlab\dmap\edef.m           
+3    3 :     | edef            E   1: F:\usr\matlab\dmap\epar.m           
+4    4 :       | epar         RE   1: F:\usr\matlab\dmap\ehdisp.m         
+5    5 :         | ehdisp          1: F:\usr\matlab\dmap\ever.m           
+6    6 :         . | ever     R    0:                                     
+7    5 :       . | eparcall   RE   2: 3 6                                 
+8    5 :       . | eparcd          1: 3                                   
+9    5 :         | eparct          1: F:\usr\matlab\dmap\eshow.m          
+10   6 :           | eshow         1: F:\usr\matlab\dmap\fsin.m           
+11   7 :           . | fsin        0:                                     
+12   7 :           . | fspl        0:                                     
+13   5 :       . | eparw       E   0:                                     
+14   3 :   . | sfigm85             0:                                     
+15   3 :   . | sfigm86             0:                                     
+16   3 :   . | sfigm8f3            0:                                     
+17   3 :   . | sfigm8n1            0:                                     
+18   3 :   . | fgauss              0:                                     
+19   3 :   . | xzero               0:                                     
+20   3 :     | getoptn         E   1: F:\usr\matlab\local\gettokn.m       
+21   4 :       | gettokn           1: F:\usr\matlab\local\noblank.m       
+22   5 :       . | noblank         0:                                     
+23   4 :     . | gettok        E   0:                                     
+24   4 :     . | setoptn      RE   4: 20 21 22 23                         
+25   2 :   | foofoo                1: F:\usr\matlab\dmap\ext.m            
+26   3 :     | ext                 1: F:\usr\matlab\dmap\eboxp.m          
+27   4 :       | eboxp             1: F:\usr\matlab\dmap\eboxu.m          
+28   5 :       . | eboxu           0:                                     
+29   4 :       | eget          E   1: F:\usr\matlab\dmap\echeck.m         
+30   5 :       . | echeck      E   1: 4                                   
+31   5 :         | eparl       E   1: F:\usr\matlab\dmap\edisp.m          
+32   6 :         . | edisp         0:                                     
+33   4 :     . | ehelp             1: 4                                   
+34   4 :     . | vadj         R    0:                                     
+35   3 :   . | extlabel            1: 4                                   
+36   3 :   . | cl                  0:                                     
+37   2 :   | tfdep2           RES  1: F:\usr\matlab\tmp\fex\afarg\pfdep4.p
+38   3 :     | pfdep4         R  P 1: F:\usr\matlab\tmp\fex\afarg\tfdep4.p
+39   4 :     . | tfdep4       RE P 2: 24 38                               
+</pre><h2>- the listing's panels<a name="5"></a></h2><pre class="codeinput"><span class="comment">% SYNTAX</span>
+<span class="comment">%	runtime	:	p=fdep(FILE,'-l',...);</span>
+<span class="comment">%	marcros	:</span>
+<span class="comment">%			p.list();</span>
+<span class="comment">%			- select the main function at startup</span>
+<span class="comment">%			p.list(M)</span>
+<span class="comment">%			- select module M at startup</span>
+<span class="comment">%			- M:	module name -or- module#</span>
+<span class="comment">%			pp=p.list(...)</span>
+<span class="comment">%			- returns p in pp including a new macro pp.smod for</span>
+<span class="comment">%			  command line selection of modules</span>
+<span class="comment">%			pp.smod(M)</span>
+<span class="comment">%			- select module M (must be numeric)</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - select module #4/&lt;eastat&gt;</span>
+
+	p.list(4);
+<span class="comment">% -or-	p.list('eastat');</span>
+<span class="comment">% -or-</span>
+<span class="comment">%	pp=p.list();</span>
+<span class="comment">%	pp.smod(4);</span>
+<span class="comment">% -or-	pp.smod('eastat');</span>
+</pre><img vspace="5" hspace="5" src="fdephtml_01.png"> <h2>- the contents of selected modules<a name="6"></a></h2><pre class="codeinput"><span class="comment">% SYNTAX</span>
+<span class="comment">%	macros	:	p.mhelp(M1,M2,...,Mn)</span>
+<span class="comment">%			- show the full synopsis of modules M1,... in separate windows</span>
+<span class="comment">%			- only valid input is shown</span>
+<span class="comment">%			- Mx:	module names -or- module#s</span>
+<span class="comment">%			- valid syntax may include any combination of these</span>
+<span class="comment">%			  input arguments</span>
+<span class="comment">%				- numbers</span>
+<span class="comment">%				- numeric arrays</span>
+<span class="comment">%				- character strings</span>
+<span class="comment">%				- cells of combinations of the above</span>
+<span class="comment">%</span>
+<span class="comment">%			- note this syntax applies for these macros as well</span>
+<span class="comment">%				p.find()</span>
+<span class="comment">%				p.get()</span>
+<span class="comment">%</span>
+<span class="comment">% EXAMPLES</span>
+<span class="comment">%			   p.mhelp(1:2,'mod5','mod6',{3:4,'mod10',5},10:20,100);</span>
+<span class="comment">%</span>
+<span class="comment">%			show the full synopsis of all modules</span>
+<span class="comment">%			   p.mhelp(p.module);</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - function groups are sorted</span>
+<span class="comment">% - all calls found in the file are shown in sequence and may be repeated</span>
+
+<span class="comment">% show the full synopsis of module #1 in a window</span>
+
+	p.mhelp(1);
+<span class="comment">% -or-</span>
+<span class="comment">%	p.mhelp('tfdep1');</span>
+</pre><img vspace="5" hspace="5" src="fdephtml_02.png"> <h2>- the dependency matrix<a name="7"></a></h2><pre class="codeinput"><span class="comment">% SYNTAX</span>
+<span class="comment">%	runtime	:	p=fdep(FILE,'-m',...);</span>
+<span class="comment">%	macros	:</span>
+<span class="comment">%			p.plot();</span>
+<span class="comment">%			- display the dependency matrix</span>
+<span class="comment">%			p.plot(N1,N2,...,Nn);</span>
+<span class="comment">%			- show the information at nodes N1,... at startup</span>
+<span class="comment">%			- only valid nodes are shown</span>
+<span class="comment">%			- Nx:	[M#column,M#row]</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - CLICKING on a module name opens the file in the editor</span>
+<span class="comment">% - CLICKING on a node displays module information and guiding lines</span>
+<span class="comment">% - CLICKING on an empty space in the box clears all guiding lines</span>
+
+	p.plot([1,4],[5,13]);		<span class="comment">% demo: select nodes 1/4 and 5/13</span>
+</pre><img vspace="5" hspace="5" src="fdephtml_03.png"> <h2>PFDEP4: disscetion of a P-file<a name="8"></a></h2>
+         <h2>- the runtime output<a name="9"></a></h2><pre class="codeinput"><span class="comment">% due to formatting issues</span>
+<span class="comment">% - quiet mode</span>
+<span class="comment">% - off-line display</span>
+
+	pp=fdep(<span class="string">'pfdep4.p'</span>,<span class="string">'-q'</span>);
+	disp(char(pp.rtree));
+</pre><pre class="codeoutput">1    1 : | pfdep4            R  P 1: F:\usr\matlab\tmp\fex\afarg\tfdep4.p
+2    2 :   | tfdep4          RE P 1: F:\usr\matlab\unix\setoptn.m        
+3    3 :     | setoptn       RE   1: F:\usr\matlab\local\gettokn.m       
+4    4 :       | gettokn          1: F:\usr\matlab\local\noblank.m       
+5    5 :       . | noblank        0:                                     
+6    4 :       | getoptn      E   1: F:\usr\matlab\unix\gettok.m         
+7    5 :       . | gettok     E   0:                                     
+</pre><h2>- the contents of selected modules<a name="10"></a></h2><pre class="codeinput"><span class="comment">% module PFDEP4</span>
+<span class="comment">% - standalone P-file</span>
+<span class="comment">% - calls cannot be extracted</span>
+<span class="comment">%	the M-FILE		entry is empty</span>
+<span class="comment">%	the line			entry shows NaN</span>
+<span class="comment">%	the f/eval..		entry shows &lt;not known&gt; and &lt;NaN&gt;</span>
+<span class="comment">%	the &lt;calls in FILE&gt;	entry shows NaN</span>
+<span class="comment">%	the &lt;calls in FILE&gt;	section is omitted</span>
+
+	pp.mhelp(<span class="string">'pfdep4'</span>);
+</pre><img vspace="5" hspace="5" src="fdephtml_04.png"> <pre class="codeinput"><span class="comment">% module TFDEP4</span>
+<span class="comment">% - P-file with corresponding M-file</span>
+
+	pp.mhelp(<span class="string">'tfdep4'</span>);
+</pre><img vspace="5" hspace="5" src="fdephtml_05.png"> <h2>software developers<a name="12"></a></h2>
+         <h2>- find modules and show their summary<a name="13"></a></h2><pre class="codeinput"><span class="comment">% NOTE</span>
+<span class="comment">% - data from TFDEP1 are reused</span>
+
+<span class="comment">% SYNTAX</span>
+<span class="comment">%	macro	:	p.find(M1,M2,...,Mn);</span>
+<span class="comment">%			- show the summary of modules M1,... in the command window</span>
+<span class="comment">%			- Mx:	module name -or- module#</span>
+<span class="comment">%			- see also:</span>
+<span class="comment">%			  p.mhelp(...)</span>
+
+	p.find(<span class="string">'eastat'</span>,2);
+</pre><pre class="codeoutput">M-FILE       : F:\usr\matlab\dmap\eastat.m
+P-FILE       :                            
+MODULE      3: eastat                     
+type         : FUNCTION                   
+created      : 31-Oct-2007 12:12:24       
+size         : 17351 bytes                
+lines        : 733                        
+recursive    : no                         
+f/eval..     : not used                   
+calls    TO  :     9  user defined        
+called   FROM:     1  user defined        
+calls in FILE:   149                      
+subfunctions :    11  inside  file        
+nested       :     1                      
+anonymous    :     4                      
+f/eval..     :     0                      
+ML      stock:    19                      
+ML  built-ins:    29                      
+ML    classes:     1                      
+OTHER classes:     0                      
+ML  toolboxes:     2                      
+-------------                             
+M-FILE       : F:\usr\matlab\local\cl.m   
+P-FILE       :                            
+MODULE      2: cl                         
+type         : FUNCTION                   
+created      : 30-May-2003 22:02:47       
+size         : 307 bytes                  
+lines        : 20                         
+recursive    : no                         
+f/eval..     : not used                   
+calls    TO  :     0  user defined        
+called   FROM:     1  user defined        
+calls in FILE:     4                      
+subfunctions :     1  inside  file        
+nested       :     0                      
+anonymous    :     0                      
+f/eval..     :     0                      
+ML      stock:     1                      
+ML  built-ins:     3                      
+ML    classes:     1                      
+OTHER classes:     0                      
+ML  toolboxes:     1                      
+</pre><h2>- find modules and retrieve their contents<a name="14"></a></h2><pre class="codeinput"><span class="comment">% SYNTAX</span>
+<span class="comment">%	macros	:</span>
+<span class="comment">%			m=p.get(M1,M2,...,Mn);</span>
+<span class="comment">%			- retrieve the contents from modules M1,...</span>
+<span class="comment">%			- Mx:	module name -or- module#</span>
+<span class="comment">%			- see also:</span>
+<span class="comment">%			  p.mhelp(...)</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - if more than 1 module is selected, the output will be an array of structures</span>
+<span class="comment">% - function groups are sorted</span>
+<span class="comment">% - all calls found in the file are shown in sequence and may be repeated</span>
+
+	m=p.get(<span class="string">'eastat'</span>,1);
+</pre><pre class="codeoutput">FDEP&gt; find module #/name:    3 = &lt;F:\usr\matlab\dmap\eastat.m&gt;
+FDEP&gt; find module #/name:    1 = &lt;F:\usr\matlab\tmp\fex\afarg\tfdep1.m&gt;
+</pre><pre class="codeinput"><span class="comment">% show contents of module &lt;eastat&gt;</span>
+
+	disp(m(1));
+</pre><pre class="codeoutput">                            magic: 'FDEPmodule'
+                          FDEPver: '14-Nov-2007 13:16:06'
+                            MLver: '7.5.0.342 (R2007b)'
+                          rundate: '14-Nov-2007 13:16:18'
+    MODULE_DESCRIPTION___________: '------------------------------------'
+                           module: 'eastat'
+                             file: 'F:\usr\matlab\dmap\eastat.m'
+                           parent: 'F:\usr\matlab\tmp\fex\afarg\tfdep1.m'
+                            index: 3
+                             type: 'FUNCTION'
+                         isscript: 0
+                          ispfile: 0
+                      isrecursive: 0
+                          haseval: 0
+                         hascalls: 9
+                         iscalled: 1
+      MODULE_FUNCTIONS___________: '------------------------------------'
+                            calls: {149x1 cell}
+                      subfunction: {11x1 cell}
+                           nested: {'splot'}
+                        anonymous: {4x1 cell}
+                          callsTO: {9x1 cell}
+                        callsFROM: {[1x36 char]}
+          ML_FUNCTIONS___________: '------------------------------------'
+                       MLfunction: {19x1 cell}
+                        MLbuiltin: {29x1 cell}
+                          MLclass: {[1x55 char]}
+                       OTHERclass: {0x1 cell}
+                        MLtoolbox: {2x1 cell}
+
+</pre><pre class="codeinput"><span class="comment">% show ML functions, which module &lt;eastat&gt; uses</span>
+
+	disp(m(1).MLfunction);
+</pre><pre class="codeoutput">    'F:\usr\r2007\toolbox\matlab\datafun\corrcoef.m'
+    'F:\usr\r2007\toolbox\matlab\datafun\hist.m'
+    'F:\usr\r2007\toolbox\matlab\datafun\mean.m'
+    'F:\usr\r2007\toolbox\matlab\datafun\median.m'
+    'F:\usr\r2007\toolbox\matlab\datafun\std.m'
+    'F:\usr\r2007\toolbox\matlab\funfun\fminsearch.m'
+    'F:\usr\r2007\toolbox\matlab\funfun\optimset.m'
+    'F:\usr\r2007\toolbox\matlab\helptools\help.m'
+    'F:\usr\r2007\toolbox\matlab\polyfun\polyfit.m'
+    'F:\usr\r2007\toolbox\matlab\polyfun\polyval.m'
+    'F:\usr\r2007\toolbox\matlab\specgraph\stairs.m'
+    'F:\usr\r2007\toolbox\stats\finv.m'
+    'F:\usr\r2007\toolbox\stats\nlinfit.m'
+    'F:\usr\r2007\toolbox\stats\nlparci.m'
+    'F:\usr\r2007\toolbox\stats\nlpredci.m'
+    'F:\usr\r2007\toolbox\stats\norminv.m'
+    'F:\usr\r2007\toolbox\stats\polyconf.m'
+    'F:\usr\r2007\toolbox\stats\prctile.m'
+    'F:\usr\r2007\toolbox\stats\tinv.m'
+
+</pre><pre class="codeinput"><span class="comment">% show ML toolboxes, which module &lt;eastat&gt; uses</span>
+
+	disp(m(1).MLtoolbox);
+</pre><pre class="codeoutput">    'matlab'
+    'stats'
+
+</pre><pre class="codeinput"><span class="comment">% show other classes, which module #2 uses</span>
+
+	mn=2;
+	disp(sprintf(<span class="string">'module #%5d: %s'</span>,mn,m(mn).module));
+	disp(        <span class="string">'classes      :'</span>);
+	disp(m(mn).OTHERclass);
+</pre><pre class="codeoutput">module #    2: tfdep1
+classes      :
+    'java.io.File'
+    'java.io.Serializable'
+    'java.lang.Comparable'
+    'java.lang.Object'
+
+</pre><h2>- find modules in the dependency matrix<a name="19"></a></h2><pre class="codeinput"><span class="comment">% dependencies can be retrieved off-line</span>
+<span class="comment">%	p.mat</span>
+<span class="comment">%		dependency matrix</span>
+<span class="comment">%		columns	: callers</span>
+<span class="comment">%		rows	: modules</span>
+<span class="comment">%		nodes	: 1 &gt; caller ~= modules</span>
+<span class="comment">%			  2 &gt; caller == module (recursion)</span>
+<span class="comment">%	p.caller</span>
+<span class="comment">%		list of modules that call other modules</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - data from PFDEP4 are reused</span>
+<span class="comment">% - all modules are called from</span>
+<span class="comment">% - not all modules are callers</span>
+
+<span class="comment">% show modules, which are called by caller #2</span>
+
+	caller=2;
+	cfrom=pp.module(pp.mat(:,caller)~=0);
+	disp(sprintf(<span class="string">'caller : %s\ncalling:'</span>,pp.caller{caller}));
+	disp(sprintf(<span class="string">'       &gt; %s\n'</span>,cfrom{:}));
+</pre><pre class="codeoutput">caller : getoptn
+calling:
+       &gt; gettok
+       &gt; gettokn
+       &gt; noblank
+       &gt; setoptn
+
+</pre><pre class="codeinput"><span class="comment">% compare result with the dependency matrix marking caller#2/caller#2</span>
+
+	pp.plot([2,2]);
+</pre><img vspace="5" hspace="5" src="fdephtml_06.png"> <h2>- debug a function<a name="21"></a></h2><pre class="codeinput"><span class="comment">% show the contents of TFDEP3</span>
+<span class="comment">% - note the explanations for subsections 1-3</span>
+<span class="comment">% - note that MLINT finds no syntax errors</span>
+
+	dbtype(<span class="string">'TFDEP3'</span>,<span class="string">'17:49'</span>);
+	disp(sprintf(<span class="string">'\nMLINT\n'</span>));
+	mlint <span class="string">-all</span> <span class="string">-cyc</span> <span class="string">tfdep3</span>;
+</pre><pre class="codeoutput">
+17    function	r=tfdep3(varargin)
+18    
+19    % 1)	alpha
+20    %	- is a ML stock function
+21    %		MLROOT\toolbox\matlab\graph3d\alpha.m
+22    %	- is NOT initialized in TFDEP3
+23    %	&gt; will cause an error if used in this context
+24    	try
+25    		r(1)=exp(alpha);
+26    	catch
+27    		disp('TFDEP3&gt; error using &lt;alpha&gt;');
+28    		disp(sprintf('%s\n',lasterr));
+29    	end
+30    
+31    % 2)	beta
+32    %	- is a ML stock function
+33    %		MLROOT\toolbox\matlab\specfun\beta.m
+34    %	- is initialized in TFDEP3
+35    %	&gt; will NOT cause an error
+36    		beta=1;
+37    		r(2)=exp(beta);
+38    
+39    % 3)	FOO_GOO_HOO_XXX
+40    %	- is NOT a function (at least in this ML setup!)
+41    %	- is NOT initialized
+42    %	&gt; will cause an error
+43    	try
+44    		r(3)=exp(FOO_GOO_HOO_XXX);
+45    	catch
+46    		disp('TFDEP3&gt; error using &lt;FOO_GOO_HOO_XXX&gt;');
+47    		disp(sprintf('%s',lasterr));
+48    	end
+49    end
+
+MLINT
+
+L 17 (C 12-17): The McCabe complexity of 'tfdep3' is 3.
+
+</pre><pre class="codeinput"><span class="comment">% look at the expected runtime errors</span>
+
+	tfdep3;
+</pre><pre class="codeoutput">TFDEP3&gt; error using &lt;alpha&gt;
+Error using ==&gt; alpha
+Too many output arguments.
+
+TFDEP3&gt; error using &lt;FOO_GOO_HOO_XXX&gt;
+Undefined function or variable 'FOO_GOO_HOO_XXX'.
+</pre><pre class="codeinput"><span class="comment">% dissect the file</span>
+<span class="comment">% - note that there are NO dependencies</span>
+
+	s=fdep(<span class="string">'tfdep3'</span>,<span class="string">'-q'</span>);
+	disp(char(s.rtree));
+</pre><pre class="codeoutput">1    1 : | tfdep3        0: 
+</pre><pre class="codeinput"><span class="comment">% look at the MAIN modules</span>
+
+	s.mhelp(<span class="string">'tfdep3'</span>);
+
+<span class="comment">% peruse the &lt;calls in FILE&gt; section</span>
+<span class="comment">% - &lt;alpha&gt;	erroneously will call the ML stock function,</span>
+<span class="comment">%		   because it was NOT initialized</span>
+<span class="comment">% - &lt;beta&gt;	does NOT show up,</span>
+<span class="comment">%		   because it was initialized</span>
+<span class="comment">% - &lt;FOO...&gt;	is considered a function because it was NOT initialized;</span>
+<span class="comment">%		   however, it was NOT found during runtime</span>
+</pre><img vspace="5" hspace="5" src="fdephtml_07.png"> <h2>- checking the independence of a program for distribution<a name="25"></a></h2><pre class="codeinput"><span class="comment">% a ML program, which must NOT depend on any user-defined function outside</span>
+<span class="comment">% its body, eg, a contribution to the FEX, should yield this runtime</span>
+<span class="comment">% output (unless the [-q] flag is used, see below)</span>
+
+<span class="comment">% NOTE</span>
+<span class="comment">% - NO &lt;calls   TO&gt;</span>
+<span class="comment">% - NO &lt;calls FROM&gt;</span>
+<span class="comment">% - MODULE and ROOT summary contain the same number of entries in each ML group</span>
+
+	fdep <span class="string">fdep</span>;
+</pre><pre class="codeoutput">1    1 : | fdep	     0: 
+-------------  NO USER-DEFINED DEPENDENCIES FOUND
+M-FILE       : F:\usr\matlab\tmp\fex\afarg\fdep.m
+P-FILE       :                                   
+MODULE      1: fdep                              
+type         : FUNCTION                          
+created      : 14-Nov-2007 13:16:06              
+size         : 62222 bytes                       
+lines        : 2541                              
+recursive    : no                                
+f/eval..     : not used                          
+calls    TO  :     0  user defined               
+called   FROM:     0  user defined               
+calls in FILE:   457                             
+subfunctions :    35  inside  file               
+nested       :     0                             
+anonymous    :    35                             
+f/eval..     :     0                             
+ML      stock:    32                             
+ML  built-ins:    75                             
+ML    classes:     1                             
+OTHER classes:     0                             
+ML  toolboxes:     1                             
+-------------                                    
+ROOT         : fdep                              
+type         : FUNCTION                          
+recursive    : no                                
+f/eval..     : not used                          
+FDEP  version: 14-Nov-2007 13:16:06              
+ML    version: 7.5.0.342 (R2007b)                
+ML      stock:    32                             
+ML  built-ins:    75                             
+ML    classes:     1                             
+OTHER classes:     0                             
+ML  toolboxes:     1                             
+runtime      :     4.2030 sec                    
+</pre><pre class="codeinput"><span class="comment">% programmers can use this form</span>
+
+	d=fdep(<span class="string">'fdep'</span>,<span class="string">'-q'</span>);
+	disp(d.ncall);
+</pre><pre class="codeoutput">     0
+
+</pre><h2>help<a name="27"></a></h2>
+         <h2>- for the listing's panels<a name="28"></a></h2><pre class="codeinput"><span class="comment">% NOTE</span>
+<span class="comment">% - shows the listing panels' descriptions of the current FDEP version</span>
+<span class="comment">% - to show the HELP in the command window, use macro</span>
+
+<span class="comment">%	p.help(1);</span>
+
+<span class="comment">% - to show the HELP in a separate window, use macro</span>
+
+	p.help();
+</pre><img vspace="5" hspace="5" src="fdephtml_08.png"> <h2>- for FDEP [version 14-Nov-2007 13:16:06]<a name="29"></a></h2><pre class="codeinput"><span class="comment">% NOTE</span>
+<span class="comment">% - formatting may be wrong in this HTML file</span>
+
+	help <span class="string">fdep</span>;
+</pre><pre class="codeoutput"> FDEP	to show a function's dependencies
+ 
+ 	FDEP dissects a MATLAB (ML) file and iteratively looks for
+ 	all user defined functions (modules), which are used
+ 	during runtime
+ 
+ 	FDEP retrieves for each module its
+ 		- subfunctions
+ 		- nested functions
+ 		- anonymous functions
+ 		- number of calls to f/eval constructs
+ 	   and all
+ 		- ML stock functions
+ 		- ML built-in functions
+ 		- ML classes
+ 		- ML toolboxes
+ 	   that it uses
+ 
+ 	runtime options and returned macros create user-friendly,
+ 	comprehensible, and interactive GUIs, which
+ 		- list the results in various panels
+ 		- plot a full dependency matrix
+ 
+ 	in essence, FDEP is a wrapper for DEPFUN and MLINT;
+ 	however, due to an efficient pruning engine
+ 	it is considerably faster
+ 
+ 	see also: depfun, depdir, ckdepfun, mlint, which
+ 		  and the accompanying HTML file
+ 
+ SYNTAX
+ -------------------------------------------------------------------------------
+ 		P = FDEP(FNAM);
+ 		P = FDEP(FNAM,OPT1,OPT2,...);
+ 
+ INPUT
+ -------------------------------------------------------------------------------
+  FNAM	:	M-file (function or script) or P-file
+ 		- only ML entities can be extracted from
+ 		  standalone P-files, which do NOT have a
+ 		  corresponding M-file
+ 
+  OPT	:	description
+  --------------------------------------------
+  -q	:	do NOT show runtime processing
+  -l	:	show module list
+  -m	:	show dependency matrix
+ 
+ OUTPUT
+ -------------------------------------------------------------------------------
+  P		a structure, which returns all information from the lex parser;
+ 		fields, which are of common interest, are these macros
+ 
+  P.macro()		call macro with default args
+  P.macro(arg,...)	call macro with arguments arg1,...
+ 
+ 		arg	description
+ 		--------------------------------------------------------
+   .list	()	create the GUI that lists the results
+ 		M	- activate module M
+   .help	()	show help for the listing panels in a window
+ 		1	- show help in the command window
+   .plot	()	create the GUI that shows the dependency matrix
+ 		N1,...	- show nodes N1,...
+ 			  numeric input syntax ([M#column/M#row],...)
+ 			  only valid nodes are shown with guiding lines
+   .find	M1,...	show the synopsis of modules M1,...
+   .get		M1,...	retrieve all data of modules M1,...
+   .mhelp	M1,...	show all data of module M1,... in a window
+ 
+ 		Mx	may be numeric or the name of an existing module
+ 
+ 		for more help, see the accompanying HTML file
+ 
+ EXAMPLE
+ -------------------------------------------------------------------------------
+ 		p=fdep('myfile');
+ 		p.list();		% show module list
+ 		p.plot();		% show dependency matrix
+ 		p.find(2);		% show synopsis of module #2
+ 		d=p.get('foo');		% retrieve data of module &lt;foo&gt;
+
+</pre><p class="footer"><br>
+            Published with MATLAB&reg; 7.5<br></p>
+      </div>
+      <!--
+##### SOURCE BEGIN #####
+%% introduction
+%
+
+% FDEP dissects a MATLAB (ML) file and iteratively looks
+% for all user defined functions (modules), which are
+% used during runtime
+%
+% FDEP retrieves for each module its
+%	- subfunctions
+%	- nested functions
+%	- anonymous functions
+%	- number of calls to f/eval constructs
+%    and all
+%	- ML stock functions
+%	- ML built-in functions
+%	- ML classes
+%	- ML toolboxes
+%    that it uses
+%
+% only ML entities can be extracted from P-files
+%
+% runtime options and returned macros create user-friendly,
+% comprehensible, and interactive GUIs, which
+%	- list the results in various panels
+%	- plot a full dependency matrix
+%
+% in essence, FDEP is a wrapper for DEPFUN and MLINT; however, due to
+% an efficient pruning engine it is considerably faster
+%
+% simple benchmark
+%	system 1		=	ic2 / 2*2.4ghz / 2gb  / winvista  / r2007b
+%	system 2		=	 p4 / 1.4ghz   / 512m / win2k.sp4 / r2007b
+%				no background jobs
+%				no internet connection
+%				computer restarted for each test
+%				result [s] of 5 runs in a loop
+%
+%				system 1		 system 2
+%	fdep('tfdep1');	=	 21.46		  72.46 s
+%	depfun('tfdep1');	=	458.27		2544.40 s
+%
+%
+% please use a small font size in your browser for best formatting results
+% of this HTML document
+%
+% us	14-Nov-2007 13:16:06
+%% TFDEP1: dissection of an M-file
+%
+
+% NOTE
+% - some TFDEP test files contain proprietary functions, which you will NOT have
+%   therefore, this demo file - FDEPHTML.M - is NOT part of the package
+% - the test files are included for instructional purposes
+% - TFDEP3 will run in your environment
+% - look at this HTML in a small font to see proper formatting
+
+%% - prepare the environment
+%
+
+% create P-files needed for TFDEP2 and TFDEP4
+% - the M-file associated TFDEP4.P
+% - the standalone PFDEP4.P
+
+	delete	*fdep4.p;
+	pcode	tfdep4;
+	copyfile	tfdep4.p pfdep4.p;
+
+% clear functions and variables, which will be assigned during this demo
+
+	clear	fdep d m p pp s;
+%% - the runtime output
+%
+
+% SYNTAX
+%	runtime	:	p=fdep(FILE,OPT1,...,OPTn);
+%	off-line	:
+%			p.rtree
+%			- sparse runtime output as seen during in the command window
+%			  unless option [-q] is set
+%			p.tree
+%			- verbose runtime output
+
+	p=fdep('tfdep1','-q');
+
+%  column#	description
+%  REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+%	1	# of the module when first detected during runtime
+%	2	callers depth of the module
+%	3	name of the module preceeded by a depth guide
+%	4	special attributes of the module
+%			R: module calls itself (recursive)
+%			E: module uses an EVAL/EVALIN/EVALC/FEVAL construct
+%			S: module is a SCRIPT
+%			P: moudle is or has a P-file
+%	5	# of calls to other modules in this function
+%	6	name of the module that is called -or-
+%		references to previously detected modules during runtime
+%
+%	example
+%		module	38 = <chkoptn> calls 2 previously found modules
+%			20 = <getoptn>
+%			24 = <setoptn>
+
+	disp(p.rtree);
+%% - the listing's panels
+%
+
+% SYNTAX
+%	runtime	:	p=fdep(FILE,'-l',...);
+%	marcros	:
+%			p.list();
+%			- select the main function at startup
+%			p.list(M)
+%			- select module M at startup
+%			- M:	module name -or- module#
+%			pp=p.list(...)
+%			- returns p in pp including a new macro pp.smod for
+%			  command line selection of modules
+%			pp.smod(M)
+%			- select module M (must be numeric)
+
+% NOTE
+% - select module #4/<eastat>
+
+	p.list(4);
+% -or-	p.list('eastat');
+% -or-
+%	pp=p.list();
+%	pp.smod(4);
+% -or-	pp.smod('eastat');
+%% - the contents of selected modules
+%
+
+% SYNTAX
+%	macros	:	p.mhelp(M1,M2,...,Mn)
+%			- show the full synopsis of modules M1,... in separate windows
+%			- only valid input is shown
+%			- Mx:	module names -or- module#s
+%			- valid syntax may include any combination of these
+%			  input arguments
+%				- numbers
+%				- numeric arrays
+%				- character strings
+%				- cells of combinations of the above
+%
+%			- note this syntax applies for these macros as well
+%				p.find()
+%				p.get()
+%
+% EXAMPLES
+%			   p.mhelp(1:2,'mod5','mod6',{3:4,'mod10',5},10:20,100);
+%
+%			show the full synopsis of all modules
+%			   p.mhelp(p.module);
+
+% NOTE
+% - function groups are sorted
+% - all calls found in the file are shown in sequence and may be repeated
+
+% show the full synopsis of module #1 in a window
+
+	p.mhelp(1);
+% -or-
+%	p.mhelp('tfdep1');
+%% - the dependency matrix
+%
+
+% SYNTAX
+%	runtime	:	p=fdep(FILE,'-m',...);
+%	macros	:
+%			p.plot();
+%			- display the dependency matrix
+%			p.plot(N1,N2,...,Nn);
+%			- show the information at nodes N1,... at startup
+%			- only valid nodes are shown
+%			- Nx:	[M#column,M#row]
+
+% NOTE
+% - CLICKING on a module name opens the file in the editor
+% - CLICKING on a node displays module information and guiding lines
+% - CLICKING on an empty space in the box clears all guiding lines
+
+	p.plot([1,4],[5,13]);		% demo: select nodes 1/4 and 5/13
+%% PFDEP4: disscetion of a P-file
+%
+
+%% - the runtime output
+%
+
+% due to formatting issues
+% - quiet mode
+% - off-line display
+
+	pp=fdep('pfdep4.p','-q');
+	disp(char(pp.rtree));
+%% - the contents of selected modules
+%
+
+% module PFDEP4
+% - standalone P-file
+% - calls cannot be extracted
+%	the M-FILE		entry is empty
+%	the line			entry shows NaN
+%	the f/eval..		entry shows <not known> and <NaN>
+%	the <calls in FILE>	entry shows NaN
+%	the <calls in FILE>	section is omitted
+
+	pp.mhelp('pfdep4');
+%%
+%
+
+% module TFDEP4
+% - P-file with corresponding M-file
+
+	pp.mhelp('tfdep4');
+%% software developers
+%
+
+%% - find modules and show their summary
+%
+
+% NOTE
+% - data from TFDEP1 are reused
+
+% SYNTAX
+%	macro	:	p.find(M1,M2,...,Mn);
+%			- show the summary of modules M1,... in the command window
+%			- Mx:	module name -or- module#
+%			- see also:
+%			  p.mhelp(...)
+
+	p.find('eastat',2);
+%% - find modules and retrieve their contents
+%
+
+% SYNTAX
+%	macros	:
+%			m=p.get(M1,M2,...,Mn);
+%			- retrieve the contents from modules M1,...
+%			- Mx:	module name -or- module#
+%			- see also:
+%			  p.mhelp(...)
+
+% NOTE
+% - if more than 1 module is selected, the output will be an array of structures
+% - function groups are sorted
+% - all calls found in the file are shown in sequence and may be repeated
+
+	m=p.get('eastat',1);
+%%
+%
+
+% show contents of module <eastat>
+
+	disp(m(1));
+%%
+%
+
+% show ML functions, which module <eastat> uses
+
+	disp(m(1).MLfunction);
+%%
+%
+
+% show ML toolboxes, which module <eastat> uses
+
+	disp(m(1).MLtoolbox);
+%%
+%
+
+% show other classes, which module #2 uses
+
+	mn=2;
+	disp(sprintf('module #%5d: %s',mn,m(mn).module));
+	disp(        'classes      :');
+	disp(m(mn).OTHERclass);
+%% - find modules in the dependency matrix
+%
+
+% dependencies can be retrieved off-line
+%	p.mat
+%		dependency matrix
+%		columns	: callers
+%		rows	: modules
+%		nodes	: 1 > caller ~= modules
+%			  2 > caller == module (recursion)
+%	p.caller
+%		list of modules that call other modules
+
+% NOTE
+% - data from PFDEP4 are reused
+% - all modules are called from
+% - not all modules are callers
+
+% show modules, which are called by caller #2
+
+	caller=2;
+	cfrom=pp.module(pp.mat(:,caller)~=0);
+	disp(sprintf('caller : %s\ncalling:',pp.caller{caller}));
+	disp(sprintf('       > %s\n',cfrom{:}));
+%%
+%
+
+% compare result with the dependency matrix marking caller#2/caller#2
+
+	pp.plot([2,2]);
+%% - debug a function
+%
+
+% show the contents of TFDEP3
+% - note the explanations for subsections 1-3
+% - note that MLINT finds no syntax errors
+
+	dbtype('TFDEP3','17:49');
+	disp(sprintf('\nMLINT\n'));
+	mlint -all -cyc tfdep3;
+%%
+%
+
+% look at the expected runtime errors
+
+	tfdep3;
+%%
+%
+
+% dissect the file
+% - note that there are NO dependencies
+
+	s=fdep('tfdep3','-q');
+	disp(char(s.rtree));
+%%
+%
+
+% look at the MAIN modules
+
+	s.mhelp('tfdep3');
+
+% peruse the <calls in FILE> section
+% - <alpha>	erroneously will call the ML stock function,
+%		   because it was NOT initialized
+% - <beta>	does NOT show up,
+%		   because it was initialized
+% - <FOO...>	is considered a function because it was NOT initialized;
+%		   however, it was NOT found during runtime
+%% - checking the independence of a program for distribution
+%
+
+% a ML program, which must NOT depend on any user-defined function outside
+% its body, eg, a contribution to the FEX, should yield this runtime
+% output (unless the [-q] flag is used, see below)
+
+% NOTE
+% - NO <calls   TO>
+% - NO <calls FROM>
+% - MODULE and ROOT summary contain the same number of entries in each ML group
+
+	fdep fdep;
+%%
+%
+
+% programmers can use this form
+
+	d=fdep('fdep','-q');
+	disp(d.ncall);
+%% help
+%
+
+%% - for the listing's panels
+%
+
+% NOTE
+% - shows the listing panels' descriptions of the current FDEP version
+% - to show the HELP in the command window, use macro
+
+%	p.help(1);
+
+% - to show the HELP in a separate window, use macro
+
+	p.help();
+%% - for FDEP [version 14-Nov-2007 13:16:06]
+%
+
+% NOTE
+% - formatting may be wrong in this HTML file
+
+	help fdep;
+##### SOURCE END #####
+-->
+   </body>
+</html>

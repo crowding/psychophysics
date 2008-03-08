@@ -139,7 +139,7 @@ require(mkfifos, runbackground('args', varargin), @processfifo);
                 end
                 
                 if s
-                    error('make:runbackground', 'status %d stopping background job');
+                    error('make:runbackground', 'status %d stopping background job: (%s)', s, t);
                 end
             end
         end
