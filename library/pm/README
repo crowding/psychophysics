@@ -1,0 +1,18 @@
+
+Distribution of Parallel Matlab Toolbox 1.0
+March 6, 2001
+
+The following files and directories are included in the distribution:
+
+Makefile     - Make file
+COPYRIGHT    - Copyright agreement
+usermanual.pdf - User Documentation
+bin/         - Where binary files will be stored at compilation
+conf/        - Configuration files for compiling on different platforms
+dplow/       - The PVM-Matlab interface originally from DP Toolbox 1.4.9
+	       The changes made can be found in the file dplow/pm_updated.txt
+examples/    - Examples on how to use the PM toolbox from Matlab.
+install/     - Installation instruction and needed files
+pm/          - The PM toolbox directory
+src/         - The C source files mainly for dplow.
+

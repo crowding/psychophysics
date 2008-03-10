@@ -1,0 +1,146 @@
+***************
+* TOOLBOX PVM *
+***************
+
+MEX bindings for PVM 3.4.2 calls
+Works under MATLAB 5.x Linux (Kernel 2.0.34, RedHat 5.2)
+			    and Solaris (SunOS 5.6)
+
+___________________________________________________________________
+| Copyright (C) 1999 Javier Fernández Baldomero <jfernand@ugr.es> |
+| Depto. de Arquitectura y Tecnología de Computadores             |
+| Facultad de Ciencias, Universidad de Granada                    |
+| Avda. Fuentenueva S/N                                           |
+| 18071-GRANADA SPAIN                                             |
+|_________________________________________________________________|
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+************************************
+* Please read the GPL file gpl.txt *
+************************************
+
+***********
+* INSTALL *
+***********
+
+--------------------
+- Choose ubication -
+--------------------
+	PVMTB can be installed for 1) all users or 2) only some user
+
+e.g.: MATLAB installed under /usr/local/matlab: change to toolboxes
+		cd /usr/local/matlab/toolbox
+
+e.g.: Only user joe wants PVMTB
+		cd /home/joe/matlab
+
+------------------------
+- Decompress and untar -
+------------------------
+		cp <wherever>/pvmtb.tgz .
+		gunzip pvmtb.tgz
+		tar xvf pvmtb.tar
+		rm pvmtb.tar
+
+Now there is a pvmtb subdirectory.
+
+--------------------------------
+- Configuring MATLAB's startup -
+--------------------------------
+	PVMTB comes with a startupTBpvm.m file
+
+e.g.: MATLAB installed under /usr/local/matlab: change to local
+		cd /usr/local/matlab/toolbox/local
+		ln -s ../pvmtb/startupTBpvm.m .
+
+	and add these lines to startup.m
+
+	% PVM Toolbox startup M-file, if it exists.
+	if exist('startupTBpvm','file')
+	    startupTBpvm
+	end
+
+e.g.: Onyl user joe wants PVMTB
+		cd /home/joe/matlab
+		ln -s pvmtb/startupTBpvm.m startup.m
+
+	If user joe already had a startup.m,
+	use the method described above,
+	editing his startup.m to add startupTMmpi.m
+
+-----------------------------------
+- Configuring user's shell script -
+-----------------------------------
+	PVM requires an environment variable PVM_ROOT
+
+	The PVMTB can use a PVMTB_ROOT environment variable.
+If it is not defined but the user has installed PVMTB under
+~/matlab/pvmtb, PVMTB uses that location (please see startupTBpvm.m).
+This is the preferred option.
+
+e.g.: for bash, add to ~/.bashrc
+export                  PVM_ROOT=/usr/local/pvm3
+export       PVM_DPATH=$PVM_ROOT/lib/pvmd
+export       PVM_ARCH=`$PVM_ROOT/lib/pvmgetarch`
+export            PATH=$PVM_ROOT/bin/$PVM_ARCH:$PVM_ROOT/lib:$PATH
+export LD_LIBRARY_PATH=$PVM_ROOT/lib/LINUX
+# export    PVMTB_ROOT=$MATLAB_ROOT/toolbox/pvmtb
+
+e.g.: for tcsh, add to ~/.tcshrc
+setenv                  PVM_ROOT=/usr/local/pvm3
+setenv       PVM_DPATH $PVM_ROOT/lib/pvmd
+setenv       PVM_ARCH `$PVM_ROOT/lib/pvmgetarch`
+setenv            PATH $PVM_ROOT/bin/"$PVM_ARCH":$PVM_ROOT/lib:$PATH
+setenv LD_LIBRARY_PATH $PVM_ROOT/lib/LINUX
+# setenv    PVMTB_ROOT $MATLAB_ROOT/toolbox/pvmtb
+
+----------------------------------------
+- PVM default configuration (hostfile) -
+----------------------------------------
+        This step is optional. If you are going to use only
+one host (?!?) no hostfile is required. If several hosts are
+going to be used, they can be specified each time PVM is
+started with pvm_start_pvmd (or under the pvm console), or
+their hostnames can be written to the default hostfile,
+pvmdefconf.m. Options can also be specified in the hostfile,
+like "* ep=<path>" (man pvmd)
+
+	Edit the sample pvmdefconf.m, so that it mentions
+the hosts to be pvm_start_pvmd'ed, and put it somewhere
+in MATLABPATH
+
+e.g.: for "global" PVMTB install
+	cd $MATLAB_ROOT/toolbox/pvmtb
+	<edit pvmdefconf.m>
+	mv pvmdefconf.m pvm
+
+	In this case, the user is still able to change the
+"default" PVM by using pvme_default_config.
+
+e.g.: for "local", personal PVMTB
+	cd ~/matlab/pvmtb
+	<edit pvmdefconf.m>
+	mv pvmdefconf.m ..
+
+	When matlab is started from /matlab, pvmdefconf.m is
+found in the current subdir. The user could have several
+pvmdefconf.m in several subdirs, each belonging in different
+projects. To switch project, the users changes to that
+subdir before starting matlab, finding thus its pvmdefconf.m
+first.
+
+Granada, SPAIN, 24/July/99
+

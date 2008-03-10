@@ -1,0 +1,1236 @@
+%%%%%%%%%%%%%%%%%
+% Pruebas PVMTB %
+%%%%%%%%%%%%%%%%%
+%
+% Pensado para visualizarlo en un terminal/xterm/kvt/gnome-terminal
+% mientras que en otro se ejecuta MATLAB
+% Ir copiando líneas y pegándolas en el MATLAB
+% mientras se observan los resultados.
+%
+% Debería ser autoexplicativo
+% Consultar las páginas de manual PVM si hubiera dudas
+% Las pruebas están hechas en orden de complejidad
+% creciente.
+%
+% Usar con un poco de picardía ("a grain of salt")
+% Por ejemplo, en la primera sección no se repiten
+% los (necesarios) comandos pvm_halt antes de volver
+% a hacer pvm_start_pvmd. Utilizar nombres de ordenadores
+% propios, naturalmente :-)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Daemon PVM, arranque de PVM, consulta configuración, salir/matar PVM
+% pvm_start_pvmd, pvme_start_pvmd, pvme_default_config
+% pvm_config, pvm_exit, pvm_halt, pvme_is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN0='ox0'; HN1='ox1'; HOME=getenv('HOME')	% HN0 local, HN1 otra máquina
+pvm_start_pvmd({[HOME '/matlab/pvmdefconf.m']},0)
+[nhost narch hinfo]=pvm_config
+hinfo(1), hinfo(2)			% sólo si había 2 hosts en pvmdefconf
+pvm_config				% probar también ...,1) para esperar
+pvm_halt
+pvm_start_pvmd({'-d0x80';...
+                [HOME '/matlab/pvmdefconf.m']},0)
+pvme_start_pvmd('pvmdefconf',0)		% Seguir usando pvm_config y pvm_halt
+pvme_start_pvmd('pvmdefconf')
+pvme_start_pvmd(0)
+pvme_start_pvmd				% Todos los valores por defecto
+pvme_start_pvmd('-d0x80','línea mala','pvmdefconf',0)
+pvme_start_pvmd('-d0x80',HN1,HN0,1)
+
+pvme_default_config			% Cambiando hostfile por defecto
+type (['/tmp/pvmdefconf.' uid])
+pvme_default_config(HN1,HN0)
+type (['/tmp/pvmdefconf.' uid])
+pvme_start_pvmd('d')
+pvme_start_pvmd('d',0)			% Seguir usando...
+
+pvme_start_pvmd('d','linea mala','-d0x80',0)
+pvm_exit
+pvm_halt
+pvme_is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Variables de entorno
+% pvm_export, putenv
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', DISP=getenv('DISPLAY')	% Otra máquina, no ésta
+pvme_default_config('* ep=$PATH',HN1)	% ésta queda incluida también
+pvme_start_pvmd
+pvm_config
+pvme_is
+
+getenv('VARIABLE') 
+putenv('VARIABLE=valor')
+getenv('VARIABLE')
+pvm_export('VARIABLE')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Arranque de procesos
+% pvm_spawn, pvm_mytid, pvm_parent, pvm_tidtohost
+% pvm_pstat, pvm_tasks, pvm_kill
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[numt,tids] = pvm_spawn('xterm',...	% xterm debe estar en $PATH
+                       {'-display',DISP},0,'',3)
+		# Hacer esto en alguna ventana xterm
+		echo $VARIABLE
+pvme_pstat(tids)			% pvm_pstat sólo 1 tid
+[ntask,info]= pvm_tasks(0)		% 4 = MATLAB + 3 xterms
+info(1)					% tid 1ª tarea = host+1
+info(2)					% tid 2ª tarea = padre+1
+info(3)					% tid 3ª tarea = otrohost+1
+info(4)					% tid 4ª tarea = otrohost+2
+		# Hacer esto en todos los xterm, identificar quién es quién
+		# tids(2) es el otro xterm en el host local
+		# tids(3) es el PID más bajo en HN1
+		# Si no definió PVMTB_ROOT, use su camino
+                # matlab/pvmtb/pvm_mytid
+                # $PVMTB_ROOT/pvm_mytid
+                ps
+                hostname
+[ntask,info]= pvm_tasks(info(1).tid)	% preguntar por un tid
+[ntask,info]= pvm_tasks(info(1).host)	% preguntar por todo un host
+info(1), info(2)
+ pvme_kill([tids(2) tids(3)])
+ pvme_kill([tids(2) tids(3)])		% rematar no hace daño
+%pvm_sendsig(tids(2),9)                 % puede hacer falta bajo tcsh
+%pvm_sendsig(tids(3),9)
+[ntask,info]= pvm_tasks(0)
+		# en el xterm superviviente
+		matlab
+		pvm_parent
+		pvm_mytid
+		myhost=pvm_tidtohost(pvm_mytid)
+[ntask,info]= pvm_tasks(0)
+info(1), info(2)
+		[ntask,info]= pvm_tasks(myhost)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Miscelánea: último mensaje, código arq. etc
+% pvm_perror, pvm_archcode, pvm_mstat
+% pvm_getfds, pvm_catchout, pvm_getopt, pvm_setopt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ pvm_perror('')
+ pvm_archcode('LINUX')
+[n f]= pvm_getfds	% descriptores de fichero abiertos para comunicación
+pvme_kill(tids)		% observar que sólo muere el matlab, no el xterm
+pvme_pstat(tids)
+[ntask,info]= pvm_tasks(0)	% sólo vivo el matlab local
+		exit
+hostname
+pvm_mstat(hostname)		% daemons aún vivos
+pvm_mstat(HN1)
+
+[nh na conf]=pvm_config		% ver tids y hostnames
+       conf.tid, conf.name
+       conf(1)
+
+ pvm_catchout			% capturar salida estándar hijos
+[numt,tids] = pvm_spawn('xterm',...
+                       {'-display',DISP},0,'',3)
+ info = pvme_kill(tids)
+%info = pvme_sendsig(tids,9)	% bajo tcsh
+ pvm_mstat			% para hacer flush
+ pvm_catchout(0)		% no capturar más
+[numt,tids] = pvm_spawn('xterm',...
+                       {'-display',DISP},0,'',3)
+ info = pvme_kill(tids)
+%info = pvme_sendsig(tids,9)	% bajo tcsh
+ pvm_mstat			% salida hijos perdida
+
+help pvm_getopt
+pvm_getopt(3)			% PvmAutoErr == ON
+pvm_getopt(30)			% no existe esa opt
+pvm_setopt(3,3)			% PvmAutoErr == abort
+pvm_getopt(30)			% abort premeditado
+
+% consola pvm> halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Configuración dinámica PVM
+% pvm_addhost, pvm_delhost
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN0='ox0', HN1='ox1'			% Esta máquina y alguna más
+DISP=getenv('DISPLAY')
+pvme_start_pvmd(HN0,1)
+[nh info]   =pvm_addhosts(HN1)          % añadir máquina
+[nh na conf]=pvm_config
+conf(1), conf(2)
+[nh info]   =pvm_delhosts(HN1)          % quitar máquina de PVM
+[nh info]   =pvm_delhosts(HN1)          % re-quitar: error 6
+[nh na conf]=pvm_config
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Envío y Recepción
+% pvm_initsend, pvm_pack, pvm_send, pvm_recv, pvm_unpack
+% pvm_bufinfo, pvm_[get/set][r/s]buf, pvm_mkbuf, pvm_freebuf
+% pvm_getminfo
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', DISP=getenv('DISPLAY')	% Otra máquina, no ésta
+pvme_start_pvmd('* ep=$PATH',HN1,1)
+bi1=pvm_initsend     ,pvm_getsbuf,  [info binfo]=pvm_bufinfo(bi1)
+bi2=pvm_initsend(2)  ,pvm_getsbuf,  [info binfo]=pvm_bufinfo(bi2)
+bi3=pvm_mkbuf        ,pvm_getsbuf,  [info binfo]=pvm_bufinfo(bi3) % otra vez bi1
+
+pvm_getsbuf	,pvm_setsbuf(bi3),	pvm_getsbuf
+pvm_freebuf(bi1),pvm_freebuf(bi2),	pvm_freebuf(bi3)	% ya liberado
+pvm_perror('')
+
+[numt,tids] = pvm_spawn('xterm',...	% 33,'.' para matlab "aquí no"
+              {'-display',DISP,'-e','matlab'},33,'.',1)
+
+A=7		,pvm_initsend,	pvm_pack(A), pvm_send(tids,3)
+pvm_getrbuf,	s=pvm_getsbuf
+[i bi]=pvm_bufinfo(s)
+[i mi]=pvm_getminfo(s)
+	%%%%%%%%%% EN MATLAB HIJO %%%%%%%%%
+	pvm_recv(-1,-1), pvm_unpack('B'), B
+	r=pvm_getrbuf	,pvm_getsbuf,	[i bi]=pvm_bufinfo(r)
+					[i mi]=pvm_getminfo(r)
+	mi.wid=1;   pvm_setminfo(r,mi), [i mi]=pvm_getminfo(r)
+
+	pvm_trecv(-1, -1, 5),	pvm_getrbuf	% dejar timeout 5sec
+	pvm_trecv(-1, -1, 5),	pvm_getrbuf	% apresurarse enviando...
+%%%%%%%%%% EN MATLAB MADRE %%%%%%%%%
+pvm_initsend,	pvm_pack(A), pvm_send(tids,3)	% ...con esta línea en "madre"
+	pvm_nrecv(pvm_parent,3),pvm_getrbuf	% nada pendiente
+pvm_initsend,	pvm_pack(A), pvm_send(tids,3)	% ...y...
+	pvm_nrecv(pvm_parent,3),pvm_getrbuf	% algo pendiente
+
+	pvm_unpack, A				% desempaquetar lo recibido
+	p=pvm_probe(pvm_parent, 3), r=pvm_getrbuf	% nada nuevo
+	pvm_unpack				% ya estábamos al final
+	[info binfo]=pvm_bufinfo(r)
+	[info binfo]=pvm_bufinfo(p)		% probe no produjo buffer nuevo
+%%%%%%%%%%%%%%%%%%
+% MATLAB datatypes
+%%%%%%%%%%%%%%%%%%
+A=[1 3;5 7]
+pvm_initsend, pvm_pack(A), pvm_send(tids,3)
+        %%%%%%%%%% ON CHILD MATLAB %%%%%%%%
+        pvm_recv(-1,-1), pvm_unpack('B'), B     % can change name on recv
+A={}
+pvm_initsend, pvm_pack(A), pvm_send(tids,3)
+        pvm_recv(-1,-1), pvm_unpack('C'), C
+A={'jo',[1:4],'jua',[1 3;5 7]}
+pvm_initsend, pvm_pack(A), pvm_send(tids,3)
+        pvm_recv(-1,-1), pvm_unpack('D'), D
+clear A
+A(1,1).name = 'alice'; A(2,1).name = 'gertrude';
+A(1,1).ID = 0; A(2,1).ID = 1
+pvm_initsend, pvm_pack(A), pvm_send(tids,3)
+        pvm_recv(-1,-1), pvm_unpack('E'), E, E(1)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Multicast. Empaquetar varias variables
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A=7    ,pvm_initsend, pvm_pack(A), pvm_mcast(tids,3)
+			        pvm_recv(-1,-1), pvm_unpack
+A=[1 3;5 7], B={'jo',[1:4],'jua',[1 3;5 7]}
+pvm_initsend, pvm_pack(A,B), pvm_mcast(tids,3)
+				pvm_recv(-1,-1), pvm_unpack('B','A'), A,B
+pvm_initsend, pvme_pack(A,B), pvm_mcast(tids,3)
+				pvm_recv(-1,-1), pvm_unpack('C','D'), C,D
+pvm_halt		% MATLAB hijo muere
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Notificación de eventos
+% pvm_notify, pvme_upkntfy
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', HN2='ox2'			% dos máquinas distintas
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1,HN2)	% * ep para encontrar xterm
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',2)	% "aquí no"
+[ntask info]=pvm_tasks(0)		% hay 3 tareas
+pvm_notify(1, 7, tids)			% PvmTaskExit
+			pvm_mytid	% En 2º hijo
+			pvm_exit
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy 	% comparar con anterior mytid
+[ntask info]=pvm_tasks(0), kid=info(2).tid	% ahora sólo 2 tareas
+			pvm_mytid	% En 1º hijo, comprobar TID
+pvm_probe(-1,-1)			% no hay mensaje notificación
+pvm_sendsig(kid,9)			% matado, ahora sí
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy, kid
+			pvm_exit	% en 2º hijo otra vez
+			quit
+pvm_probe(-1,-1)			% no hay mensaje notificación
+
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',2)
+pvm_notify(1, 7, tids)
+pvme_kill(tids)				% los dos a la vez
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy, tids	% es uno
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy, tids	% es el otro
+pvm_probe(-1,-1)			% no más notificaciones
+
+[nh na info]=pvm_config
+dtid=info(2).tid			% 2º host
+pvm_notify(2, 7, dtid)			% PvmHostDelete
+pvm_delhosts(HN1)			% notify
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy, dtid	% comprobar que es dtid
+pvm_config				% sólo 2 daemons vivos
+
+pvm_notify(3, 7, 2)			% PvmHostAdd, notificar 2 veces
+pvm_delhosts(HN1)			% ya estaba
+pvm_probe(-1,-1)			% no mensaje notificación
+pvm_addhosts(HN1)			% añadido, notificación
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy 
+[nh na info]=pvm_config; info.tid
+pvm_delhosts('ox1')
+pvm_probe(-1,-1)
+[nh na info]=pvm_config; info.name
+HN1, HN2
+pvm_addhosts(HN1,HN2)			% se añade sólo HN1, 2ª notificación
+pvm_probe(-1,-1), r=pvm_recv(-1,-1)
+[i bi]=pvm_bufinfo(r), [info msg]=pvme_upkntfy 
+[nh na info]=pvm_config; info.tid, info.name
+pvm_delhosts(HN2)
+pvm_probe(-1,-1)
+pvm_addhosts(HN2)			% añadido, no notificar
+pvm_probe(-1,-1)			% Sólo se pidió 2 veces Add
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mailbox
+% pvm_putinfo, pvm_getmboxinfo, pvm_delinfo, pvm_recvinfo
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvm_start_pvmd({},1)			% Máquina local
+pvm_config
+A=[7 7;7 7],b=pvm_initsend,pvm_pack(A),idx=pvm_putinfo('key',b,0) % key idx==0
+B=[8 7;6 5],b=pvm_initsend,pvm_pack(B),idx=pvm_putinfo('kye',b,0) % kye idx==0
+[info mbinfo] = pvm_getmboxinfo, mbinfo(1), mbinfo(2)
+pvm_delinfo('key',0,0)
+[info mbinfo] = pvm_getmboxinfo				% sólo queda kye
+bufid=pvm_recvinfo('kye',idx,0), clear A, pvm_unpack('A'), A % valor de kye(0)
+pvm_delinfo('kye',0,0)
+[info mbinfo] = pvm_getmboxinfo				% vacío
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Grupos. Atención al arranque del servidor pvmgs.
+% pvm_joingroup, pvm_gsize, pvm_getinst, pvm_gettid
+% pvm_barrier, pvm_bcast, pvm_reduce, pvm_scatter, pvm_gather,
+% pvm_freezegroup, pvm_lvgroup, pvme_gids
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1'				% otra máquina distinta
+DISP=getenv('DISPLAY'), GN='migrup'
+pvme_start_pvmd('* ep=$PATH',HN1)	% * ep para encontrar xterm
+pvm_gsize(GN)				% error 19, PvmNoGroup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% si obtiene el error -14:
+% gs_getgstid() failed to start group server: No such file
+% podría desear intentar algunas de las siguientes pruebas
+  r=getenv('PVM_ROOT'), a=getenv('PVM_ARCH'), g=[r '/lib/' a]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% podría ser necesario, dependiendo de su configuración PVM
+  pvm_halt
+  pvme_start_pvmd(['* ep=$PATH:' g],HN1)	% * ep para xterm, g para pvmgs
+  pvm_gsize(GN)					% error 19, PvmNoGroup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Investigar la causa:
+% cmd=['rsh ' HN1 ' which pvmgs']
+% [s w]=unix(cmd)                       % comprobar que pvmgs está en path
+% cmd=['rsh ' HN1 ' ''echo $LD_LIBRARY_PATH''']
+% [s w]=unix(cmd)                       % comprobar valor de LD_LIBRARY_PATH
+% cmd=['rsh ' HN1 ' ''ls $PVM_ROOT/lib/$PVM_ARCH''']
+% [s w]=unix(cmd)                       % buscar libgpvm3.so, pvmgs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% podría ser necesario, dependiendo de su configuración PVM
+% l=getenv('LD_LIBRARY_PATH')
+% putenv(['LD_LIBRARY_PATH=' g ':' l])
+% pvm_export('LD_LIBRARY_PATH')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% podría ser necesario, dependiendo de su configuración PVM
+% p=getenv('PATH')
+% putenv(['PATH=' g ':' p])
+% pvm_export('PATH')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvm_gsize(GN)					% error 19, PvmNoGroup
+pvm_joingroup(GN)
+pvm_gsize(GN)
+inum=pvm_getinst(GN,pvm_mytid)			% empezamos grupo, inum==0
+tid=pvm_gettid(GN,inum)
+pvm_mytid
+
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)	% "aquí no"
+pvm_barrier(GN, 1)				% puede satisfacer barrera de 1
+pvm_barrier(GN, 2)				% esperar a colaboración
+			%%%%%%%%%% EN EL MATLAB HIJO %%%%%%%%%%%%%%%%%%%
+			GN='migrup'
+			pvm_barrier(GN, 2)      % error -20: PvmNotInGroup
+			pvm_gsize(GN)
+			pvm_joingroup(GN)
+			pvm_gsize(GN)           % ahora también estamos dentro
+			pvme_gids(GN)
+			pvm_barrier(GN, 1)      % error -3: PvmMismatch
+			pvm_barrier(GN, 2)      % desbloquea
+			[info mbinfo]=pvm_getmboxinfo   % pvmgs usa mbox
+%%%%%%%%%%%%%
+% Broadcast %
+%%%%%%%%%%%%%
+pvm_initsend
+A='sample var', pvm_pack(A)
+pvm_bcast(GN,666)
+pvm_probe(-1,-1)					% no a uno mismo
+			pvm_probe(-1,-1)
+			pvm_recv(-1,-1)
+			pvm_unpack, A
+%%%%%%%%%%%%%
+% Reducción %
+%%%%%%%%%%%%%
+B=[1 2 ; 7 8]
+pvm_reduce('Max',B,7,GN,0)                      % bloquea, esperar cooperación
+B                                                       % B cambia a Max{B,C}
+			C=[3 4 ; 5 6]
+			pvm_reduce('Max',C,7,GN,0)      % desbloquea
+			C				% C no cambia
+			C=[3 4 ; 5 6]
+			pvm_reduce('Min',C,7,GN,0)
+			C				% no cambia, no bloquea
+B=[1 2 ; 7 8]
+pvm_reduce('Min',B,7,GN,0)                              % datos disponibles
+B                                                       % B cambia a Min{B,C}
+B=[1 2*i ; 7 8]                                         % también con complejos
+pvm_reduce('Sum',B,7,GN,0)                              % bloquea
+B                                                       % cambia a la suma
+			C=[3 4 ; 5*i 6]
+			pvm_reduce('Sum',C,7,GN,0)      % desbloquea
+			C				% no cambia
+B=[1 2 ; 7 8]                                           % igual para producto
+pvm_reduce('Product',B,7,GN,0)
+B
+			C=[3 4 ; 5 6]
+			pvm_reduce('Product',C,7,GN,0)
+			C
+%%%%%%%%%%%%%
+% Reparto   %
+%%%%%%%%%%%%%
+A=1:16
+B=zeros(2)
+pvm_scatter(B,A,7,GN,0)					% no bloq, repartimos
+A,B							% también recibimos
+			C=zeros(4,1)
+			pvm_scatter(C,[],7,GN,0)	% ya hay datos-noblock
+			C				% recibido
+			C=i*ones(2)			% también con complejos
+			pvm_scatter(C,[],7,GN,0) % bloquea
+			C		% hasta datos disponibles. Recibir en C
+A=A+i*A(end:-1:1)
+B=i*(1:4)
+pvm_scatter(B,A,7,GN,0)                                 % desbloquea
+A, B                                                    % B también datos rec.
+%%%%%%%%%%%%%
+%Recolección%
+%%%%%%%%%%%%%
+			C=i*[5 6;7 8]
+			pvm_gather([],C,7,GN,0)		% no bloquea, da datos
+A=i*ones(4)
+B=i*(1:4)
+pvm_gather(A,B,7,GN,0)				% datos disponibles, no bloquea
+A, B
+%%%%%%%%%%%%%
+% Varios    %
+%%%%%%%%%%%%%
+			pvm_lvgroup(GN)		% Abandonar
+pvme_gids(GN)					% queda uno
+% freezegroup tiene problemas bajo Solaris... BUG PVMTB?
+% pvm_freezegroup(GN,2)				% congelar cuando haya 2
+%			pvm_joingroup(GN)	% hay dos, pero aún bloqueado
+%			pvm_freezegroup(GN,2)	% desbloquea
+			pvm_exit		% salida no muy limpia
+pvm_gsize(GN)					% detectado de todas formas
+pvm_lvgroup(GN)					% salida limpia
+pvm_halt		% El otro Matlab no muere, salió de PVM
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Contextos
+% pvm_getcontext, pvm_newcontext, pvm_freecontext, pvm_setcontext
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1'				% otra máquina distinta
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1)	% * ep para encontrar xterm
+pvm_getcontext				% por defecto, contexto==0
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)	% "aquí no"
+			%%%%%%%%%% EN EL MATLAB HIJO %%%%%%%%%%%%%%%%%%%
+			pvm_getcontext	% por defecto, contexto==0
+			pvm_exit
+			quit
+newc=pvm_newcontext			% números de contexto=host+1,2...n
+newc2=pvm_newcontext
+pvm_freecontext(newc2)			% borrar 2 veces
+pvm_freecontext(newc2)			% error -32: PvmNotFound
+pvm_freecontext(newc)			% borrar también el primero
+newc=pvm_newcontext			% no se reciclan números
+oldc=pvm_setcontext(newc)		% recordar para volver
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)	% "aquí no"
+			%%%%%%%%%% EN EL MATLAB HIJO %%%%%%%%%%%%%%%%%%%
+			ctx=pvm_getcontext	% no se puede borrar ctx 0
+			pvm_freecontext(ctx)	% error -32: PvmNotFound
+			newc=pvm_newcontext	% nums ctx=host+1...
+                        pvm_tidtohost(pvm_mytid)
+			pvm_freecontext(newc)	% enviando sin contexto
+		A='ju', pvm_initsend, pvm_pack(A), pvm_send(pvm_parent,7)
+pvm_probe(-1,-1)				% se puede recibir bajo ctx
+pvm_recv(-1,-1), pvm_unpack('B'), B		% enviando bajo contexto
+A='jo', pvm_initsend, pvm_pack(A), pvm_send(tids,7)
+			pvm_setcontext( 0 ), pvm_probe(-1,-1)	% sólo recibe
+			pvm_setcontext(ctx), pvm_probe(-1,-1)	% bajo ctx
+			pvm_recv(-1,-1), pvm_unpack('B'), B
+			pvm_exit
+			quit
+pvm_getcontext, newc				% bajo contexto newc
+pvm_freecontext(newc)				% Aviso: todavía bajo ctx
+pvm_freecontext(newc)				% PvmNotFound
+pvm_getcontext, oldc, pvm_setcontext(0)		% sin ctx otra vez
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Manejadores de mensajes
+% pvm_addmhf, pvm_delmhf
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', HN2='ox2'			% otras 2 máquinas distintas
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1,HN2)	% * ep para encontrar xterm
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',2)
+cd ~/matlab
+%%%%%%%
+% Crear fichero .M manejador de mensajes. Pegar línea a línea o puede salir mal
+%%%%%%%
+!cat > mh1.m
+function ret=mh1(bufid)
+[info names]=pvm_unpack;		% sencillamente desempaquetará
+fprintf('handler1: ')			% e imprimirá las variables recibidas
+eval(names{1})
+ret=0;					% y descartará el mensaje
+%%%%%%%%%%%
+% Pulsar ^D, hemos creado un fichero "mh1.m" en disco bajo "~/matlab"
+%%%%%%%%%%%
+which mh1
+type mh1
+		%%%%%%%% DESDE HIJA 1 %%%%%%%%%%%%%%%
+		A='mensaje tag 1 desde hija 1';TAG=1;
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)
+pvm_recv(-1,-1),pvm_unpack,A,clear A		% recibido normalmente
+mhid1=pvm_addmhf(-1,1,-1,'mh1')			% interponer mh1 PARA TAG==1
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)				% mensaje descartado
+pvm_probe(-1,-1)				% ya se ha perdido
+		A='mensaje tag 2 desde hija 1';TAG=2;
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)				% usando manejador PVM
+pvm_recv(-1,-1),pvm_unpack,A,clear A		% no se ha descartado
+			%%%%%%%% DESDE HIJA 2 %%%%%%%%%%%%%%%
+			B='mensaje tag 1 desde hija 2';TAG=1;
+			pvm_initsend, pvme_pack(B),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)				% descartado
+			B='mensaje tag 2 desde hija 2';TAG=2;
+			pvm_initsend, pvme_pack(B),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)				% Manejador de mensajes PVM
+pvm_recv(-1,-1),pvm_unpack,B,clear B
+%%%%%%%
+% Crear fichero .M manejador de mensajes. Pegar línea a línea o puede salir mal
+%%%%%%%
+!cat > mh2.m
+function ret=mh2(bufid)
+[info names]=pvm_unpack;		% desempaquetar, imprimir y descartar
+fprintf('handler2: ')
+eval(names{1})
+ret=0;
+%%%%%%%%%%%
+% Pulsar ^D, hemos creado un fichero "mh2.m" en disco bajo "~/matlab"
+%%%%%%%%%%%
+which mh2
+type mh2
+mhid2=pvm_addmhf(-1,1,-1,'mh2')		% PvmExists,	ya hay para TAG==1
+info=pvm_delmhf(-1)			% PvmBadParam,	negativo
+info=pvm_delmhf(130)			% PvmNotFound,	no interpusimos eso
+mhid2=pvm_addmhf(tids(1),-1,-1,'mh2')	% PvmExists,	TAG==-1 incluye TAG==1
+mhid2=pvm_addmhf(tids(1), 1,-1,'mh2')	% PvmExists,	tids(1) incluido en -1
+mhid2=pvm_addmhf(tids(1), 2,-1,'mh2')
+mhid3=pvm_addmhf(tids(1), 3,-1,'mh2')
+mhid4=pvm_addmhf(tids(1), 4,-1,'mh2')
+mhid5=pvm_addmhf(tids(1), 5,-1,'mh2')
+nhid5=pvm_addmhf(tids(1), 5,-1,'mh2')	% PvmExists,	mhid5
+info=pvm_delmhf(mhid5)
+info=pvm_delmhf(mhid4)
+info=pvm_delmhf(mhid4)			% PvmNotFound,	ya borrado
+		%%%%%%%% DESDE HIJA 1 %%%%%%%%%%%%%%%
+		A='mensaje tag 1 desde hija 1';TAG=1;
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)			% descartado por manejador 1
+		A='mensaje tag 2 desde hija 1';TAG=2;
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)			% descartado por manejador 2
+		A='mensaje tag 3 desde hija 1';TAG=3;
+		pvm_initsend, pvme_pack(A),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)			% manejador 3 borrado, manejador PVM
+pvm_recv(-1,-1),pvm_unpack,A,clear A
+			%%%%%%%% DESDE HIJA 2 %%%%%%%%%%%%%%%
+			B='mensaje tag 1 desde hija 2';TAG=1;
+			pvm_initsend, pvme_pack(B),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)			% descartado por manejador 1
+			B='mensaje tag 2 desde hija 2';TAG=2;
+			pvm_initsend, pvme_pack(B),pvm_send(pvm_parent,TAG)
+pvm_probe(-1,-1)			% NO DESCARTADO, manejador 2 tids(1)
+pvm_recv(-1,-1),pvm_unpack,B,clear B
+
+pvme_kill(tids)
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Miscelánea
+% pvm_hostsync, pvm_siblings, pvm_getopt, pvm_setopt,
+% pvm_advise, pvm_getfds, select
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', HN2='ox2'			% otras 2 máquinas distintas
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1,HN2)	% * ep para encontrar xterm, matlab
+
+[nhost narch hinfo]=pvm_config
+hinfo(1),hinfo(2),hinfo(3)
+[info clk dlt]=pvm_hostsync(hinfo(1).tid)	% repetir 6 veces o más
+[info clk dlt]=pvm_hostsync(hinfo(2).tid)
+[info clk dlt]=pvm_hostsync(hinfo(3).tid)
+                        % open an xterm window and type this for tcsh
+                        foreach HN (0 1 2)
+                                rsh ox$HN date
+                        end     
+                        % open an xterm window and type this for bash
+			for i in 0 1 2; do rsh ox$i date; done
+
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',2)
+[ntids sib]=pvm_siblings
+			[ntids sib]=pvm_siblings	% sólo 1ª vez en Linux
+
+pvm_getopt(1)					% PvmRoute == PvmAllowDirect
+[nfds fds]=pvm_getfds
+% pvm_advise(3)					% obsoleto
+help pvm_advise
+help pvm_setopt
+pvm_setopt(1,3)					% valor nuevo== PvmRouteDirect
+pvm_getopt(1)					% valor ant. == PvmAllowDirect
+[nfds fds]=pvm_getfds			% aún no hay nuevas conexiones red
+A='una variable'
+pvm_initsend, pvme_pack(A),pvm_send(tids(1),1)	% observar... bloquea!!!
+[nfds fds]=pvm_getfds
+		%%%%%%%% EN HIJO 1 %%%%%%%%%%%%%%
+		[nfds fds]=pvm_getfds
+		pvm_probe(-1,-1)		% desbloquea!!! probe nada!!!
+		pvm_recv(-1,-1), pvm_unpack, A, clear A
+		[nfds fds]=pvm_getfds		% nueva conexión red
+		select(fds)			% se puede probar descriptores
+		select(fds,10)			% o esperar por un tiempo
+pvm_initsend, pvme_pack(A),pvm_send(tids(1),1)	% desbloquea select del hijo
+		select(fds)			% sí, datos esperando
+		select(fds(1))			% no en el descriptor antiguo
+		select(fds(2))			% sino en el PvmRouteDirect
+		pvm_recv(-1,-1), pvm_unpack, A, clear A
+pvm_setopt(1,2)
+pvm_initsend, pvme_pack(A),pvm_send(tids(2),1)	% para la otra
+			%%%%%%%% EN HIJO 2 %%%%%%%%%%%%%%
+			[nfds fds]=pvm_getfds
+			pvm_probe(-1,-1)
+			pvm_recv(-1,-1), pvm_unpack, A, clear A
+pvm_setopt(1,3)
+pvm_initsend, pvme_pack(A),pvm_send(tids(2),1)	% vuelve a bloquear
+			[nfds fds]=pvm_getfds
+			pvm_probe(-1,-1)	% desbloquea
+			pvm_recv(-1,-1), pvm_unpack, A, clear A
+			[nfds fds]=pvm_getfds	% nueva conexión
+[nfds fds]=pvm_getfds				% ahora 3 rutas en MATLAB madre
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Empaquetamiento e información de Mensaje
+% pvm_pkmesg, pvm_pkmesgbody, pvm_upkmesg, pvm_getminfo
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', HN2='ox2'			% otras 2 máquinas distintas
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1,HN2)	% * ep para encontrar xterm, matlab
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',2)
+
+A='una variable'
+sbuf=pvm_initsend		% antes de mkbuf porque initsend hace uno nuevo
+buf=pvm_mkbuf,pvm_setsbuf(buf),pvme_pack(A)		% empaq. datos en msg
+pvm_setsbuf(sbuf),pvm_pkmesg(buf),pvm_send(tids(1),1)	% empaq. propio mensaje
+tids
+		%%%%%%% EN 1ª HIJA %%%%%%%%%%%%%%
+		yo=pvm_mytid				% a ver cuál es la 1ª
+		ma=pvm_parent
+		[ntask tinfo]=pvm_tasks(0)
+		tinfo.tid
+		for i=1:3, otra=tinfo(i).tid		% extraer la 2ª
+		  if (otra~=yo) & (otra~=ma), break, end
+		end
+		pvm_recv(-1,-1)				% recibir
+		buf=pvm_upkmesg, pvm_setrbuf(buf)	% desemp. mensaje
+		pvm_unpack, A,clear A			% desemp. datos msg
+
+pvm_initsend,pvme_pack(A),pvm_send(tids(1),1)		% otra vez
+		rbuf=pvm_recv(-1,-1)
+		[i bi]=pvm_bufinfo(rbuf)		% pero ahora preguntar
+		[i mi]=pvm_getminfo(rbuf)		% toda la info msg
+		pvm_initsend				% mandar desde ésta
+		pvm_pkmesg(rbuf), pvm_send(otra,1)	% a la hermana
+			%%%%%%% EN 2ª HIJA %%%%%%%%%%%%%%
+			rbuf=pvm_recv(-1,-1)
+			[i mi]=pvm_getminfo(rbuf)	% src/dst == hija/otra
+			buf=pvm_upkmesg, pvm_setrbuf(buf)
+			[i mi]=pvm_getminfo(buf)	% src/dst == ma/hija
+			pvm_unpack, A,clear A
+					
+pvm_initsend,pvme_pack(A),pvm_send(tids(1),1)		% otra vez
+		%%%%%%% EN 1ª HIJA %%%%%%%%%%%%%%
+		rbuf=pvm_recv(-1,-1)
+		[i mi]=pvm_getminfo(rbuf)
+		pvm_initsend				% envío transitivo
+		pvm_pkmesgbody(rbuf), pvm_send(otra,1)	% body-quitar cabecera
+			%%%%%%% EN 2ª HIJA %%%%%%%%%%%%%%
+			rbuf=pvm_recv(-1,-1)
+			[i mi]=pvm_getminfo(rbuf)	% src/dst == hija/otra
+			pvm_unpack, A,clear A
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Función de Recepción
+% pvm_recvf
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvme_start_pvmd('* ep=$PATH')		% * ep para no usar hostfile
+pvm_config				% sólo se necesita esta máquina
+A='a ver si se recibe'
+pvm_initsend,pvme_pack(A),pvm_send(pvm_mytid,2)
+pvm_nrecv(-1,-1),pvm_unpack('B'),B,clear B	% recibido con no-bloqueante
+cd ~/matlab
+%%%%%%%%%
+% Creando fichero M recvf. Pegar línea a línea o puede salir mal
+%%%%%%%%%
+!cat > mirecv.m
+function cc=mirecv(bufid,tid,tag)
+cc=0;
+[info binfo]=pvm_bufinfo(bufid);
+fprintf('mirecv: comparando tid %d con el deseado %d\n',...
+	binfo.tid, tid);
+if binfo.tid~=tid, return, end
+fprintf('mirecv: comparando tag %d con el doble del deseado %d\n',...
+	binfo.msgtag, tag);
+if binfo.msgtag~=2*tag, return, end
+cc=1;
+%%%%%%%%%%%
+% Pulsar ^D, acabamos de crear ~/matlab/myrecv.m
+%%%%%%%%%%%
+which mirecv
+type  mirecv
+
+pvm_recvf('mirecv')			% declararla como función de recepción
+pvm_initsend,pvme_pack(A),pvm_send(pvm_mytid,2)
+pvm_nrecv(-1,-1)
+pvm_nrecv(pvm_mytid,-1)
+pvm_nrecv(pvm_mytid, 2)
+pvm_nrecv(pvm_mytid, 1)			% difícil de satisfacer, mirecv :-)
+pvm_unpack('B'),B,clear B
+
+pvm_recvf				% De vuelta a la normalidad
+pvm_initsend,pvme_pack(A),pvm_send(pvm_mytid,2)
+pvm_nrecv(-1,-1)
+pvm_unpack('B'),B,clear B
+
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Macros para Máscara de Trazado de Eventos
+% TEV_MASK_INIT, TEV_MASK_CHECK, TEV_MASK_SET, TEV_MASK_UNSET
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1'				% otra máquina distinta
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1)	% * ep para encontrar xterm, matlab
+
+[info mask]=pvm_gettmask('Hola')	% argumento no reconocido
+[info mask]=pvm_gettmask('Self')
+[info mask]=pvm_gettmask('Child')
+
+TEV_MASK_CHECK(mask,'Hola')		% no reconocido
+TEV_MASK_CHECK(mask,'ADDHOSTS')
+TEV_MASK_SET  (mask,'ADDHOSTS'), mask	% string puede cambiar según el bit
+TEV_MASK_CHECK(mask,'ADDHOSTS')		% le pille en posición par multibyte
+TEV_MASK_UNSET(mask,'ADDHOSTS'), mask
+TEV_MASK_CHECK(mask,'ADDHOSTS')
+
+TEV_MASK_CHECK(mask,'SPAWN')
+TEV_MASK_SET  (mask,'SPAWN'), mask	% string puede cambiar según el bit
+TEV_MASK_CHECK(mask,'SPAWN')		% le pille en posición par multibyte
+TEV_MASK_UNSET(mask,'SPAWN'), mask
+TEV_MASK_CHECK(mask,'SPAWN')
+TEV_MASK_SET  (mask,'SPAWN'), mask	% dejarlo activado
+TEV_MASK_INIT(mask),	      mask	% reseteado
+TEV_MASK_CHECK(mask,'SPAWN')
+TEV_MASK_SET  (mask,'SPAWN'), mask	% insistamos en el bit SPAWN
+
+help pvm_setopt
+pvm_probe(-1,-1)			% no hay traza aún
+pvm_settmask('Self',mask)		% queremos trazar llamadas SPAWN
+pvm_setopt(14,pvm_mytid)		% mandar traza aquí
+%----------------------------------------
+pvm_probe(-1,-1)				% ya estamos recibiendo
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 4468 bytes
+[i n]=pvm_upkint				% -3 == TEV_MARK_DATA_ID
+if n==-3
+  while ~i, m=n; [i n]=pvm_upkint; end
+  if m==-4,	disp('bloque DATA_ID recibido')
+  else,		disp('error en bloque DATA_ID')
+end, end
+%----------------------------------------
+pvm_probe(-1,-1)
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 72 bytes
+[i n]=pvm_upkint				% -5 == TEV_MARK_EVENT_DESC
+if n==-5					% 77 == TEV_SPNTASK
+  [i n]=pvm_upkint; switch n
+	case 75, disp('bloque TEV_NEWTASK recibido')
+	case 76, disp('bloque TEV_ENDTASK recibido')
+	case 77, disp('bloque TEV_SPNTASK recibido')
+	otherwise,fprintf('bloque %d recibido', n)
+  end
+  while ~i, m=n; [i n]=pvm_upkint; end
+  if m==-6,	disp('bloque EVENT_DESC recibido')
+  else,		disp('error en bloque EVENT_DESC')
+end, end
+%----------------------------------------
+pvm_probe(-1,-1)
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 100 bytes
+[i n]=pvm_upkint				% -5 == TEV_MARK_EVENT_DESC
+if n==-5					% 75 == TEV_NEWTASK
+  [i n]=pvm_upkint; switch n
+	case 75, disp('bloque TEV_NEWTASK recibido')
+	case 76, disp('bloque TEV_ENDTASK recibido')
+	case 77, disp('bloque TEV_SPNTASK recibido')
+	otherwise,fprintf('bloque %d recibido', n)
+  end
+  while ~i, m=n; [i n]=pvm_upkint; end
+  if m==-6,	disp('bloque EVENT_DESC recibido')
+  else,		disp('error en bloque EVENT_DESC')
+end, end
+%----------------------------------------
+pvm_probe(-1,-1)
+
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)
+%----------------------------------------
+pvm_probe(-1,-1)
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 4468 bytes
+[i n]=pvm_upkint				% -3 == TEV_MARK_DATA_ID
+if n==-3
+  while ~i, m=n; [i n]=pvm_upkint; end
+  if m==-4,	disp('bloque DATA_ID recibido')
+  else,		disp('error en bloque DATA_ID')
+end, end
+%----------------------------------------
+pvm_probe(-1,-1)
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 104 bytes
+[i n]=pvm_upkint				% -5 == TEV_MARK_EVENT_DESC
+if n==-5					% 75 == TEV_NEWTASK
+  [i n]=pvm_upkint; switch n
+	case 75, disp('bloque TEV_NEWTASK recibido')
+	case 76, disp('bloque TEV_ENDTASK recibido')
+	case 77, disp('bloque TEV_SPNTASK recibido')
+	otherwise,fprintf('bloque %d recibido', n)
+  end
+  while ~i, m=n; [i n]=pvm_upkint; end
+  if m==-6,	disp('bloque EVENT_DESC recibido')
+  else,		disp('error en bloque EVENT_DESC')
+end, end
+%----------------------------------------
+pvm_probe(-1,-1)
+buf=pvm_recv(-1,-1), [i bi]=pvm_bufinfo(buf)	% 28 bytes
+[i n]=pvm_upkint				% -7 == TEV_MARK_EVENT_RECORD
+if n==-7					% 77 == TEV_SPNTASK
+  [i n]=pvm_upkint; switch n
+	case 75, disp('bloque TEV_NEWTASK recibido')
+	case 76, disp('bloque TEV_ENDTASK recibido')
+	case 77, disp('bloque TEV_SPNTASK recibido')
+	otherwise,fprintf('bloque %d recibido', n)
+  end
+  [i time ]=pvm_upkdouble
+  [i child]=pvm_upkint, tids
+  [i mothr]=pvm_upkint, pvm_mytid
+  [i n    ]=pvm_upkint
+  if n==-8,	disp('bloque EVENT_RECORD recibido')
+  else,		disp('error en bloque EVENT_RECORD')
+  [i n]=pvm_upkint
+end, end
+%----------------------------------------
+
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Empaquetar y enviar/recibir
+% pvm_psend, pvm_precv
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1'				% otra máquina distinta
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH',HN1)	% * ep para encontrar xterm, matlab
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)
+
+[info len]=pvm_psend(tids,7, 1:10)	% len==10, usar 10 en pvm_precv
+			whos
+			[info binfo]=pvm_precv(-1,-1,'array',9)
+			whos,pvm_unpack	% no, ya hemos recibido
+			array		% sólo 9 elementos
+			[info binfo]=pvm_precv(-1,-1,'array',11) % bloquea
+[info len]=pvm_psend(tids,7, 1:10)				% desbloquea
+			array		% sobra sitio
+[info len]=pvm_psend(tids,7, 1:10)
+			[info binfo]=pvm_precv(-1,-1,'array',10)
+			array		% exacto
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Empaquetar/desempaquetar sueltos, para Manejadores de Mensajes
+% pvm_pkint, pvm_pkstr, pvm_pkdouble
+% pvm_addmhf, pvm_reg_hoster, pvm_reg_tasker, pvm_reg_rm
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1'				% otra máquina distinta
+DISP=getenv('DISPLAY')
+pvme_start_pvmd('* ep=$PATH')		% * ep para no tomar hostfile
+
+pvm_initsend, pvm_pkint(666), pvm_pkstr('Hola!'), pvm_pkdouble(3.1416)
+pvm_send(pvm_mytid,1), pvm_recv(-1,-1)
+[i n]=pvm_upkint, [i s]=pvm_upkstr, [i d]=pvm_upkdouble
+
+pvm_addhosts(HN1)			% añadir-quitar host de PVM
+pvm_delhosts(HN1)
+pvm_probe(-1,-1)			% no hay mensajes hoster
+
+which skel_hoster
+type  skel_hoster			% este código manejará msgs SM_STHOST
+pvm_addmhf(-1, -2147221489, 0, 'skel_hoster')	% 0x8004000F == SM_STHOST
+pvm_reg_hoster				% nos declaramos como hoster
+pvm_addhosts(HN1)
+pvm_probe(-1,-1), pvm_config		% mensaje consumido, no atendido
+pvm_delhosts(HN1)
+pvm_probe(-1,-1), pvm_config		% mensaje consumido, no atendido
+pvm_halt
+
+pvme_start_pvmd('* ep=$PATH',HN1)	% * ep para encontrar xterm, matlab
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)
+pvm_kill(tids)				% arrancar-matar tareas en PVM
+pvm_probe(-1,-1)			% no hay mensajes tasker
+
+which skel_tasker
+type  skel_tasker			% este código manejará msgs SM_STTASK
+pvm_addmhf(-1, -2147221487, 0, 'skel_tasker')	% 0x80040011 == SM_STTASK
+pvm_reg_tasker				% nos declaramos como tasker
+[numt,tids] = pvm_spawn('xterm',...
+           {'-display',DISP,'-e','matlab'},33,'.',1)
+pvm_probe(-1,-1)
+pvm_halt
+
+pvme_start_pvmd('* ep=$PATH')		% * ep para encontrar xterm, matlab
+which rm_instmhf
+type  rm_instmhf
+
+rm_instmhf				% demasiados manejadores a mano
+[info hinfo]=pvm_reg_rm			% somos el manejador de recursos
+pvm_probe(-1,-1)
+pvm_addhosts(HN1)
+pvm_probe(-1,-1)
+pvm_config
+pvm_delhosts(HN1)
+pvm_probe(-1,-1)			% aquí se recibe
+pvm_config
+
+[numt,tids] = pvm_spawn('xterm',{'-display',DISP},1,'.',1)
+pvm_probe(-1,-1)
+pvm_kill(tids)
+% pvm_sendsig(tids,9)                   % podría hacer falta bajo tcsh
+pvm_probe(-1,-1)			% aquí se recibe
+
+ pvm_notify(3,3,3)
+pvm_probe(-1,-1)
+pvm_addhosts(HN1)
+pvm_probe(-1,-1)		% SM_NOTIFY?
+pvm_recv(-1,-1)
+[info msg]=pvme_upkntfy
+pvm_probe(-1,-1)
+pvm_delhosts(HN1)
+pvm_probe(-1,-1)		% here we recv
+
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Por curiosidad
+% pvm_tickle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvme_start_pvmd
+[info resp]=pvm_tickle(5)
+[info resp]=pvm_tickle(6,4)
+[info resp]=pvm_tickle(5)
+pvm_halt
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%
+% Obsoletas pero documentadas
+% pvm_insert, pvm_delete, pvm_lookup
+% pvm_getmwid, pvm_setmwid
+% pvm_advise, pvm_serror
+%
+% Asuntos pendientes:
+% notify no termina de estar bien
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%
+% Pruebas MMTB %
+%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%
+% Concepto de Nivel %
+%%%%%%%%%%%%%%%%%%%%%
+HN1='ox1', HN2='ox2'			% otras dos máquinas
+mmclose					% cerrar MM sin PVM srrancado ?
+mmis					% comprobando si MM arrancada
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Podría ser necesario, según su configuración PVM
+% r=getenv('PVM_ROOT'), a=getenv('PVM_ARCH'), g=[r '/lib/' a]
+% pvme_default_config(['* ep=$PATH:' g],HN1)            % g para pvmgs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvme_default_config('* ep=$PATH',HN1,HN2)
+[level ctx mmids grpnam]=mmopen		% nivel 1 abierto
+[level ctx mmids grpnam]=mmlevel	% preguntar nivel
+[level LEVS GRPMAX]=mmlevels		% preguntar todos los niveles
+mmis, mmmyid, pvm_mytid, mmparent	% otras preguntas
+
+[level ctx mmids grpnam]=mmopen		% abrir otro nivel (2)
+[level ctx mmids grpnam]=mmopen		% y otro más (3)
+[level LEVS GRPMAX]=mmlevels		% preguntar
+[level ctx mmids grpnam]=mmlevel	% actualmente en nivel 3
+
+mmdown, mmdown, mmdown, mmdown		% bajar de nivel, de 0 no pasa
+[level LEVS GRPMAX]=mmlevels
+[level ctx mmids grpnam]=mmclose	% imposible clausurar nivel 0
+mmup					% intentar con nivel 1
+[level ctx mmids grpnam]=mmclose	% quedamos en nivel inferior (0)
+[level LEVS GRPMAX]=mmlevels		% los siguientes se desplazan abajo
+mmup, mmup, mmup			% subir, de último(2) no pasa
+
+mmdown, mmdown				% no importa dónde estemos
+[level ctx mmids grpnam]=mmlevel
+[level ctx mmids grpnam]=mmopen		% los nuevos niveles creados
+[level LEVS GRPMAX]=mmlevels		% se apilan encima (3)
+[level ctx mmids grpnam]=mmlevel	% y allí quedamos
+
+mmclose, mmclose
+[level LEVS GRPMAX]=mmlevels		% dejemos los niveles, a trabajar
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Arranque de procesos bajo un nivel %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+mmids=mmspawn				% por defecto 1 MATLAB en cada host PVM
+				mmclose	% no en hija
+				mmis				% sesión mm
+				[level ctx mmids grpnam]=mmopen	% no en hija
+				mmmyid, pvm_mytid, mmparent, pvm_parent
+				[level LEVS GRPMAX]=mmlevels	% preguntar
+				LEVS{2,2}			% mytid
+				[level ctx mmids grpnam]=mmlevel
+				mmup			% hijas fijas en nivel
+				mmdown
+				[info retval]=mmeval('mmmyid')	% sólo madre
+%%%%%%%%%%%%%%%%%%%%%%%
+% Evaluación en nivel %
+%%%%%%%%%%%%%%%%%%%%%%%
+[info retval]=mmeval('incorrect')			% undefined
+ retval{:}						% última "ans" en hija
+[info retval]=mmeval('mmmyid')				% id de la hija
+ retval{:}
+[info retval]=mmeval('mmmyid','metoo')			% y de la madre también
+ retval{:}
+[info retval]=mmeval('incorrect','metoo')		% indefinido en madre
+ retval{:}
+[info retval]=mmeval('c=mmmyid','metoo',{'d'})		% pide var no definida
+ retval{:}
+[info retval]=mmeval('c=mmmyid','metoo',{'c'})		% ahora sí
+ retval{:}
+				whos			% Queda definida C
+[info retval]=mmeval('c=mmmyid,d=pvm_mytid','metoo',{'c','d'}) % varias vars
+[info{:}]
+[retval{:}]
+[info retval]=mmeval('c=pi,d=magic(4)','metoo',{'c','d'}) % otro ejemplo
+[info{:}]
+[retval{:}]
+retval{1}{:}
+[info retval]=mmeval('c=pi,d=magiÇ(4)','metoo',{'c','d'}) % error incluido
+[info{:}]
+[retval{:}]					% OK porque ya teníamos c,d
+retval{1}{:}
+[info retval]=mmeval('e=pi,f=magiÇ(4)','metoo',{'e','f'}) % ahora no OK
+[info{:}]
+[retval{:}]					% faltan valores fallidos
+retval{1}{:}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Envío/Recepción en el nivel %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A=7    ,mmsend(1, A)				% una var a una hija
+			[src names]=mmrecv
+			whos, A
+			[src names]=mmrecv(0,5)	% con source,timeout
+B=[1 3;5 7], mmsend(1, A,B)			% enviar rápido! 2 vars
+			whos, A,B
+			A='hola', B={'mundo'}
+			mmsend(1, A,B)		% enviando a madre
+[src names]=mmrecv('B','A')			% recibiendo con nombres
+A,B
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operación a nivel de grupo % Emisión
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A='Hola', B={'mundo' 666}
+mmcast(A,B)
+			[src names]=mmrecv('C','D')	% cambiando nombres
+			C,D
+			[src names]=mmrecv(0,5,'B','C')	% con src,tout,nombres
+mmcast(A,B)						% enviar rápido!
+			B,C
+clear A
+A(1,1).name = 'alice'; A(2,1).name = 'gertrude';
+A(1,1).ID = 0; A(2,1).ID = 1
+B={}
+C={'jo',[1:4],'jua',[1 3;5 7]}
+mmcast('metoo',A,B,C)				% varias vars, incluyendo madre
+			[src names]=mmrecv	% recibir de quien sea
+			A,B,C
+[src names]=mmrecv('D','E'), D,E		% recibir parcialmente
+pvm_unpack('A'), A				% datos restantes en buffer PVM
+
+mmclose						% Hija muere, PVM; parado
+mmis
+pvme_is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% clear mex			% Si tiene tiempo, intente confundir a PVM
+HN1='ox1', HN2='ox2'			% otras dos máquinas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Podría ser necesario, según su configuración PVM
+% r=getenv('PVM_ROOT'), a=getenv('PVM_ARCH'), g=[r '/lib/' a]
+% pvme_default_config(['* ep=$PATH:' g],HN1)            % g para pvmgs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvme_default_config('* ep=$PATH',HN1,HN2)
+mmopen
+% Intentó confundir PVM? Pulse ^C       -> para parar mmopen
+% quit                                  -> para salir de matlab
+% pvm> halt                             -> parar PVM desde la consola PVM
+% matlab                                -> rearrancar matlab (no clear mex)
+mmspawn
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operación a nivel de grupo % Reducción
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A=[1 2 ; 7 8]
+mmreduce('Max',A)				% bloquea madre
+A						% A cambia al Máximo
+			B=[3 4 ; 5 6]
+			mmreduce('Max',B)	% desbloquea
+			B			% B no cambia
+			mmreduce('Min',B)	% no bloquea hija
+			B
+A=[1 2 ; 7 8]
+mmreduce('Min',A)				% datos disponibles, no bloquea
+A						% A cambia al Mínimo
+A=[1 2*i ; 7 8]					% también con datos complejos
+mmreduce('Sum',A)
+A						% A cambia a Suma
+			B=[3 4 ; 5*i 6]
+			mmreduce('Sum',B)	% desbloquea
+			B
+A=[1 2 ; 7 8]
+mmreduce('Product',A)				% también Producto
+A
+			B=[3 4 ; 5 6]
+			mmreduce('Product',B)
+			B
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operación a nivel de grupo % Reparto
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A=1:16
+B=zeros(2)
+mmscatter(B,A)					% no bloquea madre
+A,B						% B cambia a datos repartidos
+			C=zeros(4,1)
+			mmscatter(C,[])
+			C			% C cambia a datos repartidos
+			C=i*ones(2)		% también con complejos
+			mmscatter(C,[])		% bloquea hija
+			C			% C cambia
+A=A+i*A(end:-1:1)
+B=i*(1:4)
+mmscatter(B,A)					% desbloquea
+A, B						% B cambia
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operación a nivel de grupo % Recolección
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			C=i*[5 6;7 8]
+			mmgather([],C)		% no bloquea hija
+A=i*ones(4)
+B=i*(1:4)
+mmgather(A,B)					% datos disponibles, no bloquea
+A, B						% A cambia a datos recolectados
+%%%%%%%%%%%%%%%%%%%
+% "Salida limpia" %
+%%%%%%%%%%%%%%%%%%%
+				mmexit
+mmclose
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+clear mex				% Sin problemas ahora
+HN1='ox1', HN2='ox2'			% otras dos máquinas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Podría ser necesario, según su configuración PVM
+% r=getenv('PVM_ROOT'), a=getenv('PVM_ARCH'), g=[r '/lib/' a]
+% pvme_default_config(['* ep=$PATH:' g],HN1)            % g para pvmgs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pvme_default_config('* ep=$PATH',HN1,HN2)
+[level ctx mmids grpnam]=mmopen
+mmspawn
+mmkill(0:pvm_gsize(grpnam)-1)		% suicidio no está bien visto
+mmkill(1:pvm_gsize(grpnam)-1)		% homicidio tampoco, pero...
+mmclose
+quit
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Lista de asuntos pendientes:
+% testear mmkill/exit/close/respawn y que no se líen los grupos
+% rehacer Contents.m
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

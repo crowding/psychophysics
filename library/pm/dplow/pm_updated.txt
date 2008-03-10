@@ -1,0 +1,64 @@
+The Parallel Matlab Toolbox is based on the Matlab-C interface for PVM in 
+DP toolbox 1.4.9. In the DP toolbox this interface is denoted DPLOW for 
+low level layer. The following changes have been made to the DPLOW as 
+provided in DP toolbox 1.4.9. 
+
+UPDATED M-FILES IN DPLOW
+%-----------------------
+
+pvm_getmboxinfo.m
+pvme_default_config.m
+pvme_upkarray_rest.m
+
+
+UPDATED C-files in SRC:
+%----------------------
+
+m2libpvm.c
+
+  m2pvm_upkint - rewritten and included.
+  m2pvm_recv   - interrupt handling revised.
+  m2pvm_trecv  - interrupt handling revised.
+  m2pvm_getmboxinfo - debugged and included.
+
+m2libpvme.c 
+  #define PM added
+  handling for defining /tmp directory added
+  
+  m2pvme_upkarray_rest - handling of Matlab User defined objects added.
+  
+m2pvm.c
+  reorganised - header file added
+  m2pvm_upkint activated
+
+m2pvm.h added
+
+pvmeupk.c
+  general modifications of internal error messages for debugging
+  pvmeupkmatHeadRest - handling Matlab user defined objects added.
+  pvme_upkarray_rest - handling Matlab user defined objects added.
+  pvmepkmatHeadRest  - handling Matlab user defined objects added.
+
+
+
+OTHER C-FILES from DP toolbox is also used with no changes:
+%----------------------------------------------------------
+
+unsetenv.c
+putenv.c
+selectsdtin.c
+persistent2.c
+
+
+
+Other files emprunted from DP-toolbox but modified: 
+%--------------------------------------------------
+
+dpsend.m is now pmsend.m
+dprecv.m is now pmrecv.m
+dpmatlab.c - major modifications
+dpspawn_startup.m - is now pmspawn_startup.m with major modifications
+
+
+The remaining files of the parallel Matlab toolbox are completely new or
+rewritten

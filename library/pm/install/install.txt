@@ -1,0 +1,35 @@
+CONFIGURATION
+
+    There are some files that  should be copied or pasted into already
+    existing files  in the system.   The first one is  cshrc.stub that
+    should be pasted into .cshrc  in the users home directory. If this
+    does not exist simply rename the file to .cshrc. The file contains
+    a lot of settings accompanied by comments explaining what may need
+    to be  changed for the current  system. The user  must verify that
+    the contents  of this  file corresponds to  the user's  system and
+    Matlab version, etc. If this file is not set up correctly the user
+    risk errors at compilation as well as when running the toolbox.
+
+    The files  startup_stub.m and finish_stub.m should  be pasted into
+    the user's possibly already  existing startup.m and finish.m files
+    respectively. These must  be stored in the user's  Matlab path. If
+    these files  do not  exist simply rename  the "stub" files  to the
+    respective target filenames and make sure you store them somewhere
+    in the user's Matlab path.
+
+    The  last file  needed is  the pvmdefhosts.m.   This  file defines
+    which  hosts that  are  part  of the  parallel  Matlab system  and
+    available for running Matlab  processes.  The settings and options
+    for this file  can be found in the documentation  for PVM. A basic
+    setting contains one host name on each line.
+
+
+COMPILING
+
+    Before running  the toolbox it  must be compiled.  Make  sure that
+    the  .cshrc has updated  the environment  variables.  From  the pm
+    directory type "make" at the UNIX prompt.  Some warnings may occur
+    at compilation but  do not worry about these.   If no errors occur
+    the toolbox is ready to be started.
+
+    

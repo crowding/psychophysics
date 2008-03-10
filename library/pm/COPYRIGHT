@@ -1,0 +1,56 @@
+              PM Toolbox : Parallel Matlab Toolbox
+
+                      Author: Erland Svahn
+            Chalmers University of Technology, Sweden
+                 Department of Computer Science
+             Ecole Polytechnique de Montréal, Canada
+               Department of Biomedical Engineering
+
+                        Version 1.1.0
+                (C) 2001 All Rights Reserved
+
+                            NOTICE
+
+ Permission to use, copy, modify, and distribute this software and
+ its documentation for any purpose and without fee is hereby granted
+ provided that the above copyright notice appear in all copies and
+ that both the copyright notice and this permission notice appear in
+ supporting documentation.
+
+ Neither the Institutions nor the Authors make any representations 
+ about the suitability of this software for any purpose. This software 
+ is provided ``as is'' without express or implied warranty.
+
+
+The PM Toolbox is partly based on DP Toolbox 1.4.9:
+
+                          Distributed and Parallel 
+                            Application Toolbox
+                                (DP Toolbox)
+                    for use with Matlab 4 and Matlab 5 (r)
+ 
+                              Version 1.4.9
+ 
+     Institute of Automatic Control, University of Rostock, Germany [*]
+      Department of Mechanical Engineering, HS Wismar, Germany [**]
+
+          Authors: S. Pawletta, A. Westphal, W. Drewelow, P. Duenow [*]
+                    T. Pawletta [**]
+
+              	   (C) 1994-1999 All Rights Reserved
+
+  The module m2libpvm contains in the M5 part wrapper functions, and
+  the module misc contains the function StrReshape(), which are written
+  by T. T. Binh, Institute of Automation, Univ. of Magdeburg, Germany.
+
+                              NOTICE
+
+ Permission to use, copy, modify, and distribute this software and
+ its documentation for any purpose and without fee is hereby granted
+ provided that the above copyright notice appear in all copies and
+ that both the copyright notice and this permission notice appear in
+ supporting documentation.
+
+ Neither the Institutions nor the Authors make any representations 
+ about the suitability of this software for any purpose. This software 
+ is provided ``as is'' without express or implied warranty.

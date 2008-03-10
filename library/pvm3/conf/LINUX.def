@@ -1,0 +1,29 @@
+#
+# Notes on readline Usage:
+#
+#	If your Linux system has readline, then you may append the
+#	following flags to the defines below:
+#
+#		ARCHCFLAGS = . . .  -DHASREADLINE
+#		ARCHLIB = . . .  -lreadline
+#
+#	and recompile PVM.
+#
+#	On some Linux systems, readline requires ncurses, so you
+#	must also add "-lncurses" to the ARCHLIB define.
+#
+ARCHCFLAGS	=	-DSYSVSIGNAL -DNOWAIT3 -DRSHCOMMAND=\"/usr/bin/rsh\" \
+				-DNEEDENDIAN -DFDSETNOTSTRUCT -DHASERRORVARS \
+				-DCTIMEISTIMET -DSYSERRISCONST -DNOTMPNAM -DUSESTRERROR
+#
+# For Absoft Fortran 95 Compiler:
+# ARCHFFLAGS	=	-B108 -YEXT_NAMES="LCS"
+# (submitted by Reggie Chang <reggie@zonatech.com>)
+#
+ARCHDLIB	=
+ARCHDOBJ	=
+ARCHLIB		=
+HASRANLIB	=	t
+AR			=	ar
+PVM_ARCH	=	LINUX
+MAKE		=	make

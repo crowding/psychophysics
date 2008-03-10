@@ -1,0 +1,30 @@
+function D=CELLFUN(FUN,C,varargin)
+% CELLFUN Functions on cell array contents.
+%    D = CELLFUN(FUN, C) where FUN is one of 
+% 
+%    	'isclass'   -- true for double D=CELLFUN('isclass',C,'double')
+%    	'isempty'   -- true for empty cell element
+%    	'length'    -- length of cell element
+% 
+%    and C is the cell array, returns the results of
+%    applying the specified function to each element
+%    of the cell array. D is a double array the same
+%    size as C containing the results of applying FUN on
+%    the corresponding cell elements of C.
+
+[V,H]=size(C);		% only consider 2dims
+D=zeros(V,H);		% preallocate
+for M=1:V
+  for N=1:H
+    switch FUN
+      case 'isclass',	if ~isempty (varargin) & ...
+			   ischar(varargin{1}) &   strcmp(varargin{1},'double')
+			  D(M,N)=isa  (C{M,N},'double');
+			else, error('Not implemented'), end
+      case 'isempty',	D(M,N)=isempty(C{M,N});
+      case 'length',	D(M,N)=length (C{M,N});
+      otherwise,	error('Not implemented')
+    end
+  end
+end
+

@@ -1,0 +1,12 @@
+
+pm/examples/
+
+This directory contains the following:
+
+fieldII/     - Manages the parallel creation of simulated ultrasound images.
+file_batch/  - Execute same algorithm on several files 
+integration/ - Do integration by summing partial integrations
+testpmfun.m  - Example for understanding how some aspects of pmfun works.
+welch/       - Calculate the power spectral density in parallel
+README       - This file
+

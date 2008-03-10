@@ -1,0 +1,43 @@
+# for Parallel Matlab toolbox, PM
+#--------------------------------
+
+# Paths to different Matlab versions
+setenv M6_ROOT /usr/local/matlab
+
+# Setup which version of the PM to use or compile, valid values are: 4,5,6
+setenv PM_VER 6
+
+# Set where the PM is installed:
+setenv PM_ROOT ~/pm
+
+# M?_CMD used internally by PM for starting matlab instances:
+# these point to scripts that ensure that the started matlab 
+# instances execute with correct paths.
+# Normal values would be $M?_ROOT/bin/matlab
+setenv M6_CMD $M6_ROOT/bin/matlab
+
+# The following setttings should only be modified if you know what you
+# are doing.
+
+# set shell path to find PM executables
+set path=($path $PM_ROOT/bin/$PVM_ARCH)
+
+# PM_DEFHOSTS determines the default hostfile for PVM under Matlab.
+# this file must be in the matlab path. Although this 
+# is a normal pvm config file it must have the ext '.m'
+# For default use, don't change.
+setenv PM_DEFHOSTS pvmdefhosts.m 
+
+# Settings for where matlab can find the toolboxes and binaries
+setenv PM_PATH $PM_ROOT/dplow/M${PM_VER}:$PM_ROOT/dplow:$PM_ROOT/pm
+
+# Settings uniquely used when compiling:
+#
+# The following directory should have enough space to save the biggest
+# user defined object desired to transfer, times the number of Matlab
+# processes that may do this concurrently. If this variable is not set, 
+# /tmp will be used. For speed and performance reasons it is advisable
+# to use a local hard drive.
+setenv TMP_LOC /tmp/usr
+
+

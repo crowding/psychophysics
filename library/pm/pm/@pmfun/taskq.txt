@@ -1,0 +1,20 @@
+
+task = get_task(pmjob);
+reschedule_task(pmjob,task,'last'/'first');
+remove_task(pmjob,task);
+
+task is a tuple that uniquely defines a task:
+[funind, blockind]
+
+the queue can be created using the createtq method
+ - can be initialised with a previous state.
+
+
+
+
+mark_processed(f,task,slave);
+mark_unprocessed(f,task,[slave]);
+task = processed_on(slaves);
+slaves = processing(task);      
+
+

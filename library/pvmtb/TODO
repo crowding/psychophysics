@@ -1,0 +1,13 @@
+Cosas por hacer:
+
+pvme_is, que compruebe primero alguna variable de entorno
+	por si no fuera necesario llamar a PVM para
+	saber que NO está funcionando
+
+Añadir "See also" a todos los help, y versión inglesa
+Versión inglesa de startup* y ficheros M en general?
+Sistema de impresión de mensajes de error/aviso traducible?
+
+Reemplazar "uid" y "hostname" por "unix"
+
+Manejo errores/ if info -> if any(info)

@@ -1,0 +1,778 @@
+%PMJOB/DISPATCH Dispatches an array of PMJOBS.
+%   ERR=DISPATCH(PMJOB) Dispatches a function or an array of functions on
+%   a given Virtual Machine. The function is connected to its input,
+%   output and a virtual machine through the PMJOB object. This way the
+%   different functions in the array can be executed according to
+%   different input/output and on different virtual machines.
+%
+%   ERR=DISPATCH(PMJOB,STATE) starts the dispatch from a resumed
+%   state. (see PMFUN/DISPATCH).
+%   
+%   ERR=DISPATCH(PMJOB,STATE,CONFIG) or 
+%   ERR=DISPATCH(PMJOB,STATE,PARAM1,VALUE1,PARAM2,VALUE2,...) Allows to
+%   dispatch with a specified configuration. (see PMFUN/DISPATCH)
+%
+%   CONFIG = DISPATCH(PMJOB,'GETCONFIG') Retrieves the current
+%   configuration of the dispatcher. (see PMFUN/DISPATCH).
+% 
+%   DISPATCH(PMJOB,'setconfig',CONFIG)
+%   DISPATCH(PMJOB,'setconfig',PARAM1,VALUE1,PARAM2,VALUE2,...) Allows
+%   the user to set the configuration of the dispatcher without
+%   dispatching. 
+%
+%   See also PMFUN/DISPATCH.
+%
+%Known bugs:
+%  cancelling others processes is not stable. This is due to the signal
+%  handling of the mexfiles. For now, use Single mode for all PMFUN/PMJOB. 
+%  Always set timeout to Inf in PMBLOCKS. 
+%
+
+% uses @PMJOB/RPC
+
+%% to do:
+%
+% create output file directories if necessary. This should be done by the
+% PMBLOCK, a need for a VERIFY CONSISTENCY of each object needed for the
+% dispatch is thus called upon. Calling the verify consistency for PMJOB
+% will work its way down to PMFUN, PMRPCFUN and the PMBLOCKS.
+% 
+% correct cancel bug in PMS 
+%
+
+
+function err = dispatch(job, varargin);
+
+%constants
+TaskExitMsg = 9100;
+HostExitMsg = 9101;
+HostAddMsg = 9102;
+PMIACTIVE   = 0;
+PMIEXTERN   = 1;
+PvmMboxReadAndDelete = 16;
+
+% default configuration of dispatcher
+%------------------------------------
+persistent pmdconf % keep the configuration.
+% default values, only if first time called.
+if isempty(pmdconf)
+  pmdconf.gui        = 0;         % GUI
+  pmdconf.saveinterv = 100;       % How often the state is saved
+  pmdconf.statefile  = '/tmp/pmstate.mat'; % File name of State file
+  pmdconf.debug      = 0;     
+  pmdconf.logfile    = 'stdout';
+end
+
+numfun = length(job);
+
+ctime = 0; % keeps track of total calculation time. Will be changed if
+           % the dispatcher is started from a saved state;
+state = [];
+
+% peristent variables that are used for update from GUI.
+persistent gui_break
+
+% arguments in
+%-------------
+
+if nargin == 2 & ischar(varargin{1})
+  if strcmp('getconfig',varargin{1})
+    err = pmdconf;
+    return
+  end
+end
+if nargin >= 2 & ischar(varargin{1}) & strcmp('inputgui',varargin{1})
+  % this is input exclusively from the GUI. The string in varargin{2}
+  % will be evaluated and then the function returns.
+  eval(varargin{2});
+  return
+end
+if (nargin >= 2 & isempty(varargin{1})) | nargin == 1
+  %%taskq = createtq(pmjob,state);
+  numtask = 0;
+  for n=1:numfun,
+    for m=1:length(job(n).pmfun.blocks),
+      numtask = numtask + 1;
+      taskq(numtask,:) = [n m];
+    end
+  end
+  if numtask==0
+    error('No blocks defined for function')
+  end
+elseif nargin >= 2 & isstruct(varargin{1}) & isfield(varargin{1},'taskq')
+  state = struct2cell(varargin{1});
+  taskq = state{1};
+  err   = state{2};
+  ctime = state{3};
+  if length(state) > 3
+    for n=4:length(state)
+      job(n-3).output = state{n};
+    end
+  end
+  numtask = size(taskq,1);
+elseif nargin >= 2 & ~(ischar(varargin{1}) & strcmp('setconfig',varargin{1}))
+  error('bad argument 2')
+end
+if nargin==3 
+  if isstruct(varargin{2}) & length(fieldnames(varargin{2}))==5
+    pmdconf = varargin{2};
+  else
+    error('bad argument 3')
+  end
+end
+if nargin>3 
+  if mod(nargin,2) == 0
+    for n=2:nargin-2
+      switch lower(varargin{n})
+       case 'gui'
+	pmdconf.gui = varargin{n+1};
+       case 'saveinterv'
+	pmdconf.saveinterv = varargin{n+1};
+       case 'statefile'
+	pmdconf.statefile = varargin{n+1};
+       case 'debug'
+	pmdconf.debug = varargin{n+1};
+       case 'logfile'
+	pmdconf.logfile = varargin{n+1};
+       case 'logerr'
+	pmdconf.logerr = varargin{n+1};
+       case 'logdisp'
+	pmdconf.logdisp = varargin{n+1};
+       case 'logsys'
+	pmdconf.logsys = varargin{n+1};
+       case 'logtimeout'
+	pmdconf.logtimeout = varargin{n+1};	
+      end 
+    end
+  else
+    error('bad number of arguements to dispatcher');
+  end
+end
+
+if nargin >= 2 & (ischar(varargin{1}) & strcmp('setconfig',varargin{1}))
+  return
+end
+
+% initialisation
+%---------------
+global FID 
+FID= -1;            % File id for LOG file. -1 = not initialised.
+working_pmis = []; % keeps track of which PMI:s are busy.
+initialised_pmis = []; % keeps track of pmi:s that have received common input
+spawn_disp       = []; % keeps track of which Matlab inst. spawned by dispatcher
+add_pmis     = []; % keeps track of PMI:s to add.
+gui_break    = 0;  % will become 1 if STOP button pressed in GUI.
+num_errors = 0;    % number of errors totally encountered by disp.
+err = [];          % output of errors
+curr_save = 0;     % counter for save interval
+ 
+if ~pmis
+  error(['The Parallel Matlab System has not been started. Use PMOPEN to' ...
+	 ' start it.']);
+end
+
+% verify that each function has output
+for n = 1:numfun
+  if isempty(job(n).pmfun.dataout)
+    error('All functions to dispatch must have specific output defined.')
+  end
+end
+
+% verify that saved state file and logfile is writable.
+if ~isempty(pmdconf.statefile) 
+  save(pmdconf.statefile,'state');
+end
+if isempty(state)
+  startlogfile('wt');  % not continuing from previous state -> new file
+else
+  startlogfile('at');   % continuing from previous state -> append to file
+end
+if FID < 0
+  error('could not open log file for writing');
+end
+  
+% clear all message buffers
+vms = union([job(:).vm],[]);
+slaves = pmmembvm(vms);
+slaves = setdiff(slaves,pmid); % remove dispatcher PMI if included.
+pmclearbuf;
+
+pmeval(slaves,['pmclearbuf;pmsend(' int2str(pmid) ',0,''PMCACK'');'],~pmdconf.debug);
+for n=1:length(slaves)
+  pmrecv(-1,'PMCACK');
+end
+
+if pmdconf.gui
+  dispgui(job,pmdconf);
+end
+
+% Measure time from here!
+%------------------------
+if ~isempty(state)
+  lprintf('Resuming dispatch from saved state at %s', datestr(now));
+else
+  lprintf('Dispatching started at %s', datestr(now));
+end
+clear state; 
+tic
+
+% make a host table to keep track of names of hosts in case of deaths.
+[nhost,narch,dtids,hosts,archs,speeds,info]=pvm_config;
+host_tbl = {};
+for n=1:length(dtids)
+  host_tbl = [host_tbl; {deblank(hosts(n,:)) dtids(n)}];
+end
+
+% log information about the Parallel Matlab system.
+if ~isempty(pmdconf.logfile)
+  fprintf('logging to %s\n',pmdconf.logfile);
+  lprintf('----------------------------')
+  lprintf('sys:The user''s PVM contains the following hosts')
+  for host_info = host_tbl'
+    lprintf('sys: Name %s - ID %d',host_info{:})
+  end
+  lprintf('----------------------------')
+  lprintf(['sys:The virtual machines used by the functions to dispatch' ...
+	   ' contain:'])
+  for slave=slaves
+    conf_name = sprintf('PMCONF%d',slave);
+    bufid = pvm_recvinfo(conf_name,0,0);
+    if bufid > 0  % this matlab instance still has conf -> not killed by user
+      v = version;
+      if v(1) == '4', cnf = pvme_upkmat;
+      else cnf = pvme_upkarray; 
+      end
+      pvm_freebuf(bufid);
+      vm_ids = cnf.vm;
+      stdout_redir = cnf.outredir;
+    else
+      error(['could not find configuration information for all Matlab ' ...
+	     'instances. Use PMCLOSE followed by PMOPEN to reset system']);
+    end
+    lprintf(['sys: %d - member of VM(s): ' int2str(cnf.vm) ' - outputs to:' ...
+	     ' %s'], slave,cnf.outredir);
+  end
+  lprintf('----------------------------')
+  lprintf('To dispatch:')
+  for n = 1:numfun
+    lprintf('Function %d: %d blocks',n,length(job(n).pmfun.blocks));
+  end
+  lprintf('----------------------------')
+end
+
+if isempty(slaves)
+  error(['no Matlab instances defined for the dispatching. Verify function' ...
+	 ' VM and Matlab instance VMs']);
+end
+
+% Tell Matlab instances to Notify dispatcher at death
+pvm_notify(1,TaskExitMsg,length(slaves),slaves);
+pvm_notify(2,HostExitMsg,length(slaves),slaves);
+% Tell PVMD to notify dispatcher in case hosts are added.
+pvm_notify(3,HostAddMsg,-1,0);
+% clear notify buffers
+bufid = pvm_trecv(-1, TaskExitMsg,0,0);
+while bufid~=0,
+  info = pvm_freebuf(bufid);
+  if info ~= 0
+    break;
+  end
+  bufid = pvm_trecv(-1,TaskExitMsg,0,0);
+end
+pvm_notify(258,HostExitMsg,length(slaves),slaves);
+% clear notify buffers
+bufid = pvm_trecv(-1, HostExitMsg,0,0);
+while bufid~=0,
+  info = pvm_freebuf(bufid);
+  if info ~= 0
+    break;
+  end
+  bufid = pvm_trecv(-1,HostExitMsg,0,0);
+end
+
+
+% send COMMON information to slaves.
+tids = setcommon(job,[],pmdconf.debug);
+lprintf('Common variables sent to slaves %s', int2str(tids));
+initialised_pmis = tids;
+
+% evaluate pre-functions on slaves
+for n=1:numfun,
+  if ~isempty(job(n).pmfun.prefun)
+    tids = pmmembvm(job(n).vm);
+    pmeval(tids,job(n).pmfun.prefun);
+  end
+end
+
+% init progress bar.
+if pmdconf.gui
+  h_waitbar = waitbar(0,'Dispatch Progress');
+end
+
+% dispatching loop
+%-----------------
+
+while ~isempty(taskq),
+
+  drawnow;  % empty Matlab event queue from GUI:s.
+  
+  % the user interrupts the execution
+  if gui_break
+    break
+  end
+
+  % TODO
+  % Check if the dispatcher receives a command via PVM
+  % possible commands:
+  %  addfun:pmjob object -> error code
+  %  delfun:fun_id
+  %  reschedulefun:fun_id:first|last|after|before:fun_id
+  %  queryfun:fun_id/list:list of attr -> attributes
+  %  saveoutp:fun_id:filename:var_names -> error code
+  
+  
+  % verify if hosts are added to system
+  %------------------------------------
+  % if a host (PVM daemon) is added the dispatcher will be notified by
+  % receiving a PVM message with the code HostAddMsg. 
+  % If such a message is received, verify if this host has already been
+  % added a the list hosts in the systems - host_tbl. (may be due to
+  % multiple messages due to non-normal termination of previous dispatch
+  % or if a host has been added by the dispatcher to replace accidentally
+  % dead host)
+  bufid = pvm_trecv(-1,HostAddMsg,0,0);
+  while bufid > 0 
+    % a host was added
+    [num_tid, info] = pvm_upkint(1,1); % message contains num hosts addded
+    [tids, info] = pvm_upkint(num_tid,1); % and a list of all host ids
+    % get names of all host currently in system.
+    [nhost,narch,dtids,hosts,archs,speeds,info]=pvm_config;
+    for n=1:num_tid
+      h_ind = find(dtids==tids(n));
+      if ~isempty(h_ind) % not already added to host_tbl
+	h_name = deblank(hosts(h_ind,:));
+	host_tbl = [host_tbl; {h_name tids(n)}];    
+	if pmdconf.gui
+	  dispgui('refresh pms')   % refresh GUI
+	end
+	lprintf('sys:host %s with id %d added',h_name,tids(n));
+      end
+    end
+    pvm_freebuf(bufid);
+    bufid = pvm_trecv(-1,HostAddMsg,0,0);  % more hosts added?
+  end 
+
+  % verify if hosts are deleted from system 
+  %----------------------------------------
+  % if a host (pvm daemon) is deleted the dispatcher will be notified by
+  % receiving a PVM message with the code HostExitMsg.
+  % This is logged and the gui is refreshed. No modification is done to
+  % the host_tbl since this also keeps track of dead hosts in the system.
+  bufid = pvm_trecv(-1,HostExitMsg,0,0);
+  if bufid > 0
+    if pmdconf.gui
+      dispgui('refresh pms')
+    end
+    lprintf('sys:host with id %d deleted/killed',pvm_tidtohost(tids(n)));
+    while bufid > 0 
+      pvm_freebuf(bufid);
+      bufid = pvm_trecv(-1,HostExitMsg,0,0);
+    end
+  end
+  
+  % verify if tasks have been deleted/killed from the system
+  %---------------------------------------------------------
+  % if a matlab instance exits the dispatcher will be notified by 
+  % receiving a PVM message with the code TaskExitMsg. Further, if this
+  % matlab instance has been terminated in a normal way, the global
+  % variable PMCONFtaskid will have been deleted. If this variable
+  % remains, the task needs to be restarted. For all Matlab instances
+  % that need to be restarted the task id of the process they replace
+  % will be added to a list of Matlab instances to restart. Remove also
+  % the dead Matlab process from the list of working Matlab instances.
+  bufid = pvm_trecv(-1,TaskExitMsg,0,0);
+  while bufid > 0  
+    % a task died
+    [tid, info] = pvm_upkint(1,1);
+    pvm_freebuf(bufid);
+    if info < 0
+      lprintf('dispatch: error at reception of TaskExitMsg');
+    end
+    % is this a task exit message because dispatcher was restarted?
+    % does the task still exist?
+    if ~pvm_tasks(tid)
+      conf_name = sprintf('PMCONF%d',tid);
+      bufid = pvm_recvinfo(conf_name,0,0);
+      if bufid > 0  % this matlab instance still has conf -> not killed by user
+        add_pmis = [add_pmis tid];
+        lprintf('sys:Matlab instance %d terminated unexpectedly',tid);
+        working_pmis(find(working_pmis(:,1)==tid),:) = [];
+      else
+        lprintf('sys:Matlab instance %d was deleted by user',tid);
+        working_pmis(find(working_pmis(:,1)==tid),:) = [];
+      end
+      if pmdconf.gui
+        dispgui('refresh pms')
+      end
+      pvm_freebuf(bufid);
+    end
+    bufid = pvm_trecv(-1,TaskExitMsg,0,0);
+  end
+  
+  % Try to reinstate killed Matlab processes 
+  %-----------------------------------------
+  % If the host (pvm daemon) in which a Matlab process originally was
+  % running is dead it will be restarted. If the pvm daemon cannot be
+  % restarted, the dispatcher skips this Matlab process.
+  % If the pvm daemon exists (or is successfully restarted) the Matlab
+  % instance to be replaced will remain in the add queue (add_pmis) until
+  % it is succesfully added.    
+  
+  if ~isempty(add_pmis)
+    temp = [];
+    for n=1:length(add_pmis)
+      tid = add_pmis(n);  
+      h_id = find([host_tbl{:,2}]==pvm_tidtohost(tid));
+      h_name = host_tbl{h_id(1), 1};
+      host_exist = 1;
+      if pvm_mstat(h_name)<0  % this host is dead!
+	h_id = pvm_addhosts(h_name);
+	if h_id > 0 % if succesful
+	  host_tbl = [host_tbl ; {h_name h_id}];
+	  lprintf('sys:replaced host with id %d by %d on %s',...
+		  pvm_tidtohost(tid), h_id, h_name);  
+	else
+	  lprintf('sys:failed to add host %s, replacing Matlab instance %d skipped',...
+		  h_name,tid);
+	  temp = [temp n];
+	  host_exist = 0; % normally a 'continue' could be used here
+	end
+      end
+      if host_exist
+	% get configuration
+	conf_name = sprintf('PMCONF%d',tid);
+	bufid = pvm_recvinfo(conf_name,0,0);
+	if bufid <= 0  
+	  lprintf('sys:Spawn information for %d not found! PVM error %d. Skipping',...
+		  tid,bufid);
+	  temp = [temp n];
+	elseif bufid > 0
+	  v = version;
+	  if v(1) == '4', cnf = pvme_upkmat;
+	  else cnf = pvme_upkarray; end
+	  pvm_freebuf(bufid);
+	  % spawn the new PMI.
+	  new_tid = pmspawn(h_name, 1, cnf.vm, cnf.outredir, 'noblock');
+	  if new_tid > 0
+	    temp = [temp n];
+	    pvm_delinfo(conf_name,0,0); % remove old conf from global mem
+	    pvm_notify(1,TaskExitMsg,1,new_tid); % to notify dispatcher at death
+	    lprintf('sys:replaced Matlab instance %d by %d on host %s',...
+		    tid,new_tid,h_name);
+	    spawn_disp = [spawn_disp new_tid]; % keep track of this so as
+                                               % not to initialise again.
+	  else
+	    lprintf('sys:failed to replace Matlab instance %d on host %s', ...
+		    tid,h_name);
+	    % try again next time the system has been verified.
+	  end
+	end	
+      end
+    end
+    add_pmis(temp) = [];
+    if pmdconf.gui
+      dispgui('refresh pms')
+    end
+  end        
+  
+  % Send out jobs to all available PMI:s
+  %-------------------------------------
+  % get PMI:s of all VM:s of tasks left to evaluate.
+  pmi = pmmembvm(unique([job(unique(taskq(:,1))).vm])); 
+  % if any of these PMIs have not been initialised, do it now.
+  pmi_notinit = setdiff(pmi,initialised_pmis);
+  if ~isempty(pmi_notinit)
+    for slave = pmi_notinit
+      if isempty(find([0 spawn_disp]==slave))
+	lprintf('sys:Matlab instance %d was added to the system',slave);
+	pvm_notify(1,TaskExitMsg,1,slave); % notify dispatcher at death
+      else
+	lprintf('sys:(Replacing) Matlab instance %d now functional',slave);
+	spawn_disp(find(spawn_disp==slave)) = [];
+      end
+      % send common information to this slave:
+      setcommon(job,slave);
+      lprintf('COMMON variables sent to slave %d',slave);
+      for n=1:numfun,
+	pmeval(slave,job(n).pmfun.prefun);
+      end
+      initialised_pmis = union(initialised_pmis,slave);
+    end
+    % wait one iteration before trying to dispatch to these:
+    pmi = setdiff(pmi,pmi_notinit); 
+  end
+  
+  % remove busy PMI:s
+  if ~isempty(working_pmis)
+     pmi = setdiff(pmi, working_pmis(:,1));
+  end
+  
+  % for each available PMI from these VMs
+  for pmi_cnt=1:length(pmi)
+    mode= pmgetinfo(pmi(pmi_cnt));
+    if ~isempty(mode)
+      if mode == PMIEXTERN 
+	slave = pmi(pmi_cnt);      % first slave available
+	vmid = pmlistvm(slave);   % to which VM it belongs.
+      
+%%    task = get_task(f);
+%%    reschedule_task(f,task,'last');
+        % pick tasks that can execute in this VM.
+	temp = [];
+	for n=1:size(taskq,1)
+	  if ~isempty(intersect(job(taskq(n,1)).vm,vmid))
+	    temp = n; break
+	  end
+	end
+	if ~isempty(temp)
+	  blockind = taskq(n,2);         % pick first job available
+	    funind = taskq(n,1);
+
+	  % if multiple mode or bloc not currently proc. by other MI,process it
+	  temp = 1; % not currently processed
+	  if ~isempty(working_pmis)
+	    if ~isempty(find(working_pmis(:,2)==funind & working_pmis(:,3)==blockind))
+	      temp = 0; % already processed
+	    end
+	  end
+	  if ~job(funind).pmfun.singlemode | temp
+            taskq(n,:) = [];               % take this job off the queue
+	    taskq = [taskq ; funind blockind];  % and put it at the end of the queue
+	    lprintf('Fun: %d, Block: %d sent to Matlab instance %d ', ...
+		    funind, blockind, slave);
+	    if pmdconf.gui, 
+	      dispgui('statusline',['Matlab instance: ' int2str(slave) ...
+ 		    ' Executes: Block #' int2str(blockind) ' of Function #' ...
+ 		    int2str(funind)]);
+	    end
+	    rpc(job(funind),slave,blockind,pmdconf.debug);
+	    working_pmis = [working_pmis ; slave funind blockind clock]; % mark PMI as working
+	  else
+	    break
+	  end
+	end
+      end
+    end  
+  end
+  
+  % no more PMI:s to send data to or no more jobs to send out, 
+  % try receiving something
+  %------------------------------------------
+  [rpc_out,dpid,mat_name] = pmrecv([],'RPC_OUT',0.2);
+  if ~isempty(dpid)          % received something
+    slave_ind = find(working_pmis(:,1)==dpid);
+    if ~isempty(slave_ind)
+      funind = working_pmis(slave_ind,2);
+      blockind = working_pmis(slave_ind,3);
+      % set this instance as no longer working on this block:
+      working_pmis(slave_ind,:) = []; 
+      if ischar(rpc_out) & ~iscell(rpc_out) & strcmp(rpc_out(1:9),'RPC_ERROR')
+	% we have an error message.
+	num_errors = num_errors + 1;
+	% is it from the setting of the COMMON variables?
+	if strcmp(rpc_out(10:12),'COM')
+	  err(num_errors).blockind = 0;
+	  err(num_errors).funind   = funind;
+	  err(num_errors).info = [int2str(dpid) rpc_out(13:end)];
+	  err(num_errors).block = [];
+	  % This Matlab process can no longer be used to execute this
+          % function, it has to leave the virtual machines that are used
+          % by this function.
+	  pmeval(dpid,['pmquitvm([' int2str(job(funind).vm) ']);']);
+          lprintf('error on  %d, Receiving common data for Fun: %d\n%s',...
+		  dpid, funind, rpc_out(13:end));
+	  lprintf(['sys: Matlab process %d is forced to leave virtual ' ...
+                   'machine(s) %s used by function %d'],...
+		  dpid, int2str(job(funind).vm), funind);
+	else
+	  err(num_errors).blockind = blockind;
+	  err(num_errors).funind   = funind;
+	  err(num_errors).info = [int2str(dpid) rpc_out(10:end)];
+	  err(num_errors).block = job(funind).pmfun.blocks(blockind);
+	  
+	  lprintf('error on  %d, Fun: %d, Block: %d\n%s',...
+		  dpid, funind, blockind, rpc_out(10:end));
+	  % remove job from jobs to do.
+	  taskq(find(taskq(:,1)==funind & taskq(:,2)==blockind),:) = []; 
+%%    remove_task(f,task);
+	end	
+	
+      else  % we have an non-erroneous output.
+        
+	% Store the received data where specified by job.
+	for n=1:length(rpc_out),
+	  if strmatch('SETBLOC', job(funind).pmfun.dataout{n})
+	    data = rpc_out{n}; % make temp pointer to this data
+	    eval(job(funind).pmfun.dataout{n});
+	    clear data   
+	  elseif ~strcmp('', job(funind).pmfun.dataout{n})
+	    eval([job(funind).pmfun.dataout{n} ' = rpc_out{n};']);
+	  end
+	end
+	lprintf('Result returned from %d, Fun: %d, Block: %d',...
+		dpid, funind, blockind);
+	
+	% we have the good result, cancel other instances working on the same block.
+	if ~isempty(working_pmis) & ~job(funind).pmfun.singlemode
+	  slaves = find(working_pmis(:,2) == funind & working_pmis(:,3) == blockind);
+	  slaves = working_pmis(slaves,1);
+	  if ~isempty(slaves)
+	    info = pmcancel(slaves);
+	    lprintf('canceled PMI(s) %s, also working on Fun: %d, Block: %d',...
+		    int2str(slaves'),funind,blockind);
+	  end
+	end
+	
+	% time to save the state?
+	curr_save = curr_save + 1;
+	if curr_save >= pmdconf.saveinterv
+	  state.taskq = taskq;
+	  state.err   = err;
+	  state.time  = toc+ctime;
+	  for n=1:numfun
+	    eval(['state.fun' sprintf('%d',n) 'out=job(n).output;']);
+	  end
+	  save(pmdconf.statefile,'state')
+	  clear state 
+	  lprintf('State saved, when %d blocks evaluated', numtask-size(taskq,1)+1);
+	  curr_save = 0;
+	end
+	% remove job from jobs to do.
+	taskq(find(taskq(:,1)==funind & taskq(:,2)==blockind),:) = []; 
+%%    remove_task(f,task);
+      end
+
+      if pmdconf.gui
+	try,
+	  waitbar(1-size(taskq,1)/numtask,h_waitbar);
+	catch,
+	end
+      end
+    end  
+  else  
+    % check for timeouts.
+    if ~isempty(working_pmis)
+      for n=1:size(working_pmis,1),
+	to=job(working_pmis(n,2)).pmfun.blocks(working_pmis(n,3)).timeout;
+	if to < etime(clock,working_pmis(n,4:9))
+	  pmcancel(working_pmis(n,1));
+	  lprintf('timeout on: %d evaluating function: %d, block: %d',...
+		  working_pmis(n,1), working_pmis(n,2), working_pmis(n,3));
+	end
+      end
+    end
+  end
+end
+
+% post processing
+%----------------
+
+% execute postfunc on slaves.
+for n=1:numfun,
+  if ~isempty(job(n).pmfun.postfun)
+    tids = pmmembvm(job(n).vm);
+    pmeval(tids,job(n).pmfun.postfun);
+  end
+end
+t = toc + ctime; % ctime is calc. time from previously saved states.
+lprintf(['Dispatching finished at %s.\n%d errors occurred.\nTotal' ...
+	 ' execution time is %fs'], datestr(now),length(err),t);  
+if FID > 2
+  fclose(FID);
+end
+assignin('caller',inputname(1),job);
+
+% clear notify demand at death
+pvm_notify(3,HostAddMsg,0,0);
+pvm_notify(257,TaskExitMsg,length(slaves),slaves);
+% clear notify buffers
+bufid = pvm_trecv(-1, TaskExitMsg,0,0);
+while bufid~=0,
+  info = pvm_freebuf(bufid);
+  if info ~= 0
+    break;
+  end
+  bufid = pvm_trecv(-1,TaskExitMsg,0,0);
+end
+pvm_notify(258,HostExitMsg,length(slaves),slaves);
+% clear notify buffers
+bufid = pvm_trecv(-1, HostExitMsg,0,0);
+while bufid~=0,
+  info = pvm_freebuf(bufid);
+  if info ~= 0
+    break;
+  end
+  bufid = pvm_trecv(-1,HostExitMsg,0,0);
+end
+
+if pmdconf.gui
+  % close progress bar
+  try,close(h_waitbar);catch,end
+  h0 = get(0,'children');
+  for h = h0'
+    if strcmp(get(h,'tag'),'dispatcher');
+      msgbox(sprintf(['Dispatching finished at %s.\n%d errors occurred.\nTotal' ...
+		      ' execution time is %fs'], datestr(now),length(err),t), ...
+	     'Dispatch Terminated','non-modal');
+      close(h)
+      break
+    end
+  end
+end
+
+% cancel processes still working.
+if ~isempty(working_pmis)
+  fprintf('interrupting these working Matlab instances %s\n',int2str(working_pmis(:,1)));
+  info_end = pmcancel(working_pmis(:,1));
+end
+
+
+% local functions
+%----------------
+
+function [] = startlogfile(writemode)
+  global FID;
+  fname = evalin('caller','pmdconf.logfile');
+  if isempty(fname)
+    FID = 0;
+  elseif strcmp(fname,'stdout')
+    FID = 1;
+  elseif strcmp(fname,'stderr')
+    FID = 2;
+  else
+    FID = fopen(fname,writemode);
+  end
+  
+function [] = lprintf(msg,varargin)
+  global FID;
+  if FID > 0
+    fprintf(FID,[msg '\n'],varargin{:});
+  end
+  
+% working 6 nov
+function [] = SETBLOC(varargin)
+  if nargin == 0
+    evalin('caller','setbloc(job(funind).pmfun.blocks(blockind),''job(funind).output'',''data'');');
+  elseif nargin == 1 
+    chind = sprintf('%d',varargin{1});
+    try,
+      evalin('caller',['job(funind).output{' chind '};']);  % try accessing this field!
+    catch
+      evalin('caller',['job(funind).output{' chind '} = data;']);  % %didn't exist, so create it!!!
+    end
+    evalin('caller',['setbloc(job(funind).pmfun.blocks(blockind),''job(funind).output{' chind '}'',''data'',' chind ');']);
+  else
+    error('bad use of SETBLOC(n)');
+  end  
+
+

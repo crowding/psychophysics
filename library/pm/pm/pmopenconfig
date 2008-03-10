@@ -1,0 +1,106 @@
+VIRTUAL MACHINE
+---------------
+
+The virtual machines are used to define the computation resources. First, the VM define the configuration parameters for starting up a Parallel Matlab Instance (PMI). Second, the VM define which resources that will be used when dispatching a function.
+
+The VM are designed object oriented, however, do not comply to Matlab classes. The attributes are stored in a common memory to all PMIs (a PVM msgbox). The methods for the VM objects are identified by their vm prefix. It is a kind of distributed objects where the actual objects exist only in a common space and the methods access them by their ids. These ids are not objects themselfs but merely double values, and the implementation of the Matlab objects are therefor different from normal. To be able to access these objects all methods except the constructor are stored in directory in the Matlab path. Only empty methods exist in the actual method directory so as to allow the Matlab functon "method" to work. Also, the constructor is stored at the appropriate location but does not yearn any objects but returns merely an object id upon the succesful creation of a new object in the common memory.
+
+Each computation machine defines the following spawn settings:
+
+attributes
+----------
+vm.wd      = pwd;       % Working directory          
+vm.prio    = 'normal';  % Priority                      'same' | 'normal' | 'low'
+vm.try     = '';        % Try expression
+vm.catch   = '';        % Catch expression for try
+vm.runmode = 'fg';      % Run in background/forground   'bg' | 'fg'
+
+methods
+-------
+
+vmmerge(ids)  : settings will be taken from the first vm in the list. (pmmergevm)
+cmleave(id)   : remove vm from the pmi:s msgbox.                      (pmquitvm)
+cmpmis(id)    : list all pmis of a specific vm.                       (pmmembvm) 
+cmjoin(id)    : add vm to pmi:s list of vms in the msgbox             (pmjoinvm) 
+cmids([pmid]) : list all vms (of a pmi)                               (pmlistvm) 
+
+id=vm(cnf)         : constructor. requires the above vm configuration, stores it in common msgbox
+value=vmget(id,[attr])   : retrieve attributes, no argument gets the whole struct. 
+info=vmdel(id)	   : destructor, cannot delete if PMI still members.	
+ids=vmids()        : show all existing 
+
+%pmexpandvm        : same as pmspawn, obsolete - removed!
+%pmnewvm           : replaced by vm constructor
+
+
+SPAWNING
+--------
+When spawning:
+
+pmspawn(where,num,vm,outredir,block)
+where    : '.' | 'localhost' | 'ARCH' | '*' | hostname
+	   or a cellstr of any combination  of the above strings
+	   default: '*'
+num      : double, # matlab instances on this host. => repmat(num,1,num_where)
+           or an array of numbers if different for each specified location.
+	   default 1
+vmids    : a double (array) : target VM for all spawned instances.
+           cell array (length num_where) of double arrays, which vmids for each pmi
+	   If 	
+           If not valid vmids, the corresponding PMI:s will not be spawned, and a warning issued.
+           default 0
+outredir : cell array (length num) of strings, if not '/dev/null' -> must be different
+	   default {'/dev/null'}
+block    : 0 | 1     
+
+outredir and computation machine ids will be stored in the pmi:s msgbox entry in case of death.
+
+If a PMI belongs to several VM:s, concurrent vm settings will be that of the _primary_ VM, i.e. the first VM in the list of a PMI:s VM:s. Concurrent vm settings are: display, wd, nice, runmode. The try-catch expressions will be executed for all of the VM:s of which a PMI is member starting with the last one first, thus giving priority again to the _primary_ VM wich will be evaluated last and can thus overwrite the others.
+
+pmi_conf can be used to collect the information needed to spawn a task:
+---------
+ where    : char array, host name or other destination definition for spawning.
+ num      : double, number of matlab instances on this host
+ vmids    : cell array (length num) of double arrays, which vmids (1->nvm) for each pmi
+ outredir : cell array (length num) of strings, if not '/dev/null' -> must be different   
+
+can also be used directly for spawns using: c = struct2cell(pmi_conf); pmspawn(c{:});
+
+
+When opening session
+--------------------
+pmopen(pvm,vm_conf,pmi_conf,block) 
+
+pvm_conf - cell array of hostnames (if empty -> this host only)
+         - 'd' - open default PVM as specified by pvmdefhosts.m
+	 - filename - of other hostfile.
+
+vm_conf  - array of above vm structures 
+           (if empty -> no VM:s will be defined)
+         - 'd' - create default vm
+
+pmi_conf - array of above pmi structures 
+           (if empty -> no matlab instances created)
+         - 'gui' use a graphic user interface to manually set this up.
+	 - 'd' - one slave on each host, all belonging to vm 1 
+           (this will force a default VM if none specified by vm_conf).
+
+block    - 0 - return immediately
+         - 1 - block until everything setup. This verifies the succesful opening.
+
+
+Retrieving the configuration
+-----------------------------
+[pvm,vm_conf,pmi_conf] = pmgetconfig
+
+pvm      :  found through pvm_conf
+vm_conf  :  found through the msgbox commands
+pmi_conf :  for each host, count all pmi:s on a host -> num, 
+	    get their vmids and outredir from the msgbox. 
+
+
+
+
+
+
+

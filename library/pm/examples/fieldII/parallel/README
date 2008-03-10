@@ -1,0 +1,19 @@
+
+pm/examples/fieldII/parallel/
+
+To open a parallel Matlab session configured for this problem, use
+START.M
+
+Then, use PSIM.M to start the simulation.
+
+The dispatcher will execute the function PROBE_INIT.M on each slave process
+before starting the actual dispatching.
+At each dispatched evaluation the envelope of an RF line will be calculated. 
+The RF line is calculated using CREATE_RF.M, and then a Hilbert
+transformation yields the envelope, after which the line is saved to file.
+
+When the dispatching has terminated, pmake_img can be used to reassemble the
+RF envelope lines and display the resulting simulated sonogram.
+
+The other files are the same as for the sequential solution.
+
