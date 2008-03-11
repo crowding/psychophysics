@@ -23,7 +23,7 @@ function e = SimpleSaccade(varargin)
     %target onset hazard from fixation
     e.trials.add('targetOnset', ExponentialDistribution('offset', 0.3, 'tau', 0.15));
     e.trials.add('targetBlank', ExponentialDistribution('offset', 0.2, 'tau', 0.15));
-    e.trials.add('targetBlankColor', [0.475 0.4875 0.4875 0.5]);
+    e.trials.add('targetBlankColor', [0.475 0.4812 0.4875 0.5]);
     e.trials.add('cueTime', ExponentialDistribution('offset', 0.3, 'tau', 0.15));
     
     %target tracking time
