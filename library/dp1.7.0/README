@@ -1,0 +1,113 @@
+Installation Guide for DP-Toolbox 1.7.0 
+
+Author: R. Fink
+Organization: University of Wismar, Department for Electrical Engineering
+Date: 08-30-2004
+
+1. User-specified installation
+
+   It is highly recommended to use a shared filesystem (e.g. export
+   /home via NFS) because the files of the toolbox must be available
+   on every host belonging to the virtual machine.
+
+1.1. Unpacking
+     
+     Copy the file dp1.7.0.tgz into an appropriate folder,
+     e.g. /home/fink/matlab/ and type:
+     
+       cd /home/fink/matlab/
+       tar xvfz dp1.7.0.tgz
+
+1.2. Building the binaries
+     
+     Now move to the unpacked dp folder and compile the sources:
+
+       cd dp1.7.0
+       make 
+
+1.3. Setting the Matlab path
+
+     Insert the following lines into your ~/matlab/startup.m file:
+
+       addpath /home/fink/matlab/dp1.7.0; % (insert your home dir)
+
+1.4. Make your X-Display accessible for slave applications
+
+     To get the spawned Matlab processes onto your local display you
+     have to give them acces to your X server. Type in the following
+     lines (or insert into your ~/.xinitrc file):
+
+       xhost + (enable any host to send applications to your display)
+       xhost +hostname (enable only access for this host)
+
+
+2. Testing your installation
+
+   To test if Matlab can spawn M-Programs on different hosts, start
+   pvm, and add some hosts. After that start Matlab and type in:
+
+     >> dpspawn('HOSTNAME') % insert a valid host name
+
+   where HOSTNAME is the name of a host belonging to the virtual
+   machine.
+   A new Matlab instance should appear in an Xterm. To check the host
+   name, type in:
+
+     >> getenv('HOSTNAME')
+
+   To test spawning of hosts and  sending/receiving of data, run 
+   the demo applications dp_demo1.m and dp_demo2.m. This is also a good 
+   point to start learning the DP-Toolbox.
+   
+   If something goes wrong, see point 3.: "Troubleshooting"  
+
+3. Troubleshooting
+
+   If something doesn't work, go through the following list
+   step-by-step.
+
+3.1. To check if your PVM is working correctly, start pvm and add and
+     delete some hosts with the following commands:
+
+       pvm> add hostname ("pvm> " is the prompt of the PVM console)
+       pvm> delete hostname
+
+     If it doesn't work, it's a problem caused by your PVM installation.
+
+3.2. To test if PVM can find your Xterm binary, type in your
+     PVM-console:
+
+       pvm> spawn /usr/bin/xterm
+
+     An xterm window should appear. If not, contact your system 
+     administrator to install Xterm at /usr/bin.
+
+3.3. To test if xterm can find your Matlab binary, spawn the xterm as
+     described above and type in:
+
+       which matlab
+
+     You should get the path to your Matlab binary; if not, add the
+     path to your Matlab binaries (e.g. /usr/local/bin) to your PATH 
+     environment variable:
+
+       PATH=$PATH:/usr/local/bin
+
+3.4. To test if other hosts can connect to your X display, start pvm,
+     add some hosts and type in pvm:
+
+       pvm> spawn -HOSTNAME /usr/bin/xterm -display LOCALHOST:DISPLAY
+
+     where HOSTNAME is the name of a previously added host, LOCALHOST
+     is the name of your local host and DISPLAY is your current
+     display number (you can find it out by typing "echo $DISPLAY").
+     A xterm window should appear, if not, see point 1.4.: "Make your
+     X-Display accessible for slave applications".
+
+3.5. To test if Matlab can find your DP files, start matlab and type:
+
+       >> path
+
+     Matlab should give you a list with all searchpaths, the
+     DP-Toolbox path should be within this list. If not, see point
+     1.3.: "Setting the Matlab path".

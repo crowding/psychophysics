@@ -1,0 +1,383 @@
+1. src/ und dplow/ von dp1.3.5 uebernommen
+
+2. Umstellung von PVM 3.3.11 auf PVM 3.4.beta6:
+
+3. Umstellung auf neue Namenskonvention (pvm_*, pvme_*, me*, m2pvm...):
+	src/
+	pvme_pkmat.[c o mex]	- DPLOW-CMEX-Funktionen
+	pvme_upkmat.[c o mex]
+
+	m2pvm.[c o mex]
+	m2libpvm.[h c o]
+	m2libpvme.[h c o]
+	pvme.h			- Header aller pvm-extensions
+	pvmectrl.[c o]		- Code einer Gruppe von pvm-extensions
+	pvmeupk.[c o]		- Code einer Gruppe von pvm-extensions
+
+	pvm_start_pvmd.[c exe]	- stand-alone pvm starter (M4/Linux bypass)
+
+4. Umstellung der Opcode-Uebergabe an m2pvm (jetzt ueber prhs[0])
+
+5. Mechanismus fuer multiple AtExit-Funktionen in misc.c implementiert.
+(in m5/win32 uebernehmen)
+
+6. M4-Pseudoimplementierungen fuer mexIsLock(), mexLock() und mexUnlock()
+   in misc.c
+
+7. pvm_fopen, pvm_fflush, pvm_fclose, pvm_getuid entfernt
+
+8. Neue pvme_is()-Implementierung (ersetzt pvm_is.m)
+(in m5/win32 uebernehmen)
+
+9. Neu pvme_default_config()
+(in m5/win32 uebernehmen)
+
+10. Neu pvme_start_pvmd() (ersetzt pvm_start_pvmd.m)
+    Bisher nur die Modes: empty und default conf implementiert.
+(in m5/win32 uebernehmen)
+
+*************************************
+* Nov  5 1998 -> dp1.4.0-m4 (fixed) *
+*************************************
+
+11. Ueberarbeitung des Moduls pvmectrl.c:
+	- verschiedene interne Funktionen hinzugefuegt bzw. entfernt
+	- pvm_start_pvmd-Bypass-Implementation fuer das M4/Linux-Problem
+	- pvme_start_pvmd() installiert jetzt AtExit-Funktion
+	  pvmeAtExitpvmhalt()
+	- neue Funktion pvme_halt() (ersetzt pvm_halt.m)
+
+12. Umbenennung der Funktionen des AtExit-Mechanismus (in misc.c)
+    entsprechend der Namenskonvention (Matlab-extensions)
+
+13. M4-Pseudoimplementierungen fuer mexIsLock(), mexLock() und mexUnlock()
+    aus dem Modul misc.c entfernt und in m2pvm.c eingebaut.
+
+14. Neue Funktionen pvme_link() und pvme_unlink() in m2pvm.c
+ 
+15. pvm_def.m entfernt
+
+16. Neu: pvm_export, pvm_unexport, pvm_version angebunden
+
+17. pvm_insert(), pvm_lookup(), pvm_delete() gegen
+    pvm_putinfo(), pvm_recvinfo(), pvm_getmsgbox(), pvm_delinfo ersetzt;
+    Die Funktionen scheinen in PVM 3.4.beta6 aber noch sehr schlecht zu
+    funktionieren.
+(fuer M5/WIN32 unbedingt von dieser M4-Impl. uebernehmen,
+ nicht von alten M5-Versionen aus Magdeburg, wegen ungenuegender
+ Hilfetexte in den M-Funktionen)
+
+*************************************
+* Nov 16 1998 -> dp1.4.1-m4 (fixed) *
+*************************************
+
+18. Komplette Ueberarbeitung des Moduls pvme_upk.c (pvme.h);
+    zugehoerige Wrapper-Funktionen in m2libpvme.c|h ueberarbeitet bzw. neu;
+    zugehoerige Interface-Funktionen in dplow/ ueberarbeitet bzw. neu
+
+19. Neu: persistent.mex (Persistentz-Mechanismus fuer M-Variablen in M4)
+
+20. Neu: pvm_trecv angebunden
+
+21. Neu: dpsend.m, dprecv.m, dprecvlist.m, dprecvclear.m
+    (ersetzen alle alten DP-Message-Passing-Funktionen)
+
+*************************************
+* Nov 30 1998 -> dp1.4.2-m4 (fixed) *
+*************************************
+
+22. mod2 entfernt
+
+23. vorlaeufiger Workaround zur Unterbrechung von pvm_recv in m2libpvm.c
+
+24. Fehler in dpsend.m beseitig
+	- falsch:  if dpids == mytid
+	  richtig: if any(dpids == mytid)
+
+25. dprecv.m ueberarbeitet
+	- anstelle von ''supplied dpid''&DpMsgTag wird jetzt mit -1&DpMsgTag
+	  in der pvm-Liste gesucht, dadurch bleibt die richtige Nachrichten-
+	  reihenfolge erhalten
+	- Empfangspuffer werden jetzt mit pvm_setrbuf(0) gesichert; gingen
+	  vorher verloren
+	- pvm_nrecv kann jetzt wiederholt in der Empfangsschleife gerufen
+	  werden; vorher nur ein Versuch
+	- Anhaengen von mat_name_tmp an DPRECVLIST_NAMES jetzt mit strvcat;
+	- Inputparameter mat_name wird jetzt immer von ''trailing blanks''
+	  gesaeubert; sonst Fehler beim ''match against mat_name''
+	- 3fache Kodedoppelung fuer ''Append match to dprecv list'' beseitigt
+	- ''Return match'' aus der ''Receive Loop'' an das Ende verschoben
+
+26. neue Matlab-Extension strvcat in dplow/ (muss noch mit der M5-Funktion
+    abgeglichen werden)
+
+27. rewritten: dpstart, dpis, dphalt -> dpopen, dpis, dpclose
+
+28. neue Matlab-Extensions putenv und unsetenv in dplow/ und src/
+
+29. rewritten: startup, dpspawn, dpspawn_startup, dpexit, dpkill, dpparent,
+    dpmyid
+
+30. Erweiterung dpgather: mat_names darf jetzt auch eine einzeilige String-
+    Matrix mit mehreren Namen (getrennt durch Whitespaces) sein.
+    Die einzeilige String-Matrix kann mit mat2str erzeugt worden sein. Sonder-
+    zeichen, wie [ ; ], werden automatisch entfernt.
+    Sinnvolle Anwendung s. dpdemoex3.
+
+31. Neu: alle dphdemos und dpldemos
+
+32. vorlaeufiger Workaround zur Unterbrechung von pvm_trecv wenn tmout>1sec in 
+    m2libpvm.c (analog 23.)
+
+33. dpkill vektorisiert
+
+*************************************
+* Dec 18 1998 -> dp1.4.3-m4 (fixed) *
+*************************************
+
+==> dp1.4.3-m4
+		==> zu dp1.4.5 vereinigt
+==> dp1.4.4-m5
+
+*************************************
+* Dec 29 1998 -> dp1.4.5    (fixed) *
+*************************************
+
+34. neu: stand-alone Matlab-Starter und damit dpspawn und dpspawn_startup
+    gleich fuer alle Plattformen
+
+35. eigene Methode in dpspawn zum Ersatz von PvmInstDefault
+
+36. dparch.m entfernt; wird in dpspawn nicht mehr benoetigt
+
+37. Fehler in m2pvm.c (prhs = prhs++; nrhs = nrhs--; fuehrte bei manchen
+    Compilern zum gewuenschten Ergebnis) behoben (richtig: prhs++; nrhs--;)
+
+38. Fehler in unsetenv.c im -DNOUNSETENV-Teil behoben:
+	- string.h wurde nicht inkludiert, dadurch strcat(3) not declared
+	- Verwendung von strcat(3) ohne ausreichenden Speicher fuer dest.
+	- str war fuer putenv(3) nicht persistent allokiert
+
+38. selectstdin.c: FD_SET Macro bildet unter SUN4SOL2 auf memset(3) ab ->
+    deshalb muss Header string.h inkludiert werden
+
+39. persistent2.c: restoreVarInWS(): bisher wurde nur der Pointer auf die
+    Daten im PS in den Matrixkopf im WS eingehaengt; dies fuehrte zu
+    strengen Warnungen im M5 (Daten nicht mit mxCalloc allokiert -> Matlab-
+    Speicherverwaltung kann keine Deallokation durchfuehren);
+    Jetzt werden die Daten aus dem PS in den Matrixrumpf im WS kopiert.
+
+40. merged with dp1.4.5-w0:
+		**********
+
+	w34. misc.h: unter WIN32 wird time.h anstelle von sys/time.h includiert
+
+	w35. dprecv.m, dpclose.m, dpopen.m, dpis.m, dpparent.m, dprecvlist.m,
+	    dprecvclear.m: Variablen werden vor persistent2('open',...) leer 
+	    initialisiert, da Matlab einen syntax error bei der ersten 
+	    Nutzung dieser Variablen generiert. Wahrscheinliche Ursache ist 
+	    ein Bug in mexPutArray().
+
+	w36. dprecv.m: fuer DPRECVLIST_NAMES = char(DPRECVLIST_NAMES) wird 
+	    warning off eingestellt, weil Matlab bei der Konvertierung von 
+	    double nach char vor Datenverlust warnt.
+
+	w37. nach DPRECVLIST_NAMES = char(DPRECVLIST_NAMES) muss ein 
+	    DPRECVLIST_NAMES = double(DPRECVLIST_NAMES) erfolgen, weil sonst 
+	    die Zeichenketten zerstoert werden
+
+	Jan 7 1999 -> dp1.4.5-w0 (fixed)
+		      **********
+
+************************************
+* Jan 8 1999 -> dp1.4.6    (fixed) *
+************************************
+
+41. merged with dp1.4.6-w0:
+		**********
+
+	w38. dpmatlab.c: 
+	     string.h includiert;
+	     fuer WIN32 if ( strcmp(RunMode,"fg") 
+	     in if ( !strcmp(RunMode,"fg") geaendert
+
+	w39. dpmatlab.c: um keine fremden Rechner lahmzulegen werden gespawnte
+	     Instanzen mit einem Nice gestartet (15 fuer SUN4SOL2, LOW fuer NT).
+	     Dazu muss die Praeprozessordirektive -DLOWPRIORITY gesetzt werden.
+
+	w40. dpspawn_startup.m: der Verzeichniswechsel in das mit DPSPAWN_WD 
+	     uebergebene Verzeichnis erfolgt nur, wenn dieses Verz. existiert
+	     (muss bei plattformuebergreifender Anwendung nicht der Fall sein)
+
+ 	Jan 15 1999 -> dp1.4.6-w0    (fixed) 
+		       **********
+
+42. w38. !strcmp wieder rueckgaengig gemacht; DP-Instanzen starten sonst
+    immer im Hintergrund. Was war der Zweck von w38?
+
+43. bessere M5-Nachbildung von mex*Lock() fuer M4; jetzt in mex_m4_m5.h
+    enthalten, kein Code in den Modulen mehr notwendig
+
+44. dprecv.m: warning off/on in M5-Passage um char( ) herum entfernt;
+    machte Schwierigkeiten unter M4 und schien fuer M5.2 nicht mehr
+    notwendig zu sein
+
+45. gesamten Make-Mechanismus ueberarbeitet (Zusammenfuehrung Unix/WIN32)
+
+46. Fehler in allen dpldemoex*slave.m behoben: in der ersten LINUX-Passage 
+    wurde pvm_send(pvm_parent, ) benutzt; richtig: pvm_send(parent, )
+ 
+47. Fehler in pvmectrl.c: pvme_default_config(): falscher Test des
+    Returnwertes von fopen(): if (0>(ff=fopen()))
+    richtig: if (!(ff=fopen()))
+
+48. misc.c: ATEXIT* im gesamten File in MEXATEXIT* umbenannt, weil ATEXIT_MAX
+    unter AIX4.1 bereits in /usr/include/sys/limits.h definiert wird
+
+49. selectstdin,c: #ifdef RS6K #include <sys/select.h> #endif eingefuegt;
+    fd_set, select(2) etc. ist unter AIX4.1 dort definiert
+
+50. merged with dp1.4.6-w1:
+		**********
+
+	w41. pvmeupk.c: Bug beim Versenden von Strings zwischen 
+	     unterschiedlichen Plattformen beseitigt. Ein Zeichen (mxChar) ist 
+	     2 Byte lang. Urspruenglich wurden 2*Anzahl der Zeichen Bytes 
+	     ge- und entpackt. Die Multi-Byte-Char-Repraesentation ist aber
+	     plattformabhaengig (unterschiedliche Byte-Reihung).
+	     -> Jetzt erfolgt ein type-casting von mxChar nach char (1 Byte) 
+	        beim Packen und von char nach mxChar beim Entpacken. Daraus 
+		ensteht eine Beschraenkung auf 8 bit Zeichen.
+	     -> Alternative Loesung ohne Datenverlust waere:
+		Multi-Byte-Char -> Double ..XDR.. Double -> Multi-Byte-Char
+
+ 	Jan 20 1999 -> dp1.4.6-w1    (fixed) 
+		       **********
+
+51. dpspawn.m/dpmatlab.c/dpspawn_startup.m ueberarbeitet:
+	- -DLOWPRIORITY existiert nicht mehr
+
+************************************
+* Feb 11 1999 -> dp1.4.7   (fixed) *
+************************************
+
+52. shell-stubs, matlabrc.m und startup.m in stubs/ fuer Distribution
+    vorbereitet
+
+53. alle Executables der Toolbox (pvm_start_pvmd, dpmatlab und pvmdemo*)
+    landen jetzt in dp/bin/$PVM_ARCH/; dadurch wesentlich einfachere 
+    Konfiguration
+
+54. pvm_default_config nimmt jetzt auch ein, ueber den Matlab-Suchpfad
+    erreichbares hostfile als Argument; dadurch einfachere Default-
+    Konfiguration fuer PD-Distribution; noch vorlaeufige M-Implementation
+    in dplow/pvme_default_config.m !!!!!!
+
+************************************
+* Feb 12 1999 -> dp1.4.8   (fixed) *
+************************************
+
+55. Makemechanismus: mexversion wird jetzt als gewoehnliches Modul behandelt;
+    wenn vorhanden wird $MATLAB_ROOT/extern/src/mexversion.c, wenn nicht
+    lokales mexversion.c ("no mex version information") als Quelle benutzt
+    (in conf/*.*.mk MEXVERSRC einzustellen); bei der alten Loesung traten
+    Probleme mit einigen make-Programmen wegen mehrfacher Regel fuer
+    mexversion.o auf
+
+56. Bug in pvmeupk.c: pvmeupkarrayData() pvmepkarrayData()
+    falsch: if (mxIsStruct)
+    richtig: if (mxIsStruct(*ppm))
+
+57. Makemechanismus: Angleichung des DP-Buildings an die originalen
+    Matlab-Mex- und PVM3.4-Buildings fuer die jeweiligen Versionen/
+    Plattformen (M4/LINUX, M4/SUN4SOL2, M5/SUN4SOL2, M5/WIN32 und
+    M5/AIX46K)
+
+58. Makemechanismus: harte Kodierung des Matlab-Root-Dir. in den 
+    conf/*.*.mk Files entfernt. M4_ROOT und M5_ROOT werden jetzt
+    im Environment erwartet. Dadurch weniger manuelle Anpassung bei
+    Nutzern der PD-Distribution.
+    
+59. Im Zusammenhang mit 58. alle Namen der Matlab-Env.-Variablen
+    harmonisiert (Mx_ROOT, Mx_CMD, Mx_PATH) <- Neueinstellung des
+    Environments beim Umstieg von dp1.4.8 aus notwendig!
+
+60. neue Plattform: M5/LINUX (M5.1, Red Hat Linux 4.2, Kernel 2.0.30
+    on i586)
+
+**************************************
+* Mar 15 1999 -> dp1.4.9   (fixed)   *
+*	Veroeffentlichung:	     *
+*	ftp-at, comp.soft-sys.matlab,*
+*	dp-mailing-list		     *
+**************************************
+
+*******************************
+* Feb 2003 dp1.4.9 -> dp1.5.0 *
+*******************************
+
+* First public domain release of the new DP-Toolbox version dp1.5 .
+  All dp1.4.x releases and below are obsolete now.
+
+* Toolbox was testetd only with Matlab 6 on GNU/Linux. 
+
+* DP toolbox was minimized to make it more stable and more transparent
+
+* PVM control is no longer supported by the toolbox
+
+* removed DP-Low functions:
+  - pvm_addhosts, pvm_delhosts
+  - pvm_setopt, pvm_getopt
+  - pvm_sendsig, pvm_notify
+  - pvm_pk*, pvm_upk*
+  - pvm_putinfo, pvm_recvinfo, pvm_getmboxinfo, pvm_delinfo
+  - pvme_default_config
+  - pvme_start_pmvd
+  - pvme_halt
+  - pvme_is
+
+* Demonstration (test) programs only for DP-High toolbox.
+
+*******************************
+* Aug 2004 dp1.5.0 -> dp1.5.1 *
+*******************************
+
+* m2pvm_spawn rewritten (old version causes assertions)
+
+* pvm_spawn adapted
+
+* MATLAB 7 supported
+
+*******************************
+* Aug 2004 dp1.5.1 -> dp1.7.0 *
+*******************************
+
+* Toolbox completely rewritten
+
+* Only basic PVM functions implemented:
+    pvm_mytid, pvm_parent,
+    pvm_exit, pvm_kill,
+    pvm_initsend, pvm_send, pvm_recv,
+    pvm_pkbyte, pvm_upkbyte,
+    pvm_pkint, pvm_upkint,
+    pvm_pkdouble, pvm_upkdouble,
+    pvm_spawn
+
+* Only basic DP functions implemented:
+    dpmyid, dpparent,
+    dpexit, dpkill,
+    dpsend, dprecv,
+    dpspawn,
+    dpscatter, dpgather
+
+* Packing/Unpacking of Matlab data implemented as m-function:
+    dp_internal_pack, dp_internal_unpack
+
+* Receiving by array names removed
+
+* dpdemo removed, simpler demos implemented:
+    dp_demo1, dp_demo2, dp_demo3
+
+* DP-independent scatter/gather functions implemented:
+    dp_internal_scatter, dp_internal_gather
+
