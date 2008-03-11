@@ -25,8 +25,7 @@ defaults = struct...
 
 %build the initializer, and curry it with given args.
 
-initializer = joinResource(@connect, @initDefaults, @doSetup, @openEDF);
-initializer = currynamedargs(initializer, defaults, varargin{:});
+initializer = joinResource(namedargs(defaults, varargin{:}), @connect, @initDefaults, @doSetup, @openEDF);
 
 %sub-initializers:
 

@@ -182,7 +182,7 @@ function this = SimpleSaccadeTrial(varargin)
         %x- any y- locations of the trace
         plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
         plot(0, fixationPointLoc(1), 'ro', 0, fixationPointLoc(2), 'bo')
-%        plot(targetOnset, fixationPointLoc(1) + cos(targetPhase) * targetRadius, 'rx', targetOnset, fixationPointLoc(2) - sin(targetPhase) * targetRadius, 'bx')
+%       plot(targetOnset, fixationPointLoc(1) + cos(targetPhase) * targetRadius, 'rx', targetOnset, fixationPointLoc(2) - sin(targetPhase) * targetRadius, 'bx')
         ylim([-15 15]);
         
         %draw labels...

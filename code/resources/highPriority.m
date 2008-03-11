@@ -6,7 +6,7 @@ function i = highPriority(varargin)
 %maximum.
 %
 %Outputs fields 'priority and 'oldpriority'.
-i = currynamedargs(@initializer, varargin{:});
+i = joinResource(namedargs(varargin{:}), @initializer);
 
     function [r, o] = initializer(o)
         

@@ -24,6 +24,4 @@ function initializer = SetupEyelinkExperiment(varargin)
 %       localname - full path to where the EDF file is downloaded locally
 %       dummy - whether the eyelink was opened in dummy mode
 
-initializer = currynamedargs(...
-    joinResource(getScreen(), getSound(), getEyelink()),...
-    varargin{:});
+initializer = joinResource(namedargs(varargin), getScreen(), getSound(), getEyelink());

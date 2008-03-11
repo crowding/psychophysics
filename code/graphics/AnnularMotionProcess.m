@@ -11,7 +11,7 @@ function this = AnnularMotionProcess(bounds_, dx_, dt_, n_, delay_, tau_, color_
         , @getDt, @setDt...
         , @getN, @setN...
         , @getTau, @setTau ...
-        , @getColor, @setColor);
+        , @getColor, @setColor, @reset);
 
     local_dir1_ = 0; %0 left, 1 right
     global_dir1_ = 0;
@@ -130,5 +130,9 @@ function this = AnnularMotionProcess(bounds_, dx_, dt_, n_, delay_, tau_, color_
 
     function setColor(color);
         color_ = color;
+    end
+
+    function reset();
+        
     end
 end

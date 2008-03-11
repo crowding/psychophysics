@@ -5,7 +5,7 @@ function this = AnnularDotProcess(bounds_, density_, color_)
     %the annular sindow is specified as a center and radius: [x y inner
     %outer].
 
-    this = final(@next, @getBounds, @setBounds, @getDensity, @setDensity, @getColor, @setColor);
+    this = final(@next, @getBounds, @setBounds, @getDensity, @setDensity, @getColor, @setColor, @reset);
     t_ = 0;
 
     function [x, y, t, a, c] = next()
@@ -53,6 +53,10 @@ function this = AnnularDotProcess(bounds_, density_, color_)
 
     function setColor(color);
         color_ = color;
+    end
+
+    function reset();
+        
     end
 
 end

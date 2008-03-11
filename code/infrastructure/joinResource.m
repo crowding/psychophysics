@@ -16,7 +16,8 @@ global resources__
     if isstruct(varargin{1})
         defaults = varargin{1};
         varargin(1) = [];
-        varargin{1} = currynamedargs(varargin{1}, defaults);
+    else
+        defaults = [];
     end
 
     if numel(varargin) > 1
@@ -26,6 +27,10 @@ global resources__
     end
         
     function [release, params, next] = joinedResource(params)
+        if ~isempty(defaults)
+            params = namedargs(defaults, params);
+        end
+        
         if nargout(varargin{1}) > 2
             [release, params, next] = varargin{1}(params);
             varargin{1} = next;

@@ -15,7 +15,7 @@ params = namedargs(params, varargin{:});
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
-require(setupEyelinkExperiment(params), @runDemo);
+require(namedargs(localExperimentParams(), params), setupEyelinkExperiment(), @runDemo)
     function params = runDemo(params)
 
         %patch = CauchyPatch('velocity', 10, 'size', [1 1.5 0.1]);
@@ -41,6 +41,6 @@ require(setupEyelinkExperiment(params), @runDemo);
         
         stopKey.set(main.stop, 'q');
         % ----- the main loop. -----
-        params = main.go(params);
+        params = require(params.input.keyboard.init, main.go);
     end
 end
