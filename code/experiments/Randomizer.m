@@ -158,6 +158,7 @@ this = Obj(autoobject(varargin{:}));
     %state for blocking
     lastblock_ = NaN; %what was the last block trial we sent?
     wasblock_ = 0; %did we just send out a block trial?
+    assignments_ = {};
     
     function n = next(params)
         assert(logical(hasNext()));
@@ -169,8 +170,8 @@ this = Obj(autoobject(varargin{:}));
             wasblock_ = 1;
         else
             wasblock_ = 0;
-            assignments = pick_();
-            [base, params_] = assign_(base, assignments, 'base');
+            assignments_ = pick_();
+            [base, params_] = assign_(base, assignments_, 'base');
             
             %unwrap because the rest of the apparatus uses the naked object
             n = unwrap(base);
@@ -178,6 +179,26 @@ this = Obj(autoobject(varargin{:}));
     end
 
     function result(trial, result)
+        %As a first step, look to see if there are any staircases etc to
+        %assign...
+        
+        %assignments_ stores the raw assignments from the last trial.
+        %If the raw assignments are objects and have a 'results' method,
+        %then assign them...
+        for i = 1:numel(assignments_)
+            r = assignments_(i);
+            
+            if isstruct(r.values) && isfield(r.values, 'result') && isa(r.values.result, 'function_handle')
+                r.values.result(trial, result);
+            elseif iscell(r.values)
+                for j = 1:numel(r.subs)
+                    if isstruct(r.values{i}) && isfield(r.values{i}, 'result') && isa(r.values.result{i}, 'function_handle')
+                        r.values{i}.result(trial, result);
+                    end
+                end
+            end
+        end
+        
         if (~isfield(result, 'success') || result.success) && (~isfield(result, 'abort') || ~result.abort);
             if ~wasblock_
                 results{end+1} = result;
@@ -267,18 +288,6 @@ this = Obj(autoobject(varargin{:}));
 
             r = assignments(i);
             val = ev(r.values, object);
-            
-            %{
-            if isa(r.values, 'function_handle')
-                fn = r.values;
-
-                if nargin(fn) == 0
-                    val = fn();
-                else
-                    val = fn(object);
-                end
-            end
-            %}
             
             if iscell(r.subs)
                 for j = 1:numel(r.subs)

@@ -53,7 +53,7 @@ function this = SimpleSaccadeTrial(varargin)
 
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
         
-        result = struct('success', 0);
+        result = struct('success', NaN);
         fix = FilledDisk('loc', fixationPointLoc, 'radius', fixationPointSize, 'color', color(fixationPointColor));
         targ = FilledDisk('loc', targetLoc, 'radius', targetSize, 'color', color(targetColor));
         
@@ -122,6 +122,7 @@ function this = SimpleSaccadeTrial(varargin)
 
         function hideFixation(k)
             fix.setVisible(0);
+            result.success = 0;
             
             trigger.first...
                 ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @fixateTarget, 'eyeFt'...
@@ -148,7 +149,6 @@ function this = SimpleSaccadeTrial(varargin)
         end
         
         function failed(k)
-            result.success = 0;
             trigger.remove([blinkhandle_ blankhandle_]);
             fix.setVisible(0);
             targ.setVisible(0);
@@ -158,7 +158,7 @@ function this = SimpleSaccadeTrial(varargin)
         end
         
         function abort(k)
-            result.success = 0;
+            result.success = NaN;
             result.abort = 1;
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
         end
