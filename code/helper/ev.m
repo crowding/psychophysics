@@ -1,4 +1,4 @@
-function varargout = e(thing, varargin)
+function varargout = ev(thing, varargin)
 
 if isa(thing, 'function_handle')
     [varargout{1:nargout}] = thing(varargin{:});

@@ -1,31 +1,38 @@
 function this = SimpleSaccadeTrial(varargin)
+    %A trial for circular pursuit. The obzerver begins the trial by
+    %fixatign at a central fixation point. Another point comes up in a
+    %circular trajectory; at some point it may change its color. 
+    %The subject bust wait until the central fixation point disappears,
+    %then muce make a saccade to the moving object and pursue it for some
+    %time.
 
     fixationOnset = 0.5; %measured from 'begin'
     fixationPointLoc = [0 0];
     fixationPointSize = 0.2;
     fixationPointColor = 0;
-    
-    fixationWindow = 2;
-    fixationTime = 1; %the maximum fixation time.
-    fixationLatency = 1; %how long to wait for acquiring fixation
+    fixationLatency = 2; %how long to wait for acquiring fixation
     %If the target appears before then expect a saccade. Else just give a
     %reward.
     
+    fixationStartWindow = 3; %this much radius for starting fixation
+    fixationSettle = 0.0; %allow this long for settling fixation.
+    fixationWindow = 1.5;
+    fixationTime = 1; %the maximum fixation time.
     
+    targetOnset = 1.0; %measured from beginning of fixation.
     targetSize = 0.2;
     targetLoc = [8 0]; %the location of the target...
     targetColor = 0; %the color of the target...
-    
-    maxLatency = 0.5;
-    targetOnset = 1.0; %measured from beginning of fixation.
-
-    cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
-
     targetBlank = 0.5; %after this much time on screen, the target will dim
     targetBlankColor = 0.75; %the target will dim to this color
     
-    targetFixationTime = 0.5;
+    cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
+
+    maxLatency = 0.5; %you need to leave the fixaiton point at most this long after the cue
+    maxTransitTime = 0.1; %you need to be on top of the target this long after leaving the fixation window
+
     targetWindow = 5;
+    targetFixationTime = 0.5;
     
     errorTimeout = 1;
     
@@ -78,8 +85,15 @@ function this = SimpleSaccadeTrial(varargin)
             onset_ = k.next;
             fix.setVisible(1);
             trigger.first ...
-                ( atLeast('eyeFt', k.next + fixationLatency), @failed, 'eyeFt' ...
-                , circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @fixate, 'eyeFt' ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationStartWindow), @settleFixation, 'eyeFt' ...
+                , atLeast('eyeFt', k.next + fixationLatency), @failed, 'eyeFt' ...
+                );
+        end
+        
+        function settleFixation(k)
+            trigger.first ...
+                ( atLeast('eyeFt', k.triggerTime + fixationSettle), @fixate, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationStartWindow), @failed, 'eyeFt' ...
                 );
         end
         
@@ -106,7 +120,7 @@ function this = SimpleSaccadeTrial(varargin)
         end
         
         blankhandle_ = -1;
-        function showTarget(k)
+        function showTarget(k) %#ok
             targ.setVisible(1);
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
             blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
@@ -116,22 +130,30 @@ function this = SimpleSaccadeTrial(varargin)
                 );
         end
         
-        function blankTarget(k)
+        function blankTarget(k) %#ok
             targ.setColor(color(targetBlankColor));
         end
 
         function hideFixation(k)
             fix.setVisible(0);
-            result.success = 0;
+            result.success = 0; %only at this point are we willing to say "failed" until success obtains
             
             trigger.first...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @fixateTarget, 'eyeFt'...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc(), fixationWindow), @unblankTarget ...
                 , atLeast('eyeFt', k.next + maxLatency), @failed, 'eyeFt' ...
                 );
         end
         
-        function fixateTarget(k)
+        function unblankTarget(k)
             targ.setColor(color(targetColor));
+            trigger.remove(blankhandle_);
+            trigger.first ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @fixateTarget, 'eyeFt'...
+                , atLeast('eyeFt', k.triggerTime + maxTransitTime), @failed ...
+                );
+        end
+        
+        function fixateTarget(k)
             trigger.remove(blankhandle_);
             trigger.first...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @failed, 'eyeFt'...
@@ -143,7 +165,9 @@ function this = SimpleSaccadeTrial(varargin)
             result.success = 1;
             fix.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
-            rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime)
+
+            %reward size
+            rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime) %#ok
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
             trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);
         end
@@ -166,6 +190,7 @@ function this = SimpleSaccadeTrial(varargin)
         function endTrial(k)
             fix.setVisible(0);
             targ.setVisible(0);
+            
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
         end
         

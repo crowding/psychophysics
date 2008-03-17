@@ -21,8 +21,8 @@ open_ = 0; %Indicates whether we are open.
 persistent LE_;
 LE_ = struct('littleendian', 1);
 
-%Calibration params. These are copied from my personal labjack. Values from
-%your labjack will be will be loaded at initialization.
+%Calibration params. These are copied from my ownls  labjack. Values from
+%your labjack will be loaded at initialization.
 calibration.ADCUnipolar = cell(1,4);
 calibration.ADCUnipolar{1,1}.slope = 7.7561940997839e-05;
 calibration.ADCUnipolar{1,1}.offset = -0.0116342853289098;
