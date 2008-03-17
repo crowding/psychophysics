@@ -199,7 +199,7 @@ this = Obj(autoobject(varargin{:}));
             end
         end
         
-        if (~isfield(result, 'success') || result.success) && (~isfield(result, 'abort') || ~result.abort);
+        if (~isfield(result, 'success') || (~isnan(result.success) && result.success)) && (~isfield(result, 'abort') || ~result.abort);
             if ~wasblock_
                 results{end+1} = result;
                 parameters(end+1,:) = params_;

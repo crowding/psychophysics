@@ -19,7 +19,7 @@ function this = DiscreteStaircase(varargin)
     
     function result(trial, result)
         if isfield(result, 'success') %step down
-            if (result.success) %step DOWN
+            if (~isnan(result.success) && result.success) %step DOWN
                 
                 upCounter = 0;
                 downCounter = downCounter + 1;
@@ -27,19 +27,21 @@ function this = DiscreteStaircase(varargin)
                 if downCounter >= Ndown && currentIndex > 1
                     currentIndex = currentIndex - 1;
                     downCounter = 0;
+                    disp ('step down');
                     if (direction > 0)
                         reversals = reversals + 1;
                     end
                     direction = -1;
                 end
 
-            else %count to a step UP
+            elseif ~isnan(result.success) %count to a step UP
                 
                 downCounter = 0;
                 upCounter = upCounter + 1;
 
                 if upCounter >= Nup && currentIndex < numel(valueSet)
                     currentIndex = currentIndex + 1;
+                    disp ('step up');
                     upCounter = 0;
                     if (direction > 0)
                         reversals = reversals + 1;
