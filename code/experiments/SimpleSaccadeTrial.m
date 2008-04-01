@@ -228,6 +228,7 @@ function this = SimpleSaccadeTrial(varargin)
 %        mx = max(cat(1,xs{:}));
 %        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
         hold off;
+        drawnow;
     end
 end
     

@@ -128,7 +128,9 @@ if numel(varargin) > 1
         catch
             err = adderror(lasterror, err);
         end
-        rethrow(err);
+        %FUCKING RETARDED MATLAB FEATURE! Rethrow() cuts off the display of
+        %the stack trace. Use error() instead and it will not.
+        error(err);
     end
     
     resourcecheck(s);

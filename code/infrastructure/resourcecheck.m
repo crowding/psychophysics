@@ -9,6 +9,17 @@ function stack = resourcecheck(stack, release)
     %Then it is called with two args to check in after running the
     %initializer.
     %Then it is called with one arg to check out.
+    %
+    %note, the way that MATLAB fails to trip and exception on Ctrl-c (or on
+    %dbquit) is TOTALLY RETARDED and causes PAIN AND DEATH. Wham! All your
+    %filehandles left open! Bam! All memory allocated in MEX extensions never
+    %reclaimed. Poof! Now if you're on a single screen machine you get to
+    %learn Cmd+0,"clear Screen" typing blind. Even better, this was a
+    %deliberate decision and change from earlier reasonable behavior
+    %according to Steven Lord.
+    %
+    %Interestingly, if you have 'dbstop if error' set, the debugger will
+    %stop at a Ctrl-c. Not that you can trigger anything that way;
     persistent resources;
     
     

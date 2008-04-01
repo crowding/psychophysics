@@ -26,10 +26,10 @@ function this = EyeCalibrationTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
-    f1_ = figure(1); clf;
-    a1_ = axes();
-    f2_ = figure(2); clf;
-    a2_ = axes();
+    %f1_ = figure(1); clf;
+    %a1_ = axes();
+    %f2_ = figure(2); clf;
+    %a2_ = axes();
     
     function [params, result] = run(params)
         result = struct('target', [targetX targetY]);
@@ -92,7 +92,7 @@ function this = EyeCalibrationTrial(varargin)
         plot(d(1,:), d(2,:), 'r-');
         plot(targetX, targetY, 'bo');
         
-        xloc = interp1(d(3,~isnan(d(1,:))) - onset_, d(1,~isnan(d(1,:))), times, 'lienar', 'extrap');
+        xloc = interp1(d(3,~isnan(d(1,:))) - onset_, d(1,~isnan(d(1,:))), times, 'linear', 'extrap');
         yloc = interp1(d(3,~isnan(d(2,:))) - onset_, d(2,~isnan(d(2,:))), times, 'linear', 'extrap');
         
         plot(xloc, yloc, 'g.');
