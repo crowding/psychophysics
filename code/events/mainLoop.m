@@ -285,7 +285,7 @@ toDegrees_ = @noop;
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
         if (aviout_)
-            close(aviobj); %TODO make this into a REQUIRE
+            chk = close(aviobj); %TODO make this into a REQUIRE
         end
         
         %{
