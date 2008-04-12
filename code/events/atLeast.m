@@ -1,9 +1,6 @@
 function f = atLeast(fieldname, value)
 %function f = atLeast(fieldname, value) a trigger condition.
     f = @check;
-    if nargin < 3
-        timefield = 'next';
-    end
     
     function [t, s] = check(s)
         t = s.(fieldname) >= value;

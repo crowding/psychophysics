@@ -182,7 +182,9 @@ function this = Trigger(varargin)
         end
         
         %set the notlogged parameter to avoid logging some (tl;dr) fields.
-        notlogged = params.notlogged;
+        if isfield(params, 'notlogged')
+            notlogged = params.notlogged;
+        end
         
         release = @clear;
         

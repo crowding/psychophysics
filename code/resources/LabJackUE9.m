@@ -1,7 +1,7 @@
 function this = LabJackUE9(varargin)
 %An object that interfaces to the LabJack UE9 over TCP.
 
-%hey here's the command to see what's goping on behind the scenes!
+%hey here's the command to see what's going on behind the scenes!
 %sudo tcpdump -i en1 -X port 52360 or port 52361
 
 %You can also use wireshark...
@@ -21,7 +21,7 @@ open_ = 0; %Indicates whether we are open.
 persistent LE_;
 LE_ = struct('littleendian', 1);
 
-%Calibration params. These are copied from my ownls  labjack. Values from
+%Calibration params. These are copied from my own labjack. Values from
 %your labjack will be loaded at initialization.
 calibration.ADCUnipolar = cell(1,4);
 calibration.ADCUnipolar{1,1}.slope = 7.7561940997839e-05;

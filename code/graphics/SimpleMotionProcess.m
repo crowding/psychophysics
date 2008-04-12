@@ -9,6 +9,7 @@ dt = 0.15;
 angle = 0;
 color = [1 1 1];
 
+persistent init__;
 this = autoobject(varargin{:});
 
 counter_ = 0;
@@ -28,5 +29,9 @@ counter_ = 0;
         %a point)
         distance = dx * (t - onset) / dt;
         b = [origin origin] + [distance distance];
+    end
+
+    function reset()
+        counter_ = zeros(size(angle));
     end
 end

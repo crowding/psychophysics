@@ -1,8 +1,8 @@
 function this = SimpleSaccadeTrial(varargin)
     %A trial for circular pursuit. The obzerver begins the trial by
-    %fixatign at a central fixation point. Another point comes up in a
+    %fixating at a central fixation point. Another point comes up in a
     %circular trajectory; at some point it may change its color. 
-    %The subject bust wait until the central fixation point disappears,
+    %The subject must wait until the central fixation point disappears,
     %then muce make a saccade to the moving object and pursue it for some
     %time.
 
