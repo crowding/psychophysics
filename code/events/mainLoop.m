@@ -196,10 +196,14 @@ toDegrees_ = @noop;
                 
             
             if (aviout_)
-                frame = Screen('GetImage', window);
-                size(frame)
-                class(frame)
-                aviobj = addframe(aviobj, Screen('GetImage', window));
+                if ~isempty(params.avirect)
+                    frame = Screen('GetImage', window, params.avirect);
+                else
+                    frame = Screen('GetImage', window);
+                end
+                [refresh size(frame)]
+                %class(frame)
+                aviobj = addframe(aviobj, frame);
             end
             
             %-----Update phase: 

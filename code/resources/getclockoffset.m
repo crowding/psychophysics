@@ -12,8 +12,7 @@ end
 
 data(1) = [];
 elapsed(1) = [];
-times(1) = [];
-
+times(1) = []
 subplot(2,1,1);
 plot(times, data);
 subplot(2,1,2);
