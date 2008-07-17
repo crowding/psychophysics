@@ -111,7 +111,8 @@ if ~found
 		p.spacing = [0.025 0.025];
 	end
 	if isnan(p.gamma)
-		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
+%%%		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
+        p.gamma = linspace(0,1,256)' * [1 1 1]
 	end
 	if isnan(p.calibrated)
 		p.calibrated = 0;

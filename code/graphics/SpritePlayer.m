@@ -131,12 +131,15 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
                 glDisable(GL.DEPTH_TEST);
                 glMatrixMode(GL.PROJECTION);
                 glLoadIdentity;
+                
+                %load in the translation from "degrees" in the calibration
+                %function...
                 glOrtho(params.rect(1), params.rect(3), params.rect(4), params.rect(2), -10, 10);
                 glEnable(GL.TEXTURE_2D);
-                glEnable(GL.BLEND);
+%                glEnable(GL.BLEND);
 
                 %use the same blend function both times
-                glBlendFunc(GL.SRC_ALPHA, GL.ONE);
+%                glBlendFunc(GL.SRC_ALPHA, GL.ONE);
 
                 %set up vertex array state
                 glEnableClientState(GL.TEXTURE_COORD_ARRAY);
@@ -280,12 +283,12 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         glColorPointer( 3, GL.DOUBLE, 0, colors_);
         
         glBindTexture(GL.TEXTURE_2D,addtex_);
-        glBlendEquation(GL.FUNC_ADD);
+        %glBlendEquation(GL.FUNC_ADD);
         glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
         glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4,0) );
 
         glBindTexture(GL.TEXTURE_2D,subtex_);
-        glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
+        %glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
         glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
         glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
         glFlush();

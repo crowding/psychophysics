@@ -33,7 +33,9 @@ toPixels_ = [];
                 if any(sz > 31)
                     Screen('gluDisk', window, color, center(1), center(2), sz);
                 else
+                    %[src, dst] = Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+                    %Screen('BlendFunction', window, src, dst);
                 end
             end
         catch
@@ -49,15 +51,7 @@ toPixels_ = [];
 
     function [release, params] = init(params)
         toPixels_ = transformToPixels(params.cal);
-        %set the blend function... this will clobber other blend function
-        %settings in other objects
-        [src, dst] = Screen('BlendFunction', params.window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        release = @resetBlend;
-        
-        function resetBlend
-            Screen('BlendFunction', params.window, src, dst);
-        end
+        release = @noop;
     end
 
     function update(frames)

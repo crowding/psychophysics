@@ -78,8 +78,6 @@ function WheelsDemo(varargin)
             , 'color', [contrast contrast contrast]' / 3 ...
             , 't', times ...
             );
-
-%        dots = ComboProcess(circle1, circle2);
         
         sprites1 = SpritePlayer(patch1, circle1);
         sprites2 = SpritePlayer(patch2, circle2);

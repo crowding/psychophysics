@@ -17,6 +17,8 @@ function initializer = getScreen(varargin)
 %                       is preferences.SkipSyncTests = 0.
 %   requireCalibration - whether to require calibration (answer)
 %   cal -- optional input calibration to use
+%   rect -- optional: which rect to put a window in
+%   
 %
 %output structure fields:
 %   screenNumber - the screen number of the display
@@ -35,6 +37,8 @@ defaults = namedargs ...
     , 'foregroundColor', 0 ...
     , 'preferences.SkipSyncTests', 0 ...
     , 'requireCalibration', 1 ...
+    , 'screenImagingMode', kPsychNeed16BPCFloat ...
+    , 'rect', [] ...
     );
 
 %curry arguments given now onto the initializer function
@@ -54,7 +58,6 @@ initializer = @doGetScreen;
             %just check for openGL and OSX.
             AssertOpenGL;
             AssertOSX;
-            InitializeMatlabOpenGL;
             
             [release, details] = deal(@noop, details);
             function noop
@@ -72,8 +75,9 @@ initializer = @doGetScreen;
             function init = preferenceSetter(name)
                 init = @setPreference;
                 function [r, params] = setPreference(params)
-                    oldval = Screen('Preference', name, params.preferences.(name));
-                    r = @()Screen('Preference', name, oldval);
+%%%                    oldval = Screen('Preference', name, params.preferences.(name));
+%%%                    r = @()Screen('Preference', name, oldval);
+                       r = @noop;%%%
                 end
             end
             
@@ -114,11 +118,11 @@ initializer = @doGetScreen;
             release = @resetGamma;
 
             %load the present table
-            oldGamma = Screen('ReadNormalizedGammaTable', screenNumber);
-            Screen('LoadNormalizedGammaTable', screenNumber, cal.gamma);
+%%%            oldGamma = Screen('ReadNormalizedGammaTable', screenNumber);
+%%%            Screen('LoadNormalizedGammaTable', screenNumber, cal.gamma);
 
             function resetGamma
-                Screen('LoadNormalizedGammaTable', screenNumber, oldGamma);
+%%%                Screen('LoadNormalizedGammaTable', screenNumber, oldGamma);
             end
         end
 
@@ -135,15 +139,7 @@ initializer = @doGetScreen;
             
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
-            try
-                [details.window, details.rect] = ...
-                    Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0);
-            catch
-                %and yet, sometimes screen itself crashes and leaves a
-                %window open...
-                clear Screen;
-                rethrow(lasterror)
-            end
+            details = wtfOpenWindow(details);
             
             release = @closeWindow;
 
@@ -166,7 +162,7 @@ initializer = @doGetScreen;
 
             details.screenInfo = Screen('GetWindowInfo', details.window);
             details.screenInterval = Screen('GetFlipInterval', details.window);
-            
+
             release = @noop;
 
             function noop
