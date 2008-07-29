@@ -1,9 +1,6 @@
-function this = GloloRace(varargin)
+function e = GloloRace(varargin)
 
-    persistent init__;
-    this = autoobject(varargin{:});
-
-    e = Experiment();
+    e = Experiment(varargin{:});
     e.trials.base = GloLoRaceTrial();
     e.trials.numBlocks = 1;
     e.trials.blockSize = 1;

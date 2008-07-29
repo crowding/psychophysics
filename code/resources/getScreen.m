@@ -18,12 +18,15 @@ function initializer = getScreen(varargin)
 %   requireCalibration - whether to require calibration (answer)
 %   cal -- optional input calibration to use
 %   rect -- optional: which rect to put a window in
-%   
+%   resolution -- what screen resolution to use {w, h, Hz, depth}
+%   screenImagingMode -- If not given, attempts to open a 16-bit float
+%                        framebuffer.
 %
 %output structure fields:
 %   screenNumber - the screen number of the display
 %   window - the PTB window handle
 %   rect - the screen rectangle coordinates
+%   resolution
 %   cal - the calibration being used
 %   blackIndex
 %   whiteIndex
@@ -37,7 +40,8 @@ defaults = namedargs ...
     , 'foregroundColor', 0 ...
     , 'preferences.SkipSyncTests', 0 ...
     , 'requireCalibration', 1 ...
-    , 'screenImagingMode', kPsychNeed16BPCFloat ...
+    , 'resolution', [] ...
+    , 'imagingMode', kPsychNeed16BPCFloat ... % good graphics cards on this rig, get good imaging
     , 'rect', [] ...
     );
 
@@ -47,7 +51,7 @@ initializer = @doGetScreen;
     function [release, details, next] = doGetScreen(details)
         
         %The initializer is composed of sub-initializers.
-        initializer = joinResource(namedargs(defaults, varargin{:}), @checkOpenGL, @setPreferences, @setGamma, @openScreen, @blankScreen);
+        initializer = joinResource(namedargs(defaults, varargin{:}), @checkOpenGL, @setPreferences, @setResolution, @setGamma, @openScreen, @blankScreen);
         [release, details, next] = initializer(details);
 
         %Now we define the sub-initializers. Each one is set up and torn down
@@ -55,9 +59,11 @@ initializer = @doGetScreen;
 
         %Step 0: run some assertions.
         function [release, details] = checkOpenGL(details)
-            %just check for openGL and OSX.
+            %just check for openGL and OSX, and initialize
             AssertOpenGL;
             AssertOSX;
+            
+            InitializeMatlabOpenGL();
             
             [release, details] = deal(@noop, details);
             function noop
@@ -75,9 +81,8 @@ initializer = @doGetScreen;
             function init = preferenceSetter(name)
                 init = @setPreference;
                 function [r, params] = setPreference(params)
-%%%                    oldval = Screen('Preference', name, params.preferences.(name));
-%%%                    r = @()Screen('Preference', name, oldval);
-                       r = @noop;%%%
+                    oldval = Screen('Preference', name, params.preferences.(name));
+                    r = @()Screen('Preference', name, oldval);
                 end
             end
             
@@ -92,17 +97,37 @@ initializer = @doGetScreen;
 
         end
         
-        %Step 1: Pick the screen, and set the gamma to a calibrated value.
-        function [release, details] = setGamma(details)
-
+        
+        %step 1.5 make sure we are in the right screen resolution.
+        function [release, details] = setResolution(details)
+            
             if ~isfield(details, 'screenNumber') || isnan(details.screenNumber);
-                screenNumber = max(Screen('Screens'));
-            else
-                screenNumber = details.screenNumber;
+                details.screenNumber = max(Screen('Screens'));
             end
             
+            oldResolution = Screen('Resolution', details.screenNumber);
+            %the Resolution function takes an arglist but returns a struct. For the same data. Sigh....
+            oldResolution = {oldResolution.width oldResolution.height oldResolution.hz oldResolution.pixelSize};
+            
+            if isempty(details.resolution)
+                details.resolution = oldResolution;
+                release = @noop;
+            else
+                Screen('Resolution', details.screenNumber, details.resolution{:});
+                release = @r;
+            end
+                
+            
+            function r()
+                screen('Resolution', details.screenNumber, oldResolution{:});
+            end
+        end
+        
+        %Step 1: Pick the screen, and set the gamma to a calibrated value.
+        function [release, details] = setGamma(details)
+            
             if ~isfield(details, 'cal') || isempty(details.cal)
-                cal = Calibration('screenNumber', screenNumber);
+                cal = Calibration('screenNumber', details.screenNumber);
             else
                 cal = details.cal;
             end
@@ -112,17 +137,16 @@ initializer = @doGetScreen;
                     , 'No calibration was found for this system setup.' );
             end
 
-            details.screenNumber = screenNumber;
             details.cal = cal;
 
             release = @resetGamma;
 
             %load the present table
-%%%            oldGamma = Screen('ReadNormalizedGammaTable', screenNumber);
-%%%            Screen('LoadNormalizedGammaTable', screenNumber, cal.gamma);
+            oldGamma = Screen('ReadNormalizedGammaTable', details.screenNumber);
+            Screen('LoadNormalizedGammaTable', details.screenNumber, cal.gamma);
 
             function resetGamma
-%%%                Screen('LoadNormalizedGammaTable', screenNumber, oldGamma);
+                Screen('LoadNormalizedGammaTable', details.screenNumber, oldGamma);
             end
         end
 
@@ -139,7 +163,15 @@ initializer = @doGetScreen;
             
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
-            details = wtfOpenWindow(details);
+            try
+                [details.window, details.rect] = ...
+                    Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0,details.imagingMode);
+            catch
+                %and yet, sometimes screen itself crashes here and leaves a
+                %window open. So clearing is necessary on error.
+                clear Screen;
+                rethrow(lasterror);
+            end
             
             release = @closeWindow;
 
@@ -147,7 +179,7 @@ initializer = @doGetScreen;
                 % close the window, if it's still open (it may have closed due
                 % to a psychtoolbox error, because they think it's convenient to
                 % close down the entire operation if you get an invalid argument
-                % to DrawTexture)
+                % to any screen subfunction )
                 windows = Screen('Windows');
                 if any(windows == details.window)
                     %message(details, 'Closing screen');

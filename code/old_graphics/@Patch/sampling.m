@@ -47,6 +47,7 @@ function [x, y, t, xi, yi, ti] = sampling(dispatch, this, cal, oversample)
 % If you provide the 'oversample' parameter and set it to a whole number,
 % we will pretend the display has more pixels than it does (this may come in
 % handy for more accurate display of rotated or scaled sprites.)
+blocksize = 16;
 
 [xi, yi, ti] = extent(this);
 
@@ -78,9 +79,9 @@ tif(1) = floor(tif(1));
 ti = tif .* cal.interval;
 
 %now bring the upper bounds to the sampling-resolution-determined
-%boundaries
-xi(2) = xi(1) + ceil((xi(2)-xi(1)) / sampleSpacing(1)) * sampleSpacing(1);
-yi(2) = yi(1) + ceil((yi(2)-yi(1)) / sampleSpacing(2)) * sampleSpacing(2);
+%boundaries, modulo blocksize...
+xi(2) = xi(1) + ceil((xi(2)-xi(1)-sampleSpacing(1)) / sampleSpacing(1)/blocksize) * sampleSpacing(1)*blocksize;
+yi(2) = yi(1) + ceil((yi(2)-yi(1)-sampleSpacing(2)) / sampleSpacing(2)/blocksize) * sampleSpacing(2)*blocksize;
 ti(2) = ti(1) + ceil((ti(2)-ti(1)) / sampleSpacing(3)) * sampleSpacing(3);
 
 %sampling! now sample things. The samples fall in the middle of boundaries

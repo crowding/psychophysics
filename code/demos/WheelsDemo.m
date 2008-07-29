@@ -8,7 +8,7 @@ function WheelsDemo(varargin)
         , 'aviout', '' ...
         );
     
-    params = namedargs(params, varargin{:});
+    params = namedargs(localExperimentParams(), params, varargin{:});
     
     require(getScreen(params), @runDemo);
     function runDemo(params)

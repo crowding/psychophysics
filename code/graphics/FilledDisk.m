@@ -33,9 +33,9 @@ toPixels_ = [];
                 if any(sz > 31)
                     Screen('gluDisk', window, color, center(1), center(2), sz);
                 else
-                    %[src, dst] = Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    [src, dst] = Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
-                    %Screen('BlendFunction', window, src, dst);
+                    Screen('BlendFunction', window, src, dst);
                 end
             end
         catch
