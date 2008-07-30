@@ -39,6 +39,7 @@ subtex_ = []; % the openGL texture names
 n_frames_ = 0;
 from_coords_ = [];
 to_coords_ = [];
+splitTextures_ = 0;
 
 %How many sprites will we anticipate at one time? This can be a
 %surprisingly large number.
@@ -67,17 +68,30 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         i = joinResource(@initTextures, @initglparams);
         [releaser, params, next] = i(params);
         
+        
         function [release, params] = initTextures(params)
+            %figure out whether we are in a 16-bit buffer?
+            if (params.screenInfo.BitsPerColorComponent > 8) && (params.screenInfo.GLSupportsBlendingUpToBpc >= params.screenInfo.BitsPerColorComponent)
+                %we are running in a high-dynamic-range buffer with
+                %blending, yay
+                splitTextures_ = 0;
+            else
+                %boo
+                splitTextures_ = 1;
+            end
+            
             toPixels_ = transformToPixels(params.cal);
             interval_ = params.cal.interval;
 
             head_ = max_sprites_;
             tail_ = max_sprites_;
 
-            %the textures...
-            [addtex_, subtex_ from_coords_, to_coords_, onset_] = ...
-                gl_textures(patch, params.window, params.cal);
-
+            %the textures are either split into separate added and
+            %subtracted components, or rendered in a floating point
+            %buffer...
+            [addtex_, subtex_, from_coords_, to_coords_, onset_] = ...
+                gl_textures(patch, params.window, params.cal, splitTextures_);
+            
             n_frames_ = size(from_coords_, 2);
 
             process.reset();
@@ -283,14 +297,18 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
         glColorPointer( 3, GL.DOUBLE, 0, colors_);
         
         glBindTexture(GL.TEXTURE_2D,addtex_);
-        glBlendEquation(GL.FUNC_ADD);
+
         glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4,0) );
         glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4,0) );
 
-        glBindTexture(GL.TEXTURE_2D,subtex_);
-        glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
-        glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
-        glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
+        if (splitTextures_)
+            glBindTexture(GL.TEXTURE_2D,subtex_);
+            glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
+            glDrawArrays( GL.QUADS, (l1-1)*4, max((r1-l1 + 1)*4, 0) );
+            glDrawArrays( GL.QUADS, (l2-1)*4, max((r2-l2 + 1)*4, 0) );
+            glBlendEquation(GL.FUNC_ADD);
+        end
+        
         glFlush();
         Screen('EndOpenGL', window);
     end

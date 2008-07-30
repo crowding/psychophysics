@@ -1,5 +1,5 @@
-function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w, cal);
-% function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w, cal);
+function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w, cal, splitTextures);
+% function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w, cal, splitTextures);
 %
 % Generates GL textures to serve as offscreen pixmaps to display the given
 % Patch as an animation.
@@ -9,11 +9,14 @@ function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w,
 % this : a Patch object.
 % w : an open Psychtoolbox window.
 % cal: a Calibration object for the window.
+% splitTextures: if true, render for an 8 bit (unsigned) framebuffer; you
+%                need a texture for adding and a texture for subtracting.
 %
 % outputs:
 %
 % addtex : a Gl texture to be added to the screen.
-% subtex : a GL texture to be subtracted from the screen.
+% subtex : a GL texture to be subtracted from the screen. (empty if
+%          splitTextures is false
 % texcoords : Normalized texture coordinates for the GL_QUAD object.
 %             There is one column per frame.
 % screencoords : Where to draw the quad on screen (in degrees.) There is
@@ -22,6 +25,10 @@ function [addtex, subtex, texcoords, screencoords, onset] = gl_textures(this, w,
 %         were to be centered at t=0.
 
 global GL;
+
+if ~exist('splitTextures', 'var')
+    splitTextures = 1;
+end
 
 [x, y, t, xi, yi, ti] = sampling(this, this, cal);
 toPixels = transformToPixels(cal);
@@ -54,8 +61,12 @@ if (tv > maxtex)
         ' Consider making the sprite player work over multiple textures.']);
 end
 
-add = zeros(tv, th, 'uint8');
-sub = zeros(tv, th, 'uint8');
+if (splitTextures)
+    add = zeros(tv, th, 'uint8');
+    sub = zeros(tv, th, 'uint8');
+else
+    add = zeros(tv, th, 'single');
+end
 
 tv = size(add, 1);              %texure to be subtracted
 th = size(add, 2);              %texture to be added
@@ -79,8 +90,12 @@ for i = 0:n-1
     t = 1 + vslot*vsize;
     b = vsize + vslot*vsize;
     
-    add(t:b, l:r) = uint8(z(:,:,i+1) * 255);
-    sub(t:b, l:r) = uint8(-z(:,:,i+1) * 255);
+    if (splitTextures)
+        add(t:b, l:r) = uint8(z(:,:,i+1) * 255);
+        sub(t:b, l:r) = uint8(-z(:,:,i+1) * 255);
+    else
+        add(t:b, l:r) = z(:,:,i+1);
+    end
     
     %Texture coordinates -- Note the adjustment for pixel alignemnt
     l_n = (l-1)/th;
@@ -100,14 +115,25 @@ function maketextures(params)
     subtex = texnames(2);
 
     maketexture(addtex, add);
-    maketexture(subtex, sub);
+    if (splitTextures)
+        maketexture(subtex, sub);
+    end
 end
 
 function maketexture(name, tx)
     glBindTexture(GL.TEXTURE_2D, name);
     tx = permute(tx, [2 1]);
     
-    glTexImage2D(GL.TEXTURE_2D,0,GL.LUMINANCE8,size(tx,1),size(tx,2),0,GL.LUMINANCE,GL.UNSIGNED_BYTE,tx);
+    %depending on the format...
+    if isa(tx, 'single')
+        %GL.LUMINANCE32F_ARB = 0x8818 = 34840
+        %test = zeros(size(tx), 'uint32') + 2^31;
+        glTexImage2D(GL.TEXTURE_2D,0,GL.LUMINANCE_FLOAT32_ATI,size(tx,1),size(tx,2),0,GL.LUMINANCE,GL.FLOAT,tx);        
+    elseif isa(tx, 'uint8')
+        glTexImage2D(GL.TEXTURE_2D,0,GL.LUMINANCE8,size(tx,1),size(tx,2),0,GL.LUMINANCE,GL.UNSIGNED_BYTE,tx);
+    else
+        error('gl_textures:badFormat', 'only single precision float and uint8 supported for textures.');
+    end
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_WRAP_S,GL.CLAMP);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_WRAP_T,GL.CLAMP);
     glTexParameterfv(GL.TEXTURE_2D,GL.TEXTURE_MAG_FILTER,GL.LINEAR);
