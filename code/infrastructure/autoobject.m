@@ -44,12 +44,12 @@ function this = autoobject(varargin)
     %Objects are ultimately created by passing a long string to evalin.
     %Building hte string is time consuming; so the strings should be cached.
     
-    %THIS WAS A SNEAKY TRICK! MATLAB's restriction on adding variables to
+    %THIS _WAS_ A SNEAKY TRICK! MATLAB's restriction on adding variables to
     %a static workspace apparently did not extend to persistent variables.
     %Therefore if we want to cache a value with a calling function and have
     %it associated with the function (and cleared whenever the function is
     %recompiled) we can just stuff it in a persistent variable using
-    %evalin!
+    %evalin! But it does not work as of 7.4...
 
     %evalin('caller', 'persistent init__;'); %allowed caching of
     %function-specific data

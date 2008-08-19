@@ -1,0 +1,19 @@
+/* A fragment shader that draws a Cauchy function in one direction
+ * windowed with a Gaussign envelope in the other. The phase and order of
+ * the Cauchy function are adjusted with the third and forth elements (p
+ * and q) of the texture coordinate.
+ */
+
+void main(void)
+{
+    /* s-coordinate = along grating,
+     * t-coordinate = along gaussian envelope,
+     * p-coordinate = phase
+     * q-coordinate = order.
+     */
+    float theta = atan(gl_TexCoord[0].s);
+    gl_FragColor = gl_Color
+        * pow(cos(theta), gl_TexCoord[0].q) * cos(theta * gl_TexCoord[0].q + gl_TexCoord[0].p ) /* cauchy function */
+        * exp(- gl_TexCoord[0].t * gl_TexCoord[0].t); /* gaussian envelope */
+    gl_FragColor[3] = gl_Color[3];
+}

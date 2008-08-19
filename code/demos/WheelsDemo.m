@@ -11,15 +11,15 @@ function WheelsDemo(varargin)
     params = namedargs(localExperimentParams(), params, varargin{:});
     
     require(getScreen(params), @runDemo);
+    
     function runDemo(params)
-        
         interval = params.cal.interval; %screen refresh interval
 
         base = 14; %base of triangle
         radius = 2.5; %approximate radius
         n = 5; %number in each wheel
         dx = 0.75; %translation per appearance
-        dt = 0.15; %time interval between appearances
+        dt = 1.5; %time interval between appearances
         contrast = 1; %contrast of each appearance (they superpose)
         
         %To make a looped movie, the radius should be adjusted so that a
@@ -43,8 +43,8 @@ function WheelsDemo(varargin)
         
         %on the left, complementary motion
         patch1 = CauchyPatch...
-            ( 'velocity', 5 ... %velocity of peak spatial frequency
-            , 'size', [0.75 0.375 0.1]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
+            ( 'velocity', .5 ... %velocity of peak spatial frequency
+            , 'size', [0.75 0.375 1]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
             , 'order', 4 ... %order of cauchy function
             );
         
@@ -62,8 +62,8 @@ function WheelsDemo(varargin)
         
         %on the right, inconsistent motion
         patch2 = CauchyPatch...
-            ( 'velocity', 5 ... %velocity of peak spatial frequency
-            , 'size', [0.75 0.375 0.1]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
+            ( 'velocity', .5 ... %velocity of peak spatial frequency
+            , 'size', [0.75 0.375 1]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
             , 'order', 4 ... %order of cauchy function
             );
          
@@ -79,8 +79,8 @@ function WheelsDemo(varargin)
             , 't', times ...
             );
         
-        sprites1 = SpritePlayer(patch1, circle1);
-        sprites2 = SpritePlayer(patch2, circle2);
+        sprites1 = CauchySpritePlayer(patch1, circle1);
+        sprites2 = CauchySpritePlayer(patch2, circle2);
 
         %three fixation points arranged in a triangle
         fixation1 = FilledDisk([base/2 base/2/sqrt(3)], 0.1, 0, 'visible', 1);

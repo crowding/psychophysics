@@ -320,9 +320,8 @@ tail_ = max_sprites_; %matlab index to where the oldest WAS.
     function stimOnset = setVisible(v, next)
         % v:     if true, will start drawing the movie at the next refresh.
         %
-        % next:  if exists and set to the scheduled next refresh, gives the
-        %        stimulus onset time (which may be different from the next
-        %        refresh for many movies)
+        % next:  the stimulus onset time (set this to the next scheduled
+        %        frame)
         % ---
         % onset: the stimulus onset time.
         visible = v;
