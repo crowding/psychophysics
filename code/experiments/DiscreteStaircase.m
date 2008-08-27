@@ -14,13 +14,16 @@ function this = DiscreteStaircase(varargin)
     
     reversals = 0;
     
+    criterion = TrialSuccessful();
+    
     persistent init__;
     this = autoobject(varargin{:});
     
-    function result(trial, result)
-        if isfield(result, 'success') %step down
-            if (~isnan(result.success) && result.success) %step DOWN
-                
+    function result(trial, result, valueUsed)
+        
+        %evaluate the criterion.
+        value = ev(criterion, result);
+        if value > 0                
                 upCounter = 0;
                 downCounter = downCounter + 1;
 
@@ -34,21 +37,20 @@ function this = DiscreteStaircase(varargin)
                     direction = -1;
                 end
 
-            elseif ~isnan(result.success) %count to a step UP
-                
-                downCounter = 0;
-                upCounter = upCounter + 1;
+        elseif value < 0 %count to a step UP
 
-                if upCounter >= Nup && currentIndex < numel(valueSet)
-                    currentIndex = currentIndex + 1;
-                    disp ('step up');
-                    upCounter = 0;
-                    if (direction > 0)
-                        reversals = reversals + 1;
-                    end
+            downCounter = 0;
+            upCounter = upCounter + 1;
+
+            if upCounter >= Nup && currentIndex < numel(valueSet)
+                currentIndex = currentIndex + 1;
+                disp ('step up');
+                upCounter = 0;
+                if (direction > 0)
+                    reversals = reversals + 1;
                 end
-
             end
+
         end
     end
 

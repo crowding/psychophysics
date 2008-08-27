@@ -79,22 +79,22 @@ function this = CauchySpritePlayer(varargin)
         
         %draw the queue...
         color = queue_(:,5:7) .* (exp(-((queue_(:,3)+onset_-next)./queue_(:,10)*2).^2) * [1 1 1]);
-        drawn = max(color, [], 2) > accuracy; %whcih we will bother to draw...
-        color = color(drawn,:)';
+        isDrawn = max(color, [], 2) > accuracy; %whcih we will bother to draw...
+        color = color(isDrawn,:)';
         
-        xy = queue_(drawn,[1 2])';
-        angle = queue_(drawn,[4])';
-        wavelength = queue_(drawn,[8])';
-        width = queue_(drawn,[9])';
-        phase = queue_(drawn,[12])' - 2*pi*queue_(drawn, [11])'./wavelength * (next-onset_);
-        order = queue_(drawn,[13])';
+        xy = queue_(isDrawn,[1 2])';
+        angle = queue_(isDrawn,[4])';
+        wavelength = queue_(isDrawn,[8])';
+        width = queue_(isDrawn,[9])';
+        phase = queue_(isDrawn,[12])' - 2*pi*queue_(isDrawn, [11])'./wavelength * (next-onset_);
+        order = queue_(isDrawn,[13])';
         
         %prune the queue
-        queue_(~drawn & (queue_(:,3)+onset_ < next),:) = [];
+        queue_(~isDrawn & (queue_(:,3)+onset_ < next),:) = [];
     end
 
     function advanceQueue_(next)
-        while (isempty(queue_) || all(exp(-(((queue_(:,3)+onset_-next)./queue_(:,10)*2).^2)) > accuracy))
+        while isempty(queue_) || queue_(end, 3) + onset_ < next || exp(-(((queue_(end,3)+onset_-next)./queue_(end,10)*2).^2)) > accuracy
             if nargout(process.next) == 5
                 [x, y, t, a, color] = process.next();
                 width = width_;
@@ -106,10 +106,17 @@ function this = CauchySpritePlayer(varargin)
             else
                 [x, y, t, a, color, wavelength, width, duration, velocity, phase, order] = process.next();
             end
-            a = a/180*pi;
-            queue_ = [queue_; x, y, t, a, color(:)', wavelength, width, duration, velocity, phase, order]; %growing in a loop; bad form
-            %                 1  2  3  4  5 6 7      8           9      10        11        12     13 -
-
+            a = a/180*pi; %adjust "angle" from degrees to radians...
+            
+            if isempty(x) || isnan(x) %what it does if there isn't an object to add.
+                return;
+            end
+            try
+                queue_ = [queue_; x, y, t, a, color(:)', wavelength, width, duration, velocity, phase, order]; %growing in a loop; bad form
+                %                 1  2  3  4  5 6 7      8           9      10        11        12     13 -
+            catch
+               noop(); 
+            end
         end
     end
 
@@ -124,13 +131,18 @@ function this = CauchySpritePlayer(varargin)
         
         if v
             onset_ = next;
-            stimOnset_ = onset_;
+            stimOnset = onset_;
             advanceQueue_(next);
         else
             %reset to show at the next appearance.
             process.reset();
         end
-        
-        cd_.setVisible(v);
+        visible = v;
+        cd_.setVisible(v && drawn);
+    end
+
+    function setDrawn(d)
+        drawn = d;
+        cd_.setVisible(v && drawn);
     end
 end

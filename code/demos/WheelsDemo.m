@@ -43,7 +43,7 @@ function WheelsDemo(varargin)
         
         %on the left, complementary motion
         patch1 = CauchyPatch...
-            ( 'velocity', .5 ... %velocity of peak spatial frequency
+            ( 'velocity', 5 ... %velocity of peak spatial frequency
             , 'size', [0.75 0.375 1]... %half wavelength of peak spatial frequency in x; sigma of gaussian envelopes in y and t
             , 'order', 4 ... %order of cauchy function
             );

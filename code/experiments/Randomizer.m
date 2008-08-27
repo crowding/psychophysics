@@ -182,18 +182,20 @@ this = Obj(autoobject(varargin{:}));
         %As a first step, look to see if there are any staircases etc to
         %assign...
         
-        %assignments_ stores the raw assignments from the last trial.
-        %If the raw assignments are objects and have a 'results' method,
-        %then assign them...
+        %assignments_ stores the raw assignments from the last trial, whiel
+        %params_ stores the numeric values they evaluated to...
+        %If the raw assignments are objects (generators, like staircase
+        %functions) and have a 'results' method, then report back.
         for i = 1:numel(assignments_)
             r = assignments_(i);
             
             if isstruct(r.values) && isfield(r.values, 'result') && isa(r.values.result, 'function_handle')
-                r.values.result(trial, result);
+                r.values.result(trial, result, params_{i});
             elseif iscell(r.values)
                 for j = 1:numel(r.subs)
                     if isstruct(r.values{i}) && isfield(r.values{i}, 'result') && isa(r.values.result{i}, 'function_handle')
-                        r.values{i}.result(trial, result);
+                        r.values.result(trial, result, params_{i}{j}); %???
+%                        r.values{i}.result(trial, result);
                     end
                 end
             end
@@ -208,8 +210,6 @@ this = Obj(autoobject(varargin{:}));
                     designDone(lastPicked_) = true;
                 end
                 
-                %here is where you do can fit in staircasing by a
-                %similar mechanism (TODO)...
                 displayFunc(results);
             end
         end

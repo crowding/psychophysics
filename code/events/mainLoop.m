@@ -129,6 +129,10 @@ toDegrees_ = @noop;
         aviout_ = params.aviout;
         if (aviout_)
             aviobj = avifile(aviout_, 'fps', 1 / interval);
+            params.skipFrames = 0;
+            if isempty(params.avirect)
+                params.avirect = (params.rect([3 4 3 4]) - params.rect([1 2 1 2]))/2 + [-256 -256 256 256];
+            end
         end
 
         VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
@@ -226,8 +230,6 @@ toDegrees_ = @noop;
                 end
             else
                 %pretend there are not skips, even in timestamps.
-                %TODO: be even more faking about this -- in the events and
-                %with the option to produce a aviout rendering.
                 skipped = 0;
                 VBL = prevVBL + flipInterval;
             end

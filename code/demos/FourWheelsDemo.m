@@ -4,12 +4,11 @@ function FourWheelsDemo(varargin)
         , 'dummy',      1  ...
         , 'skipFrames', 1  ...
         , 'requireCalibration', 0 ...
-        , 'screenImagingMode', 0 ...
         , 'hideCursor', 0 ...
         , 'aviout', '' ...
         );
     
-    params = namedargs(params, varargin{:});
+    params = namedargs(locaLExperimentParams(), params, varargin{:});
     
     require(getScreen(params), @runDemo);
     function runDemo(params)
@@ -101,10 +100,10 @@ function FourWheelsDemo(varargin)
 
 %        dots = ComboProcess(circle1, circle2);
         
-        sprites1a = SpritePlayer(patch1, circle1a);
-        sprites1b = SpritePlayer(patch1, circle1b);
-        sprites2a = SpritePlayer(patch2, circle2a);
-        sprites2b = SpritePlayer(patch2, circle2b);
+        sprites1a = CauchySpritePlayer(patch1, circle1a);
+        sprites1b = CauchySpritePlayer(patch1, circle1b);
+        sprites2a = CauchySpritePlayer(patch2, circle2a);
+        sprites2b = CauchySpritePlayer(patch2, circle2b);
 
         %one fixation points at the center
         fixation = FilledDisk([0 0], 0.1, 0, 'visible', 1);

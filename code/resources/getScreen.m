@@ -44,6 +44,7 @@ defaults = namedargs ...
     , 'imagingMode', kPsychNeed16BPCFloat ... % good graphics cards on this rig, get good imaging
     , 'rect', [] ...
     );
+    
 
 %curry arguments given now onto the initializer function
 initializer = @doGetScreen;
@@ -108,15 +109,20 @@ initializer = @doGetScreen;
             oldResolution = Screen('Resolution', details.screenNumber);
             %the Resolution function takes an arglist but returns a struct. For the same data. Sigh....
             oldResolution = {oldResolution.width oldResolution.height oldResolution.hz oldResolution.pixelSize};
-            
-            if isempty(details.resolution)
+
+            if isfield(details, 'aviout') && ~isempty(details.aviout)
+                %if rendering to a file, force use of 60 Hz
+                details.resolution = oldResolution;
+                details.resolution{3} = 60;
+                Screen('Resolution', details.screenNumber, details.resolution{:});
+                release = @r;
+            elseif isempty(details.resolution)
                 details.resolution = oldResolution;
                 release = @noop;
             else
                 Screen('Resolution', details.screenNumber, details.resolution{:});
                 release = @r;
             end
-                
             
             function r()
                 screen('Resolution', details.screenNumber, oldResolution{:});
@@ -130,6 +136,12 @@ initializer = @doGetScreen;
                 cal = Calibration('screenNumber', details.screenNumber);
             else
                 cal = details.cal;
+            end
+            
+            if isfield(details, 'aviout') && ~isempty(details.aviout)
+%                cal.rect = [0 0 1024 1024];
+                cal.distance = 180/pi; %one "centimeter" per "degree"
+                cal.spacing = [20/512 20/512]; %thus, 20 degrees in 512 pixels
             end
 
             if (details.requireCalibration && ~cal.calibrated)
@@ -161,11 +173,15 @@ initializer = @doGetScreen;
             details.foregroundIndex = details.blackIndex + ...
                 (details.whiteIndex - details.blackIndex) * details.foregroundColor;
             
+            if isfield(details, 'aviout') && ~isempty(details.aviout)
+%                details.rect = [0 0 1024 1024];
+            end
+            
             %note pattern: destructive function calls are the last in any
             %sub-initializer.
             try
                 [details.window, details.rect] = ...
-                    Screen('OpenWindow',details.screenNumber,details.backgroundIndex,[],32,2,0,0,details.imagingMode);
+                    Screen('OpenWindow',details.screenNumber,details.backgroundIndex,details.rect,32,2,0,0,details.imagingMode);
             catch
                 %and yet, sometimes screen itself crashes here and leaves a
                 %window open. So clearing is necessary on error.

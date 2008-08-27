@@ -78,20 +78,33 @@ function this = CauchyDrawer(varargin)
             glBlendFunc(GL.SRC_ALPHA, GL.ONE);
 
             %now load and compile the procedural Cauchy shader, if necessary
-            if (~glIsProgram(program_))
-                program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+            if (~glIsProgram(program_)) %this don't work???
+                if program_ > 0
+                    try
+                        glUseProgram(program_);
+                    catch
+                        program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                        glUseProgram(program_);
+                    end
+                else
+                    program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                    glUseProgram(program_);
+                end
+            else
+                glUseProgram(program_);            
             end
-            
-            glUseProgram(program_);
         end
-
 
         release = @r;
         function r()
             %when done with the cauchy shader...
             glUseProgram(0);
+            
             %not supported? wtf?
-            %glDeleteProgram(program_);
+%            try 
+%                glDeleteProgram(program_);
+%            end
+%            program_ = -1;
         end
     end
 

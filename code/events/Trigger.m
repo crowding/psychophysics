@@ -1,7 +1,8 @@
 function this = Trigger(varargin)
-    %attempt at a more generic trigger mechanism Lightweight triggers are
-    %not objects, but just functions so as to make for easier garbage
-    %collecting. Probably won't work.
+    %attempt at a more generic trigger mechanism. Lightweight triggers are
+    %not objects, but just functions. Keeps everything in persistent
+    %variables with handles so as to make for less garbage collecting 
+    %(Ugh...)
 
     persistent triggers_;
     persistent counter_;
@@ -26,7 +27,15 @@ function this = Trigger(varargin)
     function setLog(s)
         log = s;
     end
+
+    function reset()
+        %cleanup to be recycled for the next trial...
         
+        events = cell(0,2);
+        notlogged = {};
+        triggers_.(name) = cell(0,4);
+    end
+
     function handle = singleshot(checker, fn)
         handle = handlecounter_;
         triggers_.(name)(end+1,:) = {@checkSingle_, 1, {checker, fn}, handlecounter_};
@@ -77,7 +86,7 @@ function this = Trigger(varargin)
             if any(t)
                 fns{i}(k);
                 log('TRIGGER %s %s', func2str(fns{i}), struct2str(srmfield(k,notlogged)));
-                events(end+1,:) = {k.next, func2str(fn)};
+                events(end+1,:) = {k.next, func2str(fns{i})};
                 break;
             end
         end
@@ -178,7 +187,7 @@ function this = Trigger(varargin)
     function [release, params] = init(params)
         events = cell(0,2);
         if ~isfield(triggers_, name)
-            triggers_.(name) = cell(0,3);
+            triggers_.(name) = cell(0,4);
         end
         
         %set the notlogged parameter to avoid logging some (tl;dr) fields.
