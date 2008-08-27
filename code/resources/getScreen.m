@@ -125,7 +125,7 @@ initializer = @doGetScreen;
             end
             
             function r()
-                screen('Resolution', details.screenNumber, oldResolution{:});
+                Screen('Resolution', details.screenNumber, oldResolution{:});
             end
         end
         

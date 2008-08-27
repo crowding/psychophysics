@@ -193,9 +193,8 @@ this = Obj(autoobject(varargin{:}));
                 r.values.result(trial, result, params_{i});
             elseif iscell(r.values)
                 for j = 1:numel(r.subs)
-                    if isstruct(r.values{i}) && isfield(r.values{i}, 'result') && isa(r.values.result{i}, 'function_handle')
+                    if isstruct(r.values{j}) && isfield(r.values{j}, 'result') && isa(r.values.result{j}, 'function_handle')
                         r.values.result(trial, result, params_{i}{j}); %???
-%                        r.values{i}.result(trial, result);
                     end
                 end
             end
@@ -274,7 +273,9 @@ this = Obj(autoobject(varargin{:}));
         out = cellfun(@pick, list, num2cell(indices), 'UniformOutput', 0);
         
         function out = pick(item, ix)
-            if numel(item) > 1
+            if iscell(item)
+                out = item{ix};
+            elseif numel(item) > 1
                 out = item(ix);
             else
                 out = item;

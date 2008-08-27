@@ -1,6 +1,7 @@
-function this = GloLoAdjustmentTrial(varargin)
+function this = GloLoCuedTrial(varargin)
 
     %timing parameters
+    extra = struct();
     startTime = 0;      %GetSecs value for when the trial should start (for ITI control)
     barCueOnset = 0.25;
     barCueDuration = 0.25; %how long to show the cue on screen

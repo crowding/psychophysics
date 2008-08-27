@@ -50,20 +50,22 @@ function e = GloLoCued(varargin)
     %The range of temporal offsets:
     %from the onset of the second flash to the onset of the fourth flash is
     %49 timepoints at 120 fps
-    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(1,3,9));
+    e.trials.add('barOnset', e.trials.base.motion.t + e.trials.base.motion.dt * linspace(0,3,13));
     
     %The bar origin is random around the circle and orientation follows
     %motion phase, angle, bar onset, bar phase
     e.trials.add({'motion.phase', 'motion.angle'}, @(b)num2cell(rand()*2*pi * [1 180/pi] + [0 90]));
     
+    e.trials.add({'patch.velocity', 'motion.dphase'}, {{-e.trials.base.patch.velocity, -e.trials.base.motion.dphase}, {e.trials.base.patch.velocity, e.trials.base.motion.dphase}});
+    
     %bar phase is sampled in a range...
-    e.trials.add('barPhase', linspace(-e.trials.base.motion.dphase, e.trials.base.motion.dphase, 7));
+    e.trials.add('extra.barStepsAhead', linspace(-0.5, 1, 7));
     %that is centered on the location of the bar.
-    e.trials.add('barPhase', @(b)b.barPhase + b.motion.phase + (b.barOnset-b.motion.t(1))*b.motion.dphase ./ b.motion.dt);
+    e.trials.add('barPhase', @(b)b.extra.barStepsAhead*b.motion.dphase + b.motion.phase + (b.barOnset-b.motion.t(1))*b.motion.dphase ./ b.motion.dt);
             
     %the message to show between blocks.
     e.trials.blockTrial = MessageTrial('message', @()sprintf('Press knob to continue. %d blocks remain', e.trials.blocksLeft()));
     
     e.trials.fullFactorial = 1;
     e.trials.reps = 5;
-    e.trials.blockSize = 63;
+    e.trials.blockSize = 91;

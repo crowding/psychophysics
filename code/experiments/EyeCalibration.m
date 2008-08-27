@@ -11,9 +11,9 @@ function e = EyeCalibration(varargin)
     e.trials.base.targetRadius = 0.2;
     e.trials.base.onset = 0;
 
-    e.trials.add('targetY', linspace(-10, 10, 5));
-    e.trials.add('targetX', linspace(-10, 10, 5));
-%    e.trials.add({'targetX', 'targetY'}, {{-10 0} {-5 0}, {0 0}, {5 0}, {10 0}, {0 -10}, {0 -5}, {0 0}, {0 5}, {0 10}});
+%    e.trials.add('targetY', linspace(-10, 10, 5));
+%    e.trials.add('targetX', linspace(-10, 10, 5));
+    e.trials.add({'targetX', 'targetY'}, {{-10 0} {-5 0}, {0 0}, {5 0}, {10 0}, {0 -10}, {0 -5}, {0 0}, {0 5}, {0 10}});
     e.trials.add('onset', ExponentialDistribution('offset', 0.0, 'tau', 0.0));
 
     e.trials.setDisplayFunc(@showCalibration);
