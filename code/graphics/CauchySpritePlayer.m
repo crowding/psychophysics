@@ -28,36 +28,36 @@ function this = CauchySpritePlayer(varargin)
     this.method__('draw', cd_.draw);
     this.method__('update', cd_.update);
 
-    width_ = [];
-    wavelength_ = [];
-    duration_ = [];
-    wavelength_ = [];
-    velocity_ = [];
-    order_ = [];
-    phase_ = 0; %not actually exposed by the Patch but a necessary parameter.
+    %to fully specify a cauchy blob we need these fields, and only these
+    %fields. this is the queue.
+
+    s_ = struct('x', [], 'y', [], 't', [], 'angle', [], 'color', [], 'width', [], 'duration', [], 'wavelength', [], 'velocity', [], 'order', [], 'phase', []);
+    queue_ = struct('x', {}, 'y', {}, 't', {}, 'angle', {}, 'color', {}, 'width', {}, 'duration', {}, 'wavelength', {}, 'velocity', {}, 'order', {}, 'phase', {});
+    
     
     visible = 0; % a misnomer: setting visible means "start playing"
     drawn = 1; %by default, is drawn.
     
     onset_ = 0; %the onset of the current motion process (private)
-    queue_ = zeros(0, 13); % the matrix of things currently being drawn...
     
     function [release, params, next] = init(params)
-        %capture the patch parameters (as a spritePlayer would render...)
+        s_ = struct('x', [], 'y', [], 't', [], 'angle', [], 'color', [], 'width', [], 'duration', [], 'wavelength', [], 'velocity', [], 'order', [], 'phase', []);
         
-        wavelength_ = patch.size(1);
-        width_ = patch.size(2);
-        duration_ = patch.size(3);
-        velocity_ = patch.velocity;
-        order_ = patch.order;
-        phase_ = 0;
+        %capture the patch parameters (as a spritePlayer would render, for
+        %backwards compatibiilty)
+        s_.wavelength = patch.size(1);
+        s_.width = patch.size(2);
+        s_.duration = patch.size(3);
+        s_.velocity = patch.velocity;
+        s_.order = patch.order;
+        s_.phase = 0;
         
         process.reset();
         
         %initialize the delegate drawer.
         next = cd_.init;
         release = @noop;
-        queue_ = zeros(0, 13);
+        queue_ = struct('x', {}, 'y', {}, 't', {}, 'angle', {}, 'color', {}, 'width', {}, 'duration', {}, 'wavelength', {}, 'velocity', {}, 'order', {}, 'phase', {});
     end
 
 
@@ -66,7 +66,6 @@ function this = CauchySpritePlayer(varargin)
         accuracy = s;
         cd_.setAccuracy(s);
     end
-
 
     %this is what the delegate drawer needs from us
     function [xy, angle, wavelength, order, width, color, phase] = get(next)
@@ -78,45 +77,51 @@ function this = CauchySpritePlayer(varargin)
         advanceQueue_(next);
         
         %draw the queue...
-        color = queue_(:,5:7) .* (exp(-((queue_(:,3)+onset_-next)./queue_(:,10)*2).^2) * [1 1 1]);
-        isDrawn = max(color, [], 2) > accuracy; %whcih we will bother to draw...
-        color = color(isDrawn,:)';
+        try
+            color = reshape([queue_.color], 3, numel(queue_)) .* ([1;1;1] * reshape(exp(-(([queue_.t]+onset_-next)./[queue_.duration]*2).^2), 1, []));
+        catch
+            noop()
+        end;
+        isDrawn = max(color, [], 1) > accuracy; %whcih we will bother to draw...
+        color = color(:,isDrawn);
         
-        xy = queue_(isDrawn,[1 2])';
-        angle = queue_(isDrawn,[4])';
-        wavelength = queue_(isDrawn,[8])';
-        width = queue_(isDrawn,[9])';
-        phase = queue_(isDrawn,[12])' - 2*pi*queue_(isDrawn, [11])'./wavelength * (next-onset_);
-        order = queue_(isDrawn,[13])';
+        xy = [queue_(isDrawn).x; queue_(isDrawn).y];
+        angle = [queue_(isDrawn).angle] / 180 * pi;
+        wavelength = [queue_(isDrawn).wavelength]; 
+        width = [queue_(isDrawn).width];
+        phase = [queue_(isDrawn).phase] - 2*pi*[queue_(isDrawn).velocity]./wavelength * (next-onset_);
+        order = [queue_(isDrawn).order];
         
         %prune the queue
-        queue_(~isDrawn & (queue_(:,3)+onset_ < next),:) = [];
+        try
+            queue_(~isDrawn & reshape([queue_.t]+onset_ < next, 1, []),:) = [];
+        catch
+            noop();
+        end
     end
 
     function advanceQueue_(next)
-        while isempty(queue_) || queue_(end, 3) + onset_ < next || exp(-(((queue_(end,3)+onset_-next)./queue_(end,10)*2).^2)) > accuracy
-            if nargout(process.next) == 5
-                [x, y, t, a, color] = process.next();
-                width = width_;
-                duration = duration_;
-                order = order_;
-                phase = phase_;
-                velocity = velocity_;
-                wavelength = wavelength_;
+        while isempty(queue_) || queue_(end).t + onset_ < next || exp(-(((queue_(end).t+onset_-next)./queue_(end).duration*2).^2)) > accuracy
+            n = nargout(process.next);
+            if n == 5
+                [s_.x, s_.y, s_.t, s_.angle, s_.color] = process.next();
+            elseif n == 11
+                [s_.x, s_.y, s_.t, s_.angle, s_.color, s_.wavelength, s_.width, s_.duration, s_.velocity, s_.phase, s_.order] = process.next();
             else
-                [x, y, t, a, color, wavelength, width, duration, velocity, phase, order] = process.next();
+                ss_ = process.next();
+                if isempty(ss_)
+                    return;
+                end
+                for i = fieldnames(ss_)'
+                    s_.(i{1}) = ss_(end).(i{1});
+                end
             end
-            a = a/180*pi; %adjust "angle" from degrees to radians...
             
-            if isempty(x) || isnan(x) %what it does if there isn't an object to add.
+            if isempty(s_.x) || isnan(s_.x) %what it does, or did, if there isn't an object to add.
                 return;
             end
-            try
-                queue_ = [queue_; x, y, t, a, color(:)', wavelength, width, duration, velocity, phase, order]; %growing in a loop; bad form
-                %                 1  2  3  4  5 6 7      8           9      10        11        12     13 -
-            catch
-               noop(); 
-            end
+            
+            queue_ = [queue_; s_(:)'];
         end
     end
 

@@ -119,6 +119,10 @@ function this = CauchyDrawer(varargin)
         
         nQuads = size(xy, 2);
         
+        if nQuads == 0
+            return;
+        end
+        
         %how many "sigma" to draw in width, so that all pixels with >
         %"accuracy" amplitude are plotted.
         c = max(abs(color), [], 1);
