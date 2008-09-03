@@ -26,7 +26,7 @@ function ToyDemo(varargin)
             , 'y',          -7.5 ...
             , 't',          num2cell(0.15:0.15:2.25) ...
             , 'angle',      0 ...
-            , 'color',      [0.5 0.5 0.5] ...
+            , 'color',      [0.25 0.25 0.25] ...
             , 'wavelength', 0.5 ...
             , 'width',      1 ...
             , 'duration',   0.1 ...
@@ -36,9 +36,9 @@ function ToyDemo(varargin)
             );
                 
         list = repmat(list(:), 1, 2);
-        list(2,1).wavelength = 1;
-        list(2,1).velocity = 15;
-        list(2,1).color = [1 1 1]/4;
+        list(3,1).wavelength = 1;
+        list(3,1).velocity = 15;
+        list(3,1).color = [1 1 1]/4;
         
         [list(:,2).velocity] = deal(7.5)
         [list(:,2).y] = deal(7.5);
@@ -46,7 +46,12 @@ function ToyDemo(varargin)
         list(11,2).wavelength = 1;
         list(11,2).velocity = 15;
         list(11,2).color = [1 1 1]/4;
-                
+        %list(11,2).wavelength = 0.5;
+        %list(3,2).velocity = .375;
+        %list(3,2).wavelength = 0.25;
+        %list(3,2).color = [1 1 1]/2;
+        
+
         
         %listprocess expects a cell array, sorted by onset time...
         list = struct2cell([list(:)]);

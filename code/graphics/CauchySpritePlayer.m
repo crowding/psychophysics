@@ -77,11 +77,7 @@ function this = CauchySpritePlayer(varargin)
         advanceQueue_(next);
         
         %draw the queue...
-        try
             color = reshape([queue_.color], 3, numel(queue_)) .* ([1;1;1] * reshape(exp(-(([queue_.t]+onset_-next)./[queue_.duration]*2).^2), 1, []));
-        catch
-            noop()
-        end;
         isDrawn = max(color, [], 1) > accuracy; %whcih we will bother to draw...
         color = color(:,isDrawn);
         
