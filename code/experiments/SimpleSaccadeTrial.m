@@ -34,6 +34,9 @@ function this = SimpleSaccadeTrial(varargin)
     targetWindow = 5;
     targetFixationTime = 0.5;
     
+    %here's the change to this trial. It can be that instead of a spot you have to track a glolo.
+    %This glolo is totally optional. If it is not shown than the spot will be used instead...
+    
     errorTimeout = 1;
     
     rewardSize = 100;
@@ -41,7 +44,7 @@ function this = SimpleSaccadeTrial(varargin)
     
     f1_ = figure(1); clf;
     a1_ = axes();
-
+    
     persistent init__; %#ok
     this = autoobject(varargin{:});
     

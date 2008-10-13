@@ -18,11 +18,13 @@ function this = CircularCauchyMotion(varargin)
     
     dphase = 0; %the phase angle change per appearance
     dt = 0.1; %the number of seconds per appearance
-    n = Inf; %the number of appearances to show
+    n = Inf; %the number of appearances to show (for each item)
 
     t = 0; %time of the first appearance
 
-    counter_ = [0]; %counts how many of each target have been shown
+    counter_ = [0]; %counts how many of each target have been shown...
+    
+    lastT_ = -Inf; %time of the last thing to be shown...
 
     persistent init__;
     this = autoobject(varargin{:});
@@ -35,14 +37,20 @@ function this = CircularCauchyMotion(varargin)
 
     function setPhase(p)
         phase = p;
-        reset();
+        counter_ = zeros(size(phase));
     end
     
     function s  = next()
-               
         
         c = counter_;
-        c(counter_ > n) = NaN;
+        
+        %correct the counter, in case n/t/phase changed.
+        ct = floor((lastT_ - t) / dt + 1);
+        c = min(c, ct+1);
+        c = max(c, ct-1);
+        c = max(c, 0);
+                
+        c(c > n) = NaN;
         [tt, i] = min(t + c .* dt);
         
         if ~isnan(tt)
@@ -96,7 +104,8 @@ function this = CircularCauchyMotion(varargin)
                 or = order;
             end
             
-            counter_(i) = counter_(i) + 1;
+            counter_(i) = c(i) + 1;
+            lastT_ = tt;
         else
             [xx, yy, tt, aa, cc, ll, ww, dd, vv, ph, or] = deal([]);
         end
@@ -106,5 +115,6 @@ function this = CircularCauchyMotion(varargin)
 
     function reset()
         counter_ = zeros(size(phase));
+        lastT_ = 0;
     end
 end

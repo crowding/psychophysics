@@ -1,8 +1,8 @@
 function [g, varargout] = gridgroup(parameters, varargin)
 %function [g, varargout] = gridgroup(parameters, varargin)
 %Takes a number of arguments that each have the same numbr of elements as
-%there are columns in PARAMETERS. Groups them each into unique bins as
-%determined by the columns of PARAMETERS. G gives the parameter values
+%there are rows in PARAMETERS. Groups them each into unique bins as
+%determined by the unique columns of PARAMETERS. G gives the parameter values
 %corresponding to each bin.
 
 %each column of parameters is a different parameter to group by

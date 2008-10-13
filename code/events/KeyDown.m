@@ -29,8 +29,9 @@ end
         now = k.keycodes;
         
         new = now(~last_(now));
-        last_(new) = 1;
-        last_(~new) = 0;
+
+        last_(:) = 0;
+        last_(now) = 1;
         
         if any(new)
             k.pressed = 1;
@@ -50,9 +51,9 @@ end
             %In fact this would be a good rhetorical tool for lots of things,
             %so as to show how MATLAB is rather fucked up in its type system.
             k.keysPressed = new;
-            for i = evtable(new)'
+            for i = evtable(new(:))
                 if ~isempty(i{1})
-                    log('TRIGGER %s %s', func2str(i{:}), struct2str(k));
+                    log('TRIGGER %s %s', func2str(i{1}), struct2str(k));
                     i{1}(k);
                 end
             end

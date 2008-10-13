@@ -23,6 +23,8 @@ function this = LabJackInput(varargin)
 %%
 persistent slope;
 persistent offset;
+persistent date;
+
 lj = LabJackUE9();
 
 if isempty(slope)

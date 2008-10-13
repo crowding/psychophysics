@@ -1,7 +1,8 @@
 function this = EyeCalibrationTrial(varargin)
     %attempt an automatic eye calibration.
 
-    onset = .500; %the onset of the saccade target.
+    startTime = 0;
+    onset = .0; %the onset of the saccade target.
     
     velocityThreshold = 40; %the velocity threshold for detecting a saccade.
     
@@ -45,7 +46,7 @@ function this = EyeCalibrationTrial(varargin)
             , 'graphics', {target, targetCenter} ...
             );
         
-        trigger.singleshot(atLeast('refresh', 1), @begin);
+        trigger.singleshot(atLeast('next', startTime), @begin);
         trigger.panic(keyIsDown('q'), @abort);
 
         %old = params.log;
@@ -118,9 +119,10 @@ function this = EyeCalibrationTrial(varargin)
         %}
         
         function begin(s)
+            result.startTime = s.next;
             %set a watchdog timer...
             trigger.panic(atLeast('next', s.next + onset + maxLatency + saccadeMaxDuration + settleTime + fixDuration + rewardDuration/1000 + 1), @failed);
-            
+
             %begin the trial...
             trigger.singleshot(atLeast('next', s.next + onset), @show);
         end
@@ -173,6 +175,7 @@ function this = EyeCalibrationTrial(varargin)
             target.setVisible(0);
             targetCenter.setVisible(0);
             result.success = 1;
+            result.endTime = s.next;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .200), main.stop);
         end
 
@@ -180,6 +183,7 @@ function this = EyeCalibrationTrial(varargin)
             target.setVisible(0);
             targetCenter.setVisible(0);
             result.success = 0;
+            result.endTime = s.next;
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
         end
         
@@ -187,6 +191,7 @@ function this = EyeCalibrationTrial(varargin)
             target.setVisible(0);
             targetCenter.setVisible(0);
             result.abort = 1;
+            result.endTime = s.next();
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);
         end
         
