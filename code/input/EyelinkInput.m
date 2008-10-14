@@ -30,7 +30,8 @@ function this = EyelinkInput(varargin)
 
     persistent slope;
     persistent offset;
-    persistent date;
+    persistent calibrationDate;
+    persistent calibrationSubject;
     
     if isempty(slope)
         slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position

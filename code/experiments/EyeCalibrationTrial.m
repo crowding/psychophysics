@@ -13,12 +13,12 @@ function this = EyeCalibrationTrial(varargin)
     saccadeEndThreshold = 20; %when eye velocity drops below this, the saccade ends.
     settleTime = 0.1; %100 ms for settling
     
-    absoluteWindow = 100; %the absolute fixaiton window...
+    absoluteWindow = 100; %the absolute fixation window...
     fixWindow = 2; %the window in which to maintain fixation...
     fixDuration = 1; %the minimum fixation time 
     
-    targetX = [0];
-    targetY = [0];
+    targetX = 0;
+    targetY = 0;
     targetRadius = 0.5;
     targetInnerRadius = 0.10;
 
@@ -27,7 +27,7 @@ function this = EyeCalibrationTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
-    %f1_ = figure(1); clf;
+    f1_ = figure(1); clf;
     %a1_ = axes();
     %f2_ = figure(2); clf;
     %a2_ = axes();
@@ -52,71 +52,8 @@ function this = EyeCalibrationTrial(varargin)
         %old = params.log;
         %params.log = @printf;
         params = main.go(params);
-        %params.log = old;
         
-        %{
-        %% here is the part where we plot
-
-        %show the trial results.
-        d = params.input.eyes.getData();
-        d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
-        e = trigger.getEvents();
-        
-        axes(a1_); cla
-        hold on;
-        
-        %x- any y- locations of the trace
-        plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
-        plot(0, targetX, 'ro', 0, targetY, 'bo')
-
-        ylim([-15 15]);
-        
-        %draw labels...
-        %what height should we draw text at
-        labels = regexprep(e(:,2), '.*/', '');
-        times = [e{:,1}]' - onset_;
-        heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
-        t = text(times, heights+1, labels, 'rotation', 90);
-
-        %make sure the graph is big enough to hold the labels
-        %this doesn't deal well with rotation.../
-%        xs = get(t, 'Extent');
-%        mn = min(cat(1,xs{:}));
-%        mx = max(cat(1,xs{:}));
-%        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
-        ylim([-20 20]);
-        hold off;
-        
-        %{
-        axes(a2_); cla();
-        hold on;
-        plot(d(1,:), d(2,:), 'r-');
-        plot(targetX, targetY, 'bo');
-        
-        xloc = interp1(d(3,~isnan(d(1,:))) - onset_, d(1,~isnan(d(1,:))), times, 'linear', 'extrap');
-        yloc = interp1(d(3,~isnan(d(2,:))) - onset_, d(2,~isnan(d(2,:))), times, 'linear', 'extrap');
-        
-        plot(xloc, yloc, 'g.');
-        
-        t = text(xloc + 1, yloc, labels);
-        
-        %xs = get(t, 'Extent');
-        %mn = min(cat(1,xs{:}));
-        %mx = max(cat(1,xs{:}));
-        
-        %xlim(  [ min([-15,mn(1),d(1,:)]), max(15,mx(1+mx(3)),d(1,:)) ]  );
-        %ylim(  [ min([-15,mn(2),d(2,:)]), max(15,mx(2+mx(4)),d(2,:)) ]  );
- 
-        xlim([-20 20]);
-        ylim([-20 20]);
-        axis equal;
-        hold off;
-        %}
-        
-        drawnow;
-
-        
-        %}
+        plotTriggers(f1_, params, trigger);
         
         function begin(s)
             result.startTime = s.next;
@@ -149,7 +86,7 @@ function this = EyeCalibrationTrial(varargin)
         function beginSaccade(s)
             trigger.first...
                 ( magnitudeAtMost('eyeVx', 'eyeVy', saccadeEndThreshold), @settle,  'eyeVt'  ...
-                , atLeast('eyeVt', s.next + saccadeMaxDuration), @failed, 'eyeVt' ...
+                , atLeast('eyeVt', s.next + saccadeMaxDuration), @failedSaccade, 'eyeVt' ...
                 );
         end
         
@@ -164,8 +101,8 @@ function this = EyeCalibrationTrial(varargin)
         function fixate(s)
             result.endpoint = [s.eyeFx(s.triggerIndex) s.eyeFy(s.triggerIndex)];
             trigger.first ...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [s.eyeFx(s.triggerIndex);s.eyeFy(s.triggerIndex)], fixWindow), @failed, 'eyeFt' ...
-                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [targetX;targetY], absoluteWindow), @failed, 'eyeFt' ...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [s.eyeFx(s.triggerIndex);s.eyeFy(s.triggerIndex)], fixWindow), @failedRelative, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [targetX;targetY], absoluteWindow), @failedAbsolute, 'eyeFt' ...
                 , atLeast('eyeFt', settleTime_ + fixDuration), @success, 'eyeFt' ...
                 );
         end
@@ -177,6 +114,18 @@ function this = EyeCalibrationTrial(varargin)
             result.success = 1;
             result.endTime = s.next;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .200), main.stop);
+        end
+        
+        function failedSaccade(s)
+            failed(s);
+        end
+
+        function failedRelative(s)
+            failed(s);
+        end
+        
+        function failedAbsolute(s)
+            failed(s);
         end
 
         function failed(s)
@@ -190,6 +139,7 @@ function this = EyeCalibrationTrial(varargin)
         function abort(s)
             target.setVisible(0);
             targetCenter.setVisible(0);
+            result.success = 0;
             result.abort = 1;
             result.endTime = s.next();
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);

@@ -7,6 +7,8 @@ function this = circularMotion(varargin)
     omega = 0;
     phase = 0;
     
+    %argh! variable onsets need to extend to this too...
+    
     persistent init__;
     this = autoobject(varargin{:});
     

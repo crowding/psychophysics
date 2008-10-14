@@ -6,10 +6,10 @@ function this = SimpleSaccadeTrial(varargin)
     %then muce make a saccade to the moving object and pursue it for some
     %time.
 
+    startTime = 0;
+    fixation = FilledDisk('loc', [0 0], 'radius', 0.2, 'color', 0);
+
     fixationOnset = 0.5; %measured from 'begin'
-    fixationPointLoc = [0 0];
-    fixationPointSize = 0.2;
-    fixationPointColor = 0;
     fixationLatency = 2; %how long to wait for acquiring fixation
     %If the target appears before then expect a saccade. Else just give a
     %reward.
@@ -19,27 +19,26 @@ function this = SimpleSaccadeTrial(varargin)
     fixationWindow = 1.5;
     fixationTime = 1; %the maximum fixation time.
     
+    target = FilledDisk('loc', [8 0], 'radius', 0.2, 'color', 0);
+    
     targetOnset = 1.0; %measured from beginning of fixation.
-    targetSize = 0.2;
-    targetLoc = [8 0]; %the location of the target...
-    targetColor = 0; %the color of the target...
     targetBlank = 0.5; %after this much time on screen, the target will dim
     targetBlankColor = 0.75; %the target will dim to this color
     
     cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
 
-    maxLatency = 0.5; %you need to leave the fixaiton point at most this long after the cue
-    maxTransitTime = 0.1; %you need to be on top of the target this long after leaving the fixation window
+    maxLatency = 0.5; %the eye needs to leave the fixation point at most this long after the cue.
+    maxTransitTime = 0.1; %the eye needs to be on top of the target this long after leaving the fixation window.
 
-    targetWindow = 5;
+    targetWindow = 5; %radius of fixation window.
     targetFixationTime = 0.5;
     
     %here's the twist to this trial. You can specify a graphics object to use instead of a glolo.
     %It can be that instead of a spot you have to track a glolo.
     %This glolo is totally optional. If it is not used then the spot will
     %be used instead.
+    trackingTarget = FilledDisk('loc', [8 0], 'radius', 0.2, 'color', 0);
     useTrackingTarget = 0;
-    trackingTarget = [];
     
     errorTimeout = 1;
     
@@ -52,33 +51,25 @@ function this = SimpleSaccadeTrial(varargin)
     persistent init__; %#ok
     this = autoobject(varargin{:});
     
-    function setTargetRadius(r)
-        %required for backwards compatibility
-        targetLoc = targetLoc / norm(targetLoc) * r;
-    end
-
-    function setTargetPhase(w)
-        %required for backwards compatibility
-        targetLoc = norm(targetLoc) * [cos(w) -sin(w)];
-    end
-    
     function [params, result] = run(params)
         onset_ = 0;
 
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
         
         result = struct('success', NaN);
-        fix = FilledDisk('loc', fixationPointLoc, 'radius', fixationPointSize, 'color', color(fixationPointColor));
-        targ = FilledDisk('loc', targetLoc, 'radius', targetSize, 'color', color(targetColor));
         
         trigger = Trigger();
 
         trigger.panic(keyIsDown('q'), @abort);
         trigger.singleshot(atLeast('refresh', 0), @begin);
         
+        fixation.setVisible(0);
+        target.setVisible(0);
+        trackingTarget.setVisible(0);
+        
         main = mainLoop ...
             ( 'input', {params.input.eyes, params.input.keyboard, EyeVelocityFilter()} ...
-            , 'graphics', {fix, targ} ...
+            , 'graphics', {fixation, target, trackingTarget} ...
             , 'triggers', {trigger} ...
             );
         
@@ -90,18 +81,26 @@ function this = SimpleSaccadeTrial(varargin)
         
         function showFixationPoint(k)
             onset_ = k.next;
-            fix.setVisible(1);
+            fixation.setVisible(1, k.next);
             trigger.first ...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationStartWindow), @settleFixation, 'eyeFt' ...
-                , atLeast('eyeFt', k.next + fixationLatency), @failed, 'eyeFt' ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
+                , atLeast('eyeFt', k.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
                 );
+        end
+        
+        function failedWaitingFixation(k)
+            failed(k);
         end
         
         function settleFixation(k)
             trigger.first ...
                 ( atLeast('eyeFt', k.triggerTime + fixationSettle), @fixate, 'eyeFt' ...
-                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationStartWindow), @failed, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @failedSettling, 'eyeFt' ...
                 );
+        end
+        
+        function failedSettling(x)
+            failed(x);
         end
         
         fixationOnset_ = 0;
@@ -111,66 +110,103 @@ function this = SimpleSaccadeTrial(varargin)
             if fixationTime < targetOnset
                 trigger.first ...
                     ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
-                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
                     );
             else
                 trigger.first ...
                     ( atLeast('eyeFt', fixationOnset_ + targetOnset), @showTarget, 'eyeFt' ...
-                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
                     );
             end
             
             %from now on, blinks are not allowed. How to do this? It'd be
             %nice to have handles to the triggers! Ah.
             blinkhandle_ = trigger.singleshot ...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [0;0], 40), @failed);
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [0;0], 40), @failedBlink);
+        end
+        
+        function failedFixation(x)
+            failed(x);
+        end
+
+        function failedBlink(x)
+            failed(x);
         end
         
         blankhandle_ = -1;
         function showTarget(k) %#ok
-            targ.setVisible(1);
+            if useTrackingTarget
+                trackingTarget.setVisible(1, k.next);
+                target.setVisible(0, k.next); %note the second argument sets the 'onset'
+            end
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
             blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
             trigger.first ...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @failed, 'eyeFt'...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt'...
                 , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
                 );
         end
         
+        
+        oldcolor_ = [];
         function blankTarget(k) %#ok
-            targ.setColor(color(targetBlankColor));
+            if useTrackingTarget
+                trackingTarget.setVisible(0);
+            else
+                oldcolor_ = target.getColor();
+                target.setColor(color(targetBlankColor));
+            end
         end
 
         function hideFixation(k)
-            fix.setVisible(0);
+            fixation.setVisible(0);
             result.success = 0; %only at this point are we willing to say "failed" until success obtains
             
             trigger.first...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fix.getLoc(), fixationWindow), @unblankTarget, 'eyeFt' ...
-                , atLeast('eyeFt', k.next + maxLatency), @failed, 'eyeFt' ...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @unblankTarget, 'eyeFt' ...
+                , atLeast('eyeFt', k.next + maxLatency), @failedSaccade, 'eyeFt' ...
+                );
+        end
+
+        function failedSaccade(x)
+            failed(x);
+        end
+
+        function unblankTarget(k)
+            if (useTrackingTarget)
+                trackingTarget.setVisible(0);
+                target.setVisible(1);
+            else
+                target.setColor(oldColor_);
+            end
+            
+            trigger.remove(blankhandle_);
+            trigger.first ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', target.getLoc, targetWindow), @fixateTarget, 'eyeFt'...
+                , atLeast('eyeFt', k.triggerTime + maxTransitTime), @failedAcquisition, 'eyeFt' ...
                 );
         end
         
-        function unblankTarget(k)
-            targ.setColor(color(targetColor));
-            trigger.remove(blankhandle_);
-            trigger.first ...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @fixateTarget, 'eyeFt'...
-                , atLeast('eyeFt', k.triggerTime + maxTransitTime), @failed, 'eyeFt' ...
-                );
+        function failedAcquisition(x)
+            failed(x);
         end
+
         
         function fixateTarget(k)
             trigger.remove(blankhandle_);
             trigger.first...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', targ.getLoc(), targetWindow), @failed, 'eyeFt'...
+                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', target.getLoc, targetWindow), @failedPursuit, 'eyeFt'...
                 , atLeast('eyeFt', k.triggerTime + targetFixationTime), @success, 'eyeFt'...
                 );
+        end
+        
+        function failedPursuit(x)
+            failed(x);
         end
             
         function success(k)
             result.success = 1;
-            fix.setVisible(0);
+            fixation.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
 
             %reward size
@@ -181,9 +217,9 @@ function this = SimpleSaccadeTrial(varargin)
         
         function failed(k)
             trigger.remove([blinkhandle_ blankhandle_]);
-            fix.setVisible(0);
-            targ.setVisible(0);
-            targ.setColor(params.backgroundIndex); %hack, in case it shows...
+            fixation.setVisible(0);
+            target.setVisible(0);
+            trackingTarget.setVisible(0);
             
             trigger.singleshot(atLeast('next', k.next + errorTimeout), @endTrial);
         end
@@ -191,52 +227,22 @@ function this = SimpleSaccadeTrial(varargin)
         function abort(k)
             result.success = NaN;
             result.abort = 1;
-            trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
+            trigger.singleshot(atLeast('refresh', k.refresh+1), @endTrial);
+            result.endTime = k.next();
         end
         
         function endTrial(k)
-            fix.setVisible(0);
-            targ.setVisible(0);
+            fixation.setVisible(0);
+            target.setVisible(0);
+            trackingTarget.setVisible(0);
             
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
+            result.endTime = k.next();
         end
         
         %END EVENT HANDLERS
         params = main.go(params);
         
-        d = params.input.eyes.getData();
-        d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
-        e = trigger.getEvents();
-        
-        axes(a1_); cla;
-        hold on;
-        
-        %x- any y- locations of the trace
-        plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
-        plot(0, fixationPointLoc(1), 'ro', 0, fixationPointLoc(2), 'bo')
-%       plot(targetOnset, fixationPointLoc(1) + cos(targetPhase) * targetRadius, 'rx', targetOnset, fixationPointLoc(2) - sin(targetPhase) * targetRadius, 'bx')
-        ylim([-15 15]);
-        
-        %draw labels...
-        %what height should we draw text at
-        labels = regexprep(e(:,2), '.*/', '');
-        times = [e{:,1}]' - onset_;
-        if size(d, 2) >= 2
-            heights = interp1(d(3,~isnan(d(1,:))) - onset_, max(d(1,~isnan(d(1,:))), d(2,~isnan(d(1,:)))), times, 'linear', 'extrap');
-        else
-            heights = zeros(size(times));
-        end
-        t = text(times, heights+1, labels, 'rotation', 90);
-
-        %make sure the graph is big enough to hold the labels
-        %this doesn't deal well with rotation.../
-%        xs = get(t, 'Extent');
-%        mn = min(cat(1,xs{:}));
-%        mx = max(cat(1,xs{:}));
-%        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
-        hold off;
-        drawnow;
+        plotTriggers(f1_, params, trigger);
     end
 end
-    
-    

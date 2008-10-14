@@ -4,9 +4,10 @@ function this = EyeCalibrationMessageTrial(varargin)
 %and offset as its result. It contains an eye calibration trial and a
 %message trial.
 
-min_n = 20;
-max_n = 50;
-target_stderr = 0.5; %target confidence interval on the regression...
+minN = 20;
+maxN = 50;
+maxUsed = 30;
+maxStderr = 0.5; %target confidence interval on the regression...
 interTrialInterval = 0.5;
 
 minCalibrationInterval = 900; %recalibrate every 15 minutes or 100 trials...
@@ -14,42 +15,39 @@ minCalibrationInterval = 900; %recalibrate every 15 minutes or 100 trials...
 targetX = [-10 -5 0 5 10];
 targetY = [-10 -5 0 5 10];
     
-beginMessage = messageTrial();
+beginMessage = [];
 base = EyeCalibrationTrial();
-endMessage = MessageTrial();
+endMessage = [];
 
 seed = randseed(); %keep our own rand seed.
 
+persistent init__;
 this = autoobject(varargin{:});
 
     function [params, result] = run(params)
         %initialize data...
-        targetX = [];
-        targetY = [];
-        result.orig_offset = e.params.input.eyes.getOffset();
-        setOffset = e.params.input.eyes.setOffset;
-        result.orig_slope = e.params.input.eyes.getSlope();
-        setSlope = e.params.input.eyes.setSlope;
+        result.orig_offset = params.input.eyes.getOffset();
+        setOffset = params.input.eyes.setOffset;
+        result.orig_slope = params.input.eyes.getSlope();
+        setSlope = params.input.eyes.setSlope;
         
         if ~isempty(beginMessage)
             [params, result.beginMessageResult] = beginMessage.run(params);
-        end
-
-        if isfield(result.beginMessage, 'abort') && (result.beginMessageResult.abort)
-            result.success = 0;
-            result.abort = 1;
-            return;
+            if isfield(result.beginMessageResult, 'abort') && (result.beginMessageResult.abort)
+                result.success = 0;
+                result.abort = 1;
+                return;
+            end
         end
         
-        if ~isempty(params.input.eyes.getCalibrationDate()) ...
-                || datenum(clock()) - datenum(params.input.eyes.getCalibrationDate()) > minCalibrationInterval
+        if isempty(params.input.eyes.getCalibrationDate()) ...
+                || (datenum(clock()) - datenum(params.input.eyes.getCalibrationDate()))/datenum(0, 0, 0, 0, 0, 1) > minCalibrationInterval ...
+                || ~isequal(params.input.eyes.getCalibrationSubject(),params.subject)
             %now we should recalibrate...
             %data points
-            results = struct();
+            results = [];
 
-            conf = Inf;
-
-            while (size(endpoints, 1) < min_n) && (size(endpoints, 2) < max_n) && (conf > target_stderr)
+            while true
                 %collect another data point
 
                 %pick an X and a Y
@@ -62,12 +60,16 @@ this = autoobject(varargin{:});
                 [params, res] = base.run(params);
                 %update the data...
                 if (res.success)
-                    results(end+1) = res; %#ok
+                    if isempty(results)
+                        results = res;
+                    else
+                        results(end+1) = res; %#ok
+                    end
                 end
                 
                 %manage the ITI
-                if isfield(res, 'endTime') && isfield(base, 'startTime')
-                    base.startTime = result.endTime + interTrialInterval;
+                if isfield(res, 'endTime') && isfield(base, 'setStartTime')
+                    base.setStartTime(res.endTime + interTrialInterval);
                 else
                     disp('ignoring inter trial interval');
                 end
@@ -79,9 +81,16 @@ this = autoobject(varargin{:});
                 end
 
                 %update the next trial...
-                if size(endpoints, 1) > 5
+                if numel(results) > 5
                     %try calibrating and see how good we are...
                     %this solution works easiest in affine coordinates
+                    r = results(max(1,end-maxUsed):end);
+                    i = interface(struct('target', {}, 'endpoint', {}), r);
+                    t = cat(1, i.target);
+                    endpoints = cat(1, i.endpoint);
+                    %undo the existing calibration...
+                    raw = result.orig_slope\(endpoints' - result.orig_offset(:, ones(1, numel(i))));
+
                     atarg = t';
                     atarg(3,:) = 1;
                     araw = raw; araw(3,:) = 1;
@@ -96,9 +105,9 @@ this = autoobject(varargin{:});
                     %think we have calibrated, take the asolute error minus the
                     %veridical target position...
 
-                    stderr = sqrt(sum(sum((calib - t).^2)) / (numel(endpoints, 1) - 1))
+                    stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1))
 
-                    if ( (stderr < target_stderr) && ( numel(results) >= min_n) ) || numel(results) >= max_n
+                    if ( (stderr < maxStderr) && ( numel(results) >= minN) ) || numel(results) >= maxN
                         %we're done. apply and record the calibration.
                         result.stderr = stderr;
                         result.results = results;
@@ -107,6 +116,8 @@ this = autoobject(varargin{:});
                         result.offset = amat([1 2], 3);
                         setOffset(result.offset);
                         printf('stderr = %g\n', stderr);
+                        params.input.eyes.setCalibrationDate(clock);
+                        params.input.eyes.setCalibrationSubject(params.subject);
                         break;
                     end
                 end
@@ -116,13 +127,13 @@ this = autoobject(varargin{:});
         %show the ending message trial, if applicable.
         if ~isempty(endMessage)
             [params, result.endMessageResult] = message.run(params);
+            if isfield(result.endMessage, 'abort') && (result.endMessageResult.abort)
+                result.success = 0;
+                result.abort = 1;
+                return;
+            end
         end
         
-        if isfield(result.endMessage, 'abort') && (result.endMessageResult.abort)
-            result.success = 0;
-            result.abort = 1;
-            return;
-        end
         
         result.success = 1;
         result.abort = 0;

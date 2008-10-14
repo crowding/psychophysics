@@ -23,10 +23,11 @@ toPixels_ = [];
 
 %----- methods -----
 
+    onsetTime_ = 0;
     function draw(window, next)
         try
             if visible
-                l = e(loc, next);
+                l = e(loc, next - onsetTime_);
                 
                 center = toPixels_(l);
                 sz = norm(center - toPixels_(l + [radius;0]));
@@ -61,12 +62,20 @@ toPixels_ = [];
         v = visible;
     end
 
-    function v = setVisible(v)
+    function v = setVisible(v, t)
         visible = v;
+        if nargin >= 2
+            %track the onset time..
+            onsetTime_ = t;
+        end
     end
 
-    function l = getLoc
-        l = loc;
+    function l = getLoc(t)
+        if nargin > 0
+            l = e(loc, t - onsetTime_);
+        else
+            l = loc;
+        end
     end
 
     function l = setLoc(l)

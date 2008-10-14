@@ -36,10 +36,10 @@ function e = EyeCalibration(varargin)
             case 'alt' %right click
                 if history >= 5 && ~isempty(amat)
                     %set the offset and slope...
-                    slope = amat([1 2], [1 2])
+                    slope = amat([1 2], [1 2]);
                     setSlope(slope);
                     orig_slope = slope;
-                    offset = amat([1 2], 3)
+                    offset = amat([1 2], 3);
                     setOffset(offset);
                     orig_offset = offset;
                 end

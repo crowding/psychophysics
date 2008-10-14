@@ -23,7 +23,8 @@ function this = LabJackInput(varargin)
 %%
 persistent slope;
 persistent offset;
-persistent date;
+persistent calibrationDate;
+persistent calibrationSubject;
 
 lj = LabJackUE9();
 

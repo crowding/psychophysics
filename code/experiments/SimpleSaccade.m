@@ -1,4 +1,4 @@
-function e = SimpleSaccade(varargin)
+function e = GloloSaccade(varargin)
     e = Experiment(varargin{:});
     
     e.trials.base = SimpleSaccadeTrial...
@@ -36,4 +36,22 @@ function e = SimpleSaccade(varargin)
     
     %target tracking time
     e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.4, 'tau', 0.2));
+    
+    
+    %begin with an eye calibration and again every 10 minutes...
+    e.trials.blockSize = 200;
+    e.trials.blockTrial = EyeCalibrationMessageTrial();
+    e.trials.blockTrial.base.absoluteWindow = 100;
+    e.trials.blockTrial.base.maxLatency = 0.5;
+    e.trials.blockTrial.base.maxStderr = 0.5;
+    
+    e.trials.blockTrial.base.fixDuration = 0.5;
+    e.trials.blockTrial.base.fixWindow = 4;
+    e.trials.blockTrial.base.rewardDuration = 100;
+    e.trials.blockTrial.base.settleTime = 0.3;
+    e.trials.blockTrial.base.targetRadius = 0.2;
+    e.trials.blockTrial.base.onset = 0;
+    e.trials.blockTrial.interTrialInterval = 0.5;
+
+    %before 
 end
