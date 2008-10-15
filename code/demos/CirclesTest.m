@@ -7,7 +7,7 @@ function CirclesTest(varargin)
         , 'hideCursor', 0 ...
         , 'aviout', '' ...
         );
-    params = namedargs(params, varargin{:});
+    params = namedargs(localExperimentParams(), params, varargin{:});
 
     require(setupEyelinkExperiment(params), @runDemo);
     function runDemo(params)

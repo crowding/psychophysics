@@ -9,7 +9,7 @@ function e = CircleInterpolation(varargin)
     dx = 0.75;
     dt = 0.15;
     baseOnset = 0.5;
-    n = 5;
+    n = 1;
     barDelay = 0.3;
     
     generator = CircleInterpolationTrialGenerator...

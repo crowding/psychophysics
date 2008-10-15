@@ -1,4 +1,4 @@
-function ax = plotTriggers(fig, params, trigger)
+function t = plotTriggers(fig, params, trigger)
     %plot the triggers from an eye movement trial, for diagnostic purposes.
     figure(fig);
     
@@ -34,5 +34,5 @@ function ax = plotTriggers(fig, params, trigger)
     %        mx = max(cat(1,xs{:}));
     %        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
     hold off;
-    drawnow; 
+    drawnow;
 end

@@ -24,12 +24,14 @@ function this = ConcentricTrial(varargin)
     this = autoobject(varargin{:});
     
 
-    function result = run(params)
+    function [params, result] = run(params)
+        interval = params.screenInterval;
+        
         result = struct('startTime', NaN, 'success', 0, 'abort', 0, 'response', 1);
         
         trigger = Trigger();
         trigger.panic(keyIsDown('q'), @abort);
-        trigger.singleshot(atLeast('next', startTime - params.interval/2), @start);
+        trigger.singleshot(atLeast('next', startTime - interval/2), @start);
 
         motion.setVisible(0);
         fixation.setVisible(0);
@@ -40,12 +42,12 @@ function this = ConcentricTrial(varargin)
             , 'triggers', {trigger} ...
             );
         
-        main.go();
+        main.go(params);
         
         function start(h)
             fixation.setVisible(1);
             motion.setVisible(1, h.next);
-            trigger.singleshot(atLeast('next', h.next + awaitInput + params.interval/2));
+            trigger.singleshot(atLeast('next', h.next + awaitInput + interval/2), @waitForInput);
         end
         
         function waitForInput(h)
@@ -58,24 +60,25 @@ function this = ConcentricTrial(varargin)
         function cw(h)
             result.response = 1;
             result.success = 1;
-            trigger.singleshot(atLeast('next', h.next + params.interval/2));
+            stop(h);
         end
 
         function ccw(h)
             result.response = -1;
             result.success = 1;
-            trigger.singleshot(atLeast('next', h.next + params.interval/2));
+            stop(h);
         end
         
         function abort(h)
-            stop(h);
             result.abort = 1;
+            stop(h);
         end
         
         function stop(h)
            motion.setVisible(0);
            fixation.setVisible(0);
            result.endTime = h.next;
+           trigger.singleshot(atLeast('refresh', h.refresh+1), main.stop);
         end
     end
 end

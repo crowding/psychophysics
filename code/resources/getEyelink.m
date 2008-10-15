@@ -183,8 +183,8 @@ initializer = joinResource(namedargs(defaults, varargin{:}), @connect, @initDefa
                     'status %d opening eyelink file %s', status, details.edfname);
             end
             
-            if isfield(params, 'log')
-                oldlog = params.log;
+            if isfield(details, 'log')
+                oldlog = details.log;
             else
                 oldlog = @noop;
             end
