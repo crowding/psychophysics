@@ -34,6 +34,7 @@ function initializer = getScreen(varargin)
 %   foregroundIndex
 %   backgroundIndex
 
+
 %some defaults
 defaults = namedargs ...
     ( 'backgroundColor', 0.5 ...
@@ -63,8 +64,11 @@ initializer = @doGetScreen;
             %just check for openGL and OSX, and initialize
             AssertOpenGL;
             AssertOSX;
+            global GL_;
+            global GL;
             
             InitializeMatlabOpenGL();
+            GL_ = GL;
             
             [release, details] = deal(@noop, details);
             function noop

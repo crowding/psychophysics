@@ -138,6 +138,8 @@ function this = SimpleSaccadeTrial(varargin)
             if useTrackingTarget
                 trackingTarget.setVisible(1, k.next);
                 target.setVisible(0, k.next); %note the second argument sets the 'onset'
+            else
+                target.setVisible(0, k.next);
             end
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
             blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);

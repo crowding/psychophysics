@@ -1,8 +1,7 @@
 function this = CauchyDrawer(varargin)
 
-    AssertOpenGL;
-    global GL;
-    
+    global GL_;
+
     visible = 0;
     %the "source" is an object that determines where and how to draw each
     %cauchy blob for each frame. It has one method, get(next, refresh),
@@ -24,11 +23,6 @@ function this = CauchyDrawer(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
-    function setVisible(s)
-        visible = s;
-    end
-
-    frameCount_ = 0;
     splitTextures_ = 0;
 
     function [release, params] = init(params)
@@ -50,12 +44,10 @@ function this = CauchyDrawer(varargin)
                 splitTextures_ = 1;
             end
 
-            glDisable(GL.DEPTH_TEST);
-            glMatrixMode(GL.PROJECTION);
+            glDisable(GL_.DEPTH_TEST);
+            glMatrixMode(GL_.PROJECTION);
 
             glLoadIdentity;
-
-            frameCount_ = 0;
 
             %set up a projection so that screen coordinates correspond to
             %tan(degrees of visual angle)
@@ -64,18 +56,18 @@ function this = CauchyDrawer(varargin)
             rect = td(params.cal.rect);
             glOrtho(rect(1), rect(3), rect(4), rect(2), -10, 10);
 
-            glEnable(GL.TEXTURE_2D);
-            glEnable(GL.BLEND);
+            glEnable(GL_.TEXTURE_2D);
+            glEnable(GL_.BLEND);
 
             %set up vertex array state
-            glEnableClientState(GL.VERTEX_ARRAY);
+            glEnableClientState(GL_.VERTEX_ARRAY);
             %since texture coordinates can have four elements, the
             %third and fourth easily take care of order and phase.
-            glEnableClientState(GL.TEXTURE_COORD_ARRAY);
+            glEnableClientState(GL_.TEXTURE_COORD_ARRAY);
 
-            glEnableClientState(GL.COLOR_ARRAY);
-            glEnable(GL.POINT_SMOOTH);
-            glBlendFunc(GL.SRC_ALPHA, GL.ONE);
+            glEnableClientState(GL_.COLOR_ARRAY);
+            glEnable(GL_.POINT_SMOOTH);
+            glBlendFunc(GL_.SRC_ALPHA, GL_.ONE);
 
             %now load and compile the procedural Cauchy shader, if necessary
             if (~glIsProgram(program_)) %this don't work???
@@ -108,13 +100,14 @@ function this = CauchyDrawer(varargin)
         end
     end
 
-
+    onsetTime_ = 0;
+    
     function draw(window, next)
         if ~visible
             return;
         end
         
-        [xy, angle, wavelength, order, width, color, phase] = source.get(next);
+        [xy, angle, wavelength, order, width, color, phase] = source.get(next - onsetTime_);
         %draw some GL points in the place for now...
         
         nQuads = size(xy, 2);
@@ -171,19 +164,19 @@ function this = CauchyDrawer(varargin)
 
         Screen('BeginOpenGL', window);
 
-        glPolygonMode(GL.FRONT_AND_BACK, GL.FILL)
+        glPolygonMode(GL_.FRONT_AND_BACK, GL_.FILL)
         %glUseProgram(program_);
-        glVertexPointer(2, GL.FLOAT, 0, vertices);
-        glTexCoordPointer(4, GL.FLOAT, 0, textureCoords);
-        glColorPointer(3, GL.FLOAT, 0, colors);
-        glDrawArrays(GL.QUADS, 0, nQuads*4);
+        glVertexPointer(2, GL_.FLOAT, 0, vertices);
+        glTexCoordPointer(4, GL_.FLOAT, 0, textureCoords);
+        glColorPointer(3, GL_.FLOAT, 0, colors);
+        glDrawArrays(GL_.QUADS, 0, nQuads*4);
         
         
         if splitTextures_ %we have drawn the positive-going half, now need the negative
             textureCoords([3 7 11 15],:) = phase([1 1 1 1],:) + pi;
-            glBlendEquation(GL.FUNC_REVERSE_SUBTRACT);
-            glDrawArrays(GL.QUADS, 0, nQuads*4);
-            glBlendEquation(GL.FUNC_ADD);
+            glBlendEquation(GL_.FUNC_REVERSE_SUBTRACT);
+            glDrawArrays(GL_.QUADS, 0, nQuads*4);
+            glBlendEquation(GL_.FUNC_ADD);
         end
         
         %glUseProgram(0);
@@ -196,6 +189,21 @@ function this = CauchyDrawer(varargin)
     end
 
     function update(frames)
-        frameCount_ = frameCount_ + frames;
+    end
+
+    function v = setVisible(v, t)
+        visible = v;
+        if nargin >= 2
+            %track the onset time..
+            onsetTime_ = t;
+        end
+    end
+
+    function l = getLoc(t)
+        if nargin > 0
+            l = source.getLoc(t - onsetTime_);
+        else
+            l = [0;0];
+        end
     end
 end
