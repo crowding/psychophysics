@@ -107,15 +107,17 @@ function this = CauchySpritePlayer(varargin)
             if ~isempty(queue_) && queue_(3,end) + onset_ >= next
                 %sort of spread out the work....
                 ampl = exp(-(((queue_(3,end)+onset_-next)./queue_(9,end)*2).^2));
-                if ampl < accuracy^2
+                if ampl < accuracy
                     break;
                 end
+                %{
                 if (nAdvanced >= 3)
-                    break; %FIXME this is a desperate hack. Fix it so that circular motion returns more than one item, ffs.
+                    break;
                 end
                 if (ampl < accuracy && nAdvanced >= 3)
                    break;
                 end
+                %}
             end
             n = nargout(process.next);
             if n == 5

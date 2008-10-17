@@ -49,9 +49,20 @@ function this = CircularCauchyMotion(varargin)
         c = min(c, ct+1);
         c = max(c, ct-1);
         c = max(c, 0);
-                
+        
         c(c > n) = NaN;
-        [tt, i] = min(t + c .* dt);
+                
+        %For better efficiency we want to return more than one blob at a
+        %time (to cut down on funtion calling overhead.) That way the whole queue can be populated in a couple of calls.
+        %Take each and advance by one step, but strip the ones that 
+        
+        tt = t + c .* dt;
+        i = find(tt <= min(tt + dt));
+        tt = tt(i);
+        [tt, ix] = sort(tt);
+        i = i(ix);
+        
+%       [tt, i] = min(t + c .* dt);
         
         if ~isnan(tt)
             xxx = x + radius .* cos(phase + dphase.*c);
@@ -65,59 +76,51 @@ function this = CircularCauchyMotion(varargin)
             if size(color, 2) > 1
                 cc = color(:,i);
             else
-                cc = color;
+                cc = color(:,ones(1,numel(i)));
             end
             
             if numel(wavelength) > 1
                 ll = wavelength(i);
             else
-                ll = wavelength;
+                ll = wavelength(ones(1,numel(i)));
             end
 
             if numel(width) > 1
                 ww = width(i);
             else
-                ww = width;
+                ww = width(ones(1,numel(i)));
             end
 
             if numel(duration) > 1
                 dd = duration(i);
             else
-                try
-                    dd = duration;
-                catch
-                    rethrow(lasterror);
-                end
+                dd = duration(ones(1,numel(i)));
             end
             
             if numel(velocity) > 1
-                try
                     vv = velocity(i);
-                catch
-                    rethrow(lasterror);
-                end
             else
-                vv = velocity;
+                vv = velocity(ones(1,numel(i)));
             end
 
             if numel(localPhase) > 1
                 ph = localPhase(i);
             else
-                ph = localPhase;
+                ph = localPhase(ones(1,numel(i)));
             end
 
             if numel(order) > 1
                 or = order(i);
             else
-                or = order;
+                or = order(ones(1,numel(i)));
             end
             
             counter_(i) = c(i) + 1;
-            lastT_ = tt;
+            lastT_ = max(tt);
         else
             [xx, yy, tt, aa, cc, ll, ww, dd, vv, ph, or] = deal([]);
         end
-        
+
         out = [xx;yy;tt;aa;cc;ww;dd;ll;vv;or;ph];
 %        s = struct('x', xx, 'y', yy, 't', tt, 'angle', aa, 'color', cc, 'wavelength', ll, 'width', ww, 'duration', dd, 'velocity', vv, 'phase', ph, 'order', or);
     end
