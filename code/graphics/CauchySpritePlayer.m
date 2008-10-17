@@ -4,6 +4,10 @@
 
 function this = CauchySpritePlayer(varargin)
 
+    %to spread the load, only grab this many in a frame, unless you want
+    %more...
+    queueSize = 128;
+
     %the 'patch' argument is only used to look up default sizes,
     %velocities, etc. If using a cauchy-sprite process, patch is
     %unnecessary.
@@ -57,7 +61,9 @@ function this = CauchySpritePlayer(varargin)
         %initialize the delegate drawer.
         next = cd_.init;
         release = @noop;
-        queue_ = struct('x', {}, 'y', {}, 't', {}, 'angle', {}, 'color', {}, 'width', {}, 'duration', {}, 'wavelength', {}, 'velocity', {}, 'order', {}, 'phase', {});
+        %queue_ = struct('x', {}, 'y', {}, 't', {}, 'angle', {}, 'color', {}, 'width', {}, 'duration', {}, 'wavelength', {}, 'velocity', {}, 'order', {}, 'phase', {});
+        %                 1--------2--------3--------4------------5-6-7--------8------------9---------------10----------------11--------------12-----------13
+        queue_ = zeros(13, 0);
     end
 
 
@@ -77,49 +83,80 @@ function this = CauchySpritePlayer(varargin)
         advanceQueue_(next);
         
         %draw the queue...
-        color = reshape([queue_.color], 3, numel(queue_)) .* ([1;1;1] * reshape(exp(-(([queue_.t]+onset_-next)./[queue_.duration]*2).^2), 1, []));
+        color = queue_([5 6 7],:) .* ([1;1;1] * reshape(exp(-((queue_(3,:)+onset_-next)./queue_(9,:)*2).^2), 1, []));
         
         %pick the blobs we will actually bother to draw...
         isDrawn = max(color, [], 1) > accuracy;
         color = color(:,isDrawn);
         
-        xy = [queue_(isDrawn).x; queue_(isDrawn).y];
-        angle = [queue_(isDrawn).angle] / 180 * pi;
-        wavelength = [queue_(isDrawn).wavelength]; 
-        width = [queue_(isDrawn).width];
-        phase = [queue_(isDrawn).phase] - 2*pi*[queue_(isDrawn).velocity]./wavelength .* (next-onset_-[queue_(isDrawn).t]);
-        order = [queue_(isDrawn).order];
+        xy = queue_([1 2],isDrawn);
+        angle = queue_(4, isDrawn) / 180 * pi;
+        wavelength = queue_(10,isDrawn); 
+        width = queue_(8,isDrawn);
+        phase = queue_(13,isDrawn) - 2*pi*queue_(11,isDrawn)./wavelength .* (next-onset_-queue_(3,isDrawn));
+        order = queue_(12,isDrawn);
         
         %prune the queue
-        try
-            queue_(~isDrawn & reshape([queue_.t]+onset_ < next, 1, []),:) = [];
-        catch
-            noop();
-        end
+        queue_(:,~isDrawn & queue_(3,:)+onset_ < next) = [];
     end
 
     function advanceQueue_(next)
-        while isempty(queue_) || queue_(end).t + onset_ < next || exp(-(((queue_(end).t+onset_-next)./queue_(end).duration*2).^2)) > accuracy
+        nAdvanced = 0;
+        
+        while 1
+            if ~isempty(queue_) && queue_(3,end) + onset_ >= next
+                %sort of spread out the work....
+                ampl = exp(-(((queue_(3,end)+onset_-next)./queue_(9,end)*2).^2));
+                if ampl < accuracy^2
+                    break;
+                end
+                if (nAdvanced >= 3)
+                    break; %FIXME this is a desperate hack. Fix it so that circular motion returns more than one item, ffs.
+                end
+                if (ampl < accuracy && nAdvanced >= 3)
+                   break;
+                end
+            end
             n = nargout(process.next);
             if n == 5
                 [s_.x, s_.y, s_.t, s_.angle, s_.color] = process.next();
-            elseif n == 11
-                [s_.x, s_.y, s_.t, s_.angle, s_.color, s_.wavelength, s_.width, s_.duration, s_.velocity, s_.phase, s_.order] = process.next();
-            else
-                ss_ = process.next();
-                if isempty(ss_)
+                if isempty(s_.x) || isnan(s_.x) %what it does, or did, if there isn't an object to add.
                     return;
                 end
-                for i = fieldnames(ss_)'
-                    s_.(i{1}) = ss_(end).(i{1});
+                queue_ = [queue_ [s_.x;s_.y;s_.t;s_.angle;s_.color;s_.width;s_.duration;s_.wavelength;s_.velocity;s_.order;s_.phase]];
+                nAdvanced = nAdvanced + 1;
+            elseif n == 11
+                [s_.x, s_.y, s_.t, s_.angle, s_.color, s_.wavelength, s_.width, s_.duration, s_.velocity, s_.phase, s_.order] = process.next();
+                if isempty(s_.x) || isnan(s_.x) %what it does, or did, if there isn't an object to add.
+                    return;
+                end
+                queue_ = [queue_ [s_.x;s_.y;s_.t;s_.angle;s_.color;s_.width;s_.duration;s_.wavelength;s_.velocity;s_.order;s_.phase]];
+                nAdvanced = nAdvanced + 1;
+            else
+                s = process.next();
+                if isempty(s)
+                    return;
+                end
+
+                if isstruct(s)
+                    ss_ = s;
+                    for i = fieldnames(ss_)'
+                        s_.(i{1}) = ss_(end).(i{1});
+                    end
+
+                    if isempty(s_.x) || isnan(s_.x) %what it does, or did, if there isn't an object to add.
+                        return;
+                    end
+                    queue_ = [queue_ [s_.x;s_.y;s_.t;s_.angle;s_.color;s_.width;s_.duration;s_.wavelength;s_.velocity;s_.order;s_.phase]];
+                    nAdvanced = nAdvanced + 1;
+                else
+                    if isempty(s) || isnan(s(1))
+                        return
+                    end
+                    queue_ = [queue_ s];
+                    nAdvanced = nAdvanced + 1;
                 end
             end
-            
-            if isempty(s_.x) || isnan(s_.x) %what it does, or did, if there isn't an object to add.
-                return;
-            end
-            
-            queue_ = [queue_; s_(:)'];
         end
     end
 

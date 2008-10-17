@@ -220,6 +220,9 @@ toDegrees_ = @noop;
                     %frame before skip, VBL of delayed frame just shown,
                     %refresh index of the same frame
                     log('FRAME_SKIP %d %f %f %d', skipped, prevVBL, VBL, refresh);
+                    if skipped > 5
+                        noop();
+                    end
                 end
                 
                 skipcount = skipcount + skipped;

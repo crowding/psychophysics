@@ -40,7 +40,7 @@ function this = CircularCauchyMotion(varargin)
         counter_ = zeros(size(phase));
     end
     
-    function s  = next()
+    function out = next()
         
         c = counter_;
         
@@ -118,7 +118,8 @@ function this = CircularCauchyMotion(varargin)
             [xx, yy, tt, aa, cc, ll, ww, dd, vv, ph, or] = deal([]);
         end
         
-        s = struct('x', xx, 'y', yy, 't', tt, 'angle', aa, 'color', cc, 'wavelength', ll, 'width', ww, 'duration', dd, 'velocity', vv, 'phase', ph, 'order', or);
+        out = [xx;yy;tt;aa;cc;ww;dd;ll;vv;or;ph];
+%        s = struct('x', xx, 'y', yy, 't', tt, 'angle', aa, 'color', cc, 'wavelength', ll, 'width', ww, 'duration', dd, 'velocity', vv, 'phase', ph, 'order', or);
     end
 
     function reset()

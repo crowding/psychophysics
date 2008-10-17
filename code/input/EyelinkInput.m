@@ -38,6 +38,10 @@ function this = EyelinkInput(varargin)
         offset = [0;0]; % the eye position offset
     end
 
+    persistent sampleCache_;
+    sampleCacheLength = 1000;
+    sampleCache_ = struct('time',cell(sampleCacheLength, 1),'type',0,'flags',0,'px',0,'py',0,'hx',0,'hy',0,'pa',0,'gx',0,'gy',0,'rx',0,'ry',0,'status',0,'input',0,'buttons',0,'htype',0,'hdata',0);
+    
 %% initialization routines
 
     %the initializer will be called once per experiment and does global
@@ -358,6 +362,8 @@ function this = EyelinkInput(varargin)
         %Translates the x and y values to degrees of visual angle.        
         %Coordinates will be NaN if the eye position is not available.
 
+        nSamples = 0;
+        
         refresh_ = k.refresh;
         next_ = k.next;
         
@@ -384,14 +390,14 @@ function this = EyelinkInput(varargin)
                 
                 %calling this pulls in data in high priority mode?
 %                Eyelink('NewFloatSampleAvailable');
-                data = struct('time',{},'type',{},'flags',{},'px',{},'py',{},'hx',{},'hy',{},'pa',{},'gx',{},'gy',{},'rx',{},'ry',{},'status',{},'input',{},'buttons',{},'htype',{},'hdata',{});
                 
                 %really need a do-while loop here...
                 datatype = Eyelink('GetNextDataType');
                 if (datatype)
                     if datatype == 200 %el_.SAMPLE_TYPE
                         %this grows an array, to be sure...
-                        data = Eyelink('GetFloatData', datatype);
+                        sampleCache_(nSamples+1) = Eyelink('GetFloatData', datatype);
+                        nSamples = nSamples+1;
                     else
                         % an event. As of now we don't record events.
                         % data = Eyelink('GetFloatData', datatype);
@@ -401,8 +407,8 @@ function this = EyelinkInput(varargin)
                 while(datatype)
                     if datatype == 200 %el_.SAMPLE_TYPE
                         %this grows an array, to be sure...
-                        d = Eyelink('GetFloatData', datatype);
-                        data(end+1) = d; %#ok
+                        sampleCache_(nSamples+1) = Eyelink('GetFloatData', datatype);
+                        nSamples = nSamples+1;
                     else
                         % an event. As of now we don't record events.
                         % data = Eyelink('GetFloatData', datatype);
@@ -410,15 +416,15 @@ function this = EyelinkInput(varargin)
                     datatype = Eyelink('GetNextDataType');
                 end
 
-                if isempty(data)
+                if nSamples == 0
                     [k.eyeX, k.eyeY, k.eyeT] = deal(zeros(0,1));
                     k.x = NaN;
                     k.y = NaN;
                     k.t = GetSecs() / slowdown_;
                 else
-                    x = cat(1, data.gx);
+                    x = cat(1, sampleCache_(1:nSamples).gx);
                     x = x(:,1)';
-                    y = cat(1, data.gy);
+                    y = cat(1, sampleCache_(1:nSamples).gy);
                     y = y(:,1)';
 
                     x(x == -32768) = NaN;
@@ -433,7 +439,7 @@ function this = EyelinkInput(varargin)
                     k.eyeX = l(1,:);
                     k.eyeY = l(2,:);
                     
-                    k.eyeT = ([data.time] - clockoffset_) / 1000 / slowdown_;
+                    k.eyeT = ([sampleCache_(1:nSamples).time] - clockoffset_) / 1000 / slowdown_;
 
                     push_([k.eyeX;k.eyeY;k.eyeT]);
 
