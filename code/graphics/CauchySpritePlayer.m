@@ -77,15 +77,17 @@ function this = CauchySpritePlayer(varargin)
         advanceQueue_(next);
         
         %draw the queue...
-            color = reshape([queue_.color], 3, numel(queue_)) .* ([1;1;1] * reshape(exp(-(([queue_.t]+onset_-next)./[queue_.duration]*2).^2), 1, []));
-        isDrawn = max(color, [], 1) > accuracy; %whcih we will bother to draw...
+        color = reshape([queue_.color], 3, numel(queue_)) .* ([1;1;1] * reshape(exp(-(([queue_.t]+onset_-next)./[queue_.duration]*2).^2), 1, []));
+        
+        %pick the blobs we will actually bother to draw...
+        isDrawn = max(color, [], 1) > accuracy;
         color = color(:,isDrawn);
         
         xy = [queue_(isDrawn).x; queue_(isDrawn).y];
         angle = [queue_(isDrawn).angle] / 180 * pi;
         wavelength = [queue_(isDrawn).wavelength]; 
         width = [queue_(isDrawn).width];
-        phase = [queue_(isDrawn).phase] - 2*pi*[queue_(isDrawn).velocity]./wavelength * (next-onset_);
+        phase = [queue_(isDrawn).phase] - 2*pi*[queue_(isDrawn).velocity]./wavelength .* (next-onset_-[queue_(isDrawn).t]);
         order = [queue_(isDrawn).order];
         
         %prune the queue

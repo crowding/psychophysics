@@ -83,11 +83,19 @@ function this = CircularCauchyMotion(varargin)
             if numel(duration) > 1
                 dd = duration(i);
             else
-                dd = duration;
+                try
+                    dd = duration;
+                catch
+                    rethrow(lasterror);
+                end
             end
             
             if numel(velocity) > 1
-                vv = velocity(i);
+                try
+                    vv = velocity(i);
+                catch
+                    rethrow(lasterror);
+                end
             else
                 vv = velocity;
             end
