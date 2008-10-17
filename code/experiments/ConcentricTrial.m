@@ -9,6 +9,12 @@ function this = ConcentricTrial(varargin)
     awaitInput = 0.5;
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
     
+    fixationLatency = 2; %how long to wait for acquiring fixation
+    
+    fixationStartWindow = 3; %this much radius for starting fixation
+    fixationSettle = 0.3; %allow this long for settling fixation.
+    fixationWindow = 1.5; %subject must fixate this closely...
+    
     motion = CauchySpritePlayer...
         ( 'process', CircularCauchyMotion ...
             ( 'x', 0 ...
@@ -22,7 +28,6 @@ function this = ConcentricTrial(varargin)
 
     persistent init__;
     this = autoobject(varargin{:});
-    
 
     function [params, result] = run(params)
         interval = params.screenInterval;
@@ -46,11 +51,38 @@ function this = ConcentricTrial(varargin)
         
         function start(h)
             fixation.setVisible(1);
-            motion.setVisible(1, h.next);
-            trigger.singleshot(atLeast('next', h.next + awaitInput + interval/2), @waitForInput);
+            trigger.first ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
+                , atLeast('eyeFt', k.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
+                );
         end
         
-        function waitForInput(h)
+        function failedWaitingFixation(k)
+            failed(k);
+        end
+
+        function settleFixation(k)
+            trigger.first ...
+                ( atLeast('eyeFt', k.triggerTime + fixationSettle), @startMotion, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @failedSettling, 'eyeFt' ...
+                );
+        end
+        
+        function failedSettling(k)
+            failed(k);
+        end
+
+        
+        function startMotion(h)
+            fixation.setVisible(1);
+            motion.setVisible(1, h.next);
+            trigger.first...
+                ( atLeast('eyeFt', h.next + awaitInput), @waitForResponse, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                );
+        end
+        
+        function waitForResponse(h)
             trigger.first...
                 ( atLeast('knobPosition', h.knobPosition+knobTurnThreshold), @cw, 'knobTime' ...
                 ,  atMost('knobPosition', h.knobPosition-knobTurnThreshold), @ccw, 'knobTime' ...
@@ -72,6 +104,11 @@ function this = ConcentricTrial(varargin)
         function abort(h)
             result.abort = 1;
             stop(h);
+        end
+        
+        function failed(h)
+            result.success = 0;
+            stop(h)
         end
         
         function stop(h)

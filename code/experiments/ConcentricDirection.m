@@ -5,7 +5,7 @@ function e = ConcentricDirection(varargin)
         , 'skipFrames', 1  ...
         , 'priority', 9 ...
         , 'hideCursor', 0 ...
-        , 'doTrackerSetup', 0 ...
+        , 'doTrackerSetup', 1 ...
         , 'input', struct ...
             ( 'keyboard', KeyboardInput() ...
             , 'knob', PowermateInput() ...
@@ -15,7 +15,9 @@ function e = ConcentricDirection(varargin)
     e = Experiment('params', params);
 
     e.trials.base = ConcentricTrial...
-        ( 'awaitInput', 1 ...
+        ( 'fixationStartWindow', 3 ...
+        , 'fixationSettle', 0.3 ...
+        , 'fixationWindow', 1 ...
         , 'motion', CauchySpritePlayer ...
             ( 'process', CircularCauchyMotion ...
                 ( 'radius', 10 ...
@@ -35,6 +37,7 @@ function e = ConcentricDirection(varargin)
             ) ...
         );
     
+    e.trials.interTrialInterval = 0.5;
         %what worked well in the wheels demo is 0.75 dx, 0.75 wavelength, 0.15
     %dt, 5 velocity at 14 radius! The crowding was 3.1 degrees!
     %Thsi scales down to ... less than that at 8 degrees. Chop everything
@@ -47,7 +50,7 @@ function e = ConcentricDirection(varargin)
 
     e.trials.add('extra.nTargets', [10 12 15 18 20]);
     e.trials.add('motion.process.phase', @(b) mod(rand()*2*pi + (0:b.extra.nTargets-1)/b.extra.nTargets*2*pi, 2*pi));
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* b.motion.process.n));
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
     
     %supporting, opposing, and ambiguous.
     %The ambiguous motion is ade up of two opposing motions superimposed,
@@ -72,5 +75,20 @@ function e = ConcentricDirection(varargin)
     e.trials.blockSize = 200;
     
     e.trials.fullFactorial = 1;
-    e.trials.blockTrial = MessageTrial('message', @()sprintf('Press knob to continue. %d blocks remain', e.trials.blocksLeft()));
+
+    e.trials.blockTrial = EyeCalibrationMessageTrial();
+    e.trials.blockTrial.minCalibrationInterval = 0;
+    e.trials.blockTrial.base.absoluteWindow = 100;
+    e.trials.blockTrial.base.maxLatency = 0.5;
+    e.trials.blockTrial.base.fixDuration = 0.5;
+    e.trials.blockTrial.base.fixWindow = 4;
+    e.trials.blockTrial.base.rewardDuration = 10;
+    e.trials.blockTrial.base.settleTime = 0.3;
+    e.trials.blockTrial.base.targetRadius = 0.2;
+    e.trials.blockTrial.base.onset = 0;
+    e.trials.blockTrial.maxStderr = 0.5;
+    e.trials.blockTrial.minN = 10;
+    e.trials.blockTrial.maxN = 50;
+    e.trials.blockTrial.interTrialInterval = 0.4;
+    e.trials.blockTrial.beginMessage = MessageTrial('message', @()sprintf('Press knob to continue. %d blocks remain', e.trials.blocksLeft()));
 end
