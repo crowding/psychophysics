@@ -48,12 +48,12 @@ function this = SimpleSaccadeTrial(varargin)
     f1_ = figure(2); clf;
     a1_ = axes();
     
+    extra = struct();
+    
     persistent init__; %#ok
     this = autoobject(varargin{:});
     
     function [params, result] = run(params)
-        onset_ = 0;
-
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
         
         result = struct('success', NaN);
@@ -61,7 +61,7 @@ function this = SimpleSaccadeTrial(varargin)
         trigger = Trigger();
 
         trigger.panic(keyIsDown('q'), @abort);
-        trigger.singleshot(atLeast('refresh', 0), @begin);
+        trigger.singleshot(atLeast('next', startTime), @begin);
         
         fixation.setVisible(0);
         target.setVisible(0);
@@ -76,11 +76,6 @@ function this = SimpleSaccadeTrial(varargin)
         %EVENT HANDLERS
         
         function begin(k)
-            trigger.singleshot(atLeast('next', k.next + fixationOnset), @showFixationPoint);
-        end
-        
-        function showFixationPoint(k)
-            onset_ = k.next;
             fixation.setVisible(1, k.next);
             trigger.first ...
                 ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
