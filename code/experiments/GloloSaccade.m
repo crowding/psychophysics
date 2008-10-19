@@ -104,7 +104,6 @@ function e = GloloSaccade(varargin)
     e.trials.blockSize = 208;
     e.trials.reps = 40;
     
-
     %we may wish to also sample temporal frequency, in the same trial
     %set...
     
@@ -112,7 +111,6 @@ function e = GloloSaccade(varargin)
     e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.4, 'tau', 0.2));
     
     %begin with an eye calibration and again every 10 minutes...
-    e.trials.blockSize = 200;
     e.trials.blockTrial = EyeCalibrationMessageTrial();
     e.trials.blockTrial.base.absoluteWindow = 100;
     e.trials.blockTrial.base.maxLatency = 0.5;
