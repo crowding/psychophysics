@@ -26,12 +26,15 @@ end
 %------methods------
 
     function k = check(k)
-        now = k.keycodes;
-        
-        new = now(~last_(now));
+        now = k.keycodes; %what's being presed now?
 
-        last_(:) = 0;
-        last_(now) = 1;
+        new = last_;
+        new(now) = 1;
+        
+        new(last_) = 0; %what's new?
+        
+        last_(last_) = 0;
+        last_(now) = 1; %what's remenbered...
         
         if any(new)
             k.pressed = 1;

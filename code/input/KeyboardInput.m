@@ -47,6 +47,9 @@ function this = KeyboardInput(varargin)
         end
         PsychHID('ReceiveReports', device, options);
         PsychHID('GiveMeReports', device); %discard
+        %catch up on state...
+        [lastState_, lastState_, lastState_] = KbCheck(device);
+        lastState_ = find(lastState_);
         ListenChar(2); %disable keyboard input to matlab...
 
         release = @stop;
