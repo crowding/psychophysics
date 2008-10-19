@@ -6,6 +6,7 @@ defaults = struct ...
         ( 'mouse', MouseInput()...
         , 'velocity', EyeVelocityFilter()...
         )...
+    , 'rewardSize', 100 ...
     );
 
 params = namedargs(localExperimentParams(), defaults, varargin{:});
@@ -76,6 +77,7 @@ require(getScreen(params), inputs.init, @runDemo);
             startTrigger.unset();
             flashTrigger.set(@flash, 1);
             unflashTrigger.set(@unflash, 1);
+            flashTrigger.set(@giveReward, 2)
         end
         
         function flash(s)
@@ -91,6 +93,10 @@ require(getScreen(params), inputs.init, @runDemo);
         function play(s)
             patch.setVisible(0);
             playTrigger.set(s.triggerTime + 5, @play); %trigger every five seconds
+        end
+        
+        function giveReward(s);
+            reward(s.refresh, details.rewardSize());
         end
 
         function s = moveRect(s)

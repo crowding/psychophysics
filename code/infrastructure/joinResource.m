@@ -20,7 +20,7 @@ global resources__
         defaults = [];
     end
 
-    if numel(varargin) > 1
+    if numel(varargin) > 1 || ~isempty(defaults)
         f = @joinedResource;    
     elseif numel(varargin) == 1
         f = varargin{1};
@@ -45,10 +45,16 @@ global resources__
         
         if numel(varargin) > 1
             next = @joinedResource;
+        elseif numel(varargin) == 0
+            next = @initNothing;
         else
             next = varargin{1};
         end
     end
+end
+
+function [release, params] = initNothing(params)
+    release = @noop;
 end
 
 function [release, params] = noresource(params)

@@ -39,7 +39,15 @@ this = autoobject(varargin{:});
 %keep track of how much fluid was given this session
 persistent fluidToday;
 fluidInSession = 0;
-fluidSchedule = [0 0;75 0.07;125 0.07;200 0.13;500 0.38]; %this should come from somewhere....
+fluidSchedule = [0 0;1000 0.6]; %/ms reward....
+%measured 10/18/08 on charlie's chair/modified lixit:
+
+%500 * 75 = 24 ml
+%500 * 100 = 30 ml
+%500 * 150 = 42 ml
+%2250 * 200 = 270 ml
+
+%seems like 0.0006 m/ms flow rate
 
 if isempty(fluidToday)
     fluidToday = 0;

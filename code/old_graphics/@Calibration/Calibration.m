@@ -71,13 +71,15 @@ if isnan(p.computer)
     p.computer.hw = rmfield(p.computer.hw, 'usermem'); %this changes all the time
 end
 
+l = localExperimentParams();
+
 if isnan(p.ptb)
 	p.ptb = Screen('Version');
     p.ptb = rmfield(p.ptb, 'authors'); %too long to dump out in our saved file
 end
 
 if isnan(p.screenNumber)
-	p.screenNumber = max(Screen('screens'));
+	p.screenNumber = l.screenNumber;
 end
 if isnan(p.rect)
 	p.rect = Screen('Rect', p.screenNumber);

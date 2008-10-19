@@ -27,7 +27,7 @@ function this = EyeCalibrationTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
- %   f1_ = figure(1); clf;
+    f1_ = figure(1); clf;
     %a1_ = axes();
     %f2_ = figure(2); clf;
     %a2_ = axes();
@@ -53,7 +53,7 @@ function this = EyeCalibrationTrial(varargin)
         %params.log = @printf;
         params = main.go(params);
         
-%        plotTriggers(f1_, params, trigger);
+        plotTriggers(f1_, params, trigger);
         
         function begin(s)
             result.startTime = s.next;
