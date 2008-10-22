@@ -26,6 +26,9 @@ this = autoobject(varargin{:});
 
     function [params, result] = run(params)
         %initialize data...
+        handle = figure(2); clf;
+        ax = axes();
+
         result.orig_offset = params.input.eyes.getOffset();
         setOffset = params.input.eyes.setOffset;
         result.orig_slope = params.input.eyes.getSlope();
@@ -81,7 +84,7 @@ this = autoobject(varargin{:});
                 end
 
                 %update the next trial...
-                if numel(results) > 5
+                if numel(results) >= 5
                     %try calibrating and see how good we are...
                     %this solution works easiest in affine coordinates
                     r = results(max(1,end-maxUsed):end);
@@ -98,15 +101,22 @@ this = autoobject(varargin{:});
                     %amat * araw = atarg (in least squares sense)
                     amat = atarg / araw;
                     calib = amat * araw;
-
+    
+                    axes(ax);
+                    plot(ax, calib(1,:), calib(2,:), 'b+');
+                    hold(ax, 'on');
+                    line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
+                    hold(ax, 'off');
                     %set the offset and slope...
 
                     %what is the standard error? As a measure of how accurately we
                     %think we have calibrated, take the asolute error minus the
                     %veridical target position...
 
-                    stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1))
+                    stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
 
+                    title(ax, sprintf('stderr = %g', stderr));
+                    
                     if ( (stderr < maxStderr) && ( numel(results) >= minN) ) || numel(results) >= maxN
                         %we're done. apply and record the calibration.
                         result.stderr = stderr;
@@ -120,6 +130,18 @@ this = autoobject(varargin{:});
                         params.input.eyes.setCalibrationSubject(params.subject);
                         break;
                     end
+                elseif numel(results) >= 2
+%{                  
+                    r = results(max(1,end-maxUsed):end);
+                    i = interface(struct('target', {}, 'endpoint', {}), r);
+                    t = cat(1, i.target);
+                    endpoints = cat(1, i.endpoint);
+                    
+                    plot(ax, endpoints(1,:), endpoints(2,:), 'b+');
+                    hold(ax, 'on');
+                    line(ax, [t(:,1)';endpoints(1,:)], [t(:,2)';endpoints(2,:)], 'Color', 'b');
+                    hold(ax, 'off');
+                    %}
                 end
             end
         end
@@ -133,7 +155,6 @@ this = autoobject(varargin{:});
                 return;
             end
         end
-        
         
         result.success = 1;
         result.abort = 0;

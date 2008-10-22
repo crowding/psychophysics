@@ -15,7 +15,7 @@ function t = plotTriggers(fig, params, trigger)
     plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
 %    plot(0, fixationPointLoc(1), 'ro', 0, fixationPointLoc(2), 'bo')
     %       plot(targetOnset, fixationPointLoc(1) + cos(targetPhase) * targetRadius, 'rx', targetOnset, fixationPointLoc(2) - sin(targetPhase) * targetRadius, 'bx')
-    ylim([-15 15]);
+    ylim([-20 20]);
 
     %draw labels...
     %what height should we draw text at
@@ -27,12 +27,14 @@ function t = plotTriggers(fig, params, trigger)
         heights = zeros(size(times));
     end
     t = text(times, heights+1, labels, 'rotation', 90);
+
     %make sure the graph is big enough to hold the labels
-    %this doesn't deal well with rotation.../
-    %        xs = get(t, 'Extent');
-    %        mn = min(cat(1,xs{:}));
-    %        mx = max(cat(1,xs{:}));
-    %        ylim([min(-15, mn(2)) max(15, mx(2) + mx(4))]);
+    xs = get(t, 'Extent');
+    xs = cat(1, xs{:});
+    bottom = min(xs(:,2))
+    top = max(xs(:,2) + xs(:,4));
+    ylim([min(-20, bottom) max(20, top)]);
+    
     hold off;
     drawnow;
 end

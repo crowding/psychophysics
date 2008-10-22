@@ -65,8 +65,6 @@ function e = GloloSaccade(varargin)
     %the target onset comes at a somewhat unpredictable time.
     e.trials.add('targetOnset', ExponentialDistribution('offset', 0, 'tau', 0.15));
     
-    e.trials.add('cueTime', 0.6);
-
     %the targets come up at an unknown location around the circle.
     e.trials.add('target.source.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     e.trials.add('target.source.angle', @(b) b.target.source.phase * 180/pi + 90);
@@ -120,7 +118,7 @@ function e = GloloSaccade(varargin)
     e.trials.blockTrial.base.rewardDuration = 100;
     e.trials.blockTrial.base.settleTime = 0.4;
     e.trials.blockTrial.base.targetRadius = 0.2;
-    e.trials.blockTrial.minCalibrationInterval = 0;
+    e.trials.blockTrial.minCalibrationInterval = 900;
     e.trials.blockTrial.base.onset = 0;
     e.trials.blockTrial.maxStderr = 0.3;
     e.trials.blockTrial.minN = 20;

@@ -3,7 +3,7 @@ function e = GloloSaccade(varargin)
     
     e.trials.base = SimpleSaccadeTrial...
         ( 'targetLoc', CircularMotion ...
-            ( 'radius', 8 ...
+            ( 'radius', 16 ...
             , 'omega', 0 ...
             )...
         , 'fixationTime', Inf ...
@@ -43,15 +43,18 @@ function e = GloloSaccade(varargin)
     e.trials.blockTrial = EyeCalibrationMessageTrial();
     e.trials.blockTrial.base.absoluteWindow = 100;
     e.trials.blockTrial.base.maxLatency = 0.5;
-    e.trials.blockTrial.base.maxStderr = 0.5;
-    
+    e.trials.blockTrial.maxStderr = 0.5;
+    e.trials.blockTrial.minCalibrationInterval = 900;
     e.trials.blockTrial.base.fixDuration = 0.5;
     e.trials.blockTrial.base.fixWindow = 4;
     e.trials.blockTrial.base.rewardDuration = 100;
     e.trials.blockTrial.base.settleTime = 0.3;
-    e.trials.blockTrial.base.targetRadius = 0.2;
+    e.trials.blockTrial.base.targetRadius = 0.4;
+    e.trials.blockTrial.base.targetInnerRadius = 0.2;
     e.trials.blockTrial.base.onset = 0;
     e.trials.blockTrial.interTrialInterval = 0.5;
+    e.trials.blockTrial.targetX = -15:5:15;
+    e.trials.blockTrial.targetY = -15:5:15;
 
     %before 
 end
