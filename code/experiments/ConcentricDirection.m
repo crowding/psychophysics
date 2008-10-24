@@ -48,7 +48,7 @@ function e = ConcentricDirection(varargin)
     e.trials.add('motion.process.radius', [5 6.3 8 10]);
     e.trials.add('motion.process.dphase', @(b)b.extra.dx ./ b.motion.process.radius);
 
-    e.trials.add('extra.nTargets', [6 8 11 15 20]);
+    e.trials.add('extra.nTargets', [8 12 15 18 24]);
     e.trials.add('motion.process.phase', @(b) mod(rand()*2*pi + (0:b.extra.nTargets-1)/b.extra.nTargets*2*pi, 2*pi));
     e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
     
