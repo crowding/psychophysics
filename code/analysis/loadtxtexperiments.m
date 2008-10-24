@@ -5,5 +5,5 @@ function experiments = loadtxtexperiments(glob)
     filenames = splitstr(sprintf('\n'), filenames);
     filenames(end) = [];
     experiments = cellfun(@loaddata, filenames);
-    experiments = [experiments.experiment]
+    experiments = [experiments.experiment];
 end

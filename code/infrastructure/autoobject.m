@@ -56,6 +56,11 @@ function this = autoobject(varargin)
 
     %BUT: So much for that. Matlab 7.4 kills this behavior so we have to
     %require the new boilerplate line:
+    
+    persistent its;
+    if isempty(its)
+        its = Genitive();
+    end
 
     tmp = evalin('caller', 'whos(''init__'')');
     if isempty(tmp)
@@ -82,35 +87,167 @@ function this = autoobject(varargin)
     
     this = evalin('caller', this);
     this{2} = this{2}();
-    this{1}(namedargs(varargin{:}), this{2});
+    %this{1}(namedargs(varargin{:}), this{2});
+        
     tostruct = this{3};
     setmethod = this{4};
     setthis = this{5};
     this = this{2};
+    
     this.property__ = @property__;
     this.method__ = @method__;
     this.version__ = version;
+    
+    if ~isempty(varargin)
+        property__(varargin{:});
+    end
 
-    %convert prop_names into a struct for speed in property access?
-    function [value, s] = property__(name, value)
+    function varargout = property__(name, value, varargin)
         switch(nargin)
             case 0
-                value = prop_names;
+                varargout{1} = prop_names;
                 if nargout > 1
-                    s = tostruct(this);
+                    varargout{2} = tostruct(this);
                 end
             case 1
-                if any(strcmp(name, prop_names))
-                    value = this.(getterName(name))();
+                if ischar(name)
+                    if any(strcmp(name, prop_names))
+                        varargout{1} = this.(getterName(name))();
+                    else
+                        %perhaps it is a subscript. Try that.
+                        subs = subsrefize_(name);
+                        [varargout{1:nargout}] = subsref_(this, subs);
+                    end
                 else
-                    error('object:noSuchProperty', 'no such property %s', name);
+                    %Try a substruct.
+                    [varargout{1:nargout}] = subsref_(this, name);
                 end
-            case 2
-                if any(strcmp(name, prop_names))
-                    this.(setterName(name))(value);
+            otherwise
+                cont = 1;
+                while cont
+                    if ischar(name)
+                        if any(strcmp(name, prop_names))
+                            this.(setterName(name))(value);
+                        else
+                            subs = subsrefize_(name);
+                            subsasgn_(this, subs, value);
+                        end
+                    else
+                        subsasgn_(this, name, value);
+                    end
+                    
+                    switch(numel(varargin))
+                        case 0
+                            cont = 0;
+                        case 1
+                            error('object:badSetting', 'Must use even number of arguments to property__');
+                        otherwise
+                            name = varargin{1};
+                            value = varargin{2};
+                            varargin([1 2]) = [];
+                    end
+                end
+        end
+    end
+
+    function varargout = subsref_(what, subs)
+        %since my objects pretend to be a struct when they're not, we
+        %have to drill down a step at a time.
+        if strcmp(subs(1).type, '.') && any(strcmp(what.property__(), subs(1).subs))
+            if numel(subs) <= 1
+                [varargout{1:nargout}] = what.property__(subs(1).subs);
+            else
+                [varargout{1:nargout}] = subsref_(what.property__(subs(1).subs), subs(2:end));
+            end
+        else
+            if numel(subs) <= 1
+                [varargout{1:nargout}] = subsref(what,subs(1));
+            else
+                [varargout{1:nargout}] = subsref_(subsref(wrapped, subs(1)), subs(2:end));
+            end
+        end
+    end
+
+    function [what, propagate] = subsasgn_(what, subs, new)
+        if strcmp(subs(1).type, '.')
+            try
+                if numel(subs) <= 1
+                    try
+                        %faster to do this nonsense because of slowness of loading structs :(
+                        what.(setterName(subs(1).subs))(new);
+                    catch
+                        what.(property__(subs(1).subs, new));                        
+                    end
+                    %since we set on a reference object, there is no need
+                    %to propagate the subsasgn out
+                    propagate = 0;
                 else
-                    error('object:noSuchProperty', 'no such property %s', name);
+                    %First pass: set everything in the chain. To be more
+                    %efficient, we only really need to set the property 
+                    %on the last reference object in the chain. Hence hte
+                    %'propagate' retval which stops early.
+                    try
+                        sub = what.(getterName(subs(1).subs))();
+                    catch
+                        sub = what.property__(subs(1).subs);
+                    end
+                    
+                    [new, propagate] = subsasgn_ ...
+                        ( sub ...
+                        , subs(2:end) ...
+                        , new ...
+                        );
+                    if propagate
+                        try
+                            what.(setterName(subs(1).subs))(new);
+                        catch
+                            what.property__( subs(1).subs, new );
+                        end
+                    end
                 end
+            catch
+                %faster to ask forgiveness than permission...
+                if ~any(strcmp(this.property__(), subs(1).subs))
+                    error('Obj:noSuchProperty', 'No such property %s', subs(1).subs);
+                else
+                    rethrow(lasterror);
+                end
+            end
+        else
+            if numel(subs) <= 1
+                what = subsasgn(what, subs(1), new);
+                propagate = 1;
+            else
+                %again a drill down. could be more efficient: only one
+                %subsasgn needs to be done for each chain of objects that's
+                %not a reference object...
+                [new, propagate] = subsasgnstep...
+                        ( subsref(what, subs(1))...
+                        , subs(2:end) ...
+                        , new ...
+                        );
+                if propagate
+                    what = subsasgn( what, subs(1), new );
+                end
+            end
+        end
+    end
+
+    function subs = subsrefize_(subs)
+        if ischar(subs)
+            %convert to a substruct...
+            try
+                subs = eval(sprintf('(its.%s);', subs));
+            catch
+                errorcause(lasterror, 'Randomizer:invalidSubscript', 'Invalid subscript reference ".%s"', subs);
+            end
+        end
+
+        %check that you actually have a substruct
+        try
+            subs = subsref(its, subs);
+        catch
+            errorcause(lasterror, 'Randomizer:invalidSubscript', 'Improper substruct');
         end
     end
 

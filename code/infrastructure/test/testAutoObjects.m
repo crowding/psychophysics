@@ -1,7 +1,10 @@
-function this = testAutoObjects()
+function this = testAutoObjects(varargin)
     
+    %sketchy to define a test case in terms of this thing it's testing...
     this = inherit...
-        ( TestCase() ...
+        ( TestCase()...
+        , autoobject(varargin{:}) );
+%{
         , public ...
             ( @testAutoSetters ...
             , @testAutoSetV ...
@@ -14,6 +17,10 @@ function this = testAutoObjects()
             , @testAutoObjectVarsUndefined ...
             , @testVarargin ...
             , @testBadVarargin ...
+            , @testSubscriptedVarargin...
+            , @testSubscriptedVararginString...
+            , @testVararginRecursive...
+            , @testSubsctriptedVararginRecursive...
             , @testAutoMethods ...
             , @testAutoMethodsExcludesUnderscore ...
             , @testNoAutoMethods ...
@@ -25,7 +32,7 @@ function this = testAutoObjects()
             , @testSetMethod ...
             ) ...
         );
-    
+    %}
     
     function testAutoSetters()
         function [this, getter] = obj()
@@ -102,6 +109,47 @@ function this = testAutoObjects()
         assertEquals(6, o.getPropA());
     end
 
+    function testPropertySubscript()
+        its = Genitive();
+        
+        function this = objA(varargin)
+            propA = 1;
+            persistent init__;
+            this = autoobject(varargin{:});
+        end
+
+        o = objA('propA');
+        
+        assertEquals(1, o.property__(its.propA));
+        o.property__(its.propA, 4);
+        assertEquals(4, o.property__(its.propA));
+        assertEquals(4, o.getPropA());
+    end
+
+    function testPropertyRecursive()
+        
+        function this = objA(varargin)
+            propA = 1;
+            persistent init__;
+            this = autoobject(varargin{:});
+        end
+
+        function this = objB(varargin)
+            propB = 1;
+            persistent init__;
+            this = autoobject(varargin{:});
+        end
+        
+        o = objA('propA', objB());
+        
+        assertEquals(1, o.property__('propA.propB'));
+        o.property__('propA.propB', 4);
+        assertEquals(4, o.property__('propA.propB'));
+        
+        a = o.getPropA();
+        assertEquals(4, a.getPropB());
+    end
+
     function testNoAutoProperties()
         function this = obj()
             persistent init__;
@@ -135,21 +183,31 @@ function this = testAutoObjects()
         assert(~isfield('setAns', o));
         
         try
-            o.property__('propB');
-            fail();
+            o.property__('propB_');
+            error('err:expectedException', 'whoops');
         catch
+            assertLastErrorNot('err:expectedException');
+        end
+
+        try
+            o.property__('propB');
+            error('err:expectedException', 'whoops');
+        catch
+            assertLastErrorNot('err:expectedException');
         end
         
         try
             o.property__('varargin');
-            fail();
+            error('err:expectedException', 'whoops');
         catch
+            assertLastErrorNot('err:expectedException');
         end
         
         try
             o.property__('ans');
-            fail();
+            error('err:expectedException', 'whoops');
         catch
+            assertLastErrorNot('err:expectedException');
         end
     end
 
@@ -175,8 +233,8 @@ function this = testAutoObjects()
         assertEquals(1, o.property__('propA'));
         assertEquals(2, o.property__('propB'));
         vars = o.property__();
-        assert(strmatch('propA', vars));
-        assert(strmatch('propB', vars));
+        assert(~isempty(strmatch('propA', vars, 'exact'))); %one is true, unless you're suddenly a fan of strong typing like nowhere else in the language.
+        assert(~isempty(strmatch('propB', vars, 'exact')));
     end
 
     function testAutoObjectVarsUndefined()
@@ -194,8 +252,8 @@ function this = testAutoObjects()
         assertEquals(2, o1.getPropA());
         assertEquals(1, o2.getPropA());
         
-        assert(strmatch('propA', o1.property__()));
-        assert(strmatch('propA', o2.property__()));
+        assert(any(strcmp('propA', o1.property__())));
+        assert(any(strcmp('propA', o2.property__())));
         
         o1.property__('propA');
         assertEquals(1, o2.property__('propA'));
@@ -242,8 +300,9 @@ function this = testAutoObjects()
         assertEquals(3, o.getPropA());
     end
 
-
     function testBadVarargin()
+        
+        %why does this overload the stack...
         function this = obj(varargin)
             propA = 1;
             persistent init__;
@@ -252,12 +311,11 @@ function this = testAutoObjects()
         
         try
             o = obj('propB', 2);
-            fail();
+            error('err:expectedException', 'whoops');
         catch
-            %expected
+            assertLastErrorNot('err:expectedException');
         end
     end
-
     
     function testAutoMethods()
         function this = obj()
@@ -300,17 +358,6 @@ function this = testAutoObjects()
         o = obj();
         assert(~isfield(o, 'baz_'));
         assert(~isfield(o, 'baz'));
-        try
-            o.baz_()
-            fail();
-        catch
-        end
-        
-        try
-            o.baz()
-            fail();
-        catch
-        end
     end
 
 
@@ -420,7 +467,7 @@ function this = testAutoObjects()
         o.test();
     end
 
-    function testSetThis();
+    function testSetThis()
         function this = obj();
             
             propA = 3;
