@@ -6,8 +6,8 @@ function display(this)
         end
         switch numel(this)
             case 1
-                disp([prefix this.version__.function ':']);
-                [property, st] = this.property__();
+                disp([prefix this.wrapped.version__.function ':']);
+                [property, st] = this.wrapped.property__();
                 disp(st);
 
                 %Format the methods for the command window size
@@ -18,7 +18,7 @@ function display(this)
                 setn = cellfun(@setterName, property, 'UniformOutput', 0);
 
                 %hide what methods are accessors?
-                methods = this.method__();
+                methods = this.wrapped.method__();
                 methods = setdiff(methods, {getn{:}, setn{:}});
                 methodstr = WrapString(join(', ', methods), s(1) - numel(introstr));
 
