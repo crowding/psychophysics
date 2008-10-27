@@ -4,6 +4,8 @@ function this = ExperimentRun(varargin)
 err = [];
 trials = [];
 startDate = [];
+description = '';
+caller = [];
 params = struct();
 
 %the edf-file logs each trial individually, so we don't need to log
