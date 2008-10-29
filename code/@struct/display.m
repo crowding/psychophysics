@@ -3,7 +3,7 @@
 %display method for structs accounting for auto-objects.
 
 function display(this)
-    if isfield(this, 'version__') && ~isempty(this)
+    if isfield(this, 'method__') && ~isempty(this)
         prefix = inputname(1);
         if ~isempty(prefix)
             prefix = [prefix ' = '];

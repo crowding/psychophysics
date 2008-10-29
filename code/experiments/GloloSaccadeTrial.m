@@ -134,7 +134,7 @@ function this = SimpleSaccadeTrial(varargin)
                 trackingTarget.setVisible(1, k.next);
                 target.setVisible(0, k.next); %note the second argument sets the 'onset'
             else
-                target.setVisible(0, k.next);
+                target.setVisible(1, k.next);
             end
             t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
             blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
@@ -145,13 +145,13 @@ function this = SimpleSaccadeTrial(varargin)
         end
         
         
-        oldcolor_ = [];
+        oldColor_ = [];
         function blankTarget(k) %#ok
             if useTrackingTarget
                 trackingTarget.setVisible(0);
             else
-                oldcolor_ = target.getColor();
-                target.setColor(color(targetBlankColor));
+                oldColor_ = target.getColor();
+                target.setVisible(0); %(color(targetBlankColor));
             end
         end
 
@@ -174,7 +174,7 @@ function this = SimpleSaccadeTrial(varargin)
                 trackingTarget.setVisible(0);
                 target.setVisible(1);
             else
-                target.setColor(oldColor_);
+                %target.setColor(oldColor_);
             end
             
             trigger.remove(blankhandle_);

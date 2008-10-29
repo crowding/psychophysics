@@ -10,10 +10,18 @@ end
 save = strs(end);
 strs = append(strs, j);
 strs(end) = save;
+try
 str = cat(2,strs{:});
+catch
+    noop();
+end
 
 end
 
 function strs = append(strs, app)
+try
     strs = cellfun(@(s) [s app], strs, 'UniformOutput', 0);
+catch
+    noop();
+end
 end    
