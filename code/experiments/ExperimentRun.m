@@ -13,7 +13,7 @@ params = struct();
 trialsDone_ = {};
 
 persistent init__;
-this = Object( Identifiable(), autoobject(varargin{:}));
+this = inherit( Identifiable(), autoobject(varargin{:}));
 
 if ~isfield(params, 'input')
     params.input = struct('keyboard', KeyboardInput(), 'mouse', MouseInput(), 'eyes', EyelinkInput());
@@ -42,11 +42,21 @@ end
         function par = doRun(par)
             params = par; %to log initialization information
             e = [];
+            if isfield(trials, 'start')
+                trials.start();
+            end
             try
                 dump(this, params.log, 'beforeRun');
 
-                while trials.hasNext()
+                %I used to have it so that experiments
+                %were queriable for if they had 
+                %a next trial, but it's easier to just return an empty when
+                %you're done.
+                while ~isfield(trials, 'hasNext') || trials.hasNext()
                     trial = trials.next(params);
+                    if isempty(trial)
+                        break;
+                    end
                     result = require(initparams(params), logEnclosed('TRIAL'), @runTrial);
                     if isfield(result, 'abort') && result.abort
                         break;

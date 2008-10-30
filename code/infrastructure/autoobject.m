@@ -176,7 +176,7 @@ function this = autoobject(varargin)
                         %faster to do this nonsense because of slowness of loading structs :(
                         what.(setterName(subs(1).subs))(new);
                     catch
-                        what.(property__(subs(1).subs, new));                        
+                        what.(property__(subs(1).subs))(new);
                     end
                     %since we set on a reference object, there is no need
                     %to propagate the subsasgn out

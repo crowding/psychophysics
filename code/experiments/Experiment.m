@@ -106,10 +106,10 @@ end
         %an total experiment can have many runs. Each run will be saved.
         params.subject = this.subject;
         theRun = ExperimentRun...
-            ( 'params', this.params...
-            , 'trials', this.trials...
-            , 'description', this.description...
-            , 'caller', this.caller...
+            ( 'params', params...
+            , 'trials', trials...
+            , 'description', description...
+            , 'caller', caller...
             );
         e = [];
         try
@@ -121,7 +121,7 @@ end
                 theRun.run();
             end
         catch
-            theRun.err = lasterror;
+            theRun.setErr(lasterror);
             if ~isempty(strfind(host, 'pastorianus'))
                 switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
             end
@@ -131,7 +131,7 @@ end
 
         %now save ourself. Since we overwrite, it is prudent to write
         %to a temp file first.
-        if(~isempty(this.filename))
+        if(~isempty(filename))
             t = tempname;
             disp( sprintf('writing to temp file %s', t));
             require(openFile(t, 'w'), @(params) dump(this, @(pat, varargin)fprintf(params.fid, [pat '\n'], varargin{:}), 'experiment'));
@@ -141,7 +141,7 @@ end
         end
 
         %if there was an error, report it after saving
-        if ~isempty(theRun.err)
+        if ~isempty(theRun.getErr())
             warning('the run stopped with an error: %s', theRun.err.identifier)
             stacktrace(theRun.err);
         end

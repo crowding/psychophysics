@@ -1,6 +1,7 @@
-function t = plotTriggers(fig, params, trigger)
+function t = plotTriggers(ax, params, trigger)
     %plot the triggers from an eye movement trial, for diagnostic purposes.
-    figure(fig);
+%    figure(fig); %do NOT bring it to the front...
+    makeCurrentAxis(ax);
     
     d = params.input.eyes.getData();
     d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);
@@ -12,10 +13,10 @@ function t = plotTriggers(fig, params, trigger)
     %x- any y- locations of the trace
     onset_ = e{1,1};
     
-    plot(d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
+    plot(ax, d(3,:) - onset_, d(1,:), 'r-', d(3,:) - onset_, d(2,:), 'b-');
 %    plot(0, fixationPointLoc(1), 'ro', 0, fixationPointLoc(2), 'bo')
     %       plot(targetOnset, fixationPointLoc(1) + cos(targetPhase) * targetRadius, 'rx', targetOnset, fixationPointLoc(2) - sin(targetPhase) * targetRadius, 'bx')
-    ylim([-20 20]);
+    ylim(ax, [-20 20]);
 
     %draw labels...
     %what height should we draw text at
@@ -35,6 +36,6 @@ function t = plotTriggers(fig, params, trigger)
     top = max(xs(:,2) + xs(:,4));
     ylim([min(-20, bottom) max(20, top)]);
     
-    hold off;
+    hold(ax, 'off');
     drawnow;
 end

@@ -110,9 +110,13 @@ function WheelsDemo(varargin)
             sprites2.setVisible(1, h.next);
             %timer.set(@moveSpot, h.refresh + oscillatoryDuration/interval);
             timer.unset();
-            if ~isempty(params.aviout)
-                timer2.set(main.stop, h.refresh + nFrames);
-            end
+            %if ~isempty(params.aviout)
+                timer2.set(@woo, h.refresh + 2 * dx / interval);
+            %end
+        end
+        
+        function woo(h)
+            main.stop()
         end
                 
         function moveSpot(h)

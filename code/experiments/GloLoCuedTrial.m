@@ -4,24 +4,52 @@ function this = GloLoCuedTrial(varargin)
     extra = struct();
     startTime = 0;      %GetSecs value for when the trial should start (for ITI control)
     barCueOnset = 0.25;
-    barCueDuration = 0.25; %how long to show the cue on screen
-    barCueDelay = 0.5; %how long between cuing the bar  position and beginning the stimulus.
+    barCueDuration = 1/30; %how long to show the cue on screen
+    barCueDelay = 0.5; %how long between cuing the bar position and beginning the stimulus.
     
     barOnset = 0;       %when the bar flashes relative to the motion stimulus onset
     barFlashDuration = 1/30; %the duration of the bar's flash
+    stimulusDuration = Inf; %switch the sitmulus off after this long...
 
     %graphics parameters
-    motion = CircularMotionProcess ... %the spatial process to generate the motion
-        ( 'radius', 10 ...
-        , 'n', 3 ...
-        , 't', 0 ...
-        , 'phase', 0 ...
-        , 'dt', 0.15 ...
-        , 'dphase', 0.75 / 10 ... %dx = 0.75...
-        , 'angle', 90 ...
-        , 'color', [0.5;0.5;0.5] ...
-        );
+    
+    
+    %buh. this is a kludge to support both smooth motion and stepped motion
+    %in the same experiment.
+    targets = {
+        CauchySpritePlayer(...
+            'process', CircularCauchyMotion ...
+                ( 'radius', 8 ...
+                , 'dt', 0.15 ...
+                , 'dphase', 1.5/8 ... %dx = 1.5
+                , 'x', 0 ...
+                , 'y', 0 ...
+                , 't', 0.15 ...
+                , 'n', 7 ...
+                , 'color', [0.5 0.5 0.5]' ...
+                , 'velocity', 10 ... %velocity of peak spatial frequency
+                , 'wavelength', 0.75 ...
+                , 'width', 0.5 ...
+                , 'duration', 0.1 ...
+                , 'order', 4 ...
+                ) ...
+            ), ...
+        CauchyDrawer( ...
+            'source', CircularSmoothCauchyMotion ...
+                ('radius', 8 ...
+                , 'phase', 0 ...
+                , 'angle', 90 ...            
+                , 'omega', 0 ...
+                , 'color', [0.125 0.125 0.125]' ...
+                , 'wavelength', 1 ...
+                , 'width', 0.5 ...
+                , 'order', 4 ...
+                )...
+            ) ...
+        };
 
+    whichTargets = 1;
+    
     patch = CauchyPatch... %the graphical element of the motion
         ( 'velocity', 10 ...
         , 'size', [0.5 0.75 0.1]...
@@ -48,8 +76,7 @@ function this = GloLoCuedTrial(varargin)
     %do...
     fixationPoint_ = FilledDisk([0 0], fixationPointSize, [0 0 0]);
     bar_ = FilledBar();
-    sprites_ = CauchySpritePlayer();
-    main_ = mainLoop('graphics', {bar_, sprites_, fixationPoint_});
+    main_ = mainLoop();
     trigger_ = Trigger();
     
     function [params, result] = run(params)
@@ -63,6 +90,7 @@ function this = GloLoCuedTrial(varargin)
             , 'motionOnset', NaN ...
             );
         
+        
         color = @(c)params.blackIndex + (params.whiteIndex-params.blackIndex)*c;
         
         interval = params.cal.interval;
@@ -73,15 +101,11 @@ function this = GloLoCuedTrial(varargin)
         fixationPoint_.setRadius(fixationPointSize);
         fixationPoint_.setVisible(0);
         
-        sprites_.setPatch(patch);
-        sprites_.setProcess(motion);
-        
         bar_.setLength(barLength);
         bar_.setWidth(barWidth);
         bar_.setColor(color(barFlashColor));
         bar_.setAngle(180/pi*barPhase);
         bar_.setVisible(0);
-        positionBar();
         
         %reset the trigger for this trial...
         trigger_.reset();
@@ -93,8 +117,11 @@ function this = GloLoCuedTrial(varargin)
         trigger_.singleshot(atLeast('next', startTime - interval/2), @showFixation);
                 
         %run the main loop
+        main_.setGraphics({bar_, fixationPoint_, targets{whichTargets}});
         main_.setInput({params.input.knob, params.input.keyboard});
         main_.setTriggers({trigger_});
+
+        positionBar();
         
         main_.go(params);
 
@@ -116,12 +143,16 @@ function this = GloLoCuedTrial(varargin)
         
         function hideCue(s)
             bar_.setVisible(0);
-            %clever bit: since hte Cauchy sprite player runs on timestamps
+            %clever bit: since the Cauchy sprite player runs on timestamps
             %and not refreshes, I can schedule it from the beginning.
-            result.motionStartTime = sprites_.setVisible(1, s.next + barCueDelay);
+            result.motionStartTime = targets{whichTargets}.setVisible(1, s.next + barCueDelay);
 
             %schedule the bar flash to occur
             trigger_.singleshot(atLeast('next', s.next + barCueDelay + barOnset - interval/2), @showBar);
+            
+            if stimulusDuration < Inf
+                trigger_.singleshot(atLeast('next', s.next + barCueDelay + stimulusDuration), @hideStimulus);
+            end
         end
         
         function showBar(s)
@@ -139,6 +170,10 @@ function this = GloLoCuedTrial(varargin)
                 , atMost('knobPosition', s.knobPosition - knobThreshold), @knobCCW ...
                 , atLeast('knobDown', 1), @knobPressed ...
                 )
+        end
+        
+        function hideStimulus(s)
+            targets{whichTargets}.setVisible(0);
         end
         
         function knobCW(s)
@@ -162,7 +197,7 @@ function this = GloLoCuedTrial(varargin)
         function stop(s)
             fixationPoint_.setVisible(0);
             bar_.setVisible(0);
-            sprites_.setVisible(0);
+            targets{whichTargets}.setVisible(0);
             
             trigger_.singleshot(atLeast('refresh', s.refresh+1), main_.stop);
             result.endTime = s.next;
@@ -170,14 +205,15 @@ function this = GloLoCuedTrial(varargin)
         
         function abort(s)
             result.abort = 1;
-            result.success = 1;
+            result.success = 0;
             
             stop(s);
         end
-        
+
         function positionBar()
             bar_.setX( (barRadius * cos(barPhase)));
             bar_.setY(-(barRadius * sin(barPhase)));
         end
+        
     end
 end

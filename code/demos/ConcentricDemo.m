@@ -112,6 +112,8 @@ function ConcentricDemo(varargin)
 
         keyboard.set(@display, 'space');
         
+        keyboard.set(@pause, '`~');
+        
         keyboard.set(main.stop, 'q');
 
         release_trigger = [];
@@ -218,6 +220,11 @@ function ConcentricDemo(varargin)
         function displayoff(h)
             release_trigger = [];
             text.setVisible(0);
+        end
+        
+        function pause(h)
+            assignin('base', 'image', Screen('GetImage', params.window));
+            KbPressWait();
         end
     end
 end

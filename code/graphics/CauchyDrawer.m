@@ -103,7 +103,7 @@ function this = CauchyDrawer(varargin)
     onsetTime_ = 0;
     
     function draw(window, next)
-        if ~visible
+        if ~visible || next < onsetTime_
             return;
         end
         

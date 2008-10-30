@@ -46,11 +46,16 @@ function this = SimpleSaccadeTrial(varargin)
     rewardSize = 100;
     rewardTargetBonus = 0.0; %ms reward per ms of tracking
     
-    f1_ = figure(1); clf;
-    a1_ = axes();
-    
+    plotOutcome = 1;
+    plotAxes = [];
+
     persistent init__; %#ok
     this = autoobject(varargin{:});
+    
+    if isempty(plotAxes) && plotOutcome
+        figure();
+        plotAxes = axes();
+    end
     
     function setTargetRadius(r)
         %required for backwards compatibility
@@ -204,7 +209,9 @@ function this = SimpleSaccadeTrial(varargin)
         %END EVENT HANDLERS
         params = main.go(params);
         
-        plotTriggers(f1_, params, trigger);
+        if plotOutcome
+            plotTriggers(plotAxes, params, trigger);
+        end
     end
 end
     

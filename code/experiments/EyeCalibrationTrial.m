@@ -23,14 +23,18 @@ function this = EyeCalibrationTrial(varargin)
     targetInnerRadius = 0.10;
 
     rewardDuration = 100;
+
+    plotOutcome = 1;
+    plotAxes = [];
     
     persistent init__;
     this = autoobject(varargin{:});
     
-    f1_ = figure(1); clf;
-    %a1_ = axes();
-    %f2_ = figure(2); clf;
-    %a2_ = axes();
+    if isempty(plotAxes) && plotOutcome
+        figure();
+        plotAxes = axes();
+        cbHandle_ = addCallback(plotAxes, 'DeleteFcn', @()this.setPlotOutcome(0));
+    end
     
     function [params, result] = run(params)
         result = struct('target', [targetX targetY]);
@@ -53,7 +57,9 @@ function this = EyeCalibrationTrial(varargin)
         %params.log = @printf;
         params = main.go(params);
         
-        plotTriggers(f1_, params, trigger);
+        if plotOutcome
+            plotTriggers(plotAxes, params, trigger);
+        end
         
         function begin(s)
             result.startTime = s.next;

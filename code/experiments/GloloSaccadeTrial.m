@@ -45,13 +45,19 @@ function this = SimpleSaccadeTrial(varargin)
     rewardSize = 100;
     rewardTargetBonus = 0.0; %ms reward per ms of tracking
     
-    f1_ = figure(2); clf;
-    a1_ = axes();
-    
     extra = struct();
+
+    plotOutcome = 1;
+    plotAxes = [];
     
     persistent init__; %#ok
     this = autoobject(varargin{:});
+    
+    if isempty(plotAxes) && plotOutcome
+        f_ = figure();
+        plotAxes = axes();
+        addCallback(f_, 'DeleteFcn', @()this.setPlotOutcome(0));
+    end
     
     function [params, result] = run(params)
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
@@ -240,6 +246,8 @@ function this = SimpleSaccadeTrial(varargin)
         %END EVENT HANDLERS
         params = main.go(params);
         
-        plotTriggers(f1_, params, trigger);
+        if plotOutcome
+            plotTriggers(plotAxes, params, trigger);
+        end
     end
 end

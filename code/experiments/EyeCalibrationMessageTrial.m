@@ -26,8 +26,9 @@ this = autoobject(varargin{:});
 
     function [params, result] = run(params)
         %initialize data...
-        handle = figure(2); clf;
+        figure = figure(2); clf;
         ax = axes();
+        title('Eye calibration endpoints');
 
         result.orig_offset = params.input.eyes.getOffset();
         setOffset = params.input.eyes.setOffset;
@@ -102,7 +103,7 @@ this = autoobject(varargin{:});
                     amat = atarg / araw;
                     calib = amat * araw;
     
-                    axes(ax);
+                    makeCurrentAxes(ax);
                     plot(ax, calib(1,:), calib(2,:), 'b+');
                     hold(ax, 'on');
                     line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');

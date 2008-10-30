@@ -5,7 +5,21 @@ if isempty(subs__)
 end
 
 base = MessageTrial('message', 'need a base trial!');
-blockTrial = [];
+
+%usually we rely on the randomizer to place trials, but sometimes we also
+%need blocks. Each of these must return success before the experiment
+%proceeds.
+startTrial = []; %shown at the beginning of the experiment
+startTrialResult = [];
+blockTrial = []; %shown at teh beginning of a "block"
+blockTrialResults = {};
+endBlockTrial = []; %shown at the end of a "block"
+endBlockTrialResults = {};
+endTrial = MessageTrial('message', 'Finished! Press space bar or knob to exit.'); %shown at the end of the experiment. Notice, there must be a trial here...
+endTrialResults = [];
+
+requireSuccess = 0; %do you require a 'success' to count as a trial in the block?
+
 randomizers = struct('subs', {}, 'values', {});
 
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
@@ -28,7 +42,7 @@ seed = randseed();
 
 persistent init__;
 
-this = Obj(autoobject(varargin{:}));
+this = autoobject(varargin{:});
 
     function n = blocksLeft()
         checkShuffle_();
@@ -82,6 +96,10 @@ this = Obj(autoobject(varargin{:}));
         end
     end
 
+    function start()
+        nextState_ = [];
+    end
+
     function reset()
         if ~isempty(results)
             error('won''t throw results away!');
@@ -89,7 +107,12 @@ this = Obj(autoobject(varargin{:}));
         
         parameterColumns = {randomizers.subs};
         parameters = cell(0, numel(randomizers));
+        startTrialResult = [];
         results = {};
+        blockTrialResults = {};
+        endBlockTrialResults = {};
+        endTrialResult = [];
+        start();
     end
 
     function setRandomizers(rands)
@@ -134,7 +157,7 @@ this = Obj(autoobject(varargin{:}));
         end
     end
 
-    function has = hasNext(last, result)
+    function has = shuffleHasNext_()
         if numel(results) < blockSize * numBlocks
             if fullFactorial
                 checkShuffle_();
@@ -156,26 +179,22 @@ this = Obj(autoobject(varargin{:}));
     params_ = {}; %the last params that were uaed in assignment
     
     %state for blocking
-    lastblock_ = NaN; %what was the last block trial we sent?
-    wasblock_ = 0; %did we just send out a block trial?
+    nextState_ = []; %the "state" of the experiment, or what kind of trial to give out next.
+    resultState_ = []; %What to do on receiving a result.
+    
     assignments_ = {};
     
+    %There is a state machine for picking which trial to have next: a
+    %shuffled trial, a special trial for the beginning of an experiment, a
+    %special trial for the beginning of a block, a special trial for the
+    %end of an experiment, a special trial for the end of a block, etc.
     function n = next(params)
-        assert(logical(hasNext()));
-        %randomize according to plan...
-        if mod(numel(results), blockSize) == 0 && (lastblock_ ~= numel(results)) && ~isempty(blockTrial);
-            n = blockTrial;
-            params_ = {};
-            lastblock_ = numel(results);
-            wasblock_ = 1;
-        else
-            wasblock_ = 0;
-            assignments_ = pick_();
-            [base, params_] = assign_(base, assignments_, 'base');
-            
-            %unwrap because the rest of the apparatus uses the naked object
-            n = unwrap(base);
+        if isempty(nextState_)
+            nextState_ = @startExperiment_;
+            resultState_ = @startBlock_;
         end
+        
+        n = nextState_(params);
     end
 
     function result(trial, result)
@@ -186,6 +205,75 @@ this = Obj(autoobject(varargin{:}));
         %params_ stores the numeric values they evaluated to...
         %If the raw assignments are objects (generators, like staircase
         %functions) and have a 'results' method, then report back.
+        
+        resultState_(trial, result);
+        
+        if isfield(result, 'endTime') && isfield(base, 'startTime')
+            base.startTime = result.endTime + interTrialInterval;
+        else
+            disp('ignoring inter trial interval');
+        end
+    end
+
+    function next = startExperiment_(params)
+        if isempty(startTrial)
+            nextState_ = @startBlock_;
+            next = nextState_(params);
+        else
+            resultState_ = @startExperimentResult_;
+            next = startTrial;
+        end
+    end
+
+    function startExperimentResult_(trial, result)
+        if isSuccessful_(result)
+            startTrialResult = result;
+            nextState_ = @startBlock_;
+        end
+    end
+
+    function next = startBlock_(params)
+        if isempty(blockTrial)
+            nextState_ = @regularTrial_;
+            next = nextState_(params);
+        else
+            resultState_ = @startBlockResult_;
+            next = blockTrial;
+        end
+    end
+
+    blockCounter_ = 0;
+    function startBlockResult_(trial, result)
+        if isSuccessful_(result)
+            blockTrialResults{end+1} = result;
+            nextState_ = @regularTrial_;
+            blockCounter_ = 0;
+        end
+    end
+
+    function next = regularTrial_(params)
+        %If the block is ending, end it...
+        if blockCounter_ >= blockSize || ~shuffleHasNext_()
+            nextState_ = @endBlock_;
+            next = nextState_(params);
+        else
+            %pick the assignments and shuffle them...
+            assignments_ = pick_();
+            [base, params_] = assign_(base, assignments_, 'base');
+            
+            %unwrap because the rest of the apparatus uses the naked
+            %object.
+            next = unwrap(base);
+            
+            resultState_ = @regularTrialResult_;
+        end
+    end
+
+    function regularTrialResult_(trial, result)
+        %We got a trial back. Record the result...
+
+        %for staircases, report thr result to our actual reporter, whether
+        %or not successful.
         for i = 1:numel(assignments_)
             r = assignments_(i);
             
@@ -200,26 +288,71 @@ this = Obj(autoobject(varargin{:}));
             end
         end
         
-        if (~isfield(result, 'success') || (~isnan(result.success) && result.success)) && (~isfield(result, 'abort') || ~result.abort);
-            if ~wasblock_
-                results{end+1} = result;
-                parameters(end+1,:) = params_;
-                designOrder(end+1) = lastPicked_;
-                if ~isnan(lastPicked_)
-                    designDone(lastPicked_) = true;
-                end
-                
-                displayFunc(results);
+        if isSuccessful_(result)
+            results{end+1} = result;
+            parameters(end+1,:) = params_;
+            designOrder(end+1) = lastPicked_;
+            if ~isnan(lastPicked_)
+                designDone(lastPicked_) = true;
             end
-        end
-        
-        if isfield(result, 'endTime') && isfield(base, 'startTime')
-            base.startTime = result.endTime + interTrialInterval;
-        else
-            disp('ignoring inter trial interval');
+            
+            displayFunc(results);
+            blockCounter_ = blockCounter_ + 1;
+
+        elseif ~requireSuccess
+            %don't record the result, but advance the block counter.
+            blockCounter_ = blockCounter_ + 1;
         end
     end
 
+    function next = endBlock_(trial, result)
+        if isempty(endBlockTrial)
+            if ~shuffleHasNext_()
+                nextState_ = @startBlockTrial_;
+            else
+                nextState_ = @endExperiment_;
+            end
+            next = nextState_(params);
+        else
+            resultState_ = @endBlockResult_;
+            next = endBlockTrial;
+        end
+    end
+
+    function endBlockResult_(trial, result)
+        if isSuccessful_(result)
+            endBlockTrialResults{end+1} = result;
+            if shuffleHasNext_()
+                nextState_ = @startBlockTrial_;
+            else
+                nextState_ = @endExperiment_;
+            end
+        end
+    end
+
+    function next = endExperiment_(params)
+        if isempty(endTrial)
+            next = [];
+        else
+            resultState_ = @endExperimentResult_;
+            next = endExperimentTrial;
+        end
+    end
+
+    function endExperimentResult_(trial, result)
+        if isSuccessful(result)
+            endTrialResult = result;
+        end
+        nextState = @doneState_
+    end
+
+    function next = doneState_(params)
+        next = [];
+    end
+
+    function r = isSuccessful_(result)
+        r = isfield(result, 'success') && (~isnan(result.success) && result.success) && (~isfield(result, 'abort') || ~result.abort);
+    end
 
     function params = pick_()
         if fullFactorial
@@ -293,7 +426,7 @@ this = Obj(autoobject(varargin{:}));
             if iscell(r.subs)
                 for j = 1:numel(r.subs)
                     try
-                    v = ev(val{j}, object);
+                        v = ev(val{j}, object);
                     catch
                         rethrow(lasterror);
                     end
