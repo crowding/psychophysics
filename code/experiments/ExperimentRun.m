@@ -70,15 +70,21 @@ end
             end
 
             function result = runTrial(params)
+
                 
                 %no exception handling around dump: if there's a
                 %problem with dumping data, end the experiment,
                 %please
-                
                 %we dump the trial structure BEFOREHAND to save the initial
                 %state, including any random number seeds etc.
                 dump(trial, params.log);
 
+                oldLog  = params.log;
+                %as a speed kludge,
+                %log into memory for the duration of the trial.
+                [push, readout] = linkedlist(2);
+                params.log = @(s, varargin)push(sprintf([s '\n'], varargin{:}));
+                
                 newParams = params;
                 try
                     [newParams, result] = trial.run(params);
@@ -97,6 +103,9 @@ end
                     result.err = e;
                 end
 
+                params.log = oldLog;
+                params.log('%s', readout());
+                
                 %anything the trial produces should wind up in the 'result'
                 %structure.
                 dump(newParams, params.log, 'params');

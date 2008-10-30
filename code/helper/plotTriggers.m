@@ -1,7 +1,7 @@
 function t = plotTriggers(ax, params, trigger)
     %plot the triggers from an eye movement trial, for diagnostic purposes.
 %    figure(fig); %do NOT bring it to the front...
-    makeCurrentAxis(ax);
+    makeCurrentAxes(ax);
     
     d = params.input.eyes.getData();
     d([1 2],:) = repmat(params.input.eyes.getOffset(), 1, size(d,2)) + params.input.eyes.getSlope() * d([1 2],:);

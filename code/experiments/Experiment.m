@@ -142,8 +142,9 @@ end
 
         %if there was an error, report it after saving
         if ~isempty(theRun.getErr())
-            warning('the run stopped with an error: %s', theRun.err.identifier)
-            stacktrace(theRun.err);
+            err = theRun.getErr();
+            warning('the run stopped with an error: %s', err.identifier)
+            stacktrace(err);
         end
     end
 end

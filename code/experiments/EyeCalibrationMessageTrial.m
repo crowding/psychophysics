@@ -26,7 +26,7 @@ this = autoobject(varargin{:});
 
     function [params, result] = run(params)
         %initialize data...
-        figure = figure(2); clf;
+        f = figure(2); clf;
         ax = axes();
         title('Eye calibration endpoints');
 

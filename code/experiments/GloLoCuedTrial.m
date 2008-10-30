@@ -1,16 +1,22 @@
 function this = GloLoCuedTrial(varargin)
 
+    fixationLatency = 2; %how long to wait for acquiring fixation
+    
+    fixationStartWindow = 3; %this much radius for starting fixation
+    fixationSettle = 0.3; %allow this long for settling fixation.
+    fixationWindow = 1.5; %subject must fixate this closely...
+
     %timing parameters
     extra = struct();
     startTime = 0;      %GetSecs value for when the trial should start (for ITI control)
-    barCueOnset = 0.25;
+    barCueOnset = 0.0;  %after acquiring fixation
     barCueDuration = 1/30; %how long to show the cue on screen
     barCueDelay = 0.5; %how long between cuing the bar position and beginning the stimulus.
     
     barOnset = 0;       %when the bar flashes relative to the motion stimulus onset
     barFlashDuration = 1/30; %the duration of the bar's flash
     stimulusDuration = Inf; %switch the sitmulus off after this long...
-
+ 
     %graphics parameters
     
     
@@ -78,6 +84,7 @@ function this = GloLoCuedTrial(varargin)
     bar_ = FilledBar();
     main_ = mainLoop();
     trigger_ = Trigger();
+    evf_ = eyeVelocityFilter();
     
     function [params, result] = run(params)
         %we will fill out this structure
@@ -90,6 +97,7 @@ function this = GloLoCuedTrial(varargin)
             , 'motionOnset', NaN ...
             );
         
+        theTarget = targets{whichTargets};
         
         color = @(c)params.blackIndex + (params.whiteIndex-params.blackIndex)*c;
         
@@ -117,24 +125,53 @@ function this = GloLoCuedTrial(varargin)
         trigger_.singleshot(atLeast('next', startTime - interval/2), @showFixation);
                 
         %run the main loop
-        main_.setGraphics({bar_, fixationPoint_, targets{whichTargets}});
-        main_.setInput({params.input.knob, params.input.keyboard});
+        main_.setGraphics({bar_, fixationPoint_, theTarget});
+        main_.setInput({params.input.knob, params.input.keyboard, params.input.eyes, evf_});
         main_.setTriggers({trigger_});
 
         positionBar();
         
         main_.go(params);
 
+        
+        
         %event handler functions
         function showFixation(s)
             %We start here, and wait through the ISI.
             fixationPoint_.setVisible(1);
             result.startTime = s.next;
             
-            %wait out the inter-stimulus interval.
-            trigger_.singleshot(atLeast('next', s.next + barCueOnset - interval/2), @showCue);
+            trigger_.first ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixationPoint_.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
+                , atLeast('eyeFt', s.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
+                );
         end
-                
+        
+        function failedWaitingFixation(k)
+            failed(k);
+        end
+
+        function settleFixation(k)
+            trigger_.first ...
+                ( atLeast('eyeFt', k.triggerTime + fixationSettle), @startTrial, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixationPoint_.getLoc, fixationStartWindow), @failedSettling, 'eyeFt' ...
+                );
+        end
+        
+        function failedSettling(k)
+            failed(k);
+        end
+
+        fixationBreakHandle_ = [];
+        function startTrial(h)
+            fixationBreakHandle_ = trigger_.singleshot(circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixationPoint_.getLoc, fixationWindow), @failedFixation);
+            trigger_.singleshot(atLeast('next', h.next + barCueOnset), @showCue);
+        end
+        
+        function failedFixation(s)
+            failed(s);
+        end
+        
         function showCue(s)
             %show the bar flash position
             bar_.setVisible(1);
@@ -145,7 +182,7 @@ function this = GloLoCuedTrial(varargin)
             bar_.setVisible(0);
             %clever bit: since the Cauchy sprite player runs on timestamps
             %and not refreshes, I can schedule it from the beginning.
-            result.motionStartTime = targets{whichTargets}.setVisible(1, s.next + barCueDelay);
+            result.motionStartTime = theTarget.setVisible(1, s.next + barCueDelay);
 
             %schedule the bar flash to occur
             trigger_.singleshot(atLeast('next', s.next + barCueDelay + barOnset - interval/2), @showBar);
@@ -158,13 +195,15 @@ function this = GloLoCuedTrial(varargin)
         function showBar(s)
             bar_.setVisible(1);
             trigger_.singleshot(atLeast('next', s.next + barFlashDuration - interval/2), @hideBar);
+            trigger_.remove(fixationBreakHandle_);
         end
         
-        function hideBar(s) %#ok
+        function hideBar(s)
             bar_.setVisible(0);
             
             %now wait for a response : Knob rotating CW, knob rotating CCW, or knob pressed to
-            %skip.
+            %skip. Fixation breaks are allowed from this point.
+
             trigger_.mutex ...
                 ( atLeast('knobPosition', s.knobPosition + knobThreshold), @knobCW ...
                 , atMost('knobPosition', s.knobPosition - knobThreshold), @knobCCW ...
@@ -173,7 +212,7 @@ function this = GloLoCuedTrial(varargin)
         end
         
         function hideStimulus(s)
-            targets{whichTargets}.setVisible(0);
+            theTarget.setVisible(0);
         end
         
         function knobCW(s)
@@ -197,10 +236,15 @@ function this = GloLoCuedTrial(varargin)
         function stop(s)
             fixationPoint_.setVisible(0);
             bar_.setVisible(0);
-            targets{whichTargets}.setVisible(0);
+            theTarget.setVisible(0);
             
             trigger_.singleshot(atLeast('refresh', s.refresh+1), main_.stop);
             result.endTime = s.next;
+        end
+        
+        function failed(s)
+            result.success = 0;
+            stop(s);
         end
         
         function abort(s)

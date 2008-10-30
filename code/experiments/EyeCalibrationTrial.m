@@ -33,7 +33,9 @@ function this = EyeCalibrationTrial(varargin)
     if isempty(plotAxes) && plotOutcome
         figure();
         plotAxes = axes();
-        cbHandle_ = addCallback(plotAxes, 'DeleteFcn', @()this.setPlotOutcome(0));
+        
+        %TODO i need a reversible addCallback function...
+        set(plotAxes, 'DeleteFcn', @(src, eventdata, stuff)this.setPlotOutcome(0));
     end
     
     function [params, result] = run(params)

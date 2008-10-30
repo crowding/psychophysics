@@ -3,7 +3,7 @@ function this = makeCurrentAxes(ax)
 %makes the axis and the figure containing it current WITHOUT raising it to
 %the foreground. Sheesh.
 
-fig = ancestor(x, 'figure'); %i can't make ancestor work????
+fig = ancestor(ax, 'figure'); %i can't make ancestor work????
 if ~isempty(fig)
     set(0, 'CurrentFigure', fig);
     set(fig, 'CurrentAxes', ax);
