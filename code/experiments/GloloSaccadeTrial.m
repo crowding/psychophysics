@@ -56,7 +56,7 @@ function this = SimpleSaccadeTrial(varargin)
     if isempty(plotAxes) && plotOutcome
         f_ = figure();
         plotAxes = axes();
-        addCallback(f_, 'DeleteFcn', @()this.setPlotOutcome(0));
+        set(f_, 'DeleteFcn', @(a,b,c)this.setPlotOutcome(0));
     end
     
     function [params, result] = run(params)
