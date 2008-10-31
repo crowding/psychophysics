@@ -180,7 +180,7 @@ function this = Trigger(varargin)
         triggers = triggers_.(name);
         deleted = zeros(1, size(triggers, 1));
         for i = handle(:)'
-            deleted = deleted | [triggers{:,4}] == handle;
+            deleted = deleted | ([triggers{:,4}] == i);
         end
         triggers(deleted,4) = {0};
         removed = sum(deleted);

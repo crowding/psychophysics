@@ -191,7 +191,7 @@ this = autoobject(varargin{:});
     function n = next(params)
         if isempty(nextState_)
             nextState_ = @startExperiment_;
-            resultState_ = @startBlock_;
+            resultState_ = [];
         end
         
         n = nextState_(params);
@@ -308,7 +308,7 @@ this = autoobject(varargin{:});
     function next = endBlock_(trial, result)
         if isempty(endBlockTrial)
             if ~shuffleHasNext_()
-                nextState_ = @startBlockTrial_;
+                nextState_ = @startBlock_;
             else
                 nextState_ = @endExperiment_;
             end
@@ -323,7 +323,7 @@ this = autoobject(varargin{:});
         if isSuccessful_(result)
             endBlockTrialResults{end+1} = result;
             if shuffleHasNext_()
-                nextState_ = @startBlockTrial_;
+                nextState_ = @startBlock_;
             else
                 nextState_ = @endExperiment_;
             end
@@ -335,7 +335,7 @@ this = autoobject(varargin{:});
             next = [];
         else
             resultState_ = @endExperimentResult_;
-            next = endExperimentTrial;
+            next = endTrial;
         end
     end
 
