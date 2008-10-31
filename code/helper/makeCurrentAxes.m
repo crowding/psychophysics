@@ -9,5 +9,5 @@ if ~isempty(fig)
     set(fig, 'CurrentAxes', ax);
 else
     %ffs, why won't ancestor work on my laptop?
-    axis(ax);
+    axes(ax);
 end
