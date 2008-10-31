@@ -29,6 +29,7 @@ function params = setupEyelink(params)
         , 'current_camera', 'LEFT'...
         , 'aux_mouse_simulation', 'NO'...
         , 'use_high_speed', 'YES' ...
+        , 'sample_rate', 1000 ...
         ...
         , 'horizontal_target_y', (params.cal.rect(4)-params.cal.rect(2))/2 ...
         , 'calibration_type', 'HV9' ...
@@ -80,6 +81,8 @@ function params = setupEyelink(params)
     %status = Eyelink('command', 'clear_screen 0');	% initialize screen on operater PC
     Eyelink('command', 'clear_screen 0');	% initialize screen on operater PC
 
+    Eyelink('StartSetup'); %sample rate doesn't change unless do this. Hmph.
+    
     for f = fieldnames(settings)'
         field = f{:}; %strip field out of cell
         %note: num2str('string') returns the same string
@@ -94,5 +97,5 @@ function params = setupEyelink(params)
 
     params.eyelinkSettings = settings;
     
-    params.eyeSampleRate = 1000; %FIXME how do I query this?
+    params.eyeSampleRate = params.eyelinkSettings.sample_rate;
 end

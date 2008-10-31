@@ -104,12 +104,18 @@ function this = CauchySpritePlayer(varargin)
         nAdvanced = 0;
         
         while 1
-            if ~isempty(queue_) && queue_(3,end) + onset_ >= next
-                %sort of spread out the work....
-                ampl = exp(-(((queue_(3,end)+onset_-next)./queue_(9,end)*2).^2));
-                if ampl < accuracy
-                    break;
+            if ~isempty(queue_)
+                ahead = queue_(3,:) + onset_ >= next;
+                if any(ahead)
+                    ampl = exp(-(((queue_(3,ahead)+onset_-next)./queue_(9,ahead)*2).^2));
+                    if min(ampl) < accuracy
+                        break;
+                    end                    
                 end
+                %if we have things ahead in the queue, do we stop?
+                
+                %stop if any of them are too far ahead to show (disregarding contrast). This is because siccessive calls move forward in time...
+                %sort of spread out the work....
                 %{
                 if (nAdvanced >= 3)
                     break;

@@ -195,15 +195,21 @@ function this = GloLoCuedTrial(varargin)
         function showBar(s)
             bar_.setVisible(1);
             trigger_.singleshot(atLeast('next', s.next + barFlashDuration - interval/2), @hideBar);
-            trigger_.remove(fixationBreakHandle_);
         end
         
         function hideBar(s)
             bar_.setVisible(0);
-            
+            trigger_.singleshot(atLeast('refresh', s.refresh + 2), @awaitInput);
+        end
+        
+        function awaitInput(s)
+            %this is moved into a following event in order to calm frame
+            %skips...
+
             %now wait for a response : Knob rotating CW, knob rotating CCW, or knob pressed to
             %skip. Fixation breaks are allowed from this point.
-
+            
+            trigger_.remove(fixationBreakHandle_);
             trigger_.mutex ...
                 ( atLeast('knobPosition', s.knobPosition + knobThreshold), @knobCW ...
                 , atMost('knobPosition', s.knobPosition - knobThreshold), @knobCCW ...

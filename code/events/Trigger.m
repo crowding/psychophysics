@@ -178,9 +178,12 @@ function this = Trigger(varargin)
         %This just marks the trigger deleted. (by setting the handle equal to 0).
         %check() will actually delete them.
         triggers = triggers_.(name);
-        [deleted, ia] = intersect([triggers{:,4}], handle);
-        triggers(ia,4) = {0};
-        removed = numel(ia);
+        deleted = zeros(1, size(triggers, 1));
+        for i = handle(:)'
+            deleted = deleted | [triggers{:,4}] == handle;
+        end
+        triggers(deleted,4) = {0};
+        removed = sum(deleted);
         triggers_.(name) = triggers;
     end
 

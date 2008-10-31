@@ -59,8 +59,8 @@ function this = CircularCauchyMotion(varargin)
         tt = t + c .* dt;
         i = find(tt <= min(tt + dt));
         tt = tt(i);
-        [tt, ix] = sort(tt);
-        i = i(ix);
+%        [tt, ix] = sort(tt);
+%        i = i(ix);
         
 %       [tt, i] = min(t + c .* dt);
         
@@ -117,11 +117,13 @@ function this = CircularCauchyMotion(varargin)
             
             counter_(i) = c(i) + 1;
             lastT_ = max(tt);
+
+            out = [xx;yy;tt;aa;cc;ww;dd;ll;vv;or;ph];
+
         else
-            [xx, yy, tt, aa, cc, ll, ww, dd, vv, ph, or] = deal([]);
+            out = zeros(13, 0);
         end
 
-        out = [xx;yy;tt;aa;cc;ww;dd;ll;vv;or;ph];
 %        s = struct('x', xx, 'y', yy, 't', tt, 'angle', aa, 'color', cc, 'wavelength', ll, 'width', ww, 'duration', dd, 'velocity', vv, 'phase', ph, 'order', or);
     end
 
