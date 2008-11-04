@@ -100,7 +100,7 @@ function e = GloloSaccade(varargin)
     e.trials.interTrialInterval = 0.5;
     
     e.trials.fullFactorial = 1;
-    e.trials.reps = 50;
+    e.trials.reps = 40;
     e.trials.blockSize = 224;
     
     %we may wish to also sample temporal frequency, in the same trial
@@ -128,5 +128,4 @@ function e = GloloSaccade(varargin)
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('%d blocks remain.\nPress space to continue.', e.trials.blocksLeft()));
     e.trials.endTrial = MessageTrial('message', 'All done!\nPress space to finish.\nThanks!');
     
-
 end

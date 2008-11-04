@@ -13,21 +13,38 @@ function this = Text(varargin)
     this = autoobject(varargin{:});
 
     toPixels_ = 0;
+    background_ = [];
 
     function draw(window, next)
         if ~visible
             return;
         end
         pix = toPixels_(loc);
-        if centered
-            bounds = Screen('TextBounds', window, text);
-            pix = pix - (bounds([3 4]) - bounds([1 2])) ./ 2;
+        %split on newlines. Note MATLAB has no excapes and no newlines
+        %allowed in strings, so must represent in sprintf(wtf)
+        lines = splitstr(sprintf('\n'),text);
+        
+        bounds = zeros(numel(lines),4);
+        for i = 1:numel(lines)
+            bounds(i,:) = Screen('TextBounds', window, lines{i});
         end
-        Screen('DrawText', window, text, pix(1), pix(2), color);
+        height = cumsum(bounds(:,4) - bounds(:,2));
+        height = height - height(1);
+        bounds(:,2) = bounds(:,2) + height;
+        bounds(:,4) = bounds(:,4) + height;
+        
+        if centered
+            pix = pix - (bounds(end,[3 4]) - bounds(1,[1 2])) ./ 2;
+        end
+        
+        for i = 1:numel(lines)
+            Screen('DrawText', window, lines{i}, pix(1), pix(2) + height(i), color, background_);
+        end
     end
 
     function [release, params] = init(params)
         toPixels_ = transformToPixels(params.cal);
+        background_ = params.backgroundIndex;
         release = @noop;
     end
 

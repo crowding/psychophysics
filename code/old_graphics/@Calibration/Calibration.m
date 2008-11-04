@@ -35,7 +35,7 @@ function p = Calibration(varargin)
 classname = mfilename('class');
 args = varargin;
 
-if length(args) > 0 && isa(args{1}, classname)
+if ~isempty(args) && isa(args{1}, classname)
 	%copy constructor
 	p = args{1};
 	args = args(2:end);
@@ -79,7 +79,11 @@ if isnan(p.ptb)
 end
 
 if isnan(p.screenNumber)
-	p.screenNumber = l.screenNumber;
+    if isfield(l, 'ScreenNumber')
+    	p.screenNumber = l.screenNumber;
+    else
+        p.screenNumber = max(Screen('Screens'));
+    end
 end
 if isnan(p.rect)
 	p.rect = Screen('Rect', p.screenNumber);
@@ -114,7 +118,7 @@ if ~found
 	end
 	if isnan(p.gamma)
 %%%		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
-        p.gamma = linspace(0,1,256)' * [1 1 1]
+        p.gamma = linspace(0,1,256)' * [1 1 1];
 	end
 	if isnan(p.calibrated)
 		p.calibrated = 0;
