@@ -340,10 +340,10 @@ this = autoobject(varargin{:});
     end
 
     function endExperimentResult_(trial, result)
-        if isSuccessful(result)
+        if isSuccessful_(result)
             endTrialResult = result;
         end
-        nextState = @doneState_
+        nextState_ = @doneState_;
     end
 
     function next = doneState_(params)
