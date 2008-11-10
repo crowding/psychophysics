@@ -217,11 +217,15 @@ function this = LogfileLoader(varargin)
             end
         end
 
+    slope_ = [];
+    offset_ = [];
     function beginExperiment(line)
         fprintf(2, '%s\n',line);
         experiment_ = struct('trials', {{}});
         oldContext = context_;
         context_ = 'experiment_.';
+        slope_ = [];
+        offset_ = [];
         function endExperiment_(line)
             context_ = oldContext;
             endExperiment(line)
@@ -255,8 +259,8 @@ function this = LogfileLoader(varargin)
     end
 
     function endTrial(message)
-        %FIXME - the data file should specify these fields somehow, but I
-        %don't see where
+        %FIXME - the log/data file should specify these custom fields somehow, but I
+        %don't see where...
         
         %build a struct of arrays (reputed to be faster and less memory
         %than an array of structs, even though the latter makes loads more
@@ -265,16 +269,27 @@ function this = LogfileLoader(varargin)
         trial_.frame_skips = structcat(trial_.frame_skips);
         trial_ = endTrialCallback(trial_);
         
-        %apply eye calibration (since the raw data is stored)
+        %if a calibration is entered, remember it.
+        if isfield(trial_, 'result') && isfield(trial_.result, 'success') && trial_.result.success ~= 0 && isfield(trial_.result, 'slope') && isfield(trial_.result, 'offset')
+            slope_ = trial_.result.slope;
+            offset_ = trial_.result.offset;
+        end
+        
         if isfield(trial_, 'eyeData')
-            tocalibrate = trial_.eyeData(1:2,:);
-            slope = experiment_.beforeRun.params.input.eyes.slope;
-            offset = experiment_.beforeRun.params.input.eyes.offset;
+            %apply eye calibration ONLY FOR LABJACK DATA!!!!! (whoops) (since
+            %the raw data is stored)
+            if strcmp(experiment_.beforeRun.params.input.eyes.version__.function, 'LabJackInput')
+                tocalibrate = trial_.eyeData(1:2,:);
+                %ALSO TODO: watch for calibration trials and use the to update
+                %calibration slopes....
+                if isempty(slope_)
+                    slope_ = experiment_.beforeRun.params.input.eyes.slope;
+                    offset_ = experiment_.beforeRun.params.input.eyes.offset;
+                end
 
-            calibrated = slope * tocalibrate + offset(:,ones(1, size(tocalibrate,2)));
-            trial_.eyeData(1:2,:) = calibrated;
-        else
-            noop();
+                calibrated = slope_ * tocalibrate + offset_(:,ones(1, size(tocalibrate,2)));
+                trial_.eyeData(1:2,:) = calibrated;
+            end
         end
         
         experiment_.trials = cat(1, experiment_.trials, trial_);

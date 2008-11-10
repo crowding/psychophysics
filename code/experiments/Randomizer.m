@@ -305,9 +305,9 @@ this = autoobject(varargin{:});
         end
     end
 
-    function next = endBlock_(trial, result)
+    function next = endBlock_(params)
         if isempty(endBlockTrial)
-            if ~shuffleHasNext_()
+            if shuffleHasNext_()
                 nextState_ = @startBlock_;
             else
                 nextState_ = @endExperiment_;
