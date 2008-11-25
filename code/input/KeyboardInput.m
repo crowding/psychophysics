@@ -53,7 +53,7 @@ function this = KeyboardInput(varargin)
         ListenChar(2); %disable keyboard input to matlab...
 
         release = @stop;
-        function stop();
+        function stop()
             ListenChar(0);
         end
     end

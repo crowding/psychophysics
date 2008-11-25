@@ -10,8 +10,8 @@ function this = FilledDisk(varargin)
 
 dotType = 1;
 visible = 0;
-loc = [0 0];
-radius = [0 0];
+loc = [0;0];
+radius = [0];
 color = [0 0 0];
 
 varargin = assignments(varargin, 'loc', 'radius', 'color');
@@ -30,9 +30,10 @@ toPixels_ = [];
                 l = e(loc, next - onsetTime_);
                 
                 center = toPixels_(l);
-                sz = norm(center - toPixels_(l + [radius;0]));
+                shifted = loc; shifted(1,:)  = shifted(1,:) + radius;
+                sz = sqrt(sum((center - toPixels_(shifted)).^2));
                 if any(sz > 31)
-                    Screen('gluDisk', window, color, center(1), center(2), sz);
+                    Screen('gluDisk', window, color, center(1,:), center(2,:), sz);
                 else
                     [src, dst] = Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);

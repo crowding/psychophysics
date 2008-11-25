@@ -17,6 +17,7 @@ function this = CircularCauchyMotion(varargin)
     order = 4;
     
     dphase = 0; %the phase angle change per appearance
+    dLocalPhase = 0; %does the local phase angle change?
     dt = 0.1; %the number of seconds per appearance
     n = Inf; %the number of appearances to show (for each item)
 
@@ -46,9 +47,13 @@ function this = CircularCauchyMotion(varargin)
         
         %correct the counter, in case n/t/phase changed.
         ct = floor((lastT_ - t) / dt + 1);
-        c = min(c, ct+1);
-        c = max(c, ct-1);
-        c = max(c, 0);
+        if numel(ct) ~= numel(c)
+            c = ct-1;
+        else
+            c = min(c, ct+1);
+            c = max(c, ct-1);
+            c = max(c, 0);
+        end
         
         c(c > n) = NaN;
                 
@@ -104,9 +109,9 @@ function this = CircularCauchyMotion(varargin)
             end
 
             if numel(localPhase) > 1
-                ph = localPhase(i);
+                ph = localPhase(i) + dLocalPhase.*c;
             else
-                ph = localPhase(ones(1,numel(i)));
+                ph = localPhase(ones(1,numel(i))) + dLocalPhase.*c;
             end
 
             if numel(order) > 1

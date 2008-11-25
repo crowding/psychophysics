@@ -34,6 +34,12 @@ function display(this)
                     , this.version__.function));
         end
     else
-        builtin('display', this);
+        %this doesn't preserve the input name... structs all get displayed
+        %as 'this = ...'
+        %builtin('display', this);
+        
+        %well, this is one way to preserve the input name while calling the
+        %builting struct display...
+        evalin('caller', ['builtin(''display'',' inputname(1) ')']);
     end
 end
