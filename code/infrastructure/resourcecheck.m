@@ -1,27 +1,35 @@
 function stack = resourcecheck(stack, release)
     %The nature of resources is that a resource called on one stack frame
     %should be released before ending the stack frame.
-    %Since there are ways in MATLAB to cancel execution without tripping
-    %any exception handlers, there needs to be a post-hoc check to clean up
-    %leftover resources
-    %This is called with zero args before executing any initializer
+    %Since there are ways built in to  MATLAB to cancel execution without
+    %tripping any exception handlers, there needs to be a post-hoc check to
+    %clean up leftover resources.
+    %
+    %This function is called with zero args before executing any initializer
     %function.
+    %
     %Then it is called with two args to check in after running the
     %initializer.
+    %
     %Then it is called with one arg to check out.
     %
-    %note, the way that MATLAB fails to trip and exception on Ctrl-c (or on
+    %Why it exists: The way that MATLAB fails to trip any exception on Ctrl-c (or on
     %dbquit) is TOTALLY RETARDED and causes PAIN AND DEATH. Wham! All your
     %filehandles left open! Bam! All memory allocated in MEX extensions never
-    %reclaimed. Poof! Now if you're on a single screen machine you get to
-    %learn Cmd+0,"clear Screen" typing blind. Even better, this was a
-    %deliberate decision and change from earlier reasonable behavior
-    %according to Steven Lord.
+    %reclaimed. Poof! All graphics windows left on and all texture memory
+    %left allocated! Now if you're working in Psychtoolbox on a single
+    %screen machine you get to memorize the sequence: Cmd+0,"clear Screen"
+    %typing blind.
+    %
+    %Even better, this was a deliberate decision and change from earlier
+    %reasonable behavior according to Steven Lord.
     %
     %Interestingly, if you have 'dbstop if error' set, the debugger will
-    %stop at a Ctrl-c. Not that you can trigger anything that way;
-    persistent resources;
+    %stop at a Ctrl-c. Not that you can trigger anything that way; it just
+    %shows that the capability could be added easily, if anyone at
+    %Mathworks knew anything.
     
+    persistent resources;
     
     switch(nargin)
         case 0

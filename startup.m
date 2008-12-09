@@ -5,3 +5,5 @@ cd('~/eyetracking/');
 if usejava('jvm')
     AddPsychJavaPath;
 end
+addpath('~/eyetracking/switchbox');
+addpath('~/eyetracking/switchbox/shadow');

@@ -5,7 +5,7 @@ end
 
     function [wrapped, assign] = subsasgnstep(wrapped, subs, what)
         %since some things pretend to be a struct when they're not, we 
-        %have to drill down a step at a time
+        %have to drill down a step at a time.
         if strcmp(subs(1).type, '.') && isobject(wrapped)
             try
                 if numel(subs) <= 1
@@ -19,9 +19,10 @@ end
                     %to propagate the subsasgn out
                     assign = 0;
                 else
-                    %First pass: set everything in the chain. This could be
-                    %more efficient as we only really need to set the property
-                    %on the last reference object in the chain.
+                    
+                    %we have a reference object, therefore need to
+                    %drill down. How does this work?
+                    
                     try
                         sub = wrapped.(getterName(subs(1).subs))();
                     catch

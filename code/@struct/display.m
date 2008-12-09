@@ -40,6 +40,12 @@ function display(this)
         
         %well, this is one way to preserve the input name while calling the
         %builting struct display...
-        evalin('caller', ['builtin(''display'',' inputname(1) ')']);
+        prefix = inputname(1);
+        if ~isempty(prefix)
+            prefix = [prefix ' = '];
+        end
+        disp(prefix);
+        builtin('display', [this []]);
+%        evalin('caller', ['builtin(''display'',' inputname(1) ')']);
     end
 end

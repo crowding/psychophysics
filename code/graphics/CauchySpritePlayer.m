@@ -105,6 +105,10 @@ function this = CauchySpritePlayer(varargin)
         
         while 1
             if ~isempty(queue_)
+                %stop filling the queue if any objects presently in the
+                %queue are 2x too far ahead to show (disregarding contrast).
+                %This is not exactly the right metric, but as close as one
+                %can get w/o knowledge of what's coming up.
                 ahead = queue_(3,:) + onset_ >= next;
                 if any(ahead)
                     ampl = exp(-(((queue_(3,ahead)+onset_-next)./queue_(9,ahead)*2).^2));
@@ -112,9 +116,6 @@ function this = CauchySpritePlayer(varargin)
                         break;
                     end                    
                 end
-                %if we have things ahead in the queue, do we stop?
-                
-                %stop if any of them are too far ahead to show (disregarding contrast). This is because siccessive calls move forward in time...
                 %sort of spread out the work....
                 %{
                 if (nAdvanced >= 3)
@@ -164,6 +165,9 @@ function this = CauchySpritePlayer(varargin)
                     queue_ = [queue_ s];
                     nAdvanced = nAdvanced + 1;
                 end
+            end
+            if nAdvanced >= 10
+                noop();
             end
         end
     end

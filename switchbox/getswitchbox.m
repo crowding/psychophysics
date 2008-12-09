@@ -38,7 +38,7 @@ function i = getswitchbox(varargin)
             machine = getresponse(params, 61, 1, 0)
             version = getresponse(params, 61, 3, 0)
             
-            if ~(issame(machine, [61, 0, 44]) && issame(version, [61, 1, 0]))
+            if ~(isequalwithequalnans(machine, [61, 0, 44]) && isequalwithequalnans(version, [61, 1, 0]))
                 error('switchscreen:serial', 'no serial device, or wrong serial device');
             end
             prevIn = 2;
@@ -67,7 +67,7 @@ function i = getswitchbox(varargin)
             
             function sw(input, output)
                 r = getresponse(params, 1, input, output, 3)
-                if ~issame(r, [1 input output])
+                if ~isequalwithequalnans(r, [1 input output])
                     error('getswitchbox:switchFailed', 'Could not switch video');
                 end
             end

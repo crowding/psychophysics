@@ -30,15 +30,16 @@ function this = EyeCalibrationTrial(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
-    if isempty(plotAxes) && plotOutcome
-        figure();
-        plotAxes = axes();
-        
-        %TODO i need a reversible addCallback function...
-        set(plotAxes, 'DeleteFcn', @(src, eventdata, stuff)this.setPlotOutcome(0));
-    end
     
     function [params, result] = run(params)
+        if isempty(plotAxes) && plotOutcome
+            figure();
+            plotAxes = axes();
+
+            %TODO i need a reversible addCallback function...
+            set(plotAxes, 'DeleteFcn', @(src, eventdata, stuff)this.setPlotOutcome(0));
+        end
+
         result = struct('target', [targetX targetY]);
         
         target = FilledDisk('loc', [targetX targetY], 'radius', targetRadius, 'color', [0 0 0], 'visible', 0);

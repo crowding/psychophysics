@@ -110,7 +110,7 @@ function e = GloloSaccadeCharlie(varargin)
     %set...
     
     %target tracking time
-    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.2, 'tau', 0.2));
+    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
     
     %begin with an eye calibration and again every 10 minutes...
     e.trials.blockSize = 150;

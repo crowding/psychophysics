@@ -9,9 +9,9 @@ function e = GloloSaccade(varargin)
         , 'fixationOnset', 0 ...
         , 'fixationTime', Inf ...
         , 'fixationLatency', 1.0 ...
-        , 'fixationStartWindow', 3 ...
+        , 'fixationStartWindow', 2 ...
         , 'fixationSettle', 0.4 ...
-        , 'fixationWindow', 2 ...
+        , 'fixationWindow', 3 ...
         , 'targetOnset', 0 ...
         , 'target', CauchyDrawer...
             ( 'source', CircularSmoothCauchyMotion ...
@@ -59,7 +59,7 @@ function e = GloloSaccade(varargin)
     %the target onset comes at a somewhat unpredictable time.
     e.trials.add('targetOnset', ExponentialDistribution('offset', 0, 'tau', 0.15));
     
-    e.trials.add('cueTime', ExponentialDistribution('offset', 0.60, 'tau', 0.2));
+    e.trials.add('cueTime', ExponentialDistribution('offset', 0.55, 'tau', 0.25));
 
     %the targets come up at an unknown location around the circle.
     e.trials.add('target.source.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
@@ -100,14 +100,16 @@ function e = GloloSaccade(varargin)
     e.trials.interTrialInterval = 0.5;
     
     e.trials.fullFactorial = 1;
-    e.trials.reps = 40;
-    e.trials.blockSize = 224;
+    e.trials.reps = 30;
+    e.trials.blockSize = 170;
+    
+    e.trials.requireSuccess = 1;
     
     %we may wish to also sample temporal frequency, in the same trial
     %set...
     
     %target tracking time
-    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.2, 'tau', 0.2));
+    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
     
     %begin with an eye calibration and again every 10 minutes...
     e.trials.blockTrial = EyeCalibrationMessageTrial();
@@ -126,6 +128,6 @@ function e = GloloSaccade(varargin)
     e.trials.blockTrial.interTrialInterval = 0.2;  
     e.trials.startTrial = MessageTrial('message', @()sprintf('Follow the moving target with your eyes when fixation point diasappears.\n%d blocks remain.\nPress space to begin calibration.', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('%d blocks remain.\nPress space to continue.', e.trials.blocksLeft()));
-    e.trials.endTrial = MessageTrial('message', 'All done!\nPress space to finish.\nThanks!');
+    e.trials.endTrial = MessageTrial('message', sprintf('All done!\nPress space to finish.\nThanks!'));
     
 end

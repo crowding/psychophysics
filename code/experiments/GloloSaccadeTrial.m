@@ -1,4 +1,4 @@
-function this = SimpleSaccadeTrial(varargin)
+function this = GloloSaccadeTrial(varargin)
     %A trial for circular pursuit. The obzerver begins the trial by
     %fixating at a central fixation point. Another point comes up in a
     %circular trajectory; at some point it may change its color. 
@@ -40,6 +40,13 @@ function this = SimpleSaccadeTrial(varargin)
     trackingTarget = FilledDisk('loc', [8 0], 'radius', 0.2, 'color', 0);
     useTrackingTarget = 0;
     
+    %as an added twist, you can show a precue. Combine this with multiple
+    %tracking targets for a nice effect.
+    precue = FilledDisk('loc', [8 0], 'radius', 0.2, 'color', 1);
+    usePrecue = 0;
+    precueOnset = 0;
+    precueDuration = 0.25; %how long the precue is shown.
+    
     errorTimeout = 1;
     
     rewardSize = 100;
@@ -65,6 +72,8 @@ function this = SimpleSaccadeTrial(varargin)
         result = struct('success', NaN);
         
         trigger = Trigger();
+        
+        interval = params.cal.interval;
 
         trigger.panic(keyIsDown('q'), @abort);
         trigger.singleshot(atLeast('next', startTime), @begin);
@@ -75,7 +84,7 @@ function this = SimpleSaccadeTrial(varargin)
         
         main = mainLoop ...
             ( 'input', {params.input.eyes, params.input.keyboard, EyeVelocityFilter()} ...
-            , 'graphics', {fixation, target, trackingTarget} ...
+            , 'graphics', {fixation, target, trackingTarget, precue} ...
             , 'triggers', {trigger} ...
             );
         
@@ -119,11 +128,24 @@ function this = SimpleSaccadeTrial(varargin)
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
                     );
             end
-            
+
+            if usePrecue
+                trigger.singleshot ...
+                    ( atLeast('next', fixationOnset_ + precueOnset - interval/2), @showPrecue );
+            end
             %from now on, blinks are not allowed. How to do this? It'd be
             %nice to have handles to the triggers! Ah.
             blinkhandle_ = trigger.singleshot ...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [0;0], 40), @failedBlink);
+        end
+        
+        function showPrecue(h)
+            precue.setVisible(1, h.next);
+            trigger.singleshot(atLeast('next', h.next + precueDuration - interval/2), @hidePrecue);
+        end
+        
+        function hidePrecue(h)
+            precue.setVisible(0);
         end
         
         function failedFixation(x)
@@ -149,7 +171,6 @@ function this = SimpleSaccadeTrial(varargin)
                 , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
                 );
         end
-        
         
         oldColor_ = [];
         function blankTarget(k) %#ok

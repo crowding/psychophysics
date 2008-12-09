@@ -1,12 +1,5 @@
 function varargout = require(varargin)
 
-%the resources__ global keeps track of the stacktrace of every time
-%require() or joinResource() was called and enforces that resources are
-%shut down properly.
-global resources__;
-
-%Problem: How can we tell, if we are interrupted, whether we were?
-
 %function varargout = require(params, resource, ..., protected)
 %
 %REQUIRE acquires access to a limited resource before running a protected

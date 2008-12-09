@@ -46,14 +46,12 @@ function this = CircularCauchyMotion(varargin)
         c = counter_;
         
         %correct the counter, in case n/t/phase changed.
-        ct = floor((lastT_ - t) / dt + 1);
-        if numel(ct) ~= numel(c)
-            c = ct-1;
-        else
-            c = min(c, ct+1);
-            c = max(c, ct-1);
-            c = max(c, 0);
-        end
+        ct = counter_;
+        ct(:) = floor((lastT_ - t) ./ dt + 1);
+            
+        c = min(c, ct+1);
+        c = max(c, ct-1);
+        c = max(c, 0);
         
         c(c > n) = NaN;
                 

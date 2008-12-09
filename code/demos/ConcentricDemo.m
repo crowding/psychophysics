@@ -112,7 +112,6 @@ function this = ConcentricDemo(varargin)
         
         text = Text('loc', ttd(params.cal.rect([1 1])) + [0.5 0.5], 'Color', [0 0 0]);
 
-
         keyboardInput = KeyboardInput();
         
         trigger = Trigger();
