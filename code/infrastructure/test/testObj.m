@@ -5,6 +5,8 @@ this = inherit(TestCase, autoobject(varargin{:}));
     function this = fooObject(varargin)
         propA = 1;
         propB = 2;
+        
+        persistent init__;
         this = autoobject(varargin{:});
         function x = sum
             x = propA + propB;
@@ -18,7 +20,7 @@ this = inherit(TestCase, autoobject(varargin{:}));
 
     function testFieldNames
         o = Obj(fooObject());
-        assertEquals({'propA', 'propB'}, fieldnames(o));
+        assertEquals({'propA'; 'propB'}, fieldnames(o));
     end
 
     function testSubsrefParen

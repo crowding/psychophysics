@@ -5,5 +5,9 @@ cd('~/eyetracking/');
 if usejava('jvm')
     AddPsychJavaPath;
 end
-addpath('~/eyetracking/switchbox');
-addpath('~/eyetracking/switchbox/shadow');
+s = Screen('Computer');
+if strcmp(s.machineName, 'pastorianus')
+    addpath('~/eyetracking/switchbox');
+    addpath('~/eyetracking/switchbox/shadow');
+end
+clear s;

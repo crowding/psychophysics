@@ -1,23 +1,48 @@
 function varargout = subsref(this, subs)
-    [varargout{1:nargout}] = subsrefstep(this.wrapped, subs);
-end
+    %try a non-recursive algorithm.
+    whatsleft = this.wrapped; %the head of the data we have drilled down to so far
 
-function varargout = subsrefstep(wrapped, subs)
-    %since my objects pretend to be a struct when they're not, we
-    %have to drill down a step at a time.
-    if strcmp(subs(1).type, '.') && isobject(wrapped) && any(strcmp(wrapped.property__(), subs(1).subs))
-        if numel(subs) <= 1
-            [varargout{1:nargout}] = wrapped.property__(subs(1).subs);
+    for step = 1:numel(subs)-1
+        property = subs(step).subs;
+        if strcmp(subs(step).type, '.') && isobject(whatsleft) && ~isfield(whatsleft, property)
+            try
+                try
+                    whatsleft = whatsleft.(getterName(property))();
+                catch
+                    whatsleft = whatsleft.property__(property);
+                end
+            catch
+                %faster to ask forgiveness than permission...
+                if ~any(strcmp(whatsleft.property__(), property))
+                    error('Obj:noSuchProperty', 'No such property %s', property);
+                else
+                    rethrow(lasterror);
+                end
+            end
         else
-            [varargout{1:nargout}] = subsrefstep(wrapped.property__(subs(1).subs), subs(2:end));
+            whatsleft = unwrap(subsref(whatsleft, subs(step)));
+        end
+    end
+    
+    %last one, varargout it.
+    property = subs(end).subs;
+    if strcmp(subs(end).type, '.') && isobject(whatsleft) && ~isfield(whatsleft, property)
+        try
+            try
+                [varargout{1:nargout}] = whatsleft.(getterName(property))();
+            catch
+                [varargout{1:nargout}] = whatsleft.property__(property);
+            end
+        catch
+            %faster to ask forgiveness than permission...
+            if ~any(strcmp(wrapped.property__(), property))
+                error('Obj:noSuchProperty', 'No such property %s', property);
+            else
+                rethrow(lasterror);
+            end
         end
     else
-        if isa(wrapped, 'Obj')
-            [varargout{1:nargout}] = subsref(wrapped,subs);
-        elseif numel(subs) <= 1 || isa(wrapped, 'Obj')
-            [varargout{1:nargout}] = subsref(wrapped,subs(1));
-        else
-            [varargout{1:nargout}] = subsrefstep(subsref(wrapped, subs(1)), subs(2:end));
-        end
+        [varargout{1:nargout}] = subsref(whatsleft, subs(end));
+        [varargout{1:nargout}] = unwrap(varargout{:});
     end
 end

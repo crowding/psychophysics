@@ -1,71 +1,84 @@
 function this = subsasgn(this, subs, what)
     %just pass the subsref on...
-    this.wrapped = subsasgnstep(this.wrapped, subs, what);
+    this.wrapped = subsasgnit(this.wrapped, subs, what);
 end
 
-    function [wrapped, assign] = subsasgnstep(wrapped, subs, what)
-        %since some things pretend to be a struct when they're not, we 
-        %have to drill down a step at a time.
-        if strcmp(subs(1).type, '.') && isobject(wrapped)
+function [wrapped, assign] = subsasgnit(wrapped, subs, what)
+    %try a non-recursive algorithm.
+    lowestrefobj = []; %the lowest reference object in the assignment chain
+    property = [];
+    belowit = []; %what data lies below in the tree
+    subsleft = []; %what subscript lies below the lowest ref-obj
+
+    whatsleft = wrapped; %the head of the data we have drilled down to so far
+
+    for step = 1:numel(subs) -1 
+        if strcmp(subs(step).type, '.') && isobject(wrapped)
             try
-                if numel(subs) <= 1
-                    try
-                        %faster to do this nonsense because of slowness of loading structs :(
-                        wrapped.(setterName(subs(1).subs))(what);
-                    catch
-                        wrapped.(property__(subs(1).subs, what));                        
-                    end
-                    %since we set on a reference object, there is no need
-                    %to propagate the subsasgn out
-                    assign = 0;
+                lowestrefobj = whatsleft;
+                property = subs(step).subs;
+                try
+                    belowit = wrapped.(getterName(property))();
+                catch
+                    belowit = wrapped.property__(property);
+                end
+                subsleft = subs(step+1:end);
+                whatsleft = belowit;
+            catch
+                %faster to ask forgiveness than permission...
+                if ~any(strcmp(wrapped.property__(), subs(step).subs))
+                    error('Obj:noSuchProperty', 'No such property %s', subs(step).subs);
                 else
-                    
-                    %we have a reference object, therefore need to
-                    %drill down. How does this work?
-                    
-                    try
-                        sub = wrapped.(getterName(subs(1).subs))();
-                    catch
-                        sub = wrapped.property__(subs(1).subs);
-                    end
-                    
-                    [new, assign] = subsasgnstep ...
-                        ( sub ...
-                        , subs(2:end) ...
-                        , what ...
-                        );
-                    if assign
-                        try
-                            wrapped.(setterName(subs(1).subs))(new);
-                        catch
-                            wrapped.property__( subs(1).subs, new );
-                        end
-                    end
+                    rethrow(lasterror);
+                end
+            end
+        else
+            whatsleft = unwrap(subsref(whatsleft, subs(step)));
+        end
+    end
+
+    %now we are up to all but the last assignment; what is it?
+
+    if strcmp(subs(end).type, '.') && isobject(whatsleft)
+        %the last assignment is ultimately a reference object assignment.
+        %Whew. Just make the assignment!
+        try
+            try
+                whatsleft.(setterName(subs(end).subs))(what);
+            catch
+                whatsleft.property__(subs(end).subs, what);
+            end
+        catch
+            %faster to ask forgiveness than permission...
+            if ~any(strcmp(whatsleft.property__(), subs(end).subs))
+                error('Obj:noSuchProperty', 'No such property %s', subs(end).subs);
+            else
+                rethrow(lasterror);
+            end
+        end
+    else
+        if ~isempty(lowestrefobj)
+            %we assign under the lowest reference object!
+            newval = subsasgn(belowit, subsleft, what);
+            %and update the value in teh reference object
+            try
+                try
+                    lowestrefobj.(setterName(property))(newval);
+                catch
+                    lowestrefobj.property__(property, newval);
                 end
             catch
                 %faster to ask forgiveness than permission...
-                if ~any(strcmp(wrapped.property__(), subs(1).subs))
+                if ~any(strcmp(lowestrefobj.property__(), property))
                     error('Obj:noSuchProperty', 'No such property %s', subs(1).subs);
                 else
                     rethrow(lasterror);
                 end
             end
         else
-            if numel(subs) <= 1
-                wrapped = subsasgn(wrapped, subs(1), what);
-                assign = 1;
-            else
-                %again a drill down. could be more efficient: only one
-                %subsasgn needs to be done for each chain of objects that's
-                %not an OBJ...
-                [new, assign] = subsasgnstep...
-                        ( subsref(wrapped, subs(1))...
-                        , subs(2:end) ...
-                        , what ...
-                        );
-                if assign
-                    wrapped = subsasgn( wrapped, subs(1), new );
-                end
-            end
+            %well hey. since no reference objects are involved, we complete
+            %the assignment by normal means.
+            wrapped = subsasgn(wrapped, subs, what);
         end
     end
+end
