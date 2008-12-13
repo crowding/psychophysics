@@ -147,4 +147,8 @@ end
             stacktrace(err);
         end
     end
+
+    function t = getTrials
+        t = trials;
+    end
 end

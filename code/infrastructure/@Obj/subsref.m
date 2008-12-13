@@ -43,6 +43,6 @@ function varargout = subsref(this, subs)
         end
     else
         [varargout{1:nargout}] = subsref(whatsleft, subs(end));
-        [varargout{1:nargout}] = unwrap(varargout{:});
+        [varargout{1:nargout}] = unwrap(varargout{1:nargout});
     end
 end

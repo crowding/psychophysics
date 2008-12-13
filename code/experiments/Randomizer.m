@@ -150,7 +150,7 @@ this = autoobject(varargin{:});
     end
 
     function setBase(b)
-        if ~isa(b, 'obj')
+        if ~isa(b, 'Obj')
             base = Obj(b);
         else
             base = b;
@@ -430,13 +430,21 @@ this = autoobject(varargin{:});
                     catch
                         rethrow(lasterror);
                     end
-                    dump(v, @printf, [name substruct2str(r.subs{j})]);
+                    if ~isstruct(v)
+                        dump(v, @printf, [name substruct2str(r.subs{j})]);
+                    end
                     object = subsasgn(object, r.subs{j}, v);
                 end
             else
                 v = ev(val, object);
-                dump(v, @printf, [name substruct2str(r.subs)]);
-                object = subsasgn(object, r.subs, v);
+                if ~isstruct(v)
+                    dump(v, @printf, [name substruct2str(r.subs)]);
+                end
+                if ~isempty(r.subs)
+                    object = subsasgn(object, r.subs, v);
+                else
+                    object = v;
+                end
             end
             params{i} = val;
         end

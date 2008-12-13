@@ -101,15 +101,15 @@ function this = CircularCauchyMotion(varargin)
             end
             
             if numel(velocity) > 1
-                    vv = velocity(i);
+                vv = velocity(i);
             else
                 vv = velocity(ones(1,numel(i)));
             end
 
             if numel(localPhase) > 1
-                ph = localPhase(i) + dLocalPhase.*c;
+                ph = localPhase(i) + dLocalPhase.*c(i);
             else
-                ph = localPhase(ones(1,numel(i))) + dLocalPhase.*c;
+                ph = localPhase(ones(1,numel(i))) + dLocalPhase.*c(i);
             end
 
             if numel(order) > 1

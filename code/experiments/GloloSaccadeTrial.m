@@ -9,7 +9,6 @@ function this = GloloSaccadeTrial(varargin)
     startTime = 0;
     fixation = FilledDisk('loc', [0 0], 'radius', 0.2, 'color', 0);
 
-    fixationOnset = 0.5; %measured from 'begin'
     fixationLatency = 2; %how long to wait for acquiring fixation
     %If the target appears before then expect a saccade. Else just give a
     %reward.
@@ -23,7 +22,6 @@ function this = GloloSaccadeTrial(varargin)
     
     targetOnset = 1.0; %measured from beginning of fixation.
     targetBlank = 0.5; %after this much time on screen, the target will dim
-    targetBlankColor = 0.75; %the target will dim to this color
     
     cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
 
@@ -184,11 +182,15 @@ function this = GloloSaccadeTrial(varargin)
 
         function hideFixation(k)
             fixation.setVisible(0);
-            result.success = 0; %only at this point are we willing to say "failed" until success obtains
+            %only at this point are we willing to say "failed" until
+            %success obtains
+            result.success = 0; 
             
+            %to reduce latency, trigger on the UNfiltered eye position
+            %(window centered around the current position).
             trigger.first...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @unblankTarget, 'eyeFt' ...
-                , atLeast('eyeFt', k.next + maxLatency), @failedSaccade, 'eyeFt' ...
+                ( circularWindowExit('eyeX', 'eyeY', 'eyeT', [k.eyeFx(end);k.eyeFy(end)], fixationWindow), @unblankTarget, 'eyeT' ...
+                , atLeast('eyeT', k.next + maxLatency), @failedSaccade, 'eyeT' ...
                 );
         end
 
@@ -215,7 +217,6 @@ function this = GloloSaccadeTrial(varargin)
             failed(x);
         end
 
-        
         function fixateTarget(k)
             trigger.remove(blankhandle_);
             trigger.first...

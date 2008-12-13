@@ -130,7 +130,15 @@ function this = autoobject(varargin)
                             this.(setterName(name))(value);
                         else
                             subs = subsrefize_(name);
-                            subsasgn_(this, subs, value);
+                            if ischar(subs(1).subs) && any(strcmp(subs(1).subs, prop_names))
+                                subsasgn_(this, subs, value);
+                            else
+                                if ischar(subs(1).subs)
+                                    error('autoobject:noSuchProperty', 'No such property %s', subs(1).subs);
+                                else
+                                    error('autoobject:badSubscript', 'bad property__ argument', subs);
+                                end
+                            end
                         end
                     else
                         subsasgn_(this, name, value);
@@ -150,85 +158,135 @@ function this = autoobject(varargin)
         end
     end
 
-    function varargout = subsref_(what, subs)
-        %since my objects pretend to be a struct when they're not, we
-        %have to drill down a step at a time.
-        if strcmp(subs(1).type, '.') && any(strcmp(what.property__(), subs(1).subs))
-            if numel(subs) <= 1
-                [varargout{1:nargout}] = what.property__(subs(1).subs);
+    function varargout = subsref_(this, subs)
+        %copied from @Obj
+        
+        %try a non-recursive algorithm.
+        whatsleft = this; %the head of the data we have drilled down to so far
+
+        for step = 1:numel(subs)-1
+            property = subs(step).subs;
+            if strcmp(subs(step).type, '.') && isfield(whatsleft, 'property__')
+                try
+                    try
+                        whatsleft = whatsleft.(getterName(property))();
+                    catch
+                        whatsleft = whatsleft.property__(property);
+                    end
+                catch
+                    %faster to ask forgiveness than permission...
+                    if ~any(strcmp(whatsleft.property__(), property))
+                        error('Obj:noSuchProperty', 'No such property %s', property);
+                    else
+                        rethrow(lasterror);
+                    end
+                end
             else
-                [varargout{1:nargout}] = subsref_(what.property__(subs(1).subs), subs(2:end));
-            end
-        else
-            if numel(subs) <= 1
-                [varargout{1:nargout}] = subsref(what,subs(1));
-            else
-                [varargout{1:nargout}] = subsref_(subsref(wrapped, subs(1)), subs(2:end));
+                whatsleft = subsref(whatsleft, subs(step));
             end
         end
-    end
 
-    function [what, propagate] = subsasgn_(what, subs, new)
-        if strcmp(subs(1).type, '.')
+        %last one, varargout it.
+        property = subs(end).subs;
+        if strcmp(subs(end).type, '.') && isfield(whatsleft, 'property__')
             try
-                if numel(subs) <= 1
-                    try
-                        %faster to do this nonsense because of slowness of loading structs :(
-                        what.(setterName(subs(1).subs))(new);
-                    catch
-                        what.(property__(subs(1).subs))(new);
-                    end
-                    %since we set on a reference object, there is no need
-                    %to propagate the subsasgn out
-                    propagate = 0;
-                else
-                    %First pass: set everything in the chain. To be more
-                    %efficient, we only really need to set the property 
-                    %on the last reference object in the chain. Hence hte
-                    %'propagate' retval which stops early.
-                    try
-                        sub = what.(getterName(subs(1).subs))();
-                    catch
-                        sub = what.property__(subs(1).subs);
-                    end
-                    
-                    [new, propagate] = subsasgn_ ...
-                        ( sub ...
-                        , subs(2:end) ...
-                        , new ...
-                        );
-                    if propagate
-                        try
-                            what.(setterName(subs(1).subs))(new);
-                        catch
-                            what.property__( subs(1).subs, new );
-                        end
-                    end
+                try
+                    [varargout{1:nargout}] = whatsleft.(getterName(property))();
+                catch
+                    [varargout{1:nargout}] = whatsleft.property__(property);
                 end
             catch
                 %faster to ask forgiveness than permission...
-                if ~any(strcmp(this.property__(), subs(1).subs))
-                    error('Obj:noSuchProperty', 'No such property %s', subs(1).subs);
+                if ~any(strcmp(wrapped.property__(), property))
+                    error('Obj:noSuchProperty', 'No such property %s', property);
                 else
                     rethrow(lasterror);
                 end
             end
         else
-            if numel(subs) <= 1
-                what = subsasgn(what, subs(1), new);
-                propagate = 1;
-            else
-                %again a drill down. could be more efficient: only one
-                %subsasgn needs to be done for each chain of objects that's
-                %not a reference object...
-                [new, propagate] = subsasgnstep...
-                        ( subsref(what, subs(1))...
-                        , subs(2:end) ...
-                        , new ...
-                        );
-                if propagate
-                    what = subsasgn( what, subs(1), new );
+            [varargout{1:nargout}] = subsref(whatsleft, subs(end));
+            [varargout{1:nargout}] = unwrap(varargout{1:nargout});
+        end
+    end
+
+    function subsasgn_(this, subs, what)
+        %copied mostly from @Obj 
+
+        %try a non-recursive algorithm.
+        lowestrefobj = []; %the lowest reference object in the assignment chain
+        property = [];
+        belowit = []; %what data lies below in the tree
+        subsleft = []; %what subscript lies below the lowest ref-obj
+
+        whatsleft = this; %the head of the data we have drilled down to so far
+
+        for step = 1:numel(subs) -1
+            property = subs(step).subs;
+            if strcmp(subs(step).type, '.') && isfield(whatsleft, 'property__') %&& any(strcmp(property, whatsleft.property__()))
+                try
+                    lowestrefobj = whatsleft;
+                    try
+                        belowit = whatsleft.(getterName(property))();
+                    catch
+                        belowit = whatsleft.property__(property);
+                    end
+                    subsleft = subs(step+1:end);
+                    whatsleft = belowit;
+                catch
+                    %faster to ask forgiveness than permission...
+                    if ~any(strcmp(whatsleft.property__(), subs(step).subs))
+                        error('Obj:noSuchProperty', 'No such property %s', subs(step).subs);
+                    else
+                        rethrow(lasterror);
+                    end
                 end
+            else
+                whatsleft = subsref(whatsleft, subs(step));
+            end
+        end
+
+        %now we are up to all but the last assignment; what is it?
+
+        if strcmp(subs(end).type, '.') && isfield(whatsleft, 'property__') %&& any(strcmp(whatsleft.property__(), property))
+            %the last assignment is ultimately a reference object assignment.
+            %Whew. Just make the assignment!
+            try
+                try
+                    whatsleft.(setterName(subs(end).subs))(what);
+                catch
+                    whatsleft.property__(subs(end).subs, what);
+                end
+            catch
+                %faster to ask forgiveness than permission...
+                if ~any(strcmp(whatsleft.property__(), subs(end).subs))
+                    error('Obj:noSuchProperty', 'No such property %s', subs(end).subs);
+                else
+                    rethrow(lasterror);
+                end
+            end
+        else
+            if ~isempty(lowestrefobj)
+                %we assign under the lowest reference object!
+                newval = subsasgn(belowit, subsleft, what);
+                %and update the value in teh reference object
+                try
+                    try
+                        lowestrefobj.(setterName(property))(newval);
+                    catch
+                        lowestrefobj.property__(property, newval);
+                    end
+                catch
+                    %faster to ask forgiveness than permission...
+                    if ~any(strcmp(lowestrefobj.property__(), property))
+                        error('Obj:noSuchProperty', 'No such property %s', subs(1).subs);
+                    else
+                        rethrow(lasterror);
+                    end
+                end
+            else
+                %well hey. since no reference objects are involved, we complete
+                %the assignment by normal means.
+                whatsleft = subsasgn(whatsleft, subs, what); %but this shouldn't happen!
             end
         end
     end

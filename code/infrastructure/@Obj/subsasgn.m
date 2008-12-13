@@ -1,32 +1,27 @@
 function this = subsasgn(this, subs, what)
-    %just pass the subsref on...
-    this.wrapped = subsasgnit(this.wrapped, subs, what);
-end
-
-function [wrapped, assign] = subsasgnit(wrapped, subs, what)
     %try a non-recursive algorithm.
     lowestrefobj = []; %the lowest reference object in the assignment chain
     property = [];
     belowit = []; %what data lies below in the tree
     subsleft = []; %what subscript lies below the lowest ref-obj
 
-    whatsleft = wrapped; %the head of the data we have drilled down to so far
+    whatsleft = this.wrapped; %the head of the data we have drilled down to so far
 
     for step = 1:numel(subs) -1 
-        if strcmp(subs(step).type, '.') && isobject(wrapped)
+        if strcmp(subs(step).type, '.') && isobject(whatsleft)
             try
                 lowestrefobj = whatsleft;
                 property = subs(step).subs;
                 try
-                    belowit = wrapped.(getterName(property))();
+                    belowit = whatsleft.(getterName(property))();
                 catch
-                    belowit = wrapped.property__(property);
+                    belowit = whatsleft.property__(property);
                 end
                 subsleft = subs(step+1:end);
                 whatsleft = belowit;
             catch
                 %faster to ask forgiveness than permission...
-                if ~any(strcmp(wrapped.property__(), subs(step).subs))
+                if ~any(strcmp(whatsleft.property__(), subs(step).subs))
                     error('Obj:noSuchProperty', 'No such property %s', subs(step).subs);
                 else
                     rethrow(lasterror);
@@ -78,7 +73,7 @@ function [wrapped, assign] = subsasgnit(wrapped, subs, what)
         else
             %well hey. since no reference objects are involved, we complete
             %the assignment by normal means.
-            wrapped = subsasgn(wrapped, subs, what);
+            this.wrapped = subsasgn(this.wrapped, subs, what);
         end
     end
 end
