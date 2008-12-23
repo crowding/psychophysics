@@ -3,7 +3,7 @@ function str = join(j, strs)
 % 
 % concatenates the strings in strs, interposing j as the separator.
 if numel(strs) == 0
-    str = char(1,0);
+    str = char(zeros(1,0));
     return
 end
 

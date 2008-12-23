@@ -5,7 +5,7 @@ function char = dependencies(mfile)
 
 p = fdep(mfile, '-q');
 try
-    char = join(' ', p.fun);
+    char = join(' ', {which(mfile), p.fun{:}});
 catch
     char = '';
 end
