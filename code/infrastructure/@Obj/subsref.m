@@ -1,5 +1,5 @@
 function varargout = subsref(this, subs)
-    no = max(1,nargout);
+    no = nargout; %max(1,nargout);
     %try a non-recursive algorithm.
     whatsleft = this.wrapped; %the head of the data we have drilled down to so far
 
@@ -46,15 +46,15 @@ function varargout = subsref(this, subs)
         %MATALB stupidity... bare calls to any function from the command
         %window invoke with 0 outputs. But if an output is returned the
         %command window can display it.
-        if isa(whatsleft, 'function_handle')
-            if nargout(whatsleft) == 0
-                subsref(whatsleft, subs(end));
-            else
-            [varargout{1:no}] = whatsleft(subs(end).subs);
-            end
-        else
+        %if isa(whatsleft, 'function_handle')
+        %    if nargout(whatsleft) == 0
+        %        subsref(whatsleft, subs(end));
+        %    else
+        %    [varargout{1:no}] = whatsleft(subs(end).subs);
+        %    end
+        %else
             [varargout{1:no}] = subsref(whatsleft, subs(end));
             [varargout{1:no}] = unwrap(varargout{1:no});
-        end
+        %end
     end
 end

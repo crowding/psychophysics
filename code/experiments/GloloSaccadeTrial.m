@@ -7,7 +7,7 @@ function this = GloloSaccadeTrial(varargin)
     %time.
 
     startTime = 0;
-    fixation = FilledDisk('loc', [0 0], 'radius', 0.2, 'color', 0);
+    fixation = FilledDisk('loc', [0 0], 'radius', 0.2, 'color', [0;0;0]);
 
     fixationLatency = 2; %how long to wait for acquiring fixation
     %If the target appears before then expect a saccade. Else just give a
@@ -25,6 +25,7 @@ function this = GloloSaccadeTrial(varargin)
     
     cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
 
+    minLatency = 0.15;
     maxLatency = 0.5; %the eye needs to leave the fixation point at most this long after the cue.
     maxTransitTime = 0.1; %the eye needs to be on top of the target this long after leaving the fixation window.
 
@@ -46,6 +47,7 @@ function this = GloloSaccadeTrial(varargin)
     precueDuration = 0.25; %how long the precue is shown.
     
     errorTimeout = 1;
+    earlySaccadeTimeout = 1;
     
     rewardSize = 100;
     rewardTargetBonus = 0.0; %ms reward per ms of tracking
@@ -90,6 +92,7 @@ function this = GloloSaccadeTrial(varargin)
         
         function begin(k)
             fixation.setVisible(1, k.next);
+            precue.setVisible(0);
             trigger.first ...
                 ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
                 , atLeast('eyeFt', k.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
@@ -114,23 +117,33 @@ function this = GloloSaccadeTrial(varargin)
         fixationOnset_ = 0;
         blinkhandle_ = -1;
         function fixate(k)
+            %fixation time is how long you have to fixate for. Target onset
+            %is measured after acquiring fixation. Cue time is how long
+            %between target onset and when the cue shows.
+            %If fixation time < target onset + cue time, then we reward for
+            %maintaining fixation, else we reward for saccading to the target.
+            %Also, if we reward fixation before target onset, don't show the precue?
+            
             fixationOnset_ = k.triggerTime;
-            if fixationTime < targetOnset
+            if fixationTime < targetOnset + cueTime
                 trigger.first ...
                     ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                    , atLeast('eyeFt', fixationOnset_ + targetOnset), @showTarget, 'eyeFt' ...
                     );
             else
                 trigger.first ...
-                    ( atLeast('eyeFt', fixationOnset_ + targetOnset), @showTarget, 'eyeFt' ...
+                    ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                    , atLeast('eyeFt', fixationOnset_ + targetOnset), @showTarget, 'eyeFt' ...
                     );
             end
 
-            if usePrecue
+            if usePrecue && precueOnset < fixationTime
                 trigger.singleshot ...
                     ( atLeast('next', fixationOnset_ + precueOnset - interval/2), @showPrecue );
             end
+            
             %from now on, blinks are not allowed. How to do this? It'd be
             %nice to have handles to the triggers! Ah.
             blinkhandle_ = trigger.singleshot ...
@@ -162,12 +175,20 @@ function this = GloloSaccadeTrial(varargin)
             else
                 target.setVisible(1, k.next);
             end
-            t = min(fixationTime - targetOnset, cueTime); %time from target onset to cue
+            
+            if fixationTime < targetOnset + cueTime
+                trigger.first ...
+                    ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                    );
+            else
+                trigger.first ...
+                    ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedEarly, 'eyeFt' ...
+                    , atLeast('next', fixationOnset_ + targetOnset + cueTime), @hideFixation, 'next'...
+                    );
+            end
+            
             blankhandle_ = trigger.singleshot(atLeast('next', fixationOnset_ + targetOnset + targetBlank), @blankTarget);
-            trigger.first ...
-                ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt'...
-                , atLeast('next', fixationOnset_ + targetOnset + t), @hideFixation, 'next'...
-                );
         end
         
         oldColor_ = [];
@@ -189,15 +210,31 @@ function this = GloloSaccadeTrial(varargin)
             %to reduce latency, trigger on the UNfiltered eye position
             %(window centered around the current position).
             trigger.first...
-                ( circularWindowExit('eyeX', 'eyeY', 'eyeT', [k.x;k.y], fixationWindow), @unblankTarget, 'eyeT' ...
-                , atLeast('eyeT', k.next + maxLatency), @failedSaccade, 'eyeT' ...
+                ( circularWindowExit('eyeX', 'eyeY', 'eyeT', [k.x;k.y], fixationWindow), @failedEarly, 'eyeT' ...
+                , atLeast('eyeT', k.next + minLatency), @awaitSaccade, 'eyeT' ...
                 );
+        end
+        
+        function awaitSaccade(k)
+            trigger.first...
+                ( circularWindowExit('eyeX', 'eyeY', 'eyeT', [k.x;k.y], fixationWindow), @unblankTarget, 'eyeT' ...
+                , atLeast('eyeT', k.triggerTime + maxLatency - minLatency), @failedSaccade, 'eyeT' ...
+                );            
         end
 
         function failedSaccade(x)
             failed(x);
         end
 
+        function failedEarly(x)
+            trigger.remove([blinkhandle_ blankhandle_]);
+            target.setVisible(0);
+            fixation.setVisible(1);
+            fixation.setColor([255;0;0]);
+            trackingTarget.setVisible(0);
+            trigger.singleshot(atLeast('next', x.next + earlySaccadeTimeout), @failed);
+        end
+        
         function unblankTarget(k)
             if (useTrackingTarget)
                 trackingTarget.setVisible(0);
@@ -231,7 +268,7 @@ function this = GloloSaccadeTrial(varargin)
             
         function success(k)
             result.success = 1;
-            fixation.setVisible(0);
+%            fixation.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
 
             %reward size
@@ -243,7 +280,9 @@ function this = GloloSaccadeTrial(varargin)
         function failed(k)
             trigger.remove([blinkhandle_ blankhandle_]);
             fixation.setVisible(0);
+            fixation.setColor([0;0;0]);
             target.setVisible(0);
+            precue.setVisible(0);
             trackingTarget.setVisible(0);
             
             trigger.singleshot(atLeast('next', k.next + errorTimeout), @endTrial);
