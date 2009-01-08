@@ -55,17 +55,10 @@ function this = GloloSaccadeTrial(varargin)
     extra = struct();
 
     plotOutcome = 1;
-    plotAxes = [];
     
     persistent init__; %#ok
     this = autoobject(varargin{:});
-    
-    if isempty(plotAxes) && plotOutcome
-        f_ = figure();
-        plotAxes = axes();
-        set(f_, 'DeleteFcn', @(a,b,c)this.setPlotOutcome(0));
-    end
-    
+        
     function [params, result] = run(params)
         color = @(c) c * (params.whiteIndex - params.blackIndex) + params.blackIndex;
         
@@ -306,9 +299,9 @@ function this = GloloSaccadeTrial(varargin)
         
         %END EVENT HANDLERS
         params = main.go(params);
-        
-        if plotOutcome
-            plotTriggers(plotAxes, params, trigger);
+
+        if plotOutcome && ~isempty(params.uihandles)
+            plotTriggers(params.uihandles.trial_axes, params, trigger);
         end
     end
 end

@@ -92,9 +92,8 @@ end
             %create the start and stop buttons.
             handles.start_button = uicontrol(handles.button_panel, 'Style', 'pushbutton', 'Units', 'Normalized', 'String', 'Start', 'Position', [0 0 0.5 1], 'BackgroundColor', [0.5 1 0] );
             handles.stop_button = uicontrol(handles.button_panel, 'Style', 'pushbutton', 'Units', 'Normalized', 'String', 'Stopped', 'Position', [0.5 0 0.5 1], 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off');
-            
+
             set(handles.start_button, 'Callback', @start_);
-            set(handles.stop_button, 'Callback', @stop_);
             
             %create the property explorer.
         else
@@ -107,52 +106,21 @@ end
         end
     end
 
-    function start_(hObject, edata, h)
+    function start_(hObject, edata, h) %#ok
         require(@showStarting_, this.run);
-    end
-
-    function stop_(hObject, edata, h)
-        error('a:a', 'Don''t know how to stop!');
-    end
-
-    function [release, params] = showRunning_(params)
-        if ~isempty(handles)
-            prevstart = getandset_(handles.start_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Running');
-            prevstop = getandset_(handles.stop_button, 'BackgroundColor', [1 0.1 0.1], 'Enable', 'on', 'String', 'Stop');
-        end
-        
-        release = @r;
-        function r()
-            if ~isempty(handles)
-                set(handles.start_button, prevstart{:});
-                set(handles.start_button, prevstop{:});
-            end
-        end
-    end
-
-    function [release, params] = showStopping_(params)
-        if ~isempty(handles)
-            prev = getandset(handles.stop_button, 'BackgroundColor', [1 0.1 0.1], 'Enable', 'off', 'String', 'Stopping');
-        end
-        
-        release = @r;
-        function r()
-            if ~isempty(handles)
-                set(handles.stop_button, prev{:});            
-            end
-        end
     end
 
     function [release, params] = showSaving_(params)
         if ~isempty(handles)
-            prev = getandset_(handles.start_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Saving...');
-            prev = getandset_(handles.stop_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Saving...');
+            prevstart = getandset_(handles.start_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Saving...');
+            prevstop = getandset_(handles.stop_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Saving...');
         end
         
         release = @r;
         function r()
             if ~isempty(handles)
-                set(handles.stop_button, prev{:});            
+                set(handles.start_button, prevstart{:});            
+                set(handles.stop_button, prevstop{:});            
             end
         end
     end
@@ -166,7 +134,7 @@ end
         release = @r;
         function r()
             if ~isempty(handles)
-                set(handles.stop_button, prev{:});            
+                set(handles.start_button, prev{:});            
             end
         end
     end
@@ -175,7 +143,7 @@ end
         %set a list of properties, but return the previous values (as a cell list of arguments) first.
         args = reshape(varargin, 2, []);
         for i = 1:size(args, 2)
-            args{i,2} = get(obj, args{i,1});
+            args{2,i} = get(obj, args{1,i});
         end
         prev = reshape(args, 1, []);
         set(obj, varargin{:});
@@ -224,7 +192,6 @@ end
             , 'description', description...
             , 'caller', caller...
             );
-        e = [];
         try %GAH. this should be abstracted and put in some per host config.
             [stat, host] = system('hostname');
             if ~isempty(strfind(host, 'pastorianus'))
@@ -239,10 +206,32 @@ end
                 switchscreen('videoIn', 1, 'videoOut', 1, 'immediate', 1);
             end
         end
+
+        function stop(hObject, edata, h) %#ok
+            if ~isempty(handles)
+                set(handles.stop_button, 'BackgroundColor', [1 0.1 0.1], 'Enable', 'off', 'String', 'Stopping');
+            end
+            theRun.stop();
+        end
+
+        function [release, params] = showRunning(params)
+            if ~isempty(handles)
+                prevstart = getandset_(handles.start_button, 'BackgroundColor', [0.8 0.8 0.8], 'Enable', 'off', 'String', 'Running');
+                prevstop = getandset_(handles.stop_button, 'BackgroundColor', [1 0.1 0.1], 'Enable', 'on', 'String', 'Stop', 'Callback', @stop);
+            end
+
+            release = @r;
+            function r()
+                if ~isempty(handles)
+                    set(handles.start_button, prevstart{:});
+                    set(handles.stop_button, prevstop{:});
+                end
+            end
+        end
         
         require(@showSaving_, @save);
-        function save(a)
-            this.runs{end+1} = theRun;
+        function save(p) %#ok
+            runs{end+1} = theRun; %#ok
 
             %now save ourself. Since we overwrite, it is prudent to write
             %to a temp file first.
@@ -259,7 +248,7 @@ end
             %if there was an error, report it after saving.
             if ~isempty(theRun.getErr())
                 err = theRun.getErr();
-                warning('the run stopped with an error: %s', err.identifier)
+                warning(err.identifier, 'the run stopped with an error: %s', err.identifier);
                 stacktrace(err);
             end
         end

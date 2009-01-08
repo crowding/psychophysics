@@ -11,18 +11,15 @@ function e = EyeCalibration(varargin)
     e.trials.base.targetRadius = 0.2;
     e.trials.base.onset = 0;
 
-    e.trials.add('targetX', [-15 -10 5 0 5 10 15]);
-    e.trials.add('targetY', [-15 -10 5 0 5 10 15]);
+    e.trials.add('targetX', [-10 5 0 5 10]);
+    e.trials.add('targetY', [-10 5 0 5 10]);
     
 %    e.trials.add({'targetX', 'targetY'}, {{-10 0} {-5 0}, {0 0}, {5 0}, {10 0}, {0 -10}, {0 -5}, {0 0}, {0 5}, {0 10}});
     e.trials.add('onset', ExponentialDistribution('offset', 0.0, 'tau', 0.0));
 
     e.trials.setDisplayFunc(@showCalibration);
     
-    handle = figure(3); clf;
-    ax = axes();
     history = 0;
-    set(handle, 'ButtonDownFcn', @click)
     
     orig_offset = e.params.input.eyes.getOffset();
     setOffset = e.params.input.eyes.setOffset;
@@ -33,7 +30,7 @@ function e = EyeCalibration(varargin)
     function click(src, eventdata, stuff)
         %for speed, we stop using e...
         e = [];
-        switch get(src, 'selectiontype')
+        switch get(ancestor(src, 'figure'), 'selectiontype')
             case 'normal' %left click
                 history = 0;
             case 'alt' %right click
@@ -50,7 +47,7 @@ function e = EyeCalibration(varargin)
         end
     end
 
-    function showCalibration(results)
+    function showCalibration(params, results)
         %for speed, we stop using e...
         e = [];
         
@@ -58,7 +55,7 @@ function e = EyeCalibration(varargin)
         i = interface(struct('target', {}, 'endpoint', {}), r);
         t = cat(1, i.target);
         endpoints = cat(1, i.endpoint);
-        axes(ax); cla; hold on;
+        axes(params.uihandles.experiment_axes); cla; hold on;
         plot(t(:,1), t(:,2), 'g.', endpoints(:,1), endpoints(:,2), 'rx');
         line([t(:,1)';endpoints(:,1)'], [t(:,2)';endpoints(:,2)'], 'Color', 'r');
         axis equal;
@@ -83,7 +80,8 @@ function e = EyeCalibration(varargin)
             
             %set the offset and slope...
         end
-        title('left click to clear. Right click to apply calibration.');
+        title('Left = clear, Right click = apply');
+        set(params.uihandles.experiment_panel, 'ButtonDownFcn', @click)
     end
     
 end

@@ -11,6 +11,7 @@ params = struct();
 %the edf-file logs each trial individually, so we don't need to log
 %them all. So this is a private variable and not a property.
 trialsDone_ = {};
+stopSignaled_ = 0;
 
 persistent init__;
 this = inherit( Identifiable(), autoobject(varargin{:}));
@@ -23,7 +24,10 @@ end
         done = trialsDone_;
     end
 
+    stopSignaled_ = 0; % a hook to the UI
     function run(varargin)
+        stopSignaled_ = 0;
+
         params = namedargs(params, varargin{:});
         startDate = clock();
 
@@ -52,7 +56,7 @@ end
                 %were queriable for if they had 
                 %a next trial, but it's easier to just return an empty when
                 %you're done.
-                while ~isfield(trials, 'hasNext') || trials.hasNext()
+                while ~stopSignaled_ && (~isfield(trials, 'hasNext') || trials.hasNext())
                     trial = trials.next(params);
                     if isempty(trial)
                         break;
@@ -70,8 +74,6 @@ end
             end
 
             function result = runTrial(params)
-
-                
                 %no exception handling around dump: if there's a
                 %problem with dumping data, end the experiment,
                 %please
@@ -124,6 +126,10 @@ end
             end
         end
 
+    end
+
+    function stop()
+        stopSignaled_ = 1;
     end
 
     function [release, params] = clearset(params)

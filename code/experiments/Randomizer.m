@@ -188,12 +188,14 @@ this = autoobject(varargin{:});
     %shuffled trial, a special trial for the beginning of an experiment, a
     %special trial for the beginning of a block, a special trial for the
     %end of an experiment, a special trial for the end of a block, etc.
+    savedParams_ = [];
     function n = next(params)
         if isempty(nextState_)
             nextState_ = @startExperiment_;
             resultState_ = [];
         end
         
+        savedParams_ = params;
         n = nextState_(params);
     end
 
@@ -296,7 +298,7 @@ this = autoobject(varargin{:});
                 designDone(lastPicked_) = true;
             end
             
-            displayFunc(results);
+            displayFunc(savedParams_, results);
             blockCounter_ = blockCounter_ + 1;
 
         elseif ~requireSuccess

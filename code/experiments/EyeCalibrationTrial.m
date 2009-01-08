@@ -25,21 +25,12 @@ function this = EyeCalibrationTrial(varargin)
     rewardDuration = 100;
 
     plotOutcome = 1;
-    plotAxes = [];
     
     persistent init__;
     this = autoobject(varargin{:});
     
     
     function [params, result] = run(params)
-        if isempty(plotAxes) && plotOutcome
-            figure();
-            plotAxes = axes();
-
-            %TODO i need a reversible addCallback function...
-            set(plotAxes, 'DeleteFcn', @(src, eventdata, stuff)this.setPlotOutcome(0));
-        end
-
         result = struct('target', [targetX targetY]);
         
         target = FilledDisk('loc', [targetX targetY], 'radius', targetRadius, 'color', [0 0 0], 'visible', 0);
@@ -60,8 +51,8 @@ function this = EyeCalibrationTrial(varargin)
         %params.log = @printf;
         params = main.go(params);
         
-        if plotOutcome
-            plotTriggers(plotAxes, params, trigger);
+        if plotOutcome && ~isempty(params.uihandles)
+            plotTriggers(params.uihandles.trial_axes, params, trigger);
         end
         
         function begin(s)

@@ -103,11 +103,14 @@ this = autoobject(varargin{:});
                     amat = atarg / araw;
                     calib = amat * araw;
     
-                    makeCurrentAxes(ax);
-                    plot(ax, calib(1,:), calib(2,:), 'b+');
-                    hold(ax, 'on');
-                    line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
-                    hold(ax, 'off');
+                    if ~isempty(params.uihandles)
+                        makeCurrentAxes(params.uihandles.experiment_axes);
+                        plot(ax, calib(1,:), calib(2,:), 'b+');
+                        hold(ax, 'on');
+                        line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
+                        hold(ax, 'off');
+                    end
+
                     %set the offset and slope...
 
                     %what is the standard error? As a measure of how accurately we
