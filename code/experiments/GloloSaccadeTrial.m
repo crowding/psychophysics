@@ -16,21 +16,21 @@ function this = GloloSaccadeTrial(varargin)
     fixationStartWindow = 3; %this much radius for starting fixation
     fixationSettle = 0.0; %allow this long for settling fixation.
     fixationWindow = 1.5;
-    fixationTime = 1; %the maximum fixation time.
+    fixationTime = 1; %the maximum fixation time. A reward will be given this long after beginning fixation.
     
     target = FilledDisk('loc', [8 0], 'radius', 0.2, 'color', 0);
     
     targetOnset = 1.0; %measured from beginning of fixation.
     targetBlank = 0.5; %after this much time on screen, the target will dim
     
-    cueTime = Inf; %the saccade will be cued at the end of the fixationTime, or at this time after target onset, whichever is first.
+    cueTime = Inf; %the saccade will be cued this long after 
 
     minLatency = 0.15;
     maxLatency = 0.5; %the eye needs to leave the fixation point at most this long after the cue.
     maxTransitTime = 0.1; %the eye needs to be on top of the target this long after leaving the fixation window.
 
-    targetWindow = 5; %radius of fixation window.
-    targetFixationTime = 0.5;
+    targetWindow = 5; %radius of fixation window while saccading to and tracking target.
+    targetFixationTime = 0.5; %how long the subject must track the target before reward.
     
     %here's the twist to this trial. You can specify a graphics object to use instead of a glolo.
     %It can be that instead of a spot you have to track a glolo.

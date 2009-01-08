@@ -104,6 +104,7 @@ function this = EyeCalibrationTrial(varargin)
             settleTime_ = s.triggerTime;
             trigger.first...
                 ( atLeast('eyeFt', s.triggerTime + settleTime), @fixate, 'eyeFt' ...
+                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', [s.eyeFx(s.triggerIndex);s.eyeFy(s.triggerIndex)], fixWindow), @failedSettle, 'eyeFt' ...
                 );
         end
         
@@ -134,6 +135,10 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function failedAbsolute(s)
+            failed(s);
+        end
+
+        function failedSettle(s)
             failed(s);
         end
 
