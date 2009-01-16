@@ -26,8 +26,6 @@ this = autoobject(varargin{:});
 
     function [params, result] = run(params)
         %initialize data...
-        f = figure(2); clf;
-        ax = axes();
         title('Eye calibration endpoints');
 
         result.orig_offset = params.input.eyes.getOffset();
@@ -105,10 +103,10 @@ this = autoobject(varargin{:});
     
                     if ~isempty(params.uihandles)
                         makeCurrentAxes(params.uihandles.experiment_axes);
-                        plot(ax, calib(1,:), calib(2,:), 'b+');
-                        hold(ax, 'on');
+                        plot(calib(1,:), calib(2,:), 'b+');
+                        hold('on');
                         line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
-                        hold(ax, 'off');
+                        hold('off');
                     end
 
                     %set the offset and slope...
@@ -119,7 +117,7 @@ this = autoobject(varargin{:});
 
                     stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
 
-                    title(ax, sprintf('stderr = %g', stderr));
+                    title(params.uihandles.experiment_axes, sprintf('stderr = %g', stderr));
                     
                     if ( (stderr < maxStderr) && ( numel(results) >= minN) ) || numel(results) >= maxN
                         %we're done. apply and record the calibration.

@@ -51,7 +51,7 @@ function this = EyeCalibrationTrial(varargin)
         %params.log = @printf;
         params = main.go(params);
         
-        if plotOutcome && ~isempty(params.uihandles)
+        if plotOutcome && isfield(params, 'uihandles') && ~isempty(params.uihandles)
             plotTriggers(params.uihandles.trial_axes, params, trigger);
         end
         

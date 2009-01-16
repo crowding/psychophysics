@@ -27,8 +27,9 @@ function this = GloloSaccadeTrial(varargin)
 
     minLatency = 0.15;
     maxLatency = 0.5; %the eye needs to leave the fixation point at most this long after the cue.
-    maxTransitTime = 0.1; %the eye needs to be on top of the target this long after leaving the fixation window.
-
+    maxTransitTime = 0.1; %the eye needs to be in the target window this long after leaving the fixation window.
+    saccadeSettleTime = 0.1; % allow hte eye to wander outside the window for this long before enforcing pursuit.
+    
     targetWindow = 5; %radius of fixation window while saccading to and tracking target.
     targetFixationTime = 0.5; %how long the subject must track the target before reward.
     
@@ -51,6 +52,7 @@ function this = GloloSaccadeTrial(varargin)
     
     rewardSize = 100;
     rewardTargetBonus = 0.0; %ms reward per ms of tracking
+    rewardLengthBonus = 0.0; %ms reward per ms of active trial
     
     extra = struct();
 
@@ -74,6 +76,8 @@ function this = GloloSaccadeTrial(varargin)
         fixation.setVisible(0);
         target.setVisible(0);
         trackingTarget.setVisible(0);
+        
+        fixcolor = fixation.getColor();
         
         main = mainLoop ...
             ( 'input', {params.input.eyes, params.input.keyboard, EyeVelocityFilter()} ...
@@ -172,7 +176,7 @@ function this = GloloSaccadeTrial(varargin)
             if fixationTime < targetOnset + cueTime
                 trigger.first ...
                     ( atLeast('eyeFt', fixationOnset_ + fixationTime), @success, 'eyeFt' ...
-                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedEarly, 'eyeFt' ...
                     );
             else
                 trigger.first ...
@@ -238,7 +242,7 @@ function this = GloloSaccadeTrial(varargin)
             
             trigger.remove(blankhandle_);
             trigger.first ...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', target.getLoc, targetWindow), @fixateTarget, 'eyeFt'...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', target.getLoc, targetWindow), @settleSaccade, 'eyeFt'...
                 , atLeast('eyeFt', k.triggerTime + maxTransitTime), @failedAcquisition, 'eyeFt' ...
                 );
         end
@@ -246,12 +250,18 @@ function this = GloloSaccadeTrial(varargin)
         function failedAcquisition(x)
             failed(x);
         end
+        
+        function settleSaccade(k)
+            trigger.first...
+                ( atLeast('eyeFt', k.triggerTime + saccadeSettleTime), @fixateTarget, 'eyeFt'...
+                );
+        end
 
         function fixateTarget(k)
             trigger.remove(blankhandle_);
             trigger.first...
                 ( circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', target.getLoc, targetWindow), @failedPursuit, 'eyeFt'...
-                , atLeast('eyeFt', k.triggerTime + targetFixationTime), @success, 'eyeFt'...
+                , atLeast('eyeFt', k.triggerTime + targetFixationTime - saccadeSettleTime), @success, 'eyeFt'...
                 );
         end
         
@@ -261,11 +271,17 @@ function this = GloloSaccadeTrial(varargin)
             
         function success(k)
             result.success = 1;
-%            fixation.setVisible(0);
+            target.setVisible(0);
+            trackingTarget.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
 
-            %reward size
-            rs = floor(rewardSize + 1000 * rewardTargetBonus * targetFixationTime) %#ok
+            %reward size. give a bonus based on how long the trial was.
+            bonus = rewardLengthBonus * (k.triggerTime - fixationOnset_) ;
+            if fixationTime > targetOnset + cueTime
+                bonus = bonus + rewardTargetBonus*targetFixationTime;
+            end
+            
+            rs = floor(rewardSize + 1000 * bonus) %#ok
             [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
             trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);
         end
@@ -273,7 +289,6 @@ function this = GloloSaccadeTrial(varargin)
         function failed(k)
             trigger.remove([blinkhandle_ blankhandle_]);
             fixation.setVisible(0);
-            fixation.setColor([0;0;0]);
             target.setVisible(0);
             precue.setVisible(0);
             trackingTarget.setVisible(0);
@@ -292,6 +307,7 @@ function this = GloloSaccadeTrial(varargin)
             fixation.setVisible(0);
             target.setVisible(0);
             trackingTarget.setVisible(0);
+            fixation.setColor(fixcolor);
             
             trigger.singleshot(atLeast('refresh', k.refresh+1), main.stop);
             result.endTime = k.next();
