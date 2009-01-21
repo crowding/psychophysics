@@ -421,21 +421,34 @@ this = autoobject(varargin{:});
     function [object, params] = assign_(object, assignments, name)
         params = cell(1, numel(assignments));
         for i = 1:numel(assignments)
-
             r = assignments(i);
             val = ev(r.values, object);
-            
+
             if iscell(r.subs)
+                if numel(r.subs) ~= numel(val)
+                    error('Ransomizer:badAssignment'...
+                        , '%d subscripts given for parallel assignment but only %d values. First subscript was ''%s'''...
+                        , numel(r.subs), numel(val), substruct2str(r.subs{1}));
+                end
                 for j = 1:numel(r.subs)
                     try
                         v = ev(val{j}, object);
                     catch
-                        rethrow(lasterror);
+                        e = lasterror;
+                        e.message = sprintf('Error evaluating %s = %s :\n%s', substruct2str(r.subs{j}), evalc('disp(val{j})'), e.message);
+                        rethrow(e);
                     end
                     if ~isstruct(v)
                         dump(v, @printf, [name substruct2str(r.subs{j})]);
                     end
-                    object = subsasgn(object, r.subs{j}, v);
+                    try
+                        object = subsasgn(object, r.subs{j}, v);
+                    catch
+                        %add some descriptive detail of what you were trying to do
+                        e = lasterror;
+                        e.message = sprintf('Error assigning %s = %s :\n%s', substruct2str(r.subs{j}), evalc('disp(v)'), e.message);
+                        rethrow(e);
+                    end
                 end
             else
                 v = ev(val, object);
@@ -443,7 +456,14 @@ this = autoobject(varargin{:});
                     dump(v, @printf, [name substruct2str(r.subs)]);
                 end
                 if ~isempty(r.subs)
-                    object = subsasgn(object, r.subs, v);
+                    try
+                        object = subsasgn(object, r.subs, v);
+                    catch
+                        %add some descriptive detail of what you were trying to do
+                        e = lasterror;
+                        e.message = sprintf('Error assigning %s = %s :\n%s', substruct2str(r.subs), evalc('disp(v)'), e.message);
+                        rethrow(e);
+                    end
                 else
                     object = v;
                 end

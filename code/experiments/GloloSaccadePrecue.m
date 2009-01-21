@@ -3,11 +3,12 @@ function e = GloloSaccadePrecue(varargin)
     
     its = Genitive();
     
+
     e.trials.base = GloloSaccadeTrial...
         ( 'extra', struct...
             ( 'minSpace', 12 ...
             , 'distractorRelativeContrast', 1 ...
-            , 'r', 12 ...
+            , 'r', [12 12] ...
             , 'dx', [2.25 2.25] ...
             , 'dt', [.15 .15] ...
             , 'l', 1.125 ...
@@ -66,7 +67,7 @@ function e = GloloSaccadePrecue(varargin)
                 , 'velocity', 10 ... %velocity of peak spatial frequency
                 , 'wavelength', 0.75 ...
                 , 'width', .75 ...
-                , 'duration', 0.1 ...
+                , 'duration', [0.1 0.1] ...
                 , 'order', 4 ...
                 , 'phase', [0 0] ...
                 , 'angle', [90 90] ...
@@ -85,9 +86,29 @@ function e = GloloSaccadePrecue(varargin)
         , 'earlySaccadeTimeout', 3.0 ...
         );
     
+    %the target mix of radii (scaling everything spatially)
+    e.trials.add({'extra.r(1)', 'extra.dx(1)', 'extra.l(1)', 'extra.minSpace', 'targetWindow'} ...
+    , { {12, 2.25, 1.125, 12,  8   }...
+      , {8,  1.5,   0.75,  8,   16/3, }...
+      }...
+    );
+
+    %the distractor mix
+    e.trials.add({'extra.r(2)', 'extra.dx(2)', 'extra.l(2)'} ...
+    , { {12, 2.25, 1.125}...
+      , {8,  1.5,   0.75 }...
+      }...
+    );
+
+    %the durations mix (at the same global speed)
+    e.trials.add('trackingTarget.process.duration', @(b)b.extra.dt * 2/3);
+    e.trials.add({'extra.dt(1)', 'trackingTarget.process.duration(1)', 'extra.dx(1)'}, {{0.15 0.1, @(b)b.extra.dx(1)}, {0.1 0.2/3 @(b)b.extra.dx(1)*2/3}});
+    e.trials.add({'extra.dt(2)', 'trackingTarget.process.duration(2)', 'extra.dx(2)'}, {{0.15 0.1, @(b)b.extra.dx(2)}, {0.1 0.2/3 @(b)b.extra.dx(2)*2/3}});    
+    
     %the targets move clockwise or counterclockwise at a certain speed.
     %There is a distractor target whose motion is also randomized. The
     %local velocities are also scaled.
+    
     e.trials.add('extra.targetDirection(1)', [1 -1]);
     e.trials.add('extra.targetDirection(2)', [1 -1]);
     e.trials.add('extra.localVScalar(1)', [-1.5 -1 -0.5 0.5 1 1.5]);
@@ -118,8 +139,9 @@ function e = GloloSaccadePrecue(varargin)
         %procedurally set up the global appearance...
         extra = b.extra;
         
+        %the target moves the same as the first stimulus.
         targetSource = b.target.source;
-        targetSource.setRadius(extra.r);
+        targetSource.setRadius(extra.r(1));
         targetSource.setOmega(extra.dx(1) ./ extra.dt(1) ./ extra.r(1) .* extra.targetDirection(1));
         targetSource.setAngle(targetSource.getPhase() * 180/pi + 90);
 
@@ -129,20 +151,20 @@ function e = GloloSaccadePrecue(varargin)
         trackingProcess.setT(extra.dt);
         ph = (targetSource.getPhase() + trackingProcess.getT() .* targetSource.getOmega());
         trackingProcess.property__(its.phase(1), ph(1));
-        trackingProcess.setDphase(extra.dx / extra.r .* extra.targetDirection);
+        trackingProcess.setDphase(extra.dx ./ extra.r .* extra.targetDirection);
         
         %set the location of the distractor target so as not to overlap
         %with the normal target.      
         [ns, pps] = trackingProcess.property__();
         t = min(b.cueTime, b.fixationTime - b.targetOnset) + b.maxLatency - pps.t(1);
         
-        %how much of an arc does the target traverse from the perspective
-        %of the distractor?
+        %how much of an arc does the distractor traverse from the perspective
+        %of the target?
         arc = pps.dphase./pps.dt.*t * [1;-1];
         
         %this is either a positive or a negative number. the distractor
         %must start somewhere so that it doesn't overlap the object.
-        dist = b.extra.minSpace ./ pps.radius;
+        dist = b.extra.minSpace ./ pps.radius(1);
         ccwOf = max(pps.phase(1) + dist, pps.phase(1) + dist + arc);
         cwOf = min(pps.phase(1) - dist, pps.phase(1) - dist + arc) + 2 + pi;
         
@@ -154,7 +176,7 @@ function e = GloloSaccadePrecue(varargin)
             else
                 trackingProcess.property__(its.phase(2), ccwOf);
             end
-            trackingProcess.property__(its.n(2), floor(2*(pi-dist)*t/abs(arc)/pps.dt(2)));
+            trackingProcess.property__(its.n(2), floor(2*(pi-dist) / abs(pps.dphase*[1;-1])) - 1);
         else
             %reset n...
             trackingProcess.property__(its.phase(2), b.extra.distractorPhaseSeed() * (cwOf-ccwOf) + ccwOf);
@@ -164,8 +186,9 @@ function e = GloloSaccadePrecue(varargin)
         %finally orient the stimuli...
         trackingProcess.setAngle(trackingProcess.getPhase() * 180/pi + 90);
 
+        %the precue is the same as the target but not moving
         precueSource = b.precue.source;
-        precueSource.setRadius(extra.r);
+        precueSource.setRadius(targetSource.getRadius());
         precueSource.setPhase(targetSource.getPhase());
         precueSource.setAngle(targetSource.getAngle());
     end
