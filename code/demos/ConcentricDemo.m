@@ -110,7 +110,7 @@ function this = ConcentricDemo(varargin)
         
         ttd = transformToDegrees(params.cal);
         
-        text = Text('loc', ttd(params.cal.rect([1 1])) + [0.5 0.5], 'Color', [0 0 0]);
+        text = Text('loc', ttd(params.cal.rect([1 1])) + [0.5 0.5], 'color', [0 0 0]);
 
         keyboardInput = KeyboardInput();
         

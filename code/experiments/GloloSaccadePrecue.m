@@ -86,6 +86,20 @@ function e = GloloSaccadePrecue(varargin)
         , 'earlySaccadeTimeout', 3.0 ...
         );
     
+    %the target and distractor are selected from a grid of stimulus
+    %parameters
+    
+    e.trials.add('extra.r(1)', [15 10 20/8]);
+    e.trials.add('extra.r(2)', [15 10 20/8]);
+    
+    %these are multiplied by radius to get global velocity
+    e.trials.add('extra.dxFactor(1)', [1/15 1/10 1.5/10]);
+    e.trials.add('extra.dxFactor(2)', [1/15 1/10 1.5/10]);
+    
+    %the minimum space that is ,aintained around the target)
+    e.trials.add('extra.minSpace', @(b)extra.r(1));
+    e.trials.add('targetWindow', @(b)extra.(1) - b.fixationWindow/2);
+    
     %the target mix of radii (scaling everything spatially)
     e.trials.add({'extra.r(1)', 'extra.dx(1)', 'extra.l(1)', 'extra.minSpace', 'targetWindow'} ...
     , { {12, 2.25, 1.125, 12,  8   }...
@@ -126,7 +140,7 @@ function e = GloloSaccadePrecue(varargin)
     e.trials.add('cueTime', ExponentialDistribution('offset', 0.4, 'tau', 0.5));
 
     %But on half(presently) of trials the monkey is rewarded for just fixating.
-    e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.7));
+    e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.8));
 
     %the precue, if there is one, comes 300 ms before the target onset.
     e.trials.add('precueOnset', @(b)b.targetOnset - 0.3);
@@ -234,7 +248,7 @@ function e = GloloSaccadePrecue(varargin)
         , its.base.maxLatency, 0.5 ...
         , its.base.fixDuration, 0.75 ...
         , its.base.fixWindow, 4 ...
-        , its.base.rewardDuration, 100 ...
+        , its.base.rewardDuration, 75 ...
         , its.base.settleTime, 0.5 ...
         , its.base.targetRadius, 0.4 ...
         , its.base.targetInnerRadius, 0.2 ...
