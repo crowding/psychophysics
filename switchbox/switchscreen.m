@@ -33,11 +33,11 @@ function i = switchscreen(varargin)
         
         function [r, params] = init(params)
             params = namedargs(defaults, varargin{:});
-            comm('open', params.port, params.portconfig);
+            SerialComm('open', params.port, params.portconfig);
             r = @release;
             function release()
-                comm('purge', params.port);
-                comm('close', params.port);
+                SerialComm('purge', params.port);
+                SerialComm('close', params.port);
             end
         end
     end
@@ -96,14 +96,14 @@ function i = switchscreen(varargin)
 
     function resp = getresponse(params, command, input, output)
         todevice = hex2dec(['00';'80';'80';'80'])';
-        comm('purge', params.port);
+        SerialComm('purge', params.port);
         str = todevice + [command, input, output, params.machineNumber];
-        comm('write', params.port, str);
+        SerialComm('write', params.port, str);
         pause(0.1);
         resp = [];
         s = GetSecs();
         while (GetSecs - s) < 0.2 && numel(resp) < 4
-            resp = [resp comm('read', params.port, 4 - numel(resp))]; %#ok
+            resp = [resp SerialComm('read', params.port, 4 - numel(resp))]; %#ok
         end
         
         if length(resp) == 4

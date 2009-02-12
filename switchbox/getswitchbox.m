@@ -19,11 +19,11 @@ function i = getswitchbox(varargin)
         
         function [r, params] = init(params)
             params = namedargs(defaults, params);
-            comm('open', params.port, params.portconfig);
+            SerialComm('open', params.port, params.portconfig);
             
             r = @release;
             function release()
-                comm('close', params.port);
+                SerialComm('close', params.port);
             end
         end
     end
@@ -88,11 +88,11 @@ function i = getswitchbox(varargin)
             tries = 1;
         end
         todevice = hex2dec(['00';'80';'80';'80'])';
-        comm('purge', params.port);
+        SerialComm('purge', params.port);
         str = todevice + [command, input, output, params.machineNumber];
-        comm('write', params.port, str);
+        SerialComm('write', params.port, str);
         WaitSecs(0.1);
-        resp = comm('read', params.port, 4);
+        resp = SerialComm('read', params.port, 4);
 
         if length(resp) == 4
             resp = double(resp(:)') - [64 128 128 128];

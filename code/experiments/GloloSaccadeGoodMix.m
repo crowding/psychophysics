@@ -15,7 +15,7 @@ function e = GloloSaccadePrecue(varargin)
             , 'tf', [20/3 20/3] ...
             , 'globalVScalar', [1 1] ...
             , 'wavelengthScalar', [0.15 0.15] ...
-            , 'widthScalar', [0.075 0.075] ...
+            , 'widthScalar', [0.05 0.05] ...
             ) ... 
         , 'fixation', FilledDisk ...
             ( 'radius', 0.2 ...
@@ -90,8 +90,8 @@ function e = GloloSaccadePrecue(varargin)
     %the target and distractor are selected from a grid of stimulus
     %parameters.
     
-    e.trials.add('extra.r(1)', [15 10 20/3]);
-    e.trials.add('extra.r(2)', [15 10 20/3]);
+    e.trials.add('extra.r(1)', [10 20/3 40/9]); %15
+    e.trials.add('extra.r(2)', [10 20/3 40/9]); %15
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
@@ -100,12 +100,12 @@ function e = GloloSaccadePrecue(varargin)
     e.trials.add('extra.globalVScalar(2)', [2/3 1 1.5 -2/3 -1 -1.5]);
     
     %temporal frequency is chosen here...
-    e.trials.add('extra.tf(1)', [-15 -10 -20/3 20/3 10]);
-    e.trials.add('extra.tf(2)', [-15 -10 -20/3 20/3 10]);
+    e.trials.add('extra.tf(1)', [-15 -10 -20/3 20/3 10 15]);
+    e.trials.add('extra.tf(2)', [-15 -10 -20/3 20/3 10 15]);
 
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
-    e.trials.add('extra.wavelengthScalar(1)', [2/30 .15 .15])
+    e.trials.add('extra.wavelengthScalar(1)', [2/30 .1 .15])
     e.trials.add('extra.wavelengthScalar(2)', [2/30 .1 .15])
     
     %dt changes independently of it all
@@ -212,9 +212,10 @@ function e = GloloSaccadePrecue(varargin)
         extra = b.extra;
         trackingProcess = b.trackingTarget.process;
         
-        wl = extra.r .* extra.wavelengthScalar
-        v = wl .* extra.tf
-        gv = trackingProcess.getRadius() .* trackingProcess.getDphase() ./ trackingProcess.getDt()
+        %wl = extra.r .* extra.wavelengthScalar
+        %dx = extra.r .* trackingProcess.getDphase()
+        %v = wl .* extra.tf
+        %gv = trackingProcess.getRadius() .* trackingProcess.getDphase() ./ trackingProcess.getDt()
         
         trackingProcess.setWavelength(wl);
         trackingProcess.setVelocity(v);
@@ -222,7 +223,7 @@ function e = GloloSaccadePrecue(varargin)
         %trackingProcess.setColor([extra.color ./ abs(extra.wavelengthScalar(1)), extra.color ./ abs(extra.wavelengthScalar(2)) .* extra.distractorRelativeContrast]);
         %contrast scales inversely to wavelength and with local V seems to be the best bet?
         col = extra.color; % .* ([1;1;1]* (1 ./ abs(extra.globalVScalar) ./ extra.wavelengthScalar * 0.075));
-        col(:, 2:end) = col(:, 2:end) .* extra.distractorRelativeContrast
+        col(:, 2:end) = col(:, 2:end) .* extra.distractorRelativeContrast;
         trackingProcess.setColor(col);
         if any(col > 0.5)
            noop(); 
@@ -233,7 +234,7 @@ function e = GloloSaccadePrecue(varargin)
         targetSource = b.target.source;
         targetSource.setColor(trackingProcess.property__(its.color(:,1)) .* trackingProcess.property__(its.duration(1)) ./ trackingProcess.property__(its.dt(1)));
         targetSource.setWavelength(trackingProcess.property__(its.wavelength(:,1)));
-        targetSource.setWidth(extra.r(1)/10);
+        targetSource.setWidth(trackingProcess.property__(its.width(1)));
         
         precueSource = b.precue.source;
         precueSource.setColor(targetSource.getColor());
@@ -252,14 +253,14 @@ function e = GloloSaccadePrecue(varargin)
     %begin with an eye calibration and again every three hundred trials...
     %
     e.trials.blockTrial = EyeCalibrationMessageTrial...
-        ( its.base.absoluteWindow, 10 ...
+        ( its.base.absoluteWindow, Inf ...
         , its.base.maxLatency, 0.5 ...
         , its.base.fixDuration, 0.75 ...
         , its.base.fixWindow, 4 ...
         , its.base.rewardDuration, 75 ...
         , its.base.settleTime, 0.5 ...
-        , its.base.targetRadius, 0.4 ...
-        , its.base.targetInnerRadius, 0.2 ...
+        , its.base.targetRadius, 0.25 ...
+        , its.base.targetInnerRadius, 0.1 ...
         , its.minCalibrationInterval, 900 ...
         , its.base.onset, 0 ...
         , its.maxStderr, 0.3 ...
