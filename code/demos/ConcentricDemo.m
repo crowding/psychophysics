@@ -16,7 +16,7 @@ function this = ConcentricDemo(varargin)
     
     motion = CircularCauchyMotion();
     sprites = CauchySpritePlayer('process', motion);
-    fixation = FilledDisk([-15 15;0 0], 0.05, 0, 'visible', 1);
+    fixation = FilledDisk([-15 15;0 0], 0.1, 0, 'visible', 1);
 
     ambiguous_ = 0;
     displayon_ = 0;

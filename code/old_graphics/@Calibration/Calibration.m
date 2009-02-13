@@ -1,4 +1,4 @@
-function p = Calibration(varargin)
+function [p, signal] = Calibration(varargin)
 % function p = Calibration('propertyName', 'propertyValue')
 %
 % A set of calibration data. This includes frame 
@@ -32,6 +32,9 @@ function p = Calibration(varargin)
 % p = calibrate_gamma(p) speaks to a photometer on the given screen, and fills out 
 %     its own gamma correction table.
 
+%the "signal output" is an out-of-band calling argument. if called with
+%nargout=2, Calibration will not attempt to retreive a previous calibration.
+
 classname = mfilename('class');
 args = varargin;
 
@@ -54,6 +57,7 @@ else
     p.calibration = NaN;
 	p.bitdepth = NaN;
 	p.date = NaN;
+    p.center = NaN;
 	 
     p.svn = svninfo(fileparts(mfilename('fullpath')));
 	p = class(p, classname, PropertyObject);
@@ -64,7 +68,7 @@ if length(args) >= 2
 end
 
 %the real work: read the system for default values.
-if isnan(p.computer)
+if isnumeric(p.computer) && isnan(p.computer)
 	p.computer = Screen('Computer');
     p.computer = rmfield(p.computer, 'location'); %changes when network settings change
     p.computer.kern = rmfield(p.computer.kern, 'hostname'); %this changes all the time
@@ -73,7 +77,7 @@ end
 
 l = localExperimentParams();
 
-if isnan(p.ptb)
+if isnumeric(p.ptb) && isnan(p.ptb)
 	p.ptb = Screen('Version');
     p.ptb = rmfield(p.ptb, 'authors'); %too long to dump out in our saved file
 end
@@ -101,9 +105,19 @@ if isnan(p.interval)
 	p.interval = 1/fr;
 end
 
+if isnan(p.center)
+    p.center = [0 0]; % where the "fixation point" is; measured in degrees
+                      % from the center of the screen
+end
+
 %the above specifies system parameters; given this we should be able to find a
 %saved calibration that matches.
-[p, found] = load(p);
+if nargout < 2
+    [p, found] = load(p);
+else
+    found = 0;
+    signal = 1;
+end
 
 if ~found
 	%if not, continue with initialization.

@@ -30,7 +30,7 @@ toPixels_ = [];
                 l = e(loc, next - onsetTime_);
                 
                 center = toPixels_(l);
-                shifted = loc; shifted(1,:)  = shifted(1,:) + radius;
+                shifted = l; shifted(1,:)  = shifted(1,:) + radius;
                 sz = sqrt(sum((center - toPixels_(shifted)).^2));
                 if any(sz > 31)
                     Screen('gluDisk', window, color, center(1,:), center(2,:), sz);

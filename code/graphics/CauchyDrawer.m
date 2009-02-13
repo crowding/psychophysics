@@ -49,9 +49,6 @@ function this = CauchyDrawer(varargin)
 
             glLoadIdentity;
 
-            %set up a projection so that screen coordinates correspond to
-            %tan(degrees of visual angle)
-
             td = transformToDegrees(params.cal);
             rect = td(params.cal.rect);
             glOrtho(rect(1), rect(3), rect(4), rect(2), -10, 10);
@@ -173,7 +170,7 @@ function this = CauchyDrawer(varargin)
         
         
         if splitTextures_ %we have drawn the positive-going half, now need the negative
-            textureCoords([3 7 11 15],:) = phase([1 1 1 1],:) + pi;
+            textureCoords([3 7 11 15],:) = phase([1 1 1 1],:) + pi; %#ok, it is used by DrawArrays
             glBlendEquation(GL_.FUNC_REVERSE_SUBTRACT);
             glDrawArrays(GL_.QUADS, 0, nQuads*4);
             glBlendEquation(GL_.FUNC_ADD);
