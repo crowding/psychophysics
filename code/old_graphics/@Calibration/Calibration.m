@@ -68,76 +68,79 @@ if length(args) >= 2
 end
 
 %the real work: read the system for default values.
-if isnumeric(p.computer) && isnan(p.computer)
-	p.computer = Screen('Computer');
-    p.computer = rmfield(p.computer, 'location'); %changes when network settings change
-    p.computer.kern = rmfield(p.computer.kern, 'hostname'); %this changes all the time
-    p.computer.hw = rmfield(p.computer.hw, 'usermem'); %this changes all the time
-end
-
-l = localExperimentParams();
-
-if isnumeric(p.ptb) && isnan(p.ptb)
-	p.ptb = Screen('Version');
-    p.ptb = rmfield(p.ptb, 'authors'); %too long to dump out in our saved file
-end
-
-if isnan(p.screenNumber)
-    if isfield(l, 'ScreenNumber')
-    	p.screenNumber = l.screenNumber;
-    else
-        p.screenNumber = max(Screen('Screens'));
+if isscalar(p)
+    if isnumeric(p.computer) && isnan(p.computer)
+        p.computer = Screen('Computer');
+        p.computer = rmfield(p.computer, 'location'); %changes when network settings change
+        p.computer.kern = rmfield(p.computer.kern, 'hostname'); %this changes all the time
+        p.computer.hw = rmfield(p.computer.hw, 'usermem'); %this changes all the time
     end
-end
-if isnan(p.rect)
-	p.rect = Screen('Rect', p.screenNumber);
-end
-if isnan(p.pixelSize)
-	p.pixelSize = Screen('PixelSize', p.screenNumber);
-end
-if isnan(p.interval)
-	fr = Screen('FrameRate', p.screenNumber);
-	if (fr == 0)
-		warning('Calibration:noFrameRate', 'Unable to determine frame rate');
-		fr=60;
-	end
-		
-	p.interval = 1/fr;
-end
 
-if isnan(p.center)
-    p.center = [0 0]; % where the "fixation point" is; measured in degrees
-                      % from the center of the screen
+    l = localExperimentParams();
+
+    if isnumeric(p.ptb) && isnan(p.ptb)
+        p.ptb = Screen('Version');
+        p.ptb = rmfield(p.ptb, 'authors'); %too long to dump out in our saved file
+    end
+
+    if isnan(p.screenNumber)
+        if isfield(l, 'ScreenNumber')
+            p.screenNumber = l.screenNumber;
+        else
+            p.screenNumber = max(Screen('Screens'));
+        end
+    end
+    if isnan(p.rect)
+        p.rect = Screen('Rect', p.screenNumber);
+    end
+    if isnan(p.pixelSize)
+        p.pixelSize = Screen('PixelSize', p.screenNumber);
+    end
+    if isnan(p.interval)
+        fr = Screen('FrameRate', p.screenNumber);
+        if (fr == 0)
+            warning('Calibration:noFrameRate', 'Unable to determine frame rate');
+            fr=60;
+        end
+
+        p.interval = 1/fr;
+    end
+
+    if isnan(p.center)
+        p.center = [0 0]; % where the "fixation point" is; measured in degrees
+        % from the center of the screen
+    end
 end
 
 %the above specifies system parameters; given this we should be able to find a
 %saved calibration that matches.
 if nargout < 2
     [p, found] = load(p);
+    if ~found
+        %if not, continue with initialization.
+        if isnan(p.date)
+            p.date = date();
+        end
+        if isnan(p.distance)
+            p.distance = 50; %cm
+        end
+        if isnan(p.spacing)
+            p.spacing = [0.025 0.025];
+        end
+        if isnan(p.gamma)
+            %%%		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
+            p.gamma = linspace(0,1,256)' * [1 1 1];
+        end
+        if isnan(p.calibrated)
+            p.calibrated = 0;
+        end
+        if isnan(p.bitdepth)
+            p.bitdepth = 8;
+        end
+    end
 else
-    found = 0;
+    found = 0; %not really
     signal = 1;
 end
 
-if ~found
-	%if not, continue with initialization.
-	if isnan(p.date)
-		p.date = date();
-	end
-	if isnan(p.distance)
-		p.distance = 50; %cm
-	end
-	if isnan(p.spacing)
-		p.spacing = [0.025 0.025];
-	end
-	if isnan(p.gamma)
-%%%		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
-        p.gamma = linspace(0,1,256)' * [1 1 1];
-	end
-	if isnan(p.calibrated)
-		p.calibrated = 0;
-	end
-	if isnan(p.bitdepth)
-		p.bitdepth = 8;
-	end
-end
+

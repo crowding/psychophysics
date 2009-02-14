@@ -5,7 +5,11 @@ function this = loadobj(what)
     else
         names = fieldnames(what);
         
-        this = num2cell(arrayfun(@instantiate, what, 'UniformOutput', 0));
+        this = arrayfun(@instantiate, what, 'UniformOutput', 0);
+        this = reshape(cat(1,this{:}), size(what));
+        %FACE fuckin' PALM that none of the array manipulations work on
+        %objects in MATLAB.
+        [this, signal] = Calibration(this);
     end
 
     function it = instantiate(s)

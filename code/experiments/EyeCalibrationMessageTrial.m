@@ -101,14 +101,6 @@ this = autoobject(varargin{:});
                     amat = atarg / araw;
                     calib = amat * araw;
     
-                    if ~isempty(params.uihandles)
-                        makeCurrentAxes(params.uihandles.experiment_axes);
-                        plot(calib(1,:), calib(2,:), 'b+');
-                        hold('on');
-                        line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
-                        hold('off');
-                    end
-
                     %set the offset and slope...
 
                     %what is the standard error? As a measure of how accurately we
@@ -117,7 +109,15 @@ this = autoobject(varargin{:});
 
                     stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
 
-                    title(params.uihandles.experiment_axes, sprintf('stderr = %g', stderr));
+                    if isfield(params, 'uihandles') && ~isempty(params.uihandles)
+                        makeCurrentAxes(params.uihandles.experiment_axes);
+                        plot(calib(1,:), calib(2,:), 'b+');
+                        hold('on');
+                        line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
+                        hold('off');
+                        title(params.uihandles.experiment_axes, sprintf('stderr = %g', stderr));
+                    end
+
                     
                     if ( (stderr < maxStderr) && ( numel(results) >= minN) ) || numel(results) >= maxN
                         %we're done. apply and record the calibration.
