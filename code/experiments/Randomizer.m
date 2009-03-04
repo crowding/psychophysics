@@ -283,8 +283,8 @@ this = autoobject(varargin{:});
                 r.values.result(trial, result, params_{i});
             elseif iscell(r.values)
                 for j = 1:numel(r.subs)
-                    if isstruct(r.values{j}) && isfield(r.values{j}, 'result') && isa(r.values.result{j}, 'function_handle')
-                        r.values.result(trial, result, params_{i}{j}); %???
+                    if isstruct(r.values{j}) && isfield(r.values{j}, 'result') && isa(r.values{j}.result, 'function_handle')
+                        r.values{j}.result(trial, result, params_{i}{j}); %???
                     end
                 end
             end
@@ -426,7 +426,7 @@ this = autoobject(varargin{:});
 
             if iscell(r.subs)
                 if numel(r.subs) ~= numel(val)
-                    error('Ransomizer:badAssignment'...
+                    error('Randomizer:badAssignment'...
                         , '%d subscripts given for parallel assignment but only %d values. First subscript was ''%s'''...
                         , numel(r.subs), numel(val), substruct2str(r.subs{1}));
                 end
@@ -449,15 +449,16 @@ this = autoobject(varargin{:});
                         e.message = sprintf('Error assigning %s = %s :\n%s', substruct2str(r.subs{j}), evalc('disp(v)'), e.message);
                         rethrow(e);
                     end
+                    val{j} = v;
                 end
             else
-                v = ev(val, object);
-                if ~isstruct(v)
-                    dump(v, @printf, [name substruct2str(r.subs)]);
+                val = ev(val, object);
+                if ~isstruct(val)
+                    dump(val, @printf, [name substruct2str(r.subs)]);
                 end
                 if ~isempty(r.subs)
                     try
-                        object = subsasgn(object, r.subs, v);
+                        object = subsasgn(object, r.subs, val);
                     catch
                         %add some descriptive detail of what you were trying to do
                         e = lasterror;
@@ -465,7 +466,10 @@ this = autoobject(varargin{:});
                         rethrow(e);
                     end
                 else
-                    object = v;
+                    object = val;
+                    %special case: this wholesale reassignment is not
+                    %recorded.
+                    val = [];
                 end
             end
             params{i} = val;

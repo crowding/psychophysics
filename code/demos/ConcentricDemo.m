@@ -1,3 +1,4 @@
+
 function this = ConcentricDemo(varargin)
 %show glolo concentric in a circle around the fixation point. Verious
 %button presses adjust the position...
@@ -20,6 +21,7 @@ function this = ConcentricDemo(varargin)
 
     ambiguous_ = 0;
     displayon_ = 0;
+    color_ = 0;
 
     my_ = Genitive();
     
@@ -97,6 +99,22 @@ function this = ConcentricDemo(varargin)
                 , my_.motion.angle, repmat(motion.getAngle(), 1, 2) ...
                 , my_.motion.t, repmat(motion.getT(), 1, 2)...
                 )
+        end
+        
+        if color_
+            if ambiguous_
+                c = repmat([0.5 0.5 0 0;0 0 0.3 0.3;0.5 0.5 0.00 0.00]/ sqrt(2), 1, ceil(n/2));
+                c = c(:,1:2*n);
+            else
+                c = repmat([0.5 0;0 0.5;0.25 0.25]/ sqrt(2), 1, ceil(n/2));
+                c = c(:,1:n);
+            end
+            if size(fixation.getLoc(), 2) > 1
+                c = [c c];
+            end
+            motion.setColor(c);
+        else
+            motion.setColor([0.5;0.5;0.5]/(sqrt(2)^(ambiguous_+1)));
         end
     end
 
@@ -192,8 +210,8 @@ function this = ConcentricDemo(varargin)
         
         keyboard.set(@(h)multiply(motion, 'dphase', -1, h),                     'x');
         keyboard.set(@(h)multiply(motion, 'velocity', -1, h),                   'z');
-        keyboard.set(@ambiguous,                  'c');
-        
+        keyboard.set(@ambiguous,                                                'c');
+        keyboard.set(@colortoggle,                                              'v');        
         
         status_string(end) = [];
 
@@ -263,7 +281,7 @@ function this = ConcentricDemo(varargin)
             if ambiguous_
                 motion.setColor(motion.getColor() / sqrt(2));
             else
-                motion.setColor(motion.getColor() * sqrt(2));
+                motion.setColor(motion.getColor());
             end
             distribute();
         end
@@ -293,6 +311,11 @@ function this = ConcentricDemo(varargin)
             else
                 display(h);
             end
+        end
+        
+        function colortoggle(h)
+            color_ = ~color_;
+            distribute();
         end
         
         function pause(h)

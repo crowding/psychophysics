@@ -22,7 +22,7 @@ function this = DiscreteStaircase(varargin)
     function result(trial, result, valueUsed)
         
         %evaluate the criterion.
-        value = ev(criterion, result);
+        value = ev(criterion, trial, result);
         if value > 0                
                 upCounter = 0;
                 downCounter = downCounter + 1;

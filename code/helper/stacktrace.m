@@ -1,12 +1,21 @@
 function stacktrace(errors)
-%trace a passed-in error, or the last error of there was none. Can trace
-%multiple errors given as an array.
-
-%TODO: error causes, errors encountered while processing
-%other errors; filtering of errors below a root
+%Display a trace of the errors, similar to DBSTACK or the printout from
+%WARNING.
+%
+%Present because there's no builtin way to print this information! Only the
+%builtin methods that print then an exception reaches the top level....
+%Which don't always work!
 
 if ~exist('errors', 'var')
+    
+    % "last() method can only be called from command prompt."
+    % WTF???????
+    
+    %if exist('MException', 'class') %new for 7.5...
+    %    errors = MException.last();
+    %else
     errors = lasterror;
+    %end
 end
 
 desktop = usejava('desktop');
@@ -16,11 +25,24 @@ output = {};
         output{end+1} = sprintf(varargin{:});
     end
 
-arrayfun(@printStackTrace, errors);
-
+%arrayfun does not work on arrays of type MException.... or any other
+%object. because arrays are a generic type, don't you know.
+for ix = 1:numel(errors)
+    if iscell(errors)
+        printStackTrace(errors{ix});
+    else
+        printStackTrace(errors(ix));
+    end
+end
+ 
 disp(cat(2,output{:}));
 
     function printStackTrace(theErr, indent)
+        %forward compatible support for the new MException object in 7.5
+        if isa(theErr, 'mException')
+            theErr = mException2errstruct(theErr);
+        end
+
         if ~exist('indent', 'var')
             indent = '';
         end
@@ -44,18 +66,21 @@ disp(cat(2,output{:}));
             else
                 printf('%s  In %s at %d\n', indent, frame.name, frame.line);
             end
-            
-            if isfield(frame, 'additional') && ~isempty(frame.additional)
-                printf(' \n');
-                printf('%s   which was caused by:\n', indent);
-                for i = frame.additional(:)'
-                    printStackTrace(i, [indent '    ']);
+
+            for field = {'additional', 'cause'}
+                if isfield(frame, field{1}) && ~isempty(frame.(field{1}))
+                    printf(' \n');
+                    printf('%s   which was caused by:\n', indent);
+                    for i = frame.(field{1})(:)'
+                        printStackTrace(i, [indent '    ']);
+                    end
                 end
             end
+
             %a line of code...
             %dbtype(frame.file, num2str(frame.line));
         end
-        
+
         function printErrorMessage(theErr)
             %some error messages are really parser messages, make it so I
             %can click in them
@@ -63,8 +88,8 @@ disp(cat(2,output{:}));
             if desktop
                 message = regexprep(...
                     message...
-                    ,'File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
-                    ,'<a href="error:$1,$2,$3">$0</a>');
+                    ,'([^>])File:\s*(.*)\s*Line:\s*(.*)\s*Column:\s*(\d*)'...
+                    ,'$1<a href="error:$2,$3,$4">$0</a>');
             end
             message = regexprep(message, '[\r\n]+', ['$0' indent]);
             printf('%s??? %s : %s\n', indent, theErr.identifier, message);

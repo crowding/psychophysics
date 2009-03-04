@@ -7,8 +7,9 @@ function this = ConcentricTrial(varargin)
     startTime = 0;
     knobTurnThreshold = 3;
     awaitInput = 0.5;
-    fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
+    fixation = FilledDisk([0, 0], 0.2, [0 0 0]);
     
+    requireFixation = 1;
     fixationLatency = 2; %how long to wait for acquiring fixation
     
     fixationStartWindow = 3; %this much radius for starting fixation
@@ -36,25 +37,41 @@ function this = ConcentricTrial(varargin)
         
         trigger = Trigger();
         trigger.panic(keyIsDown('q'), @abort);
-        trigger.singleshot(atLeast('next', startTime - interval/2), @start);
+        if requireFixation
+            trigger.singleshot(atLeast('next', startTime - interval/2), @awaitFixation);
+        else
+            trigger.singleshot(atLeast('next', startTime - interval/2), @startMotion);
+        end
 
         motion.setVisible(0);
         fixation.setVisible(0);
         
-        main = mainLoop ...
-            ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
-            , 'graphics', {fixation, motion} ...
-            , 'triggers', {trigger} ...
-            );
+        if requireFixation
+            main = mainLoop ...
+                ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
+                , 'graphics', {fixation, motion} ...
+                , 'triggers', {trigger} ...
+                );
+        else
+            main = mainLoop ...
+                ( 'input', {params.input.keyboard, params.input.knob} ...
+                , 'graphics', {fixation, motion} ...
+                , 'triggers', {trigger} ...
+                );
+        end
         
         main.go(params);
         
-        function start(h)
+        function awaitFixation(h)
             fixation.setVisible(1);
-            trigger.first ...
-                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
-                , atLeast('eyeFt', h.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
-                );
+            if requireFixation
+                trigger.first ...
+                    ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
+                    , atLeast('eyeFt', h.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
+                    );
+            else
+                trigger.singleshot(atLeast(h.next,startTime));
+            end
         end
         
         function failedWaitingFixation(k)
@@ -76,10 +93,14 @@ function this = ConcentricTrial(varargin)
         function startMotion(h)
             fixation.setVisible(1);
             motion.setVisible(1, h.next);
-            trigger.first...
-                ( atLeast('eyeFt', h.next + awaitInput), @waitForResponse, 'eyeFt' ...
-                , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
-                );
+            if requireFixation
+                trigger.first...
+                    ( atLeast('eyeFt', h.next + awaitInput), @waitForResponse, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
+                    );
+            else
+                trigger.singleshot(atLeast('next', h.next + awaitInput - interval/2), @waitForResponse);
+            end
         end
         
         function failedFixation(h)

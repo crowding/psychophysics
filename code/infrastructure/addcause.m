@@ -1,5 +1,5 @@
-function error = adderror(error, cause)
-%function error = adderror(error, cause)
+function error = addcause(error, cause)
+%function error = addcause(error, cause)
 %
 %It is often the case that in responding to an error or cleaning up
 %resources, additional errors will be generated. In some languages (e.g.
@@ -8,13 +8,6 @@ function error = adderror(error, cause)
 %the aether, unless you take special steps to capture it. Boo!
 %
 %This function combines two error structures as returned from LASTERROR.
-%
-%NOTE: While MATLAB lately provides a MException object with an addCause
-%method, I reccomend you do NOT use that cause mechanism. Any extant code
-%that relied on lasterror (like most extant code) will silently discard
-%exception causes you use add causes with the MException class. In
-%contrast, the structure provided here is fully compatible with the extant
-%exception handling code. 
 %
 %Example:
 %try
@@ -37,8 +30,8 @@ if isa(cause, 'MException');
     cause = mexception2errstruct(cause);
 end
 
-if ~isfield(error.stack, 'cause')
-    error.stack(1).cause = [];
+if ~isfield(original.stack, 'cause')
+    original.stack(1).cause = [];
 end
 if ~isfield(cause.stack, 'cause')
     cause.stack(1).cause = [];
@@ -46,10 +39,10 @@ end
 
 %plug the exception in at the first place where the stack traces differ
 where = 1;
-for i = 0:min(length(error.stack), length(cause.stack)) - 1;
-    if ~isequal(error.stack(end-i), cause.stack(end-i))
+for i = 0:min(length(original.stack), length(cause.stack)) - 1;
+    if ~isequal(original.stack(end-i), cause.stack(end-i))
         cause.stack(end-i+1:end) = [];
-        where = length(error.stack) - i;
+        where = length(original.stack) - i;
         break;
     end
 end

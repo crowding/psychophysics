@@ -70,10 +70,10 @@ function hFig = uiinspect(obj)
       end
 
       % Get object data
-      objMethods   = getObjMethods(obj);
-      objProps     = getObjProps(obj);
-      objCallbacks = getObjCallbacks(obj);
-      objChildren  = getObjChildren(obj);
+      objMethods   = getObjMethods(obj)
+      objProps     = getObjProps(obj)
+      objCallbacks = getObjCallbacks(obj)
+      objChildren  = getObjChildren(obj)
       
       % Display object data
       fig = displayObj(obj, objMethods, objProps, objCallbacks, objChildren, inputname(1));

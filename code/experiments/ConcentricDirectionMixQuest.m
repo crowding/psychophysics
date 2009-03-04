@@ -30,6 +30,7 @@ function e = ConcentricDirectionMixQuest(varargin)
             , 'localDirection', 1 ...
             , 'color', [0.5;0.5;0.5] / sqrt(2)...
             ) ...
+        , 'requireFixation', 0 ...
         , 'fixationStartWindow', 3 ...
         , 'fixationSettle', 0.1 ...
         , 'fixationWindow', 4 ...
@@ -54,33 +55,80 @@ function e = ConcentricDirectionMixQuest(varargin)
     
     %the target and distractor are selected from a grid of stimulus
     %parameters.
+
+%%
+    %In this section, we build up the array of parameters we will quest with.
+    vars = {};
     
-    e.trials.add('extra.r', [80/27 10 20/3 40/9 ]);
+    vars(end+1,:) = {{'extra.r'}, {80/27 10 20/3 40/9}};
+    %vars(end+1,:) = {{'extra.r'}, {80/27}};
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
-    e.trials.add('extra.globalVScalar', [2/6 .5 .75]);
+    %%vars(end+1,:) = {{'extra.globalVScalar'}, {2/6 .5 .75}};
+    vars(end+1,:) = {{'extra.globalVScalar'}, {.5}};
     
     %temporal frequency is chosen here...
-    e.trials.add('extra.tf', [15 10 20/3]);
+    %%vars(end+1,:) = {{'extra.tf'}, {15 10 20/3}};
+    vars(end+1,:) = {{'extra.tf'}, {10}};
 
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
-    e.trials.add('extra.wavelengthScalar', [2/60]);  % .05 .075 .1125
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
+    %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
-    e.trials.add({'extra.dt', 'motion.process.n'}, {{2/30 9}, {0.10 6} {0.15 4}});
+    %%vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{2/30 9}, {0.10 6} {0.15 4}}};
+    vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{0.10 6}}};
     
+    %expand all the values to be used here.
+    parameters = cat(2, vars{:,1});
+    indices = fullfact(cellfun('prodofsize', vars(:,2)));
+    
+    product = cellfun(@(row)cellfun(@(x,y)x(y), vars(:,2)', num2cell(row)), num2cell(indices, 2), 'UniformOutput', 0);
+    product = cellfun(@(row)cat(2, row{:}), product, 'UniformOutput', 0);
+
+    %now create quests for each...
+    parameters{end+1} = 'extra.nTargets';
+    for i = 1:numel(product)
+        product{i}{end+1} = Quest ...
+            ( 'pThreshold', 0.5, 'gamma', 0 ... %yes-no experiment...
+            , 'guess', 15, 'range', 30, 'grain', 0.1, 'guessSD', 10 ... %conservative initial guess
+            , 'criterion', @criterion, 'restriction', PickNearest('set', 5:25) ... %experiment constraints
+            );
+    end
+    
+    %now add'em all
+    e.trials.add(parameters, product);
+%%
+        
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
+    %here's where local and global are randomized
     e.trials.add('extra.globalDirection', [1 -1]);
     e.trials.add('extra.localDirection', [1 0 -1]);
     
-    %this will in the future be set by QUEST.
-    e.trials.add('extra.nTargets', 6:25);
+    %we only adjust the QUEST for opposing local and global motion We are
+    %trying to find the intensity (nTargets) at whcih the stimulus becomes
+    %crowded (local motion dominates.)
+    function crowded = criterion(trial, result)
+        crowded = 0;
+        if result.success == 1
+            gd = trial.property__('extra.globalDirection');
+            if gd == -trial.property__('extra.localDirection')
+                %note the logical reversal; the knob's positive rotation is
+                %clockwise and the stimulus' positive rotation is CCW.
+                if result.response == gd;
+                    crowded = 1;
+                elseif result.response == -gd;
+                    crowded = -1;
+                end
+            end
+        end
+    end
     
     %await the input after the stimulus has finished playing.
     e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
@@ -99,7 +147,7 @@ function e = ConcentricDirectionMixQuest(varargin)
         mot.setWidth(extra.r .* extra.widthScalar);
         mot.setDuration(extra.durationScalar .* extra.dt);
         
-        ph = mod(rand()*2*pi + (0:extra.nTargets-1)/extra.nTargets*2*pi, 2*pi);
+        ph = mod(extra.phase + (0:extra.nTargets-1)/extra.nTargets*2*pi, 2*pi);
         %For balance we need to have three kinds of motion: supporting, opposing, and ambiguous.
 
         if extra.localDirection ~= 0
@@ -114,19 +162,23 @@ function e = ConcentricDirectionMixQuest(varargin)
             ph = reshape(repmat(ph, 2, 1), 1, []);
             mot.setPhase(ph);
             mot.setAngle(mod(ph*180/pi + 90, 360));
-            mot.setVelocity(wl .* extra.tf .* extra.localDirection * repmat([-1 1], 1, extra.nTargets));
+            mot.setVelocity(wl .* extra.tf * repmat([-1 1], 1, extra.nTargets));
             mot.setColor(extra.color / sqrt(2));
         end
     end
     
-    %say, run 40 trials for each quest, with an estimated threshold value measured in number of
-    %targets, somewhere between 5 and 20.
-    e.trials.reps = 40;
+    %say, run 30 trials for each quest, with an estimated threshold value measured in number of
+    %targets, somewhere between 5 and 20. This arrives at a threshold
+    %estimate very quickly.
+    %note that of the global and local combinations, 2 will inform the
+    %quest. So 15 reps of the factorial means 30 trials in the quest.
+    e.trials.reps = 15;
     
     e.trials.fullFactorial = 1;
 
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));
+%{
     e.trials.blockTrial = EyeCalibrationMessageTrial...
         ( 'minCalibrationInterval', 900 ...
         , 'base.absoluteWindow', 100 ...
@@ -143,5 +195,6 @@ function e = ConcentricDirectionMixQuest(varargin)
         , 'maxN', 50 ...
         , 'interTrialInterval', 0.4 ...
         );
+%}
     e.trials.endTrial = MessageTrial('message', sprintf('All done!\nPress knob to save and exit.\nThanks!'));
 end
