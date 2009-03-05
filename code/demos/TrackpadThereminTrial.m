@@ -9,14 +9,13 @@ function this = TrackpadThereminTrial(varargin)
         colorOffset = params.blackIndex;
         colorGain = params.whiteIndex - params.blackIndex;
         
-        
         disk = FilledDisk('loc', [0 0], 'color', params.whiteIndex, 'radius', 1, 'visible', 1);
         u = UpdateTrigger();
         u.set(@update);
         main = mainLoop ...
             ( 'graphics', disk ...
             , 'triggers', {KeyDown(@stop, 'q'), u} ...
-            , 'input', {params.input.keyboard, params.input.trackpad} ...
+            , 'input', {params.input.keyboard, params.input.trackpad, params.input.audio} ...
             );
             
         main.go(params);
@@ -37,7 +36,9 @@ function this = TrackpadThereminTrial(varargin)
                 end
 
                 if all(~isnan(k.trackpadAmp))
-                    disk.setColor(colorOffset + mean(k.trackpadAmp) / 32 * colorGain);
+                    aa = mean(k.audio);
+                    ta = mean(k.trackpadAmp);
+                    disk.setColor(colorOffset + [ta/32;aa;ta/32] * colorGain);
                 end
 
                 if all(~isnan(k.trackpadSize))

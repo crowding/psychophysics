@@ -9,6 +9,7 @@ function this = TrackpadTheremin(varargin)
     e.trials.blockSize = 1;
     
     e.params.input.trackpad = TrackpadInput();
+    e.params.input.audio = AudioIO();
     e.params.backgroundColor = 0;
     e.filename = '';
     e.subject = 'zzz';

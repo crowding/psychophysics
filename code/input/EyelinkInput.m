@@ -41,6 +41,7 @@ function this = EyelinkInput(varargin)
     persistent sampleCache_;
     sampleCacheLength = 1000;
     sampleCache_ = struct('time',cell(sampleCacheLength, 1),'type',0,'flags',0,'px',0,'py',0,'hx',0,'hy',0,'pa',0,'gx',0,'gy',0,'rx',0,'ry',0,'status',0,'input',0,'buttons',0,'htype',0,'hdata',0);
+    [sampleCache_.time] = deal(1); %maybe a speed improvement if everything is preallocated.
     
 %% initialization routines
 
