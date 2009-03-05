@@ -200,10 +200,6 @@ function this = GloloSaccadeTrial(varargin)
 
         function hideFixation(k)
             fixation.setVisible(0);
-            %only at this point are we willing to say "failed" until
-            %success obtains
-            result.success = 0; 
-            
             %to reduce latency, trigger on the UNfiltered eye position
             %(window centered around the current position).
             trigger.first...
@@ -233,6 +229,9 @@ function this = GloloSaccadeTrial(varargin)
         end
         
         function unblankTarget(k)
+            %only getting to this point are we willing to say "success"
+            %unless failure obtains
+            result.success = 1; %PENDING....
             if (useTrackingTarget)
                 trackingTarget.setVisible(0);
                 target.setVisible(1);
@@ -248,10 +247,12 @@ function this = GloloSaccadeTrial(varargin)
         end
         
         function failedAcquisition(x)
+            result.success = 0; %whoops
             failed(x);
         end
         
         function settleSaccade(k)
+            result.success = 0;
             trigger.first...
                 ( atLeast('eyeFt', k.triggerTime + saccadeSettleTime), @fixateTarget, 'eyeFt'...
                 );
@@ -266,11 +267,11 @@ function this = GloloSaccadeTrial(varargin)
         end
         
         function failedPursuit(x)
+            result.success = 0;
             failed(x);
         end
             
         function success(k)
-            result.success = 1;
             target.setVisible(0);
             trackingTarget.setVisible(0);
             trigger.remove([blinkhandle_ blankhandle_]);
