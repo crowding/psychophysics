@@ -3,6 +3,7 @@
  * the Cauchy function are adjusted with the third and forth elements (p
  * and q) of the texture coordinate.
  */
+#define PI 3.14159265358979
 
 void main(void)
 {
@@ -11,7 +12,18 @@ void main(void)
      * p-coordinate = phase
      * q-coordinate = order.
      */
-    float theta = atan(gl_TexCoord[0].s);
+
+    /* Theta is just supposed to be atan(s),
+     * but SOME GLSL implementations (like the ATI driver on 10.5) can't
+     * evaluate atan(x) if abs(x) > 1.
+     */
+    float theta;
+    if (abs(gl_TexCoord[0].s) > 1.0) {
+        theta = -atan(1.0/gl_TexCoord[0].s) + PI/2.*sign(gl_TexCoord[0].s);
+    } else {
+        theta = atan(gl_TexCoord[0].s);
+    }
+
     gl_FragColor = gl_Color
         * pow(cos(theta), gl_TexCoord[0].q) * cos(theta * gl_TexCoord[0].q + gl_TexCoord[0].p ) /* cauchy function */
         * exp(- gl_TexCoord[0].t * gl_TexCoord[0].t); /* gaussian envelope */
