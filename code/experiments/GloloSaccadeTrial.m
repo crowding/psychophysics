@@ -252,7 +252,6 @@ function this = GloloSaccadeTrial(varargin)
         end
         
         function settleSaccade(k)
-            result.success = 0;
             trigger.first...
                 ( atLeast('eyeFt', k.triggerTime + saccadeSettleTime), @fixateTarget, 'eyeFt'...
                 );
