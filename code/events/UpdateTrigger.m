@@ -18,9 +18,11 @@ else
 end
 
     %methods
+    notlogged_ = {};
+    
     function s = check(s)
         if set_
-            log('TRIGGER %s %s', func2str(fn), struct2str(s));
+            log('TRIGGER %s %s', func2str(fn), struct2str(srmfield(s,notlogged_)));
             fn(s); %call function always
         end
     end
@@ -47,6 +49,7 @@ end
     end
 
     function [release, params] = init(params)
+        notlogged_ = params.notlogged;
         release = @noop;
     end
 end

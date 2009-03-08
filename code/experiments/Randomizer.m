@@ -58,7 +58,11 @@ this = autoobject(varargin{:});
         if fullFactorial 
             n = sum(~designDone);
         else
-            n = blockSize * numBlocks - numel(results);
+            if requireSuccess
+                n = blockSize * numBlocks - numel(results);
+            else
+                n = blockSize * (numBlocks - blocksCounter_) - blockCounter_;
+            end
         end
     end
 
@@ -112,6 +116,8 @@ this = autoobject(varargin{:});
         blockTrialResults = {};
         endBlockTrialResults = {};
         endTrialResult = [];
+        blockCounter_ = 0;
+        blocksCounter_ = 0;
         start();
     end
 
@@ -158,15 +164,23 @@ this = autoobject(varargin{:});
     end
 
     function has = shuffleHasNext_()
-        if numel(results) < blockSize * numBlocks
-            if fullFactorial
-                checkShuffle_();
-                has = any(~designDone);
+        if requireSuccess
+            if numel(results) < blockSize * numBlocks
+                if fullFactorial
+                    checkShuffle_();
+                    has = any(~designDone);
+                else
+                    has = 1;
+                end
             else
-                has = 1;
+                has = 0;
             end
         else
-            has = 0;
+            if numLeft() > 0
+                has = 1;
+            else
+                has = 0;
+            end
         end
     end
 
@@ -217,7 +231,9 @@ this = autoobject(varargin{:});
         end
     end
 
+    blocksCounter_ = 0;
     function next = startExperiment_(params)
+        blocksCounter_ = 0;
         if isempty(startTrial)
             nextState_ = @startBlock_;
             next = nextState_(params);
@@ -237,6 +253,7 @@ this = autoobject(varargin{:});
     function next = startBlock_(params)
         if isempty(blockTrial)
             nextState_ = @regularTrial_;
+            blockCounter_ = 0;
             next = nextState_(params);
         else
             resultState_ = @startBlockResult_;
@@ -308,6 +325,7 @@ this = autoobject(varargin{:});
     end
 
     function next = endBlock_(params)
+        blocksCounter_ = blocksCounter_ + 1;
         if isempty(endBlockTrial)
             if shuffleHasNext_()
                 nextState_ = @startBlock_;

@@ -11,7 +11,7 @@ rangeV = zeros(1, 9) + 16;
 options = struct('secs', 0);
 
 persistent init__;
-this = autoobject(varargin);
+this = autoobject(varargin{:});
 
     function d = discover()
         d = PsychHID('Devices');
