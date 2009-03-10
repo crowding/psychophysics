@@ -7,10 +7,7 @@ function e = ConcentricDirectionTraining(varargin)
         , 'priority', 0 ...
         , 'hideCursor', 0 ...
         , 'doTrackerSetup', 1 ...
-        , 'input', struct ...
-            ( 'keyboard', KeyboardInput() ...
-            , 'knob', PowermateInput() ...
-            ) ...
+        , 'inputUsed', {'keyboard', 'knob'} ...        '
         , 'eyelinkSettings.sample_rate', 250 ...
         , varargin{:});
     
@@ -59,23 +56,23 @@ function e = ConcentricDirectionTraining(varargin)
 
 %%
     %In this section, we build up the array of parameters we will quest with.
-    e.trials.add({'extra.r'}, {80/27 10 20/3 40/9});
+    e.trials.add('extra.r', [80/27 10 20/3 40/9]);
     %e.trials.add({'extra.r'}, {80/27});
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
     %%e.trials.add({'extra.globalVScalar'}, {2/6 .5 .75});
-    e.trials.add({'extra.globalVScalar'}, {.5});
+    e.trials.add('extra.globalVScalar', [.5]);
     
     %temporal frequency is chosen here...
     %%e.trials.add({'extra.tf'}, {15 10 20/3});
-    e.trials.add({'extra.tf'}, {10});
+    e.trials.add('extra.tf', [10]);
 
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%e.trials.add({'extra.wavelengthScalar'}, {.05 .075 .1125});
-    e.trials.add({'extra.wavelengthScalar'}, {.05});
+    e.trials.add('extra.wavelengthScalar', [.05]);
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -83,14 +80,14 @@ function e = ConcentricDirectionTraining(varargin)
     e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 6}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add({'extra.nTargets'}, {6 8 10 12 15 20 26});
+    e.trials.add('extra.nTargets', [8 10 12 15 20 26]);
 %%
         
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %here's where local and global are randomized
-    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 -1}, {-1 0}, {1 0}, {1 1}});
+    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 -1}, {-1 0}, {0 -1}, {0 1}, {1 0}, {1 1}});
     
     %await the input after the stimulus has finished playing.
     e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
@@ -102,7 +99,6 @@ function e = ConcentricDirectionTraining(varargin)
         mot = b.motion.process;
         mot.setRadius(extra.r);
         mot.setDt(extra.dt);
-        mot.setT(extra.dt);
         mot.setDphase(extra.dt .* extra.globalVScalar .* extra.globalDirection);
         wl = extra.r * extra.wavelengthScalar;
         mot.setWavelength(wl);
@@ -134,7 +130,7 @@ function e = ConcentricDirectionTraining(varargin)
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 8;
+    e.trials.reps = 4;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.blockSize = 192;

@@ -7,8 +7,8 @@ function this = ConcentricTrial(varargin)
     startTime = 0;
     knobTurnThreshold = 3;
     awaitInput = 0.5;
-    fixation = FilledDisk([0, 0], 0.2, [0 0 0]);
-    
+    fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
+   
     requireFixation = 1;
     fixationLatency = 2; %how long to wait for acquiring fixation
     

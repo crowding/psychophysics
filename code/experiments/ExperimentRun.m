@@ -138,8 +138,8 @@ end
 
     function [release, par, next] = initInput(par)
         %initialize the input structure in the trial params.
-        s = struct2cell(par.input);
-        s = cellfun(@(s) s.init, s, 'UniformOutput', 0);
+        %which initializers...
+        s = cellfun(@(name)par.input.(name).init, par.inputUsed, 'UniformOutput', 0);
         i = joinResource(s{:});
         [release, par, next] = i(par);
     end
