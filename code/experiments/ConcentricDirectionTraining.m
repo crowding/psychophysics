@@ -56,23 +56,23 @@ function e = ConcentricDirectionTraining(varargin)
 
 %%
     %In this section, we build up the array of parameters we will quest with.
-    e.trials.add('extra.r', [80/27 10 20/3 40/9]);
+    e.trials.add({'extra.r'}, {80/27 10 20/3 40/9});
     %e.trials.add({'extra.r'}, {80/27});
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
-    %%e.trials.add({'extra.globalVScalar'}, {2/6 .5 .75});
-    e.trials.add('extra.globalVScalar', [.5]);
+    %%e.trials.add({'extra.globalVScalar'}, {.5 .75 1.125});
+    e.trials.add('extra.globalVScalar', {.5});
     
     %temporal frequency is chosen here...
     %%e.trials.add({'extra.tf'}, {15 10 20/3});
-    e.trials.add('extra.tf', [10]);
+    e.trials.add('extra.tf', 10);
 
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%e.trials.add({'extra.wavelengthScalar'}, {.05 .075 .1125});
-    e.trials.add('extra.wavelengthScalar', [.05]);
+    e.trials.add('extra.wavelengthScalar', [.075]);
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -130,7 +130,7 @@ function e = ConcentricDirectionTraining(varargin)
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 4;
+    e.trials.reps = 2;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.blockSize = 192;
