@@ -1,6 +1,4 @@
 function [b, varargout] = group(parameters, varargin)
-
-
     [b, i, j] = unique(parameters, 'rows');
     
     varargout = cellfun(@index, varargin, 'UniformOutput', 0);

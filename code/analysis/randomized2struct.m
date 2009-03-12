@@ -1,4 +1,5 @@
 function [parameters, results, design] = randomized2struct(trials)
+%function [parameters, results, design] = randomized2struct(trials)
     paramNames = parameterColumnNames(trials.parameterColumns);
     
     %some of them will be cells
