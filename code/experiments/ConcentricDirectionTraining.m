@@ -56,8 +56,8 @@ function e = ConcentricDirectionTraining(varargin)
 
 %%
     %In this section, we build up the array of parameters we will quest with.
-    e.trials.add({'extra.r'}, {80/27 10 20/3 40/9});
-    %e.trials.add({'extra.r'}, {80/27});
+    e.trials.add('extra.r', [80/27 10 20/3 40/9]);
+    %e.trials.add('extra.r', [40/9 80/27]);
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
@@ -87,7 +87,8 @@ function e = ConcentricDirectionTraining(varargin)
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %here's where local and global are randomized
-    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 -1}, {-1 0}, {0 -1}, {0 1}, {1 0}, {1 1}});
+    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 0}, {1 0}, {-1 -1}, {-1 0}, {0 -1}, {0 1}, {1 0}, {1 1}});
+%    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 0} {1 0}});
     
     %await the input after the stimulus has finished playing.
     e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));

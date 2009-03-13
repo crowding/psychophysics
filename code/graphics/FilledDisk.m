@@ -37,7 +37,7 @@ degreePerPixel_ = [];
 
                 %hmmm. note this assumes isotropic pixel spacing.
                 sz = sqrt(sum((center - toPixels_(shifted)).^2));
-                if 1% any(sz > 32)
+                if any(sz > 32)
                     %Technique 1 was FillOval.
                     
                     %technique 2 is gluDisk.
