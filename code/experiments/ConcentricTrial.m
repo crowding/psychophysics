@@ -15,6 +15,7 @@ function this = ConcentricTrial(varargin)
     fixationStartWindow = 3; %this much radius for starting fixation
     fixationSettle = 0.3; %allow this long for settling fixation.
     fixationWindow = 1.5; %subject must fixate this closely...
+    reshowStimulus = 0; %whether to reshow the stimulus after the response (for training purposes)
     
     motion = CauchySpritePlayer...
         ( 'process', CircularCauchyMotion ...
@@ -118,13 +119,27 @@ function this = ConcentricTrial(varargin)
         function cw(h)
             result.response = 1;
             result.success = 1;
-            stop(h);
+            if reshowStimulus
+                reshow(h);
+            else
+                stop(h);
+            end
         end
 
         function ccw(h)
             result.response = -1;
             result.success = 1;
-            stop(h);
+            if reshowStimulus
+                reshow(h);
+            else
+                stop(h);
+            end
+        end
+        
+        function reshow(h)
+            motion.setVisible(0);
+            motion.setVisible(1, h.next);
+            trigger.singleshot(atLeast('next', h.next + awaitInput - interval/2), @stop);
         end
         
         function abort(h)
