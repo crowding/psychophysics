@@ -1,8 +1,4 @@
 function output = frombytes(bytes, template, varargin)
-
-    defaults = struct('littleendian', 0, 'enum', 1);
-    params = options(defaults, varargin{:});
-    
     %Converts an array of bytes to given numeric types. The format
     %specification is given as array arguments of the desired type and size.
     %
@@ -55,6 +51,9 @@ function output = frombytes(bytes, template, varargin)
     %are stupid along with MATLAB's handling of long ints in general.
     %(THERE ARE NO ARITHMETIC OPERATIONS FOR LONGS. THERE ARE NO BITWISE
     %OPERATIONS FOR SIGNED INTS. WTF.)
+    
+    defaults = struct('littleendian', 0, 'enum', 1);
+    params = options(defaults, varargin{:});
     
     %Start by converting to hex
     hex = sprintf('%02x', bytes);

@@ -140,7 +140,7 @@ end
         %initialize the input structure in the trial params.
         %which initializers...
         s = cellfun(@(name)par.input.(name).init, par.inputUsed, 'UniformOutput', 0);
-        i = joinResource(s{:});
-        [release, par, next] = i(par);
+        release = @noop;
+        next = joinResource(s{:});
     end
 end

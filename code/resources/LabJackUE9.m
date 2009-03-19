@@ -2091,7 +2091,7 @@ persistent CONTROLCONFIG_COMMAND_;
         %FAST FAST FAST;
         %use this to send raw packets. The checksum and byte counts will be
         %computed for you, but that's it. Otherwise you have to provide the
-        %entire packet INCLUDING spaces for the packet to go.
+        %entire packet INCLUDING spaces for the checksum and counts to go.
         assertOpen_();
 
         if bitand(packet(2), 120) == 120

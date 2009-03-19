@@ -79,7 +79,7 @@ degreePerPixel_ = [];
         [src, dst] = Screen('BlendFunction', params.window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     
         toPixels_ = transformToPixels(params.cal);
-        degreePerPixel_ = 1./max(max(abs(toPixels_(0,0) - toPixels_(0,1))),max(abs(toPixels_(0,0) - toPixels_(1,0))))
+        degreePerPixel_ = 1./max(max(abs(toPixels_(0,0) - toPixels_(0,1))),max(abs(toPixels_(0,0) - toPixels_(1,0))));
         release = @unblend;
         function unblend
             Screen('BlendFunction', params.window, src, dst);

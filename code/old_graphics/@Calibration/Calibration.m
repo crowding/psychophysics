@@ -24,6 +24,9 @@ function [p, signal] = Calibration(varargin)
 %
 % The constructor with no arguments will try to load the calibration from a 
 % known location and match it to the current system. 
+%
+% The defaults (for demos and such) assumes a screen spanning 30 degrees
+% (vertically, usually) and having square pixels.
 % 
 % Methods:
 % p = save(p) saves the calibration to a standard directory.
@@ -122,10 +125,12 @@ if nargout < 2
             p.date = date();
         end
         if isnan(p.distance)
-            p.distance = 50; %cm
+            p.distance = 20*pi; %one cm per degree;
         end
         if isnan(p.spacing)
-            p.spacing = [0.025 0.025];
+            %millimeters per pixel
+            sp = [30 30]./(p.rect([3 4]) - p.rect([1 2]));
+            p.spacing = [max(sp) max(sp)];
         end
         if isnan(p.gamma)
             %%%		p.gamma = Screen('ReadNormalizedGammaTable', p.screenNumber);
