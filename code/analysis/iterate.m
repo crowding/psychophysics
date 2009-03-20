@@ -29,34 +29,55 @@ function varargout = iterate(dims, fn, varargin)
         dims = {1};
         varargin = cellfun(@(x)x(:), varargin, 'UniformOutput', 0);
     end
-    %varargin must always be the same size
-    sz = size(varargin{1});
-    for i = 1:numel(varargin)
-        if ~isequal(size(varargin{i}), sz)
-            error('iterate:elementsNotSameSize', 'Input arguments to iterate must be the same size...');
-        end
-    end
-    
-    nd = numel(dims);
     
     if iscell(dims)
         stripcell = 1;
+        dims = cell2mat(dims);
     else
         stripcell = 0;
     end
+    %each argument must be the same size in the dimensions being iterated
+    %over.
+    sz = size(varargin{1});
+    for i = 1:numel(varargin)
+        s2 = size(varargin{i});
+        
+        if ~isequal(sz(dims), s2(dims))
+            error('iterate:argumentsNotSameSize', 'Input arguments to iterate must be the same size in the dimensions being iterated over.');
+        end
+    end
 
-    invdims = 1:ndims(varargin{1});
-    invdims(dims) = [];
-    perm = [dims(:)' invdims];
-    varargin = cellfun(@(x)n2c(permute(x, perm), nd+1:ndims(x), stripcell), varargin, 'UniformOutput', 0);
+
+    %permute each input to bring the dimensions of iteration to the
+    %front.
+    varargin = cellfun(@rearrange, varargin, 'UniformOutput', 0);
+    function out = rearrange(in)
+        sz = size(in);
+        extradims = 1:ndims(in);
+        extradims([dims]) = [];
+        if stripcell && all(sz(extradims) == 1) && iscell(in)
+            strip = 1;
+        else
+            strip = 0;
+        end
+        out = permute(in, [dims extradims]);
+        out = n2c(out, numel(dims)+1:ndims(in));
+        out = cellfun(@(each)shiftdim(each, numel(dims)), out, 'UniformOutput',0);
+        if strip
+            out = cellfun(@(each)each{:}, out, 'UniformOutput', 0);
+        end
+    end
+    
+
 
     %what makes ITERATE ITERATE is the index argument. Note it is a
     %collapsed index that includes only the slices taken from each dim. And
     %each argument has the iterated dimention collapsed out of it.
-    ndgridargs = arrayfun(@(d)1:size(varargin{1}, d), 1:nd, 'UniformOutput', 0);
-    [indices{1:nd}] = ndg(ndgridargs{:});
-    indices = cat(nd+1, indices{:});
-    indices = reshape(n2c(permute(indices, [nd+1 1:nd]), 1), size(varargin{1}));
+    %Here we create the index vectors to iterate over.
+    ndgridargs = arrayfun(@(d)1:size(varargin{1}, d), 1:numel(dims), 'UniformOutput', 0);
+    [indices{1:numel(dims)}] = ndg(ndgridargs{:});
+    indices = cat(numel(dims)+1, indices{:});
+    indices = reshape(n2c(permute(indices, [numel(dims)+1 1:numel(dims)]), 1), size(varargin{1}));
     
     %NOW....
     [varargout{1:nargout}] = cellfun(fn, indices, varargin{:});
