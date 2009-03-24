@@ -1,4 +1,4 @@
-function markSaccades(infile, outfile)
+function data = markSaccades(infile, outfile)
     %Filter and mark saccades for each calibrated trial.
 
     %default settings
@@ -10,14 +10,22 @@ function markSaccades(infile, outfile)
         , 'postSaccadeEndpointInterval', 0.060... %mark the velocity this long after the end of the saccade.
         , 'debounce', 0.020 ... %how long to debounce the threshold crossings
         , 'plotSaccadeMarking', 1 ... %plot the process of saccade marking
-        , 'pausePlotting', 1 ... %pause for inspection
+        , 'pausePlotting', 0 ... %pause for inspection
         );
     if exist('filterParams', 'file') == 2
         params = namedargs(params,filterParams());
     end
     
+    persistent fig;
+    
     if params.plotSaccadeMarking
-        figure(1); clf;
+        %find the figure window
+        if isempty(fig) || ~any(get(0, 'children') == fig)
+            fig = figure();
+        end
+        %activate it for plotting without raising
+        set(0, 'CurrentFigure', fig);
+        clf;
     end
     
     persistent continueAutomatically;
@@ -26,16 +34,21 @@ function markSaccades(infile, outfile)
         continueAutomatically = 0;
     end
     
-    
-    data = {};
-    load(infile, 'data');
-    data = cellfun(@makeMarks, data, 'UniformOutput', 0);
-    save(outfile, 'data');
+    if ischar(infile)
+        data = {};
+        load(infile, 'data');
+        data = cellfun(@makeMarks, data, 'UniformOutput', 0);
+        save(outfile, 'data');
+    else
+        data = infile;
+        data = cellfun(@makeMarks, infile, 'UniformOutput', 0);
+    end
 
     function experiment = makeMarks(experiment)
         %strip whatever's before the final beginning of the experiment
-        t = cellfun(@(t)max([NaN eventTimes('settleFixation', t)]), experiment.trials, 'UniformOutput', 0);
-        experiment.trials = cellfun(@(tim, tr) stripbefore(tim, tr), t, experiment.trials, 'UniformOutput', 0);
+        %um, this isn't generic.
+%        t = cellfun(@(t)max([NaN eventTimes('settleFixation', t)]), experiment.trials, 'UniformOutput', 0);
+%        experiment.trials = cellfun(@(tim, tr) stripbefore(tim, tr), t, experiment.trials, 'UniformOutput', 0);
 
         experiment.trials = cellfun(@filtered, experiment.trials, 'UniformOutput', 0);
         experiment.trials = cellfun(@differentiate, experiment.trials, 'UniformOutput', 0);
@@ -74,6 +87,17 @@ function markSaccades(infile, outfile)
     function trial = filtered(trial)
         %filter the eye position traces with a zero phase butterworth
         %lowpass filter
+        if isfield(trial, 'eyeData')
+            %pull this back into the old format where we had trial.samples
+            e = trial.eyeData;
+            
+            trial.samples.pcx = e(1,:);
+            trial.samples.pcy = e(2,:);
+            trial.samples.pct = e(3,:);
+            
+            trial = rmfield(trial, 'eyeData');
+        end
+
         sampleInterval = median(diff(trial.samples.pct));
         cutoffSampleFreq = params.lowpassCutoff * sampleInterval * 2;
         

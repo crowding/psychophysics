@@ -38,12 +38,11 @@ function varargout = iterate(dims, fn, varargin)
     end
     %each argument must be the same size in the dimensions being iterated
     %over.
-    sz = size(varargin{1});
     for i = 1:numel(varargin)
-        s2 = size(varargin{i});
-        
-        if ~isequal(sz(dims), s2(dims))
-            error('iterate:argumentsNotSameSize', 'Input arguments to iterate must be the same size in the dimensions being iterated over.');
+        for d = dims
+            if size(varargin{1}, d) ~= size(varargin{i},d)
+                error('iterate:argumentsNotSameSize', 'Input arguments to iterate must be the same size in the dimensions being iterated over.');
+            end
         end
     end
 
@@ -53,7 +52,7 @@ function varargout = iterate(dims, fn, varargin)
     varargin = cellfun(@rearrange, varargin, 'UniformOutput', 0);
     function out = rearrange(in)
         sz = size(in);
-        extradims = 1:ndims(in);
+        extradims = 1:max(ndims(in),max(dims));
         extradims([dims]) = [];
         if stripcell && all(sz(extradims) == 1) && iscell(in)
             strip = 1;
@@ -61,7 +60,7 @@ function varargout = iterate(dims, fn, varargin)
             strip = 0;
         end
         out = permute(in, [dims extradims]);
-        out = n2c(out, numel(dims)+1:ndims(in));
+        out = n2c(out, numel(dims)+1:numel(dims)+numel(extradims));
         out = cellfun(@(each)shiftdim(each, numel(dims)), out, 'UniformOutput',0);
         if strip
             out = cellfun(@(each)each{:}, out, 'UniformOutput', 0);

@@ -9,14 +9,24 @@ function make(varargin)
 %FIXME: needs some way to signal an error from matlab...
 
 %environment variables we will pass to the command
-%params.env = struct('MATLAB_HOST', 'localhost', 'MATLAB_PORT', '40983', 'NETCAT', '/sw/bin/nc6', 'OUTPUT_HOST', 'localhost', 'OUTPUT_PORT', '40984');
 
-maker = backgroundcommand('command', sprintf('%s ', 'make', varargin{:}));
-server = mlserver('initializer', maker.start, 'condition', maker.disp);
+    maker = backgroundcommand('command', sprintf('%s ', 'make', varargin{:}));
+    server = mlserver('initializer', maker.start, 'condition', maker.disp);
 
-maker.setEnv(struct('MATLAB_HOST', 'localhost', 'MATLAB_PORT', num2str(server.getPort()), 'NETCAT', maker.getNetcat()));
-server.setCondition(maker.disp);
+    maker.setEnv(struct('MATLAB_HOST', 'localhost', 'MATLAB_PORT', num2str(server.getPort()), 'NETCAT', maker.getNetcat()));
+    server.setCondition(maker.disp);
 
-server.run();
+    require(@protect_path, server.run);
+
+    function [release, params] = protect_path(params)
+        d = pwd;
+        p = path;
+        
+        release = @r;
+        function r()
+            cd(d);
+            path(p);
+        end
+    end
 
 end
