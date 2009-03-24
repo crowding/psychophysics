@@ -43,7 +43,7 @@ function e = ConcentricDirectionTraining(varargin)
                 , 'order', 4 ...
                 ) ...
             ) ...
-        , 'reshowStimulus', 1 ...
+        , 'reshowStimulus', 0 ...
         );
     
     e.trials.interTrialInterval = 0;
@@ -81,14 +81,14 @@ function e = ConcentricDirectionTraining(varargin)
     e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 6}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [8 10 12 15 20 26]);
+    e.trials.add('extra.nTargets', [12 14 16 18 20 22]);
 %%
-        
+
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %here's where local and global are randomized
-    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 0}, {1 0}, {-1 -1}, {-1 0}, {0 -1}, {0 1}, {1 0}, {1 1}});
+    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 -1}, {-1 1}, {-1 0}, {0 -1}, {0 1}, {1 -1}, {1 0}, {1 1}});
 %    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 0} {1 0}});
     
     %await the input after the stimulus has finished playing.
@@ -127,15 +127,10 @@ function e = ConcentricDirectionTraining(varargin)
         end
     end
     
-    %say, run 30 trials for each quest, with an estimated threshold value measured in number of
-    %targets, somewhere between 5 and 20. This arrives at a threshold
-    %estimate very quickly.
-    %note that of the global and local combinations, 2 will inform the
-    %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 3;
+    e.trials.reps = 5;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
-    e.trials.blockSize = 144;
+    e.trials.blockSize = 192;
 
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));

@@ -17,6 +17,8 @@ if isempty(svnloc)
         svnloc = '/sw/bin/svn';
     elseif exist('/usr/local/bin/svn', 'file');
         svnloc = '/usr/local/bin/svn';
+    elseif exist('/usr/bin/svn', 'file');
+        svnloc = '/usr/bin/svn';
     else
         warning('getversion:svn', 'SVN not found!');
         info = '';
