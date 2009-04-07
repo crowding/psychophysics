@@ -1,12 +1,21 @@
-
 function this = PowermateInput(varargin)
-%Event-handler Object for communicating with a Griffin Powermate controller.
+%Input object for monitoring a Griffin Powermate controller.
+%
 %one liner test:
 %a = PowermateInput; require(a.init,@()require(a.begin,@()arrayfun(@()eval('ans = a.input(struct()); a.knobPosition'),1:1000)));
 %
 %graphical:
 %a = PowermateInput(); x = 1; t = []; clear y;
 %require(a.init,@()require(a.begin,@()arrayfun(@(x)evalin('base','y(x) = a.input(struct()); x = x + 1;plot(1:min(100, numel(y)),[y(max(end-99, 1):end).knobPosition],1:min(100, numel(y)),[y(max(end-99, 1):end).knobRotation]);ylim([-100 100]); xlim([0 100]);drawnow()'),1:2000)));
+%
+%The state of the controller on each loop is expressed in these fields:
+%
+%       s.knobPosition = an 'integrated' position
+%       s.knobRotation = the number of steps rotated this loop
+%       s.knobButton = whether the button is pressed
+%       s.knobDown = whether the knob was pressed (how many times)
+%       s.knobUp = how many times the knob was released
+%       s.knobTime = when the last report was gotten from the knob
 
 device = [];
 
@@ -74,17 +83,18 @@ function s = input(s)
         shifts = shifts - (shifts>=128) * 256;
         shift = sum(shifts);
         
+        %{
+        %The powermate is not a 1-1 device. It drops a count when the knob
+        %reverses direction. The commented code below is an attempt to compensate
+        %for reversal effect, which I've adandoned. The Powermate also
+        %drops counts when the knob is turning quickly, so there is no
+        %hope.
+        
         %if any(abs(shifts) > 1)
         %    x = x + sum(shifts(abs(shifts) > 1));
         %end
         
-        %{
-        %The powermate is not a 1-1 device. It drops a count when the knob
-        %reverses direction. But it also drops counts when the knob is
-        %turning quickly? commented code here is an attempt to compensate
-        %for reversal, whick I've adandoned.
-        
-        %sometimes you have a button press w/ no shift but we want to know
+        %Sometimes you have a button press w/ no shift but we want to know
         %the last-known-direction at each step. Here's how to propagate it
         %forward:
         directions = sign(filter(1, [1 -0.5], sign(shifts)));
@@ -101,7 +111,7 @@ function s = input(s)
         s.knobRotation = shift;
         s.knobButton = button;
         
-        %we output a count of knop pressings and releasings
+        %we output a count of knob pressings and releasings
         s.knobDown = sum(transitions > 0);
         s.knobUp = sum(transitions < 0);
         s.knobTime = r(end).time;
@@ -123,8 +133,8 @@ function setBrightness(n)
     PsychHID('SetReport', device, 2, 0, uint8([1 n]))
 end
 
-    function sync(n, time)
-        %nothing needed
-    end
+function sync(n, time)
+    %nothing needed
+end
 
 end

@@ -1,9 +1,10 @@
 function this = ExponentialDistribution(varargin)
-    %an exponential distribution object, which preserves independent
-    %state.
+    %a (truncated) exponential distribution object, which preserves
+    %independent state.
 
     offset = 0;
     tau = 1;
+    max = Inf;
     rand('twister', sum(100*clock));
     seed = rand('twister');
     %NOTE! seed is useless for recalling state if the
@@ -16,8 +17,14 @@ function this = ExponentialDistribution(varargin)
     function r = e(x)
         o = ev(offset);
         t = ev(tau);
+        m = ev(max);
+        tmp = rand('twister');
         rand('twister', seed);
-        r = o - log(rand(size(o))) * t;
+        r = Inf;
+        while r > m %pull values until you get inside the right range.
+            r = o - log(rand(size(o))) * t;
+        end
         seed = rand('twister');
+        rand('twister', tmp);
     end
 end

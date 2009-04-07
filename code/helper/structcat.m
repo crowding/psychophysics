@@ -5,6 +5,7 @@ function s = structcat(varargin)
     if nargin == 1 && iscell(varargin{1})
         varargin = {varargin{1}{:}};
     end
+    varargin(cellfun('prodofsize', varargin) == 0) = [];
     
     fnames = cellfun(@fieldnames, varargin, 'UniformOutput', 0);
     fnames = unique(cat(1, fnames{:}, {}));

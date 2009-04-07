@@ -225,7 +225,9 @@ this = autoobject(varargin{:});
         resultState_(trial, result);
         
         if isfield(result, 'endTime') && isfield(base, 'startTime')
-            base.startTime = result.endTime + interTrialInterval;
+            st = result.endTime + interTrialInterval;
+            base.startTime = st; 
+            fprintf('starting at %g\n', st);
         else
             disp('ignoring inter trial interval');
         end

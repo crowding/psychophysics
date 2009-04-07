@@ -6,7 +6,7 @@ function e = ConcentricDirectionConstant(varargin)
         , 'priority', 0 ...
         , 'hideCursor', 0 ...
         , 'doTrackerSetup', 1 ...
-        , 'inputUsed', {'keyboard', 'knob', 'eyes'} ...
+        , 'inputUsed', {'keyboard', 'knob'}...%, 'eyes'} ...
         , 'eyelinkSettings.sample_rate', 250 ...
         , varargin{:});
     
@@ -29,7 +29,7 @@ function e = ConcentricDirectionConstant(varargin)
             ) ...
         , 'requireFixation', 1 ...
         , 'fixationStartWindow', 3 ...
-        , 'fixationSettle', 0.1 ...
+        , 'fixationSettle', 0.2 ...
         , 'fixationWindow', 4 ...
         , 'motion', CauchySpritePlayer ...
             ( 'process', CircularCauchyMotion ...
@@ -42,9 +42,10 @@ function e = ConcentricDirectionConstant(varargin)
                 , 'order', 4 ...
                 ) ...
             ) ...
+        , 'maxResponseLatency', 0.350 ...
         );
     
-    e.trials.interTrialInterval = 0;
+    e.trials.interTrialInterval = 0.8;
     
     %what worked well in the wheels demo is 0.75 dx, 0.75 wavelength, 0.15
     %dt, 5 velocity at 14 radius! The crowding was 3.1 degrees! Use the
@@ -79,9 +80,12 @@ function e = ConcentricDirectionConstant(varargin)
     e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 6}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [9 11 13 15 18 21]);
+    e.trials.add('extra.nTargets', [7 9 11 13 15 18]);
 %%
         
+    %variable onset
+    e.trials.add('motion.process.t', ExponentialDistribution('offset', 0.15, 'max', 1.15, 'tau', 1));
+
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
@@ -90,7 +94,7 @@ function e = ConcentricDirectionConstant(varargin)
     e.trials.add('extra.localDirection', [1 0 -1]);
     
     %await the input after the stimulus has finished playing.
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
     
     %this procedure translates the extra parmeters into lower level values.
     e.trials.add([], @appearance);
@@ -99,7 +103,6 @@ function e = ConcentricDirectionConstant(varargin)
         mot = b.motion.process;
         mot.setRadius(extra.r);
         mot.setDt(extra.dt);
-        mot.setT(extra.dt);
         mot.setDphase(extra.dt .* extra.globalVScalar .* extra.globalDirection);
         wl = extra.r * extra.wavelengthScalar;
         mot.setWavelength(wl);
@@ -126,20 +129,15 @@ function e = ConcentricDirectionConstant(varargin)
         end
     end
     
-    %say, run 30 trials for each quest, with an estimated threshold value measured in number of
-    %targets, somewhere between 5 and 20. This arrives at a threshold
-    %estimate very quickly.
-    %note that of the global and local combinations, 2 will inform the
-    %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 8;
+    e.trials.reps = 7;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
-    e.trials.blockSize = 192;
+    e.trials.blockSize = 168;
 
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));
 
-    e.trials.blockTrial = EyeCalibrationMessageTrial...
+ e.trials.blockTrial = EyeCalibrationMessageTrial...
         ( 'minCalibrationInterval', 0 ...
         , 'base.absoluteWindow', Inf ...
         , 'base.maxLatency', 0.5 ...

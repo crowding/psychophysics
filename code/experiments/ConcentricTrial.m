@@ -7,6 +7,9 @@ function this = ConcentricTrial(varargin)
     startTime = 0;
     knobTurnThreshold = 3;
     awaitInput = 0.5;
+    maxResponseLatency = Inf; %how long to wait for the response (measured after awaitInput)
+    lateTimeout = 1;
+    
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
    
     requireFixation = 1;
@@ -43,6 +46,9 @@ function this = ConcentricTrial(varargin)
         else
             trigger.singleshot(atLeast('next', startTime - interval/2), @startMotion);
         end
+        
+        %in any case, log all the knob rotations
+        trigger.multishot(nonZero('knobRotation'), @knobRotated);
 
         motion.setVisible(0);
         fixation.setVisible(0);
@@ -62,6 +68,10 @@ function this = ConcentricTrial(varargin)
         end
         
         main.go(params);
+        
+        function knobRotated(h)
+            %do nothing...
+        end
         
         function awaitFixation(h)
             fixation.setVisible(1);
@@ -108,32 +118,44 @@ function this = ConcentricTrial(varargin)
             failed(h)
         end
         
+        waitStarted_ = [];
         function waitForResponse(h)
+            waitStarted_ = h.next;
             trigger.first...
                 ( atLeast('knobPosition', h.knobPosition+knobTurnThreshold), @cw, 'knobTime' ...
-                ,  atMost('knobPosition', h.knobPosition-knobTurnThreshold), @ccw, 'knobTime' ...
-                , atLeast('knobDown', 1), @failed, 'knobTime' ...
+                , atMost('knobPosition', h.knobPosition-knobTurnThreshold), @ccw, 'knobTime' ...
+                , atLeast('knobDown', 1), @failed, 'knobTime' ... 
                 );
         end
         
         function cw(h)
             result.response = 1;
-            result.success = 1;
-            if reshowStimulus
-                reshow(h);
-            else
-                stop(h);
-            end
+            responseCollected(h)
         end
 
         function ccw(h)
             result.response = -1;
+            responseCollected(h);
+        end
+
+        function responseCollected(h)
             result.success = 1;
-            if reshowStimulus
-                reshow(h);
+            %start something else, based on the response
+            if h.knobTime - waitStarted_ > maxResponseLatency
+                trigger.singleshot(atLeast('refresh',h.refresh+1), @tooLong);
+            elseif reshowStimulus
+                trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
             else
+                trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
                 stop(h);
             end
+        end
+        
+        function tooLong(h)
+            %turn the fixation point red as feedback.
+            result.success = 0;
+            fixation.setColor([255 0 0]);
+            trigger.singleshot(atLeast('next', h.next + lateTimeout), @stop);
         end
         
         function reshow(h)
@@ -141,7 +163,7 @@ function this = ConcentricTrial(varargin)
             motion.setVisible(1, h.next);
             trigger.singleshot(atLeast('next', h.next + awaitInput - interval/2), @stop);
         end
-        
+                
         function abort(h)
             result.abort = 1;
             stop(h);
@@ -149,12 +171,13 @@ function this = ConcentricTrial(varargin)
         
         function failed(h)
             result.success = 0;
-            stop(h)
+            stop(h);
         end
         
         function stop(h)
            motion.setVisible(0);
            fixation.setVisible(0);
+           fixation.setColor([0 0 0]);
            result.endTime = h.next;
            trigger.singleshot(atLeast('refresh', h.refresh+1), main.stop);
         end

@@ -8,6 +8,7 @@ function this = backgroundcommand(varargin)
 
 host = 'localhost';
 port = 40984;
+errport = 40985;
 timeout = 10;
 netcat = [];
 env = struct();
