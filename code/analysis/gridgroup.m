@@ -20,6 +20,7 @@ paramrows = mat2cell(parameters, mat2cellargs{:});
 indices = cat(1, j{:});
 
 [allgroups, alli, allj] = unique(indices', 'rows');
+
 allgroups = allgroups';
 
 for argix = 1:numel(varargin)

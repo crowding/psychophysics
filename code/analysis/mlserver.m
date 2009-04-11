@@ -67,14 +67,22 @@ this = autoobject(varargin{:});
             %If this were a proper daemon it would fork and leave
             %the parent free to accept other connections; but it is
             %not a proper daemon.
-
             command = '';
             while(1)
+                %read to a line or what?
                 line = pnet(params.con, 'readline');
                 if isempty(line)
                     break
                 end
                 command = [command line 10]; %10 is newline.
+                
+                % fugging hack to deal with broken netcat/pnet interaction
+                % (keep nc from dropping the connection early, or pnet from
+                % thinking it has, not sure which.) 
+                next = pnet(params.con, 'read', 1, 'view', 'noblock');
+                if next == 10
+                    break;
+                end
             end
 
             if ~isempty(command)
@@ -85,6 +93,7 @@ this = autoobject(varargin{:});
                 %write back the response...
                 pnet(params.con, 'write', s);
             end
+
         end
     end
 end

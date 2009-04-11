@@ -10,7 +10,7 @@ function make(varargin)
 
 %environment variables we will pass to the command
 
-    maker = backgroundcommand('command', sprintf('%s ', 'make', varargin{:}));
+    maker = backgroundcommand('command', sprintf('%s ', 'make 2>&1', varargin{:}));
     server = mlserver('initializer', maker.start, 'condition', maker.disp);
 
     maker.setEnv(struct('MATLAB_HOST', 'localhost', 'MATLAB_PORT', num2str(server.getPort()), 'NETCAT', maker.getNetcat()));

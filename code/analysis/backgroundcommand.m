@@ -3,12 +3,13 @@ function this = backgroundcommand(varargin)
 %starts up a background command by piping its output through
 %a network pipe (requiring pnet.mex). After requiring 'start', you can then
 %use the 'read' method to communicate with the background process.
-%The 'env' struct will be used as the environment to the command.
-%'host' and 'port' should point to a host and port on this 
+%The 'env' struct will be passed as environment variables to the command.
+%'host' and '*port' should be an available host and port on this machine.
 
 host = 'localhost';
-port = 40984;
-errport = 40985;
+inport = 40983; %the port to use for input.
+outport = 40984; %the port to use receiving stdout
+errport = 40985; %the port to use receiving stdin.
 timeout = 10;
 netcat = [];
 env = struct();
@@ -34,6 +35,9 @@ findnetcat_();
 
     function status = disp()
         [f, status] = read();
+        if numel(f) > 0
+            fprintf('%s', f);
+        end
     end
 
     function [release, params, next] = start(params)
@@ -69,7 +73,7 @@ findnetcat_();
 
     function [release, params, next] = listen_(params)
         %wait for a connection on the OUTPUT_PORT.
-        params.insockd = pnet('tcpsocket', port);
+        params.insockd = pnet('tcpsocket', outport);
         if params.insockd == -1
             error('matlabserver:pnetSocketError', 'could not create socket (%d)', params.insockd);
         end
@@ -80,6 +84,8 @@ findnetcat_();
             pnet(params.insockd, 'close');
         end
     end
+
+    %TODO insert something to listen on stderr...
 
     function [release, params, next] = backgroundcommand_(params)
         %the command will be preceded by the environment
@@ -100,7 +106,7 @@ findnetcat_();
             , command...
             , netcat ...
             , host ...
-            , port ...
+            , outport ...
             );
 
         [status, pids] = system(commandstring);

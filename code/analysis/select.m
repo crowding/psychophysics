@@ -1,5 +1,5 @@
-function what = select(array, fn)
-    %function selected = select(array, fn)
+function what = select(fn, array)
+    %function selected = select(fn, array)
     if iscell(array)
         what = array(boolean(cellfun(fn, array)));
     else
