@@ -6,7 +6,7 @@ function e = ConcentricDirectionConstant(varargin)
         , 'priority', 0 ...
         , 'hideCursor', 0 ...
         , 'doTrackerSetup', 1 ...
-        , 'inputUsed', {'keyboard', 'knob'}...%, 'eyes'} ...
+        , 'inputUsed', {'keyboard', 'knob', 'eyes'} ...
         , 'eyelinkSettings.sample_rate', 250 ...
         , varargin{:});
     
@@ -19,7 +19,7 @@ function e = ConcentricDirectionConstant(varargin)
             , 'tf', 10 ...
             , 'wavelengthScalar', .05 ...
             , 'dt', 0.1 ...
-            , 'widthScalar', 0.1 ...
+            , 'widthScalar', 0.075 ...
             , 'durationScalar', 2/3 ...
             , 'nTargets', 10 ...
             , 'phase', 0 ...
@@ -63,7 +63,7 @@ function e = ConcentricDirectionConstant(varargin)
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
     %%e.trials.add({'extra.globalVScalar'}, {.5 .75 1.125});
-    e.trials.add('extra.globalVScalar', [.5]);
+    e.trials.add('extra.globalVScalar', [.75]);
     
     %temporal frequency is chosen here...
     %%e.trials.add({'extra.tf'}, {15 10 20/3});
@@ -77,10 +77,10 @@ function e = ConcentricDirectionConstant(varargin)
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
     %%e.trials.add({'extra.dt', 'motion.process.n'}, {{2/30 9}, {0.10 6} {0.15 4}});
-    e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 6}});
+    e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 4}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [7 9 11 13 15 18]);
+    e.trials.add('extra.nTargets', [6 9 12 15 18 21 23 25]);
 %%
         
     %variable onset
@@ -129,10 +129,10 @@ function e = ConcentricDirectionConstant(varargin)
         end
     end
     
-    e.trials.reps = 7;
+    e.trials.reps = 5;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
-    e.trials.blockSize = 168;
+    e.trials.blockSize = 160;
 
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));

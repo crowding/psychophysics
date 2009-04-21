@@ -6,8 +6,8 @@ function this = EyeCalibrationTrial(varargin)
     
     velocityThreshold = 40; %the velocity threshold for detecting a saccade.
     
-    minLatency = .03; %the minimum latency (quite short!)
-    maxLatency = .400; %the maximum latency for the saccade.
+    minLatency = .100; %the minimum saccade latency (defined by velocity threshold crossing)
+    maxLatency = .300; %the maximum latency for the saccade.
     saccadeMaxDuration = .100; %the max duration for the saccade.
     
     saccadeEndThreshold = 20; %when eye velocity drops below this, the saccade ends.
@@ -17,13 +17,12 @@ function this = EyeCalibrationTrial(varargin)
     fixWindow = 2; %the window in which to maintain fixation...
     fixDuration = 1; %the minimum fixation time 
     
-    targetX = 0;
-    targetY = 0;
-    targetRadius = 0.5;
-    targetInnerRadius = 0.10;
+    targetX = 0; %where the target appears
+    targetY = 0; %where the target appears
+    targetRadius = 0.2; %the outer dark ring
+    targetInnerRadius = 0.10; %the inner white spot
 
-    rewardDuration = 100;
-
+    rewardDuration = 100; %duration of the reward.
     plotOutcome = 1;
     
     persistent init__;
@@ -47,8 +46,6 @@ function this = EyeCalibrationTrial(varargin)
         trigger.singleshot(atLeast('next', startTime), @begin);
         trigger.panic(keyIsDown('q'), @abort);
 
-        %old = params.log;
-        %params.log = @printf;
         params = main.go(params);
         
         if plotOutcome && isfield(params, 'uihandles') && ~isempty(params.uihandles)
@@ -70,24 +67,31 @@ function this = EyeCalibrationTrial(varargin)
             targetCenter.setVisible(1);
             onset_ = s.next;
             params.input.eyes.eventCode(s.refresh, 0);
+            %use 'first' to calture the time coordinate of the threshold
+            %crossing.
             trigger.first...
-                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @failed,  'eyeVt' ...
-                , atLeast('eyeVt', s.next + minLatency), @awaitSaccade,                 'eyeVt' ...
+                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @beginSaccade,  'eyeVt' ...
+                , atLeast('eyeVt', s.next + maxLatency), @failedSaccade, 'eyeVt' ...
                 );
-        end
-        
-        function awaitSaccade(s)
-            trigger.first...
-                ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @beginSaccade,      'eyeVt' ...
-                , atLeast('eyeVt', s.triggerTime + maxLatency - minLatency), @failed, 'eyeVt' ...
-                )
         end
         
         function beginSaccade(s)
-            trigger.first...
-                ( magnitudeAtMost('eyeVx', 'eyeVy', saccadeEndThreshold), @settle,  'eyeVt'  ...
-                , atLeast('eyeVt', s.next + saccadeMaxDuration), @failedSaccade, 'eyeVt' ...
-                );
+            t = GetSecs();
+            et = Eyelink('TrackerTime');
+            [el, raw] = Eyelink('NewestFloatSampleRaw');
+            etm = et - getclockoffset(params, 100)/1000;
+            fprintf(2, 'lat = %g next-t = %g next-eyeT=%g t-eyeT=%g\n', s.triggerTime - onset_, s.next-t, s.next-s.eyeT(end), t-s.eyeT(end));
+            if (s.triggerTime - onset_ < minLatency)
+                %saccade was too early. Fail out on next refresh.
+
+                trigger.singleshot(atLeast('refresh', s.refresh + 1), @failedEarly);
+            else
+                %wait for the end of the saccade...
+                trigger.first...
+                    ( magnitudeAtMost('eyeVx', 'eyeVy', saccadeEndThreshold), @settle,  'eyeVt'  ...
+                    , atLeast('eyeVt', s.next + saccadeMaxDuration), @failedSaccade, 'eyeVt' ...
+                    );
+            end
         end
         
         settleTime_ = -1;
@@ -117,6 +121,10 @@ function this = EyeCalibrationTrial(varargin)
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .200), main.stop);
         end
         
+        function failedEarly(s)
+            failed(s);
+        end
+
         function failedSaccade(s)
             failed(s);
         end
