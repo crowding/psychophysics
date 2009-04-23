@@ -95,7 +95,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     for i = 1:numel(product)
         product{i}{end+1} = Quest ...
             ( 'pThreshold', 0.5, 'gamma', 0 ... %yes-no experiment...
-            , 'guess', 15, 'range', 30, 'grain', 0.1, 'guessSD', 10 ... %conservative initial guess
+            , 'guess', 15, 'range', 30, 'grain', 0.1, 'guessSD', 15 ... %conservative initial guess
             , 'criterion', @criterion, 'restriction', PickNearest('set', 5:30, 'dither', 2) ... %experiment constraints
             );
     end
@@ -112,10 +112,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     %here's where local and global are randomized
     e.trials.add('extra.globalDirection', [1 -1]);
     e.trials.add('extra.localDirection', [1 0 -1]);
-    
-    %await the input after the stimulus has finished playing.
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
-    
+        
     %we only adjust the QUEST for opposing local and global motion We are
     %trying to find the intensity (nTargets) at whcih the stimulus becomes
     %crowded (local motion dominates.)
@@ -143,7 +140,6 @@ function e = ConcentricDirectionMixQuest(varargin)
         mot = b.motion.process;
         mot.setRadius(extra.r);
         mot.setDt(extra.dt);
-        mot.setT(extra.dt);
         mot.setDphase(extra.dt .* extra.globalVScalar .* extra.globalDirection);
         wl = extra.r * extra.wavelengthScalar;
         mot.setWavelength(wl);
@@ -170,16 +166,19 @@ function e = ConcentricDirectionMixQuest(varargin)
             mot.setColor(extra.color / sqrt(2));
         end
     end
+
+    %await the input after the stimulus has finished playing.
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
     
     %say, run 30 trials for each quest, with an estimated threshold value measured in number of
     %targets, somewhere between 5 and 20. This arrives at a threshold
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 12; %24 trials per quest...
-    
+    e.trials.reps = 13; %26 trials per quest...
+    e.trials.blockSize = 156;    
     e.trials.fullFactorial = 1;
-
+    e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));
 

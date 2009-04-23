@@ -1,4 +1,4 @@
-function this = QuestStaircase(varargin)
+function this = Quest(varargin)
     %An object interface to the Pschtoolbox QUEST functions.
     %
     %the 'e' method selects stimulus values according to The QUEST
@@ -47,14 +47,12 @@ function this = QuestStaircase(varargin)
         response = criterion(trial, result);
         if response ~= 0
             q = QuestUpdate(q, valueUsed, response > 0);
-            
-            
         end
     end
 
     function v = e(trial)
         %returns the Quest algorithm's current recommendation for a
-        %stimulus values...
+        %stimulus value...
         
         if isempty(q)
             q = QuestCreate(guess, guessSD, pThreshold, beta, delta, gamma, grain, range);
