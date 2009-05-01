@@ -121,9 +121,9 @@ if numel(varargin) > 1
         catch
             err = adderror(lasterror, err);
         end
-        %FUCKING RETARDED MATLAB FEATURE! Rethrow() cuts off the display of
+        %SUPER DUMB MATLAB FEATURE! Rethrow() cuts off the display of
         %the stack trace. Use error() instead and it will not, but instead
-        %infinitely replicates the error message.
+        %replicates the error message.
         rethrow(err);
     end
     

@@ -6,9 +6,10 @@ function this = ConcentricTrial(varargin)
 
     startTime = 0;
     knobTurnThreshold = 3;
-    awaitInput = 0.5;
+    awaitInput = 0.5; %how early to accept a response from the subject. Fixation is also enforced up until this time.
     maxResponseLatency = Inf; %how long to wait for the response (measured after awaitInput)
     lateTimeout = 1;
+    earlyTimeout = 1;
     
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
    
@@ -19,6 +20,8 @@ function this = ConcentricTrial(varargin)
     fixationSettle = 0.3; %allow this long for settling fixation.
     fixationWindow = 1.5; %subject must fixate this closely...
     reshowStimulus = 0; %whether to reshow the stimulus after the response (for training purposes)
+    beepFeedback = 0; %whether to give a tone for feedback...
+    desiredResponse = 0; %which response (1 = cw) is correct, if feedback is desired.
     
     motion = CauchySpritePlayer...
         ( 'process', CircularCauchyMotion ...
@@ -28,6 +31,8 @@ function this = ConcentricTrial(varargin)
             , 'dphase', 1/15 ...
         ) ...
     );
+    
+    occluders={};
 
     extra = struct();
 
@@ -46,23 +51,27 @@ function this = ConcentricTrial(varargin)
         else
             trigger.singleshot(atLeast('next', startTime - interval/2), @startMotion);
         end
-        
+
         %in any case, log all the knob rotations
         trigger.multishot(nonZero('knobRotation'), @knobRotated);
 
+        motionStarted_ = Inf;
         motion.setVisible(0);
         fixation.setVisible(0);
+        for i = occluders(:)'
+            i{1}.setVisible(0);
+        end
         
         if requireFixation
             main = mainLoop ...
                 ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
-                , 'graphics', {fixation, motion} ...
+                , 'graphics', {fixation, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         else
             main = mainLoop ...
                 ( 'input', {params.input.keyboard, params.input.knob} ...
-                , 'graphics', {fixation, motion} ...
+                , 'graphics', {fixation, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         end
@@ -70,19 +79,14 @@ function this = ConcentricTrial(varargin)
         main.go(params);
         
         function knobRotated(h)
-            %do nothing...
+            %do nothing, just log the event.
         end
-        
+                
         function awaitFixation(h)
-            fixation.setVisible(1);
-            if requireFixation
-                trigger.first ...
-                    ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
-                    , atLeast('eyeFt', h.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
-                    );
-            else
-                trigger.singleshot(atLeast(h.next,startTime));
-            end
+            trigger.first ...
+                ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
+                , atLeast('eyeFt', h.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
+                );
         end
         
         function failedWaitingFixation(k)
@@ -99,28 +103,22 @@ function this = ConcentricTrial(varargin)
         function failedSettling(k)
             failed(k);
         end
-
         
         function startMotion(h)
             fixation.setVisible(1);
             motion.setVisible(1, h.next);
+            for i = occluders(:)'
+                i{1}.setVisible(1);
+            end
+
+            motionStarted_ = h.next;
             if requireFixation
                 trigger.first...
-                    ( atLeast('eyeFt', h.next + awaitInput), @waitForResponse, 'eyeFt' ...
+                    ( atLeast('eyeFt', h.next + awaitInput), @endFixationPeriod, 'eyeFt' ...
                     , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @failedFixation, 'eyeFt' ...
                     );
-            else
-                trigger.singleshot(atLeast('next', h.next + awaitInput - interval/2), @waitForResponse);
             end
-        end
-        
-        function failedFixation(h)
-            failed(h)
-        end
-        
-        waitStarted_ = [];
-        function waitForResponse(h)
-            waitStarted_ = h.next;
+            %respond to input from the beginning of every trial...
             trigger.first...
                 ( atLeast('knobPosition', h.knobPosition+knobTurnThreshold), @cw, 'knobTime' ...
                 , atMost('knobPosition', h.knobPosition-knobTurnThreshold), @ccw, 'knobTime' ...
@@ -128,9 +126,17 @@ function this = ConcentricTrial(varargin)
                 );
         end
         
+        function endFixationPeriod(h)
+            %do nothing;;;
+        end
+        
+        function failedFixation(h)
+            failed(h)
+        end
+        
         function cw(h)
             result.response = 1;
-            responseCollected(h)
+            responseCollected(h);
         end
 
         function ccw(h)
@@ -141,10 +147,14 @@ function this = ConcentricTrial(varargin)
         function responseCollected(h)
             result.success = 1;
             %start something else, based on the response
-            if h.knobTime - waitStarted_ > maxResponseLatency
+            if h.knobTime - awaitInput < motionStarted_;
+                trigger.singleshot(atLeast('refresh',h.refresh+1), @tooShort);
+            elseif h.knobTime - motionStarted_ - awaitInput > maxResponseLatency
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @tooLong);
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
+            elseif beepFeedback
+                error('concentricTrial:beepFeedback', 'not implemented');
             else
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
                 stop(h);
@@ -158,12 +168,19 @@ function this = ConcentricTrial(varargin)
             trigger.singleshot(atLeast('next', h.next + lateTimeout), @stop);
         end
         
+        function tooShort(h)
+            %turn the fixation point blue as feedback.
+            result.success = 0;
+            fixation.setColor([0 0 255]);
+            trigger.singleshot(atLeast('next', h.next + earlyTimeout), @stop);
+        end
+        
         function reshow(h)
             motion.setVisible(0);
             motion.setVisible(1, h.next);
             trigger.singleshot(atLeast('next', h.next + awaitInput - interval/2), @stop);
         end
-                
+        
         function abort(h)
             result.abort = 1;
             stop(h);
@@ -178,6 +195,9 @@ function this = ConcentricTrial(varargin)
            motion.setVisible(0);
            fixation.setVisible(0);
            fixation.setColor([0 0 0]);
+           for i = occluders(:)'
+               i{1}.setVisible(0, h.next);
+           end
            result.endTime = h.next;
            trigger.singleshot(atLeast('refresh', h.refresh+1), main.stop);
         end

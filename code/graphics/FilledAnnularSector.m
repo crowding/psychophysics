@@ -30,7 +30,7 @@ degreePerPixel_ = [];
         if visible
             l = e(loc, next - onsetTime_);
 
-            %Compute a polygon polygon:
+            %Compute a polygon:
 
             %the maximum pixel deviation and the radius determine
             %the maximum sector angle

@@ -29,6 +29,7 @@ options = struct...
     , 'print', 0 ...
     );
 
+initted_ = 0;
 function d = discover()
     %scan for the PowerMate -- vendorID 1917, productID 1040
     d = PsychHID('devices');
@@ -53,8 +54,10 @@ function [release, params] = init(params)
     button = 0;
     setBrightness(0);
     release = @stop;
+    initted_ = 1;
     
     function stop
+        initted_ = 0;
         PsychHID('ReceiveReportsStop', device);
     end
 end
@@ -66,6 +69,9 @@ function [release, params] = begin(params)
 end
 
 function s = input(s)
+    if ~initted_
+        error('PowermateInput:notInitialized', 'PowermateInput was not initialized. Check your experiment.params.inputUsed');
+    end
     PsychHID('ReceiveReports', device, options);
     r = PsychHID('GiveMeReports', device);
     
