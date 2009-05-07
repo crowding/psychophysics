@@ -1,13 +1,13 @@
 function e = ConcentricDirectionTraining(varargin)
 %like ConcentricDirectionConstant with easier stimuli and NO DISAGREEMENT.
 
-    params = namedargs ...
-        ( localExperimentParams() ...
+    params = namedOptions(struct() ...
+        , localExperimentParams() ...
         , 'skipFrames', 1  ...
         , 'priority', 0 ...
         , 'hideCursor', 0 ...
         , 'doTrackerSetup', 1 ...
-        , 'inputUsed', {'keyboard', 'knob'} ...        '
+        , 'inputUsed', {'keyboard', 'knob', 'eyes'} ...        '
         , 'eyelinkSettings.sample_rate', 250 ...
         , varargin{:});
     
@@ -28,7 +28,7 @@ function e = ConcentricDirectionTraining(varargin)
             , 'localDirection', 1 ...
             , 'color', [0.5;0.5;0.5] / sqrt(2)...
             ) ...
-        , 'requireFixation', 0 ...
+        , 'requireFixation', 1 ...
         , 'fixationStartWindow', 3 ...
         , 'fixationSettle', 0.1 ...
         , 'fixationWindow', 4 ...
@@ -45,6 +45,8 @@ function e = ConcentricDirectionTraining(varargin)
             ) ...
         , 'reshowStimulus', 0 ...
         , 'awaitInput', 0.5 ...
+        , 'beepFeedback', 1 ...
+        , 'maxResponseLatency', 0.5 ...
         );
     
     e.trials.interTrialInterval = 0;
@@ -57,15 +59,13 @@ function e = ConcentricDirectionTraining(varargin)
     %parameters.
 
 %%
-    %In this section, we build up the array of parameters we will quest with.
     e.trials.add('extra.r', [80/27 10 20/3 40/9]);
-    %e.trials.add('extra.r', [40/9 80/27]);
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
     %%e.trials.add({'extra.globalVScalar'}, {.5 .75 1.125});
-    e.trials.add('extra.globalVScalar', {.5});
+    e.trials.add('extra.globalVScalar', [.75]);
     
     %temporal frequency is chosen here...
     %%e.trials.add({'extra.tf'}, {15 10 20/3});
@@ -74,29 +74,30 @@ function e = ConcentricDirectionTraining(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%e.trials.add({'extra.wavelengthScalar'}, {.05 .075 .1125});
-    %e.trials.add('extra.wavelengthScalar', [.075]);
     e.trials.add('extra.wavelengthScalar', [.075]);
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
     %%e.trials.add({'extra.dt', 'motion.process.n'}, {{2/30 9}, {0.10 6} {0.15 4}});
-    e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 6} {0.10 4}});
+    e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 8}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [9 12 15 17 19 22 25]);
+    e.trials.add('extra.nTargets', [5 7 9 11 14 19 25]);
 %%
+    %variable onset
+    e.trials.add('motion.process.t', ExponentialDistribution('offset', 0.15, 'max', 1.15, 'tau', 1));
 
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %here's where local and global are randomized %{0 -1}, {0 1}, 
-    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 -1}, {-1 1}, {-1 0}, {1 -1}, {1 0}, {1 1}});
-%    e.trials.add({'extra.globalDirection', 'extra.localDirection'}, {{-1 0} {1 0}});
+    %note the 'response' is reversed from the 'direction' (as positive =
+    %ccw on screen....)
+    e.trials.add({'extra.globalDirection', 'extra.localDirection', 'desiredResponse'}, {{-1 -1, 1}, {-1 0 1}, {0 -1 1}, {1 0 -1}, {0 1 -1}, {1 1 -1}});
     
     %await the input after the stimulus has finished playing.
     e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
-%    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n + 1)));
-    
+
     %this procedure translates the extra parmeters into lower level values.
     e.trials.add([], @appearance);
     function b = appearance(b)

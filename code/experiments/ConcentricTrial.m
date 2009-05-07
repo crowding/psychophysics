@@ -68,6 +68,12 @@ function this = ConcentricTrial(varargin)
                 , 'graphics', {fixation, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
+        elseif beepFeedback
+            main = mainLoop ...
+                ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob} ...
+                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'triggers', {trigger} ...
+                );
         else
             main = mainLoop ...
                 ( 'input', {params.input.keyboard, params.input.knob} ...
@@ -154,10 +160,15 @@ function this = ConcentricTrial(varargin)
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
             elseif beepFeedback
-                error('concentricTrial:beepFeedback', 'not implemented');
+                if result.response == desiredResponse
+                    %make a beep
+                    params.input.eyes.reward(h.next, 150);
+                    trigger.singleshot(atLeast('next',h.next+0.15), @stop);
+                else
+                    trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
+                end
             else
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
-                stop(h);
             end
         end
         
