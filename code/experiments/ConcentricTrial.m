@@ -33,6 +33,7 @@ function this = ConcentricTrial(varargin)
     );
     
     occluders={};
+    useOccluders = 0;
 
     extra = struct();
 
@@ -89,6 +90,12 @@ function this = ConcentricTrial(varargin)
         end
                 
         function awaitFixation(h)
+            fixation.setVisible(1);
+            if useOccluders
+                for i = occluders(:)'
+                    i{1}.setVisible(1);
+                end
+            end
             trigger.first ...
                 ( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt' ...
                 , atLeast('eyeFt', h.next + fixationLatency), @failedWaitingFixation, 'eyeFt' ...
@@ -113,8 +120,10 @@ function this = ConcentricTrial(varargin)
         function startMotion(h)
             fixation.setVisible(1);
             motion.setVisible(1, h.next);
-            for i = occluders(:)'
-                i{1}.setVisible(1);
+            if useOccluders
+                for i = occluders(:)'
+                    i{1}.setVisible(1);
+                end
             end
 
             motionStarted_ = h.next;
@@ -206,8 +215,10 @@ function this = ConcentricTrial(varargin)
            motion.setVisible(0);
            fixation.setVisible(0);
            fixation.setColor([0 0 0]);
-           for i = occluders(:)'
-               i{1}.setVisible(0, h.next);
+           if useOccluders
+               for i = occluders(:)'
+                   i{1}.setVisible(0, h.next);
+               end
            end
            result.endTime = h.next;
            trigger.singleshot(atLeast('refresh', h.refresh+1), main.stop);
