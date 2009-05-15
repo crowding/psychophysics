@@ -22,6 +22,7 @@ function this = ConcentricTrial(varargin)
     reshowStimulus = 0; %whether to reshow the stimulus after the response (for training purposes)
     beepFeedback = 0; %whether to give a tone for feedback...
     desiredResponse = 0; %which response (1 = cw) is correct, if feedback is desired.
+    feedbackFailedFixation = 0;
     
     motion = CauchySpritePlayer...
         ( 'process', CircularCauchyMotion ...
@@ -117,6 +118,7 @@ function this = ConcentricTrial(varargin)
             failed(k);
         end
         
+        responseCollectionHandle_ = [];
         function startMotion(h)
             fixation.setVisible(1);
             motion.setVisible(1, h.next);
@@ -134,7 +136,7 @@ function this = ConcentricTrial(varargin)
                     );
             end
             %respond to input from the beginning of every trial...
-            trigger.first...
+            responseCollectionHandle_ = trigger.first...
                 ( atLeast('knobPosition', h.knobPosition+knobTurnThreshold), @cw, 'knobTime' ...
                 , atMost('knobPosition', h.knobPosition-knobTurnThreshold), @ccw, 'knobTime' ...
                 , atLeast('knobDown', 1), @failed, 'knobTime' ... 
@@ -146,7 +148,26 @@ function this = ConcentricTrial(varargin)
         end
         
         function failedFixation(h)
-            failed(h)
+            if feedbackFailedFixation
+                %flash the fix point as feedback.
+                fixationFlashOff(h);
+                trigger.singleshot('next', h.next + 0.25, @fixationFlashOn);
+                trigger.singleshot('next', h.next + 0.50, @fixationFlashOff);
+                trigger.singleshot('next', h.next + 0.75, @fixationFlashOn);
+                trigger.singleshot('next', h.next + 1.00, @fixationFlashOff);
+                trigger.singleshot('next', h.next + 1.00, @failed);
+                trigger.remove(responseCollectionHandle_);
+            else
+                failed(h)
+            end
+        end
+        
+        function fixationFlashOn(h)
+            fixation.setVisible(1);
+        end
+        
+        function fixationFlashOff(h)
+            fixation.setVisible(0);
         end
         
         function cw(h)
