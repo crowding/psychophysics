@@ -151,12 +151,13 @@ function this = ConcentricTrial(varargin)
             if feedbackFailedFixation
                 %flash the fix point as feedback.
                 fixationFlashOff(h);
-                trigger.singleshot('next', h.next + 0.25, @fixationFlashOn);
-                trigger.singleshot('next', h.next + 0.50, @fixationFlashOff);
-                trigger.singleshot('next', h.next + 0.75, @fixationFlashOn);
-                trigger.singleshot('next', h.next + 1.00, @fixationFlashOff);
-                trigger.singleshot('next', h.next + 1.00, @failed);
+                trigger.singleshot(atLeast('next', h.next + 0.25), @fixationFlashOn);
+                trigger.singleshot(atLeast('next', h.next + 0.50), @fixationFlashOff);
+                trigger.singleshot(atLeast('next', h.next + 0.75), @fixationFlashOn);
+                trigger.singleshot(atLeast('next', h.next + 1.00), @fixationFlashOff);
+                trigger.singleshot(atLeast('next', h.next + 1.00), @failed);
                 trigger.remove(responseCollectionHandle_);
+                fprintf(2, '>>>> broke fixation\n');
             else
                 failed(h)
             end
@@ -207,6 +208,7 @@ function this = ConcentricTrial(varargin)
             result.success = 0;
             fixation.setColor([255 0 0]);
             trigger.singleshot(atLeast('next', h.next + lateTimeout), @stop);
+            fprintf(2, '>>>> too slow\n');
         end
         
         function tooShort(h)
@@ -214,6 +216,7 @@ function this = ConcentricTrial(varargin)
             result.success = 0;
             fixation.setColor([0 0 255]);
             trigger.singleshot(atLeast('next', h.next + earlyTimeout), @stop);
+            fprintf(2, '>>>> too fast\n');
         end
         
         function reshow(h)

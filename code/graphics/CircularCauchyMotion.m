@@ -41,6 +41,10 @@ function this = CircularCauchyMotion(varargin)
         counter_ = zeros(size(phase));
     end
     
+    function out = nextStruct()
+        
+    end
+
     function out = next()
         
         c = counter_;
