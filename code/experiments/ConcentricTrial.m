@@ -193,7 +193,7 @@ function this = ConcentricTrial(varargin)
             elseif beepFeedback
                 if result.response == desiredResponse
                     %make a beep
-                    params.input.eyes.reward(h.next, 150);
+                    params.input.eyes.reward(h.next, 100);
                     trigger.singleshot(atLeast('next',h.next+0.15), @stop);
                 else
                     trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
