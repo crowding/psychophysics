@@ -83,8 +83,10 @@ this = autoobject(varargin{:});
                 end
 
                 %update the next trial...
-                if numel(results) >= 5
+                if numel(results) >= 6
                     %try calibrating and see how good we are...
+                    [amat, err] = irls(
+                    
                     %this solution works easiest in affine coordinates
                     r = results(max(1,end-maxUsed):end);
                     i = interface(struct('target', {}, 'endpoint', {}), r);
@@ -98,26 +100,18 @@ this = autoobject(varargin{:});
                     araw = raw; araw(3,:) = 1;
 
                     %amat * araw = atarg (in least squares sense)
-                    amat = atarg / araw;
-                    calib = amat * araw;
+                    %amat = atarg / araw;
+                    %calib = amat * araw;
+                    %stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
     
-                    %set the offset and slope...
-
-                    %what is the standard error? As a measure of how accurately we
-                    %think we have calibrated, take the asolute error minus the
-                    %veridical target position...
-
-                    stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
+                    %now in robust fit!
+                    [amat, stderr] = irls(targets, raw_endpoints, @tukey_weight, 100);
 
                     if isfield(params, 'uihandles') && ~isempty(params.uihandles)
                         makeCurrentAxes(params.uihandles.experiment_axes);
-                        plot(calib(1,:), calib(2,:), 'b+');
-                        hold('on');
-                        line([t(:,1)';calib(1,:)], [t(:,2)';calib(2,:)], 'Color', 'b');
-                        hold('off');
-                        title(params.uihandles.experiment_axes, sprintf('stderr = %g', stderr));
+                        fitplot(atarg, araw, T);
+                        title(params.uihandles.experiment_axes, sprintf('max fit stderr = %g', stderr));
                     end
-
                     
                     if ( (stderr < maxStderr) && ( numel(results) >= minN) ) || numel(results) >= maxN
                         %we're done. apply and record the calibration.
@@ -133,7 +127,7 @@ this = autoobject(varargin{:});
                         break;
                     end
                 elseif numel(results) >= 2
-%{                  
+                    %{                  
                     r = results(max(1,end-maxUsed):end);
                     i = interface(struct('target', {}, 'endpoint', {}), r);
                     t = cat(1, i.target);
@@ -162,4 +156,80 @@ this = autoobject(varargin{:});
         result.abort = 0;
     end
 
+    function [T err] = irls(targets, raw_endpoints, weightFn, iter)
+        %What this algorithm does is to produce a fit by iteratively rewighting
+        %each datapoint according to a function of its residual. It then offers
+        %up a measure of the maximum standard error of all fitted points.
+
+        weights = ones(1, size(targets, 2));
+        for i = 1:iter
+            wtargets = repmat(weights, size(targets, 1), 1) .* targets;
+            wendpoints = repmat(weights, size(raw_endpoints, 1), 1) .* raw_endpoints;
+            T = wtargets / wendpoints;
+            residuals = T*raw_endpoints - targets;
+
+            %Estimate scale. I do not understand completely how to extend hte
+            %discussions of robust regression, which usually take a univariate
+            %response variable, into a multivariate case, and it appears you can
+            %choose the scale estimator -- discussion in chapter 7 of Huber --
+            %so I am taking the simplest reccomendation for now which is the
+            %median absolute deviation (MAD) of the absolute residuals...
+            %however any kind of median seems sketchy when you're applying it
+            %to a multivariate residual.
+            %to go to the next part of the loop, calculate the weights based on
+            %the current estimate of median and scale:
+            if i < iter
+                scale = 1.4826 * median(abs(sqrt(sum(residuals.^2,1)) - median(sqrt(sum(residuals.^2, 1)))));
+                weights = weightFn(residuals./scale);
+            end
+        end
+
+        %Calculate the errors the fitted datapoints. I do this by first using a
+        %weighted jackknife technique to get varying parameter estimates and then
+        %applying the varying parameter estimates to the original data.
+
+        %Note, not trying to recalculate the weights when leaving out each
+        %sample in the jackknife is a bit of a fudge.
+
+        Tjack = zeros([size(T) size(targets, 2)]);
+        jackfits = zeros([size(targets) size(targets, 2)]);
+        for i = 1:size(targets, 2)
+            indices = [1:i-1, i+1:size(targets,2)];
+            Tjack(:,:,i) = wtargets(:,indices) / wendpoints(:,indices);
+            jackfits(:,:,i) = Tjack(:,:,i) * raw_endpoints;
+        end
+
+        %Now we have a variance for each endpoint. NOTE we need to multiply by
+        %a factor of (n-1)^2 to get the variance, as the jackknife fits
+        %each vary one out of N points.
+        pointcov = zeros(2,2,size(jackfits,2));
+        pointerr = zeros(size(jackfits,2),1);
+        for i = 1:size(jackfits, 2)
+            pointcov(:,:,i) = cov(squeeze(jackfits(:,i,:))') * (size(jackfits,2)-1).^2;
+            pointerr(i) = sqrt(trace(pointcov(:,:,i))/(size(jackfits,2)-1));
+        end
+
+        err = max(pointerr);
+    end
+
+    function fitplot(targets, raw_endpoints, T)
+        %plot the original target locations connected to the endpoints
+        %according to the transform
+        transformed = T * raw_endpoints;
+        plot...
+            ( targets(1,:), targets(2,:), 'ko'...
+            , [targets(1,:);transformed(1,:)], [targets(2,:);transformed(2,:)], 'r-'...
+            , transformed(1,:), transformed(2,:), 'r.'...
+            );    
+    end
+
+
+    function weights = tukey_weight(residuals)
+        %weighting function based on Tukey's influence function
+        c = 3.44; % chosen for 85% efficiency, per Maronna et al. 2006
+        %The weighting function is applied to the absolute residuals.
+        t = sqrt(sum((residuals).^2, 1));
+        weights = (1 - (t./c).^2).^2;
+        weights(t > c) = 0;
+    end
 end

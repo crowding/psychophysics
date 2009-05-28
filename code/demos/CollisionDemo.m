@@ -1,7 +1,7 @@
-
-function this = ConcentricDemo(varargin)
-%show glolo concentric in a circle around the fixation point. Verious
-%button presses adjust the position...
+function this = CollisionDemo(varargin)
+%show two glolos translating back and forth Hopefully showing local motion
+%induced motion cature.
+%various parameters.
 
     defaults_ = struct...
         ( 'edfname',    '' ...
@@ -13,83 +13,44 @@ function this = ConcentricDemo(varargin)
         , 'priority', 0 ...
         );
     
-    n = 5;
-    
-    motion = CircularCauchyMotion();
+    motion = BacknforthCauchyMotion()
+
     sprites = CauchySpritePlayer('process', motion);
-    fixation = FilledDisk([-15 15;0 0], 0.1, 0, 'visible', 1);
+    
+    fixation = FilledDisk([0 0], 0.1, 0, 'visible', 1);
 
     ambiguous_ = 0;
     displayon_ = 0;
-    color_ = 0;
 
     my_ = Genitive();
     
     presets = {
-            { my_.n, 10 ...  %single large wheel
-            , my_.motion.dt, 0.1 ...
-            , my_.motion.radius,       10 ...
-            , my_.motion.dphase, .5 / 10 ...
-            , my_.motion.x, 0 ...
-            , my_.motion.y, 0 ...
-            , my_.motion.color, [0.5 0.5 0.5]' / sqrt(2) ...
-            , my_.motion.velocity,     -5 ... %velocity of peak spatial frequency
-            , my_.motion.phase,        reshape((1:10)*2*pi/10, 1, []) ...
-            , my_.motion.angle,        reshape((1:10)*360/10 + 90, 1, []) ...
-            , my_.motion.wavelength, 0.75 ...
-            , my_.motion.width, 0.5 ...
-            , my_.motion.duration, 2/30 ...
-            , my_.motion.order, 4 ...
-            , my_.motion.t,            zeros(1, 10)...
-            , my_.fixation.loc, [0;0] ...
-            } ...
-          , { my_.n,                   5 ...  %two small locally opposed wheels
-            , my_.motion.dt,           0.099 ...
-            , my_.motion.radius,       3 ...
-            , my_.motion.dphase,       .5 / 3 ...
-            , my_.motion.x,            repmat([-11 11], 1, 5) ...
-            , my_.motion.y,            7.3 ...
+            { my_.motion.dt,           0.1 ...
             , my_.motion.color,        [0.5;0.5;0.5]/sqrt(2) ...
-            , my_.motion.velocity,     repmat([-5 5], 1, 5) ... %velocity of peak spatial frequency
-            , my_.motion.phase,        reshape([1;1]*(1:5)*2*pi/5, 1, []) ...
-            , my_.motion.angle,        reshape([1;1]*(1:5)*360/5 + 90, 1, []) ...
-            , my_.motion.wavelength,   0.75 ...
-            , my_.motion.width,        0.5 ...
+            , my_.motion.velocity,     [10 10] ... %velocity of peak spatial frequency
+            , my_.motion.angle,        [0 90] ...
+            , my_.motion.wavelength,   1.25 ...
+            , my_.motion.width,        1.0 ...
             , my_.motion.duration,     2/30 ...
             , my_.motion.order,        4 ...
-            , my_.motion.t,            zeros(1, 10)...
-            , my_.fixation.loc, [-11 11 0; 7.3 7.3 -11] ...
+            , my_.motion.t,            [0 0]...
+            , my_.motion.xstart,       [0 0]...
+            , my_.motion.ystart,       [0 0]...
+            , my_.motion.xrange,       [-10 -10; 10 10] ...
+            , my_.motion.yrange,       [-10 -10; 10 10]...
+            , my_.motion.dx,           [0 1]...
+            , my_.motion.dy,           [1 0]...
+            , my_.fixation.loc,        [10 10] ...
             }...
         };
     
     persistent init__; %#ok
-    this = autoobject(presets{2}{:});
-    distribute();
+    this = autoobject(presets{1}{:});
     
     function distribute()
-        %if two wheels...
-        if size(fixation.getLoc(), 2) > 1
-            this.property__...
-                ( my_.motion.x,            [repmat(fixation.property__(my_.loc(1,[1])), 1, n), repmat(fixation.property__(my_.loc(1,[2])), 1, n)]...
-                , my_.motion.y,            [repmat(fixation.property__(my_.loc(2,[1])), 1, n), repmat(fixation.property__(my_.loc(2,[2])), 1, n)] ...
-                , my_.motion.velocity,     [repmat(this.property__(my_.motion.velocity(1)), 1, n), -repmat(this.property__(my_.motion.velocity(1)), 1, n)] ... %velocity of peak spatial frequency
-                , my_.motion.phase,        repmat((1:n)*2*pi/n, 1, 2) ...
-                , my_.motion.angle,        repmat((1:n)*360/n + 90, 1, 2) ...
-                , my_.motion.t,            zeros(1,2*n) ...
-                );
-        else
-            this.property__...
-                ( my_.motion.x,            repmat(fixation.property__(my_.loc(1)), 1, n) ...
-                , my_.motion.y,            repmat(fixation.property__(my_.loc(2)), 1, n) ...
-                , my_.motion.velocity,     repmat(this.property__(my_.motion.velocity(1)), 1, n) ... %velocity of peak spatial frequency
-                , my_.motion.phase,        (1:n)*2*pi/n ...
-                , my_.motion.angle,        (1:n)*360/n + 90 ...
-                , my_.motion.t,            zeros(1,n) ...
-                );
-        end
-        
         %if ambiguous...
         if ambiguous_
+            error('not implemented!');
             %clear Screen;
             this.property__...
                 ( my_.motion.x, repmat(motion.getX(), 1, 2)...
@@ -99,22 +60,6 @@ function this = ConcentricDemo(varargin)
                 , my_.motion.angle, repmat(motion.getAngle(), 1, 2) ...
                 , my_.motion.t, repmat(motion.getT(), 1, 2)...
                 )
-        end
-        
-        if color_
-            if ambiguous_
-                c = repmat([0.5 0.5 0 0;0 0 0.3 0.3;0.5 0.5 0.00 0.00]/ sqrt(2), 1, ceil(n/2));
-                c = c(:,1:2*n);
-            else
-                c = repmat([0.5 0;0 0.5;0.25 0.25]/ sqrt(2), 1, ceil(n/2));
-                c = c(:,1:n);
-            end
-            if size(fixation.getLoc(), 2) > 1
-                c = [c c];
-            end
-            motion.setColor(c);
-        else
-            motion.setColor([0.5;0.5;0.5]/(sqrt(2)^(ambiguous_+1)));
         end
     end
 
@@ -147,11 +92,6 @@ function this = ConcentricDemo(varargin)
         status_string = '';
         status_fns = {};
         
-        keyboard.set(@(h)more(this, 'n', h), '=+');
-        keyboard.set(@(h)less(this, 'n', h), '-_');
-        status_string = [status_string '-/= n = %d\n'];
-        status_fns{end+1} = this.getN;
-
         keyboard.set(@(h)multiply(motion, 'velocity', sqrt(sqrt(2)), h),           'q');
         keyboard.set(@(h)multiply(motion, 'velocity', 1/sqrt(sqrt(2)), h),         'a');
         status_string = [status_string 'A/Q v = %0.2g (deg/sec)\n'];
@@ -162,15 +102,15 @@ function this = ConcentricDemo(varargin)
         status_string = [status_string 'S/W l = %0.2g (deg)\n'];
         status_fns{end+1} = motion.getWavelength;
 
-        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [sqrt(sqrt(2)) 1/sqrt(sqrt(2))], h), 'e');
-        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [1/sqrt(sqrt(2)) sqrt(sqrt(2))], h), 'd');
+        keyboard.set(@(h) multiply(motion, {'dx', 'dy'}, [sqrt(sqrt(2)) sqrt(sqrt(2))], h), 'e');
+        keyboard.set(@(h) multiply(motion, {'dx', 'dy'}, [1/sqrt(sqrt(2)) 1/sqrt(sqrt(2))], h), 'd');
         status_string = [status_string 'D/E r = %0.2g (deg)\n'];
-        status_fns{end+1} = motion.getRadius;
+        status_fns{end+1} = @()motion.property__(my_.dx(2));
 
-        keyboard.set(@(h) multiply(motion, 'dphase', sqrt(sqrt(2)), h),             'r');
-        keyboard.set(@(h) multiply(motion, 'dphase', 1/sqrt(sqrt(2)), h),           'f');
-        status_string = [status_string 'R/F dx = %0.2g (deg)\n'];
-        status_fns{end+1} = @()motion.getDphase() * motion.getRadius();
+        keyboard.set(@(h) add(motion, my_.xstart(2), 0.5,  h),             'r');
+        keyboard.set(@(h) add(motion, my_.xstart(2), -0.5, h),             'f');
+        status_string = [status_string 'R/F x = %0.2g (deg)\n'];
+        status_fns{end+1} = @()motion.property__(my_.xstart(2));
 
         keyboard.set(@(h) multiply(motion, 'dt', sqrt(sqrt(2)), h),             't');
         keyboard.set(@(h) multiply(motion, 'dt', 1/sqrt(sqrt(2)), h),           'g');
@@ -207,11 +147,17 @@ function this = ConcentricDemo(varargin)
         status_string = [status_string '[/'' dp = %0.2g*pi\n'];
         status_fns{end+1} = @()motion.getDLocalPhase()/pi;
 
+        keyboard.set(@(h) add(motion, my_.angle(1), 15, h),       '.>');
+        keyboard.set(@(h) add(motion, my_.angle(1), -15, h),     ',<');
+        status_string = [status_string ',/. angle(1) = %0.2g (deg)\n'];
+        status_fns{end+1} = @()motion.property__(my_.angle(1));
+
+        keyboard.set(@(h) add(motion, my_.angle(2), 15, h),       '-_');
+        keyboard.set(@(h) add(motion, my_.angle(2), -15, h),     '=+');
+        status_string = [status_string '-/= angle(2) = %0.2g (deg)\n'];
+        status_fns{end+1} = @()motion.property__(my_.angle(2));
         
-        keyboard.set(@(h)multiply(motion, 'dphase', -1, h),                     'x');
-        keyboard.set(@(h)multiply(motion, 'velocity', -1, h),                   'z');
         keyboard.set(@ambiguous,                                                'c');
-        keyboard.set(@colortoggle,                                              'v');        
         
         status_string(end) = [];
 
@@ -234,7 +180,7 @@ function this = ConcentricDemo(varargin)
         end
         
         function reset(h)
-            this.property__(presets{1});
+            this.property__(presets{1}{:});
             distribute();
             display(h);
         end
@@ -311,11 +257,6 @@ function this = ConcentricDemo(varargin)
             else
                 display(h);
             end
-        end
-        
-        function colortoggle(h)
-            color_ = ~color_;
-            distribute();
         end
         
         function pause(h)

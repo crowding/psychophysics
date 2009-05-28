@@ -1,16 +1,11 @@
-function char = dependencies(mfile)
+function dependencies(mfile, outfile)
 
 %generate a space-delimited list of the user-created dependencies of an
-%M-file. This is used for makefiles.
+%M-file, and write that list to a file. This is used for makefiles.
 if ~isempty(mfile)
     p = fdep(mfile, '-q');
-    try
-        char = join(' ', {which(mfile), p.fun{:}});
-    catch
-        char = '';
-    end
 else
-    char = '';
+    p.files = {};
 end
 
-assignin('caller', 'response', char)
+require(openFile(outfile, 'w'), @(p)fprintf(p.fid,'%s\n',p.files{:}));
