@@ -85,7 +85,6 @@ this = autoobject(varargin{:});
                 %update the next trial...
                 if numel(results) >= 6
                     %try calibrating and see how good we are...
-                    [amat, err] = irls(
                     
                     %this solution works easiest in affine coordinates
                     r = results(max(1,end-maxUsed):end);
@@ -96,7 +95,7 @@ this = autoobject(varargin{:});
                     raw = result.orig_slope\(endpoints' - result.orig_offset(:, ones(1, numel(i))));
 
                     atarg = t';
-                    atarg(3,:) = 1;
+                    %atarg(3,:) = 1;
                     araw = raw; araw(3,:) = 1;
 
                     %amat * araw = atarg (in least squares sense)
@@ -105,11 +104,11 @@ this = autoobject(varargin{:});
                     %stderr = sqrt(sum(sum((calib(1:2,:) - t').^2)) / (numel(results)) / sqrt(numel(results) - 1));
     
                     %now in robust fit!
-                    [amat, stderr] = irls(targets, raw_endpoints, @tukey_weight, 100);
+                    [amat, stderr] = irls(atarg, araw, @tukey_weight, 100);
 
                     if isfield(params, 'uihandles') && ~isempty(params.uihandles)
                         makeCurrentAxes(params.uihandles.experiment_axes);
-                        fitplot(atarg, araw, T);
+                        fitplot(atarg, araw, amat);
                         title(params.uihandles.experiment_axes, sprintf('max fit stderr = %g', stderr));
                     end
                     

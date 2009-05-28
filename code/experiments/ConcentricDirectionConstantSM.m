@@ -81,7 +81,7 @@ function e = ConcentricDirectionConstant(varargin)
     e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 4}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [5 7 9 11 14 18 22]);
+    e.trials.add('extra.nTargets', [9 11 14 18 22 25 28]);
 %%
         
     %variable onset
