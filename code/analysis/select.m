@@ -1,8 +1,11 @@
-function what = select(fn, array)
-    %function selected = select(fn, array)
-    if iscell(array)
-        what = array(boolean(cellfun(fn, array)));
-    else
-        what = array(boolean(arrayfun(fn, array)));
+function varargout = select(fn, varargin)
+    vin = cellfun(@cellify,varargin, 'UniformOutput', 0);
+    bool = boolean(cellfun(fn, vin{:}));
+    varargout = cellfun(@(x)x(bool), varargin, 'UniformOutput', 0);
+end
+
+function x = cellify(x)
+    if ~iscell(x)
+        x = num2cell(x);
     end
 end

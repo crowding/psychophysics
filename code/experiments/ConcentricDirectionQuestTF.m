@@ -1,4 +1,4 @@
-function e = ConcentricDirectionMixQuest(varargin)
+function e = ConcentricDirectionQuestTF(varargin)
 
     params = namedargs ...
         ( localExperimentParams() ...
@@ -77,7 +77,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1125}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -94,7 +94,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     parameters{end+1} = 'extra.nTargets';
     for i = 1:numel(product)
         product{i}{end+1} = Quest ...
-            ( 'pThreshold', 0.5, 'gamma', 0 ... %yes-no experiment...
+            ( 'pThreshold', 1/3, 'gamma', 0 ... %yes-no experiment...
             , 'guess', 15, 'range', 30, 'grain', 0.1, 'guessSD', 15 ... %conservative initial guess
             , 'criterion', @criterion, 'restriction', PickNearest('set', 5:30, 'dither', 2) ... %experiment constraints
             );
@@ -175,8 +175,8 @@ function e = ConcentricDirectionMixQuest(varargin)
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 10; %26 trials per quest...
-    e.trials.blockSize = 144;    
+    e.trials.reps = 13; %26 trials per quest...
+    e.trials.blockSize = 187;    
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));

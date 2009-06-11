@@ -8,4 +8,4 @@ else
     p.files = {};
 end
 
-require(openFile(outfile, 'w'), @(p)fprintf(p.fid,'%s\n',p.files{:}));
+require(openFile(outfile, 'w'), @(x)fprintf(x.fid,'%s\n',p.fun{:}));
