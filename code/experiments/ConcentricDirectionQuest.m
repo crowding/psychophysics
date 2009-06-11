@@ -31,6 +31,7 @@ function e = ConcentricDirectionMixQuest(varargin)
             , 'color', [0.5;0.5;0.5] / sqrt(2)...
             ) ...
         , 'requireFixation', 1 ...
+        , 'feedbackFailedFixation', 1 ...
         , 'fixationStartWindow', 3 ...
         , 'fixationSettle', 0.2 ...
         , 'fixationWindow', 2.8 ...
@@ -77,12 +78,12 @@ function e = ConcentricDirectionMixQuest(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1125}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
-    vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{0.06 6}, {0.10 4} {0.15 3}}};
-    %%vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{0.10 4}}};
+    %%vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{2/30 9}, {0.10 6} {0.15 4}}};
+    vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{0.10 4}}};
     
     %expand all the values to be used here.
     parameters = cat(2, vars{:,1});
@@ -92,16 +93,22 @@ function e = ConcentricDirectionMixQuest(varargin)
 
     %now create quests for each stimulus combination...
     parameters{end+1} = 'extra.nTargets';
+    product2 = product;
     for i = 1:numel(product)
         product{i}{end+1} = Quest ...
-            ( 'pThreshold', 0.5, 'gamma', 0 ... %yes-no experiment...
-            , 'guess', 15, 'range', 30, 'grain', 0.1, 'guessSD', 15 ... %conservative initial guess
-            , 'criterion', @criterion, 'restriction', PickNearest('set', 5:30, 'dither', 2) ... %experiment constraints
+            ( 'pThreshold', 0.33, 'gamma', 0 ... %yes-no experiment...
+            , 'guess', 15, 'range', 40, 'grain', 0.1, 'guessSD', 15 ... %conservative initial guess
+            , 'criterion', @criterion, 'restriction', PickNearest('set', 5:40, 'dither', 2) ... %experiment constraints
+            );
+        product2{i}{end+1} = Quest ...
+            ( 'pThreshold', 0.66, 'gamma', 0 ... %yes-no experiment...
+            , 'guess', 15, 'range', 40, 'grain', 0.1, 'guessSD', 15 ... %conservative initial guess
+            , 'criterion', @criterion, 'restriction', PickNearest('set', 5:40, 'dither', 2) ... %experiment constraints
             );
     end
     
     %now add'em all
-    e.trials.add(parameters, product);
+    e.trials.add(parameters, cat(1, product, product2));
 %%
     %variable onset
     e.trials.add('motion.process.t', ExponentialDistribution('offset', 0.15, 'max', 1.15, 'tau', 1));        
@@ -168,15 +175,15 @@ function e = ConcentricDirectionMixQuest(varargin)
     end
 
     %await the input after the stimulus has finished playing.
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n - 1)) + 0.25);
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n - 1))-0.1);
     
     %say, run 30 trials for each quest, with an estimated threshold value measured in number of
     %targets, somewhere between 5 and 20. This arrives at a threshold
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 13; %22 trials per quest...
-    e.trials.blockSize = 156;    
+    e.trials.reps = 17; %26 trials per quest...
+    e.trials.blockSize = 164;    
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));

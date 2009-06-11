@@ -30,7 +30,7 @@ function e = ConcentricDirectionConstant(varargin)
         , 'requireFixation', 1 ...
         , 'fixationStartWindow', 3 ...
         , 'fixationSettle', 0.2 ...
-        , 'fixationWindow', 4 ...
+        , 'fixationWindow', 3 ...
         , 'motion', CauchySpritePlayer ...
             ( 'process', CircularCauchyMotion ...
                 ( 'x', 0 ...
@@ -80,7 +80,7 @@ function e = ConcentricDirectionConstant(varargin)
     e.trials.add({'extra.dt', 'motion.process.n'}, {{0.10 4}});
     
     %here we use constant stimuli... in number of targets.
-    e.trials.add('extra.nTargets', [9 11 14 18 21 24 27]);
+    e.trials.add('extra.nTargets', [5 7 9 11 14 18 21 24]);
 %%
         
     %variable onset
@@ -94,7 +94,7 @@ function e = ConcentricDirectionConstant(varargin)
     e.trials.add('extra.localDirection', [1 0 -1]);
     
     %await the input after the stimulus has finished playing.
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)) - 0.1);
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n - 1)));
     
     %this procedure translates the extra parmeters into lower level values.
     e.trials.add([], @appearance);
@@ -129,10 +129,10 @@ function e = ConcentricDirectionConstant(varargin)
         end
     end
     
-    e.trials.reps = 5;
+    e.trials.reps = 4;
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
-    e.trials.blockSize = 160;
+    e.trials.blockSize = 154;
 
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));
