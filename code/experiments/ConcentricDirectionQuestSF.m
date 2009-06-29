@@ -176,8 +176,8 @@ function e = ConcentricDirectionMixQuest(varargin)
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 12; %26 trials per quest...
-    e.trials.blockSize = 173;    
+    e.trials.reps = 11; %26 trials per quest...
+    e.trials.blockSize = 159;    
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
