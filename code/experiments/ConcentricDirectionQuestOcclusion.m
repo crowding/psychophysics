@@ -76,7 +76,8 @@ function e = ConcentricDirectionMixQuest(varargin)
     vars(end+1,:) = {{'extra.r'}, {80/27 10 20/3 40/9}};
     %vars(end+1,:) = {{'extra.r'}, {80/27}};
 
-    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 4*pi/12}, {1, 16*pi/12}, {0, 0}}};
+%    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 4*pi/12}, {1, 16*pi/12}, {0, 0}}};
+    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 4*pi/12}, {1, 4*pi/12}, {0, 0}}};
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
