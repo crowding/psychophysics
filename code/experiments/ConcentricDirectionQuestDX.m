@@ -77,7 +77,7 @@ function e = ConcentricDirectionQuestTF(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1125}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -168,15 +168,15 @@ function e = ConcentricDirectionQuestTF(varargin)
     end
 
     %await the input after the stimulus has finished playing.
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n - 1)));
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n - 1) + 0.25));
     
     %say, run 30 trials for each quest, with an estimated threshold value measured in number of
     %targets, somewhere between 5 and 20. This arrives at a threshold
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 13; %26 trials per quest...
-    e.trials.blockSize = 188;    
+    e.trials.reps = 11; %26 trials per quest...
+    e.trials.blockSize = 159;    
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));

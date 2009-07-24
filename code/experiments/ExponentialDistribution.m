@@ -21,7 +21,7 @@ function this = ExponentialDistribution(varargin)
         tmp = rand('twister');
         rand('twister', seed);
         r = Inf;
-        while r > m %pull values until you get inside the right range.
+        while r >= m %pull values until you get inside the right range.
             r = o - log(rand(size(o))) * t;
         end
         seed = rand('twister');

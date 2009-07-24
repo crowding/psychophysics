@@ -1,4 +1,4 @@
-function e = ConcentricDirectionMixQuest(varargin)
+function e = ConcentricDirectionQuestOcclusion(varargin)
 
     params = namedargs ...
         ( localExperimentParams() ...
@@ -48,7 +48,7 @@ function e = ConcentricDirectionMixQuest(varargin)
             ) ...
         , 'occluders', {...
             FilledAnnularSector(...
-                  'color', [0.5 0.5 0.5]*255 ... %'color', [0.475 0.475 0.475]*255 ...
+                  'color', [0.475 0.475 0.475]*255 ...
                 , 'loc', [0;0] ...
                 , 'startAngle', pi/4 ...
                 , 'arcAngle', 16*pi/12 ...
@@ -77,7 +77,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     %vars(end+1,:) = {{'extra.r'}, {80/27}};
 
 %    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 4*pi/12}, {1, 16*pi/12}, {0, 0}}};
-    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 4*pi/12}, {1, 4*pi/12}, {0, 0}}};
+    vars(end+1,:) = {{'useOccluders','occluders{1}.startAngle'}, {{1, 16*pi/12}, {1, 16*pi/12}, {0, 0}}};
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
@@ -92,7 +92,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1125}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -111,7 +111,7 @@ function e = ConcentricDirectionMixQuest(varargin)
         product{i}{end+1} = Quest ...
             ( 'pThreshold', 0.5, 'gamma', 0 ... %yes-no experiment...
             , 'guess', 15, 'range', 35, 'grain', 0.1, 'guessSD', 20 ... %conservative initial guess
-            , 'criterion', @criterion, 'restriction', PickNearest('set', 5:40, 'dither', 2) ... %experiment constraints
+            , 'criterion', @criterion, 'restriction', PickNearest('set', 6:40, 'dither', 2) ... %experiment constraints
             );
     end
     
@@ -183,15 +183,15 @@ function e = ConcentricDirectionMixQuest(varargin)
     end
 
     %await the input after the stimulus has finished playing
-    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n-1)) + 0.25);
+    e.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n-1)) + 0.0);
     
     %say, run 30 trials for each quest, with an estimated threshold value measured in number of
     %targets, somewhere between 5 and 20. This arrives at a threshold
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 11; %26 trials per quest...
-    e.trials.blockSize = 159;    
+    e.trials.reps = 13; %26 trials per quest...
+    e.trials.blockSize = 156;    
     e.trials.fullFactorial = 1;
     e.trials.requireSuccess = 1;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
