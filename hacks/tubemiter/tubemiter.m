@@ -40,16 +40,25 @@ T = transform;
 
 %Now we iterate through, setting X(1) and X(2) and X(4) and solving for X(3)...
 
-figure(1);
-fplot(@(a)findz(a / (OD0/2), OD0/2), [0 2*pi]*OD0/2, 1000, 'k--');
+figure(1); clf;
+fplot(@(a)findz(a / (OD0/2), OD0/2), [0 2*pi]*OD0/2, 1000, 'k:');
 hold on;
 fplot(@(a)findz(a / (OD0/2), ID0/2), [0 2*pi]*OD0/2, 1000, 'k-');
-plot([0 2*pi]*OD0/2, [0 0], 'k-.');
-hold off;
-axis equal;
-
+plot([0 2*pi]*OD0/2, [0 0], 'k:');
 
 %set up this plot and axes to print at the right size....
+hold off;
+axis equal;
+set(gca, 'position', [0 0 1 1]);
+ps = get(gcf, 'PaperSize');
+set(gcf, 'PaperPosition', [ps(1)/2 - (OD0*pi/2), 0, OD0*pi, ps(2)]);
+plot([0 2*pi], [-ps(2)/2 ps(2)/2], 'k:');
+set(gca, 'YLim', [-ps(2)/2 ps(2)/2]);
+set(gca, 'XLim', [0 pi]*OD0);
+set(gca, 'XTick', [0]);
+set(gca, 'XTickLabel', []);
+set(gca, 'YTick', [0]);
+set(gca, 'YTickLabel', []);
 
 %finally, we ought to show the actual cylinders, in a second display.
 param = linspace(0, 2*pi, 1000);
@@ -59,7 +68,7 @@ inside = arrayfun(@(a) findz(a, ID0/2), param, 'UniformOutput',0);
 inside = cat(1, inside{:});
 
 
-figure(2);
+figure(2); clf;
 plot3(sin(param)*OD0/2, cos(param)*OD0/2, outside, 'b-', sin(param)*ID0/2, cos(param)*ID0/2, inside, 'b--');
 axis equal;
 
@@ -69,7 +78,7 @@ xlabel x; ylabel y; zlabel z;
         %we have the equation X' T'RT X = 0, where three of four components of X
         %are known. angle and diameter should be scalar or column vectors.
         %I suppose we could work out the coefficients explicitly, but this
-        %following is more intuitive omputationally:
+        %following is more intuitive computationally:
 
         z_1 = [radius.*sin(angle); radius.*cos(angle); -ones(size(angle));  ones(size(angle))];
         z0  = [radius.*sin(angle); radius.*cos(angle);  zeros(size(angle)); ones(size(angle))];

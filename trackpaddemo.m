@@ -1,11 +1,11 @@
-d = 5;
+d = 4;
 FlushEvents(); %for charAvail
-options = struct('secs', 0);
+options = struct();
 bv = zeros(1, 10) + 4096;
 bh = zeros(1, 20) + 4096;
 
 %the format of the trackpad status string
-backlog = [];
+backlog = [];d
 %sound = 
 while ~CharAvail
     PsychHID('ReceiveReports', d, options);

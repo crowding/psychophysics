@@ -13,7 +13,7 @@ function m = tubemiter(ID0, OD0, OD1, transform)
 %Then each incident tube is defined as another cylinder, then rotated.
 %
 %the 'transform' is a 4x4 transform matrix in affine coordinates, to be
-%applied to the sedon cylinder. for convenience there should be functions
+%applied to the second cylinder. for convenience there should be functions
 %rotate{x,y,z}(...) translate{x,y,z} to create these matrices.
 %
 %For instance, to create a miter for a 1.375"x0.55" wall top tube to a 1.5" OD head
@@ -35,6 +35,9 @@ function m = tubemiter(ID0, OD0, OD1, transform)
 %
 %
 %tubemiter(1.265, 1.375, 1.5, rotatex(106))
+%
+%Note, if you like metric, be sure to set 'PaperUnits' to millimeters
+%before running.
 
 %the equation of the incident cylinder is, in its home coordinates Y,
 %x^2 + y^2 = r^2, or in affine representation,
@@ -44,7 +47,7 @@ function m = tubemiter(ID0, OD0, OD1, transform)
 %    0       0     0   0  
 %    0       0     0   1 ] Y = 0
 
-R = [1 1 0 0 ; 0 0 0 0; 0 0 0 0; 0 0 0 -r^2]
+R = [1 1 0 0 ; 0 0 0 0; 0 0 0 0; 0 0 0 -r^2];
 
 %Now if we have a transform X = TY (coresponding to the placement of the
 %cylinder) we have the equation as:
@@ -53,7 +56,10 @@ R = [1 1 0 0 ; 0 0 0 0; 0 0 0 0; 0 0 0 -r^2]
 
 %Now we iterate through, setting X(1) and X(2) and X(4) and solving for X(3)...
 
-fplot(@(z)findz(OD0, [0 2*pi], 'b-');
+fplot(@(z)findz(OD0, [0 2*pi], 'k-'));
+hold on;
+fplot(@(z)findz(ID0, [0 2*pi], 'k:'));
+plot([0 2*pi], [0 0], 'b:', 'LineWidth', 0.5);
 
     function z = findz(angle, diameter)
         %we have the equation X' T'RT X = 0, where three of four components of X
@@ -77,5 +83,14 @@ fplot(@(z)findz(OD0, [0 2*pi], 'b-');
         %solve for z
         z = (-b - sqrt(b.^2 - 4.*a.*c)) / 2.*a;
     end
+
+plot([0 0], [-ps ps], 'b--');
+
+%now set our plot to print at the correct size on paper.
+
+set(gca, 'potition', [0 0 1 1]);
+ps = get(gcf, 'PaperSize');
+set(gcf, 'PaperPosition', [ps(1)/2 - (OD0*pi/2), 0, OD0*pi, 1, ps(2)])
+set(gca, 'ylimit', [-ps/2 ps/2]); 
 
 end
