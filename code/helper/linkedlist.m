@@ -1,7 +1,31 @@
 function [push, readout] = linkedlist(dim)
-%godawful function to record a list of data (e.g. streaming eye position or other
-%streaming input data) in memory.
-
+%function [push, readout] = linkedlist(DIM)
+%
+%Peter Meilstrup, 2008
+%
+%Records list of data (e.g. streaming eye position or other
+%streaming input data) in memory without the speed penalty of reallocating
+%arrays in a loop.
+%
+%Returns two function handles, 'push', and 'readout', you push data in
+%using the pirst, then at the end of your accumulation read it out using
+%the second. The accumulated data is concatenated along the dimension DIM.
+%
+% Example:
+%
+% >> [push, readout] = linkedlist(2)
+% push = 
+%     @linkedlist/doPush
+% readout = 
+%     @linkedlist/doReadout
+% >> push([1;2]);
+% >> push([3 4;5 6]);
+% >> push([0; 0]);
+% >> readout()
+% ans =
+%      1     3     4     0
+%      2     5     6     0
+     
 persistent lists;
 persistent counter;
 
@@ -31,7 +55,7 @@ readout = @doReadout;
         elements = elements + 1;
     end
 
-    function out = doReadout(what)
+    function out = doReadout()
         if ~isempty(name)
             l = lists.(name);
             lists = rmfield(lists, name);

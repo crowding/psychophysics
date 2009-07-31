@@ -12,6 +12,8 @@ function this = ConcentricTrial(varargin)
     earlyTimeout = 1;
     
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
+    
+    audioCueTimes = []; %when to play an audio cue, relative to motion onset.
    
     requireFixation = 1;
     fixationLatency = 2; %how long to wait for acquiring fixation
@@ -64,15 +66,21 @@ function this = ConcentricTrial(varargin)
             i{1}.setVisible(0);
         end
         
-        if requireFixation
+        if requireFixation && (beepFeedback || ~isempty(audioCueTimes))
+            main = mainLoop ...
+                ( 'input', {params.input.eyes, params.input.audioout, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
+                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'triggers', {trigger} ...
+                );
+        elseif requireFixation
             main = mainLoop ...
                 ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
                 , 'graphics', {fixation, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
-        elseif beepFeedback
+        elseif (beepFeedback || ~isempty(audioCueTimes))
             main = mainLoop ...
-                ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob} ...
+                ( 'input', {params.input.audioout, params.input.keyboard, params.input.knob} ...
                 , 'graphics', {fixation, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
@@ -126,6 +134,12 @@ function this = ConcentricTrial(varargin)
                 for i = occluders(:)'
                     i{1}.setVisible(1);
                 end
+            end
+            
+            for i = audioCueTimes(:)'
+                %set the cues to play at the presice times relative to
+                %simulus onset.
+                audio.play('cue', h.next + i);
             end
 
             motionStarted_ = h.next;
@@ -193,8 +207,8 @@ function this = ConcentricTrial(varargin)
             elseif beepFeedback
                 if result.response == desiredResponse
                     %make a beep
-                    params.input.eyes.reward(h.next, 100);
-                    trigger.singleshot(atLeast('next',h.next+0.15), @stop);
+                    params.input.audio.play('ding');
+                    trigger.singleshot(atLeast('next',h.next+0.2), @stop);
                 else
                     trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
                 end

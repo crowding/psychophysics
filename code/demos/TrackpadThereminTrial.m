@@ -14,15 +14,20 @@ function this = TrackpadThereminTrial(varargin)
         disk2 = FilledDisk('loc', [0 0], 'color', [0;1;0]*params.whiteIndex, 'radius', 1, 'visible', 1);
         u = UpdateTrigger();
         u.set(@update);
+        kd = KeyDown();
+        kd.set(@stop, 'q');
+        kd.set(@bong, 'space');
         main = mainLoop ...
             ( 'graphics', {disk1, disk2} ...
-            , 'triggers', {KeyDown(@stop, 'q'), u} ...
-            , 'input', {params.input.keyboard, params.input.trackpad} ...
+            , 'triggers', {kd, u} ...
+            , 'input', {params.input.keyboard, params.input.trackpad, params.input.mouse, params.input.audioout} ...
             );
 %            , 'input', {params.input.keyboard, params.input.trackpad, params.input.audioin, params.input.audioout} ...
         
-        %params.input.audioout.setOutputFunction(@generateAudio);
-        ampl = 0.9;
+        params.input.audioout.setFilter(@generateAudio);
+        ampl = 0;
+        freq = 440;
+        lastphase_ = 0;
             
         main.go(params);
         
@@ -55,11 +60,24 @@ function this = TrackpadThereminTrial(varargin)
         %            c([1 3]) = colorOffset + aa * colorGain;
         %        end
                 disk2.setColor(c);
-            end            
+            elseif isfield(k, 'mousex')
+                disk1.setLoc([k.mousex_deg k.mousey_deg]);
+                disk2.setLoc([k.mousex_deg k.mousey_deg]);
+                ampl = exp(-10 - k.mousey_deg);
+                freq = 440*exp(k.mousex_deg / 5);
+%                ampl = k.mouseButtons(1) * 0.9 + 0.05;
+            end
         end
 
-        function out = generateAudio(from,howmany,rate,onset)
-            out = ampl * sin((from:from+howmany-1) * 2*pi*660/rate);
+        function data = generateAudio(from,data,rate,onset,channels)
+            howmany = size(data, 2);
+            out = ampl * sin(lastphase_ + (0:howmany-1) * 2*pi*freq/rate);
+            data = data + out(ones(numel(channels), 1), :);
+            lastphase_ = mod(lastphase_ + howmany * 2*pi*freq/rate, 2*pi); 
+        end
+        
+        function bong(k)
+            params.input.audioout.play('ding', k.next + params.screenInterval);
         end
     end
 

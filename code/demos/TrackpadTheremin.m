@@ -11,8 +11,8 @@ function this = TrackpadTheremin(varargin)
         
     e.params.input.trackpad = TrackpadInput();
 %    e.params.input.audioin.property__('record', 0, 'channels', [0],'freq', 48000);
-%    e.params.input.audioout = AudioOutput('channels', [0], 'freq', 48000);
-    e.params.inputUsed = {'trackpad', 'keyboard'};
+    e.params.input.audioout = AudioOutput('channels', [0], 'freq', 48000, 'samples.ding', Ding());
+    e.params.inputUsed = {'trackpad', 'keyboard', 'mouse', 'audioout'};
     e.params.backgroundColor = 0;
     e.filename = '';
     e.subject = 'zzz';
