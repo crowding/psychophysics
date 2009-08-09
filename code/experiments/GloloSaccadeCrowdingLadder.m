@@ -198,7 +198,7 @@ function e = GloloSaccadeCrowdingLadder(varargin)
         
         %local appearance
         wl = extra.r .* extra.wavelengthScalar;
-        v = wl .* extra.tf .* sign(extra.localDirection);
+        v = wl .* extra.tf;
         ph = ph + trackingProcess.getT() .* targetSource.getOmega() + 2*pi*(0:extra.nTargets-1)/extra.nTargets;
         
         if extra.localDirection ~= 0

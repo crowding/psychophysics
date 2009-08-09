@@ -113,10 +113,6 @@ function e = GloloSaccadeCrowdingGB(varargin)
     %duration.
     vars(end+1,:) = {{'extra.dt'}, {0.10}};
     %%vars(end+1,:) = {'extra.dt', {0.10}};
-
-    %here's where local and global are randomized
-    vars(end+1,:) = {{'extra.globalDirection'}, {1 -1}};
-    vars(end+1,:) = {{'extra.localDirection'}, {1 0 -1}};
     
     %expand all the values to be used here.
     parameters = cat(2, vars{:,1});
@@ -143,7 +139,7 @@ function e = GloloSaccadeCrowdingGB(varargin)
 	%Return 0 in any case if not an opposing trial.
         
         crowded = 0;
-	e = trial.getExtra();
+        e = trial.getExtra();
         if result.success == 1 && e.localDirection == -e.globalDirection;
             crowded = -1
         elseif result.success == 0 && e.localDirection == -e.globalDirection;
@@ -156,6 +152,7 @@ function e = GloloSaccadeCrowdingGB(varargin)
     %now add'em all
     e.trials.add(parameters, product);
 %%
+
     %the target window for saccades
     e.trials.add('targetWindow', @(b)b.extra.r(1)/4 + b.fixationWindow/2);
 
@@ -203,7 +200,7 @@ function e = GloloSaccadeCrowdingGB(varargin)
         
         %local appearance
         wl = extra.r .* extra.wavelengthScalar;
-        v = wl .* extra.tf .* sign(extra.localDirection);
+        v = wl .* extra.tf;
         ph = ph + trackingProcess.getT() .* targetSource.getOmega() + 2*pi*(0:extra.nTargets-1)/extra.nTargets;
         
         if extra.localDirection ~= 0

@@ -207,6 +207,8 @@ function this = AudioOutput(varargin)
             [push_, readout_] = linkedlist(2);
         end
         confirmed_ = 0;
+        PsychPortAudio('FillBuffer', pahandle_, dummy_(0, outputBufferSize_, sampleRate_, 0, channels));
+        PsychPortAudio('SetLoop', pahandle_); %a circular buffer; loop everything
         startTime_ = PsychPortAudio('Start', pahandle_, 0);
         lastsampleix_ = -1;
         underflowed_ = 0;
@@ -276,7 +278,7 @@ function this = AudioOutput(varargin)
         %refreshes, chunked into hardware buffers.
         nSamples = hardwareBufferSize_*ceil( (state.next + interval_*framesAhead - onset)*sampleRate_/hardwareBufferSize_);
                
-        %Now compute the next chunk of audio (depending on the experiment)
+        %Now compute the next chunk of audio (depending editon the experiment)
         data = gatherSamples_(firstSample, nSamples, sampleRate_, onset, channels);
         if ~isempty(filter)
             data = filter(firstSample, data, sampleRate_, onset, channels);
@@ -311,9 +313,9 @@ function this = AudioOutput(varargin)
             i = firstSample - running_{s,3} - 1; %index within sample of beginning of chunk
             ns = min(nSamples, running_{s,2} - i + 1); %number of points to extract from sample
             sampleData = sampleData_.(running_{s,1});
-            out(:, 1:ns) = out(:, 1:ns) + sampleData(i:i+ns-1); %extracting into the right place.
+            out(:, 1:ns) = out(:, 1:ns) + sampleData(:,i:i+ns-1); %extracting into the right place.
             
-            if ns < nSamples
+            if ns <= nSamples
                 %done with that sample, remove it from running.
                 running_(s,:) = [];
             end
@@ -321,23 +323,28 @@ function this = AudioOutput(varargin)
         
         %Find samples that are starting now, and add them as well.
         ix = find([starting_{:,1}] <= onset + (nSamples-1)/sampleRate);
-        for i = ix(:)'
+        for i = ix(:)'            
+            sampleOnset = starting_{i,1};
+            sampleContents = sampleData_.(starting_{i,2});
+            
             if isnan(sampleOnset)
                 sampleOnset = onset;
             end
-            
-            sampleOnset = starting_{i,1};
-            sampleContents = sampleData_.(starting_{i,2});
-   
+
             %possible that the sample started before our chunk start time
             startIndex = round((sampleOnset - onset)*sampleRate + 1);
             if startIndex <= 0
                 sampleStartIndex = 2 - startIndex;
                 startIndex = 1;
+                %should probably log this condition as it indicates a sample
+                %started midway through.
+                if sampleStartIndex > size(sampleContents, 2)
+                    break;
+                end
             else
                 sampleStartIndex = 1;
             end
-            
+
             if size(sampleContents, 2) - sampleStartIndex + 1 < nSamples + startIndex - 1
                 %sample starts and completes in this chunk
                 out(:, startIndex:(startIndex + size(sampleContents, 2)-1)) = ...
@@ -349,7 +356,7 @@ function this = AudioOutput(varargin)
             end
             
             %log that the sample played.
-            log_('AUDIO_SAMPLE %s %g %d', starting{i,2}, sampleOnset, firstSample + sampleIndex - 1);
+            log_('AUDIO_SAMPLE %s %g %d', starting_{i,2}, sampleOnset, firstSample + startIndex - 1);
         end
         starting_(ix,:) = [];
     end

@@ -114,9 +114,6 @@ function e = GloloSaccadeCrowdingGB(varargin)
     vars(end+1,:) = {{'extra.dt'}, {0.10}};
     %%vars(end+1,:) = {'extra.dt', {0.10}};
 
-    %here's where local and global are randomized
-    vars(end+1,:) = {{'extra.globalDirection'}, {1 -1}};
-    vars(end+1,:) = {{'extra.localDirection'}, {1 0 -1}};
     
     %expand all the values to be used here.
     parameters = cat(2, vars{:,1});
@@ -129,8 +126,8 @@ function e = GloloSaccadeCrowdingGB(varargin)
     parameters{end+1} = 'extra.nTargets';
     for i = 1:numel(product)
         product{i}{end+1} = DiscreteStaircase ...
-            ( 'valueSet', [1:20], 'currentIndex', 6 ...
-            , 'Nup', 1, 'Ndown', 1 ...
+            ( 'valueSet', [1:20], 'currentIndex', 10 ...
+            , 'Nup', 2, 'Ndown', 1 ...
             , 'criterion', @criterion ...
             );
     end
@@ -143,7 +140,7 @@ function e = GloloSaccadeCrowdingGB(varargin)
 	%Return 0 in any case if not an opposing trial.
         
         crowded = 0;
-	e = trial.getExtra();
+        e = trial.getExtra();
         if result.success == 1 && (e.localDirection == -e.globalDirection);
             crowded = -1
         elseif result.success == 0 && (e.localDirection == -e.globalDirection);
@@ -156,6 +153,10 @@ function e = GloloSaccadeCrowdingGB(varargin)
     %now add'em all
     e.trials.add(parameters, product);
 %%
+    %here's where local and global are randomized
+    e.trials.add('extra.globalDirection', [1 -1]);
+    e.trials.add('extra.localDirection', [1 0 -1]);
+
     %the target window for saccades
     e.trials.add('targetWindow', @(b)b.extra.r(1)/4 + b.fixationWindow/2);
 
@@ -203,7 +204,7 @@ function e = GloloSaccadeCrowdingGB(varargin)
         
         %local appearance
         wl = extra.r .* extra.wavelengthScalar;
-        v = wl .* extra.tf .* sign(extra.localDirection);
+        v = wl .* extra.tf;
         ph = ph + trackingProcess.getT() .* targetSource.getOmega() + 2*pi*(0:extra.nTargets-1)/extra.nTargets;
         
         if extra.localDirection ~= 0
@@ -250,8 +251,8 @@ function e = GloloSaccadeCrowdingGB(varargin)
     
 %    e.trials.fullFactorial = 1;
 %    e.trials.reps = 30;
-    e.trials.blockSize = 175;
-    e.trials.numBlocks = 4;
+    e.trials.blockSize = 170;
+    e.trials.numBlocks = 5;
     e.trials.requireSuccess = 0;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Move eyes to follow target spot when cued.\nPress space to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press space to continue.\n%d blocks remain', e.trials.blocksLeft()));

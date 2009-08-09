@@ -1,5 +1,5 @@
-function this = Noise(varargin)
-    %a chopped noise.
+function this = Chirp(varargin)
+    %Generates a decaying frequency sweep.
     
     length = 0.1; %in seconds.
     attack = 0.000; %impose a ramp at the start
@@ -31,8 +31,12 @@ function this = Noise(varargin)
         data = data(ones(numel(channels), 1), :);
 
         %impose ramps and decays
-        data(:,1:floor(attack*rate)) = data(:,1:floor(attack*rate)) .* ( ones(numel(channels), 1) * linspace(0, 1, floor(attack*rate)) );
-        data(:,end-floor(release*rate)+1:end) = data(:,end-floor(release*rate)+1:end) .* ( ones(numel(channels), 1) * linspace(1, 0, floor(release*rate)) );
-        data = data .* ones(numel(channels), 1) .* exp(-(0:nSamples-1)./rate./decay);
+        %stupid matlab #N+183: linspace(X, Y, N) retrns an array of length
+        %N, except linspace(X, Y, 0) returns an array of length 1.
+        attramp = linspace(0, 1, floor(attack*rate));
+        data(:,1:floor(attack*rate)) = data(:,1:floor(attack*rate)) .* ( ones(numel(channels), 1) * attramp(1:floor(attack*rate)) );
+        relramp = linspace(1, 0, floor(release*rate));
+        data(:,end-floor(release*rate)+1:end) = data(:,end-floor(release*rate)+1:end) .* ( ones(numel(channels), 1) * relramp(1:floor(release*rate)) );
+        data = data .* (ones(numel(channels), 1) * exp(-(0:nSamples-1)./rate./decay));
     end 
 end

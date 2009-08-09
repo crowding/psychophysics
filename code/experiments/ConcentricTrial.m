@@ -139,7 +139,7 @@ function this = ConcentricTrial(varargin)
             for i = audioCueTimes(:)'
                 %set the cues to play at the presice times relative to
                 %simulus onset.
-                audio.play('cue', h.next + i);
+                params.input.audioout.play('cue', h.next + i);
             end
 
             motionStarted_ = h.next;
@@ -210,10 +210,10 @@ function this = ConcentricTrial(varargin)
                     params.input.audio.play('ding');
                     trigger.singleshot(atLeast('next',h.next+0.2), @stop);
                 else
-                    trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
+                    trigger.singleshot(atLeast('next',h.next + maxResponseLatency), @stop);
                 end
             else
-                trigger.singleshot(atLeast('refresh',h.refresh+1), @stop);
+                trigger.singleshot(atLeast('next',(h.next + maxResponseLatency)), @stop);
             end
         end
         
