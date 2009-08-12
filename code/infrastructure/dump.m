@@ -35,34 +35,43 @@ function dump(obj, printer, prefix)
     end
 
     dumpit(prefix, obj, printer);
-
 end
 
 function dumpit(prefix, obj, printer)
+    if isnumeric(obj) || islogical(obj)
+        if ~isreal(obj)
+            error('dump:complex', 'complex not supported as of now.');
+        end
 
-    if isnumeric(obj)
-        if ndims(obj) > 3
-            error('dump:multiDimensional', 'could not dump multidimensional array.');
-        end
-        if isa(obj, 'double')
-            printer('%s = %s;', prefix, smallmat2str(obj));
+        if ndims(obj) >= 3
+            %iterate the slices of the array downward.
+            s = size(obj); s([1 2]) = [];
+            nd = length(s);
+            for i = prod(s):-1:1
+                [sub{1:nd}] = ind2sub(s, i);
+                subscript = cellfun(@int2str, sub, 'UniformOutput', 0);
+                subscript = ['(:,:,' join(',', subscript), ')'];
+                dumpnumslice([prefix subscript], obj(:,:,i));
+            end
+            printer('%s[:,:,%s]');
         else
-            printer('%s = %s;', prefix, smallmat2str(obj, 'class'));
+            dumpnumslice(prefix, obj);
         end
+        
         return;
+    end
+    
+    function dumpnumslice(prefix, slice)
+        if isa(obj, 'double')
+            printer('%s = %s;', prefix, smallmat2str(slice));
+        else
+            printer('%s = %s;', prefix, smallmat2str(slice, 'class'));
+        end
+
     end
 
     if ischar(obj)
         dumpstr(prefix, obj, printer);
-        return;
-    end
-
-    if islogical(obj)
-        if ndims(obj) > 3
-            error('dump:multiDimensional', 'could not dump multidimensional array.');
-        end
-
-        printer('%s = logical(%s);', prefix, smallmat2str(double(obj)));
         return;
     end
 

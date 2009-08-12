@@ -1,4 +1,5 @@
 function ax = cogplot(rings, cogs, radius)
+%function ax = cogplot(rings, cogs, radius)
 
 [gring, gcog] = ndgrid(rings, cogs);
 [ringix, cogix] = ndgrid(1:numel(rings), 1:numel(cogs));

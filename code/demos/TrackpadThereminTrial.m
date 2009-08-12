@@ -77,7 +77,7 @@ function this = TrackpadThereminTrial(varargin)
         end
         
         function bong(k)
-            params.input.audioout.play('ding', k.next + params.screenInterval);
+            params.input.audioout.play('ding');
         end
     end
 

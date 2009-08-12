@@ -1,4 +1,5 @@
 function initializer = openFile(varargin)
+    %Produces an initializer; takes the same arguments as fopen().
     initializer = @init;
     
     function [release, params] = init(params)

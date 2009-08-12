@@ -26,9 +26,12 @@ function this = Ding(varargin)
 %           drawnow;
         end
         data(:, to(end)+1:end) = 0;
-        
-        data(:,1:floor(attack*rate)) = data(:,1:floor(attack*rate)) .* ( ones(numel(channels), 1) * linspace(0, 1, floor(attack*rate)) );
-        data(:,end-floor(release*rate)+1:end) = data(:,end-floor(release*rate)+1:end) .* ( ones(numel(channels), 1) * linspace(1, 0, floor(release*rate)) );
+        if floor(attack * rate) > 0
+            data(:,1:floor(attack*rate)) = data(:,1:floor(attack*rate)) .* ( ones(numel(channels), 1) * linspace(0, 1, floor(attack*rate)) );
+        end
+        if floor(release * rate) > 0
+            data(:,end-floor(release*rate)+1:end) = data(:,end-floor(release*rate)+1:end) .* ( ones(numel(channels), 1) * linspace(1, 0, floor(release*rate)) );
+        end
         data = data .* (ones(numel(channels), 1) * exp(-(0:nSamples-1)./rate./decay));
     end 
 end

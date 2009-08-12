@@ -17,7 +17,9 @@ function this = AudioOutput(varargin)
     %output before going to the speaker, or even as an easy way to compute
     %your own live streaming audio. The arguments of a filter function are:
     
-    %Why not use the "schedule" features of psychport audio?
+    %Why not use the "schedule" features of psychport audio? Because they
+    %don't schedule -- they just make a sequence, and you have to manually
+    %monitor whether starting or stopping, on top of that sequence.
     freq = 44100;
     channels = [0 1]; %which channels to use for output, in which order.
     latbias = 30/44100; %set a default for this?
@@ -26,7 +28,11 @@ function this = AudioOutput(varargin)
     buffersize = [];
     bufferSecs = 5; %this actually probably doesn't matter for online audio computation, as long as it's large enough to get you to the next frame.
     framesAhead = 1; %normally we compute through the next refresh. Up this if you want audio to be mroe robust to frame skips.
-    samples = struct(); %A structure of audio samples to use. Use a structure, so that you can invoke samples by name.
+    samples = struct... %A structure of audio samples to use. Use a structure, so that you can invoke samples by name. I provide some useful defaults here.
+        ( 'ding', Ding('freq', 880, 'decay', 0.1, 'damping', 0.04) ...
+        , 'click', Chirp('beginfreq', 1000, 'endfreq', 1e-6, 'length', 0.05, 'decay', 0.01, 'release', 0.005, 'sweep', 'exponential') ...
+        , 'buzz', Ding('attack', 0, 'freq', 72, 'length', 0.2, 'decay', Inf, 'damping', 0.1, 'release', 0.05) ...
+        ); 
     filter = []; %the filter function (optional).
     record = 0; %whether to record the generated output for posterity.
     
@@ -200,6 +206,7 @@ function this = AudioOutput(varargin)
     starting_ = [];
     
     lastsampleix_ = -1;
+    nextStreamTime_ = NaN;
     underflowed_ = 0;
     startTime_ = [];
     function [release, params] = begin(params)
@@ -211,6 +218,7 @@ function this = AudioOutput(varargin)
         PsychPortAudio('SetLoop', pahandle_); %a circular buffer; loop everything
         startTime_ = PsychPortAudio('Start', pahandle_, 0);
         lastsampleix_ = -1;
+        lastStreamTime_ = NaN;
         underflowed_ = 0;
         
         running_ = cell(0,3);
@@ -248,7 +256,6 @@ function this = AudioOutput(varargin)
         status = PsychPortAudio('GetStatus', pahandle_);
         if ~confirmed_
             if status.Active
-                startTime_ = status.StartTime;
                 sampleRate_ = status.SampleRate;
                 hardwareBufferSize_ = status.BufferSize;
                 confirmed_ = 1;
@@ -299,6 +306,7 @@ function this = AudioOutput(varargin)
         end
 
         lastsampleix_ = lastsampleix_ + nDataSamples;
+        nextStreamTime_ = onset + nSamples/sampleRate_;
     end
 
     function out = gatherSamples_(firstSample, nSamples, sampleRate, onset, channels)
@@ -315,14 +323,14 @@ function this = AudioOutput(varargin)
             sampleData = sampleData_.(running_{s,1});
             out(:, 1:ns) = out(:, 1:ns) + sampleData(:,i:i+ns-1); %extracting into the right place.
             
-            if ns <= nSamples
+            if ns >= running_{s,2} - i + 1
                 %done with that sample, remove it from running.
                 running_(s,:) = [];
             end
         end
         
         %Find samples that are starting now, and add them as well.
-        ix = find([starting_{:,1}] <= onset + (nSamples-1)/sampleRate);
+        ix = find([starting_{:,1}] <= onset + (nSamples-1)/sampleRate | isnan([starting_{:,1}]));
         for i = ix(:)'            
             sampleOnset = starting_{i,1};
             sampleContents = sampleData_.(starting_{i,2});
@@ -366,10 +374,25 @@ function this = AudioOutput(varargin)
         out = zeros(numel(channels), howmany); 
     end
 
-    function play(sampleName, time)
+    function [startTime, endTime] = play(sampleName, time)
         %function play(sampleName, time)
-        %begins the named sample playing at the specified time.
+        %'time' is the scheduled onset time of the sample. Note audio is
+        %computed slightlt in advance of graphics (typically.) If you
+        %do not schedule your sounds well in advance, specify time=NaN or
+        %leave off; it will play "as soon as possible" and the ESTIMATED
+        %start time will be returned.
+        if nargin < 2
+            time = NaN;
+        end
+
         starting_(end+1, :) = {time, sampleName};
+        if isnan(time) %when might we begin the sample?
+            startTime = nextStreamTime_;
+        else
+            startTime = time;
+        end
+        
+        endTime = startTime + size(sampleData_.(sampleName), 3);
     end
 
     persistent init__; %#ok

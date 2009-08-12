@@ -34,6 +34,7 @@ defaults_ = struct...
     , 'slowdown', 1 ...
     , 'aviout', ''...
     , 'avirect', [] ...
+    , 'initInput', 0 ...
     );
 
 %graphics is a non-generic output method so the list of graphics objects remains.
@@ -48,7 +49,6 @@ mouse = {};
 
 %new hotness, input using a variable list of methods.
 input = {};
-
 
 %support the old mainLoop(graphics, triggers) calling convention
 varargin = assignments(varargin, 'graphics', 'triggers');
@@ -366,8 +366,19 @@ toDegrees_ = @noop;
     end
 
     function init = startInput()
-        input = interface(struct('input', {}, 'begin', {}, 'sync', {}), input);
-        init = joinResource(struct('notlogged', {{}}), input.begin);
+        input = interface(struct('input', {}, 'begin', {}, 'sync', {}, 'init', {}), input);
+        
+        init = joinResource(struct('notlogged', {{}}), @checkInit, input.begin);
+        
+        function [release, params, next] = checkInit(params)
+            %used for demos, when not running in the context of an Experiment.        
+            if params.initInput
+                next = joinResource(input.init);
+            else
+                next = @noinit;
+            end
+            release = @noop;
+        end
     end
         
     function drawTriggers(window, toPixels)

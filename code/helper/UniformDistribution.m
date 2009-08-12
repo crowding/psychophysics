@@ -4,20 +4,28 @@ function this = UniformDistribution(varargin)
 
     lower = 0;
     upper = 1;
+    
+    oldSeed_ = rand('twister');
     rand('twister', sum(100*clock));
     seed = rand('twister');
-    %NOTE! seed is useless for recalling state if the
-    %save happens after the event. Dump out structures for trials before
+    rand('twister', oldSeed_);
+    %NOTE! seed is useless for recalling what happened in a trial if the
+    %save happens _after_ the event. Therefore we dump out structures for
+    %trials _before_
     %running them. 
     
     persistent init__;
     this = autoobject(varargin{:});
     
-    function r = e(x)
+    function r = e(varargin)
         l = ev(lower);
         u = ev(upper);
         rand('twister', seed);
-        r = l + rand(size(l)) .* (u - l);
+        if nargin < 1
+            r = l + rand(size(l)) .* (u - l);
+        else
+             r = l + rand(varargin{:}) .* (u - l);
+        end
         seed = rand('twister');
     end
 end

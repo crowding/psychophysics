@@ -1,4 +1,5 @@
 function checker = circularWindowEnter(fieldname1, fieldname2, timefield, loc, radius)
+%function checker = circularWindowEnter(fieldname1, fieldname2, timefield, loc, radius)
     checker = @c;
     
     function [t, s] = c(s)

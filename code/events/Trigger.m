@@ -115,13 +115,7 @@ function this = Trigger(varargin)
             [tr, k] = check(k);
             if any(tr)
                 i = find(tr, 1, 'first');
-                try
-                    t = k.(timeindex)(i);
-                catch
-                    Screen('Flip', 10);
-                    Screen('Flip', 10);
-                    noop();
-                end
+                t = k.(timeindex)(i);
                 if t < tt
                     tt = t;
                     ttr = tr;

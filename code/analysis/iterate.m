@@ -1,16 +1,32 @@
 function varargout = iterate(dims, fn, varargin)
 %function varargout = iterate([dims], fn, varargin)
 %
-%Similar to python iterate... but with a provision for multidimensional
-%iteration. On each loop the first argument passed to fn is an index
-%vector, and subsequent arguments are slices of each input.
+%A looping function, like cellfun and arrayfun, but (a) also provides the loop
+%body function with an array index and (b) can loop over slices of the
+%input arrays, rather than 
+%Inspired by python iterate() but with
+%a provision for multidimensional iteration. On each loop the first
+%argument passed to fn is an index 
+%vector, and second and following arguments are the slices of each input
+%according to that vector.
 %
-%Wackiness: if the dims argument is given as a cell, then  
+%Each input must have the same size in the dimensions specified. That is,
+%you can say iterate([2], fn, ones(3, 4), zeros(5, 4)), because the
+%iteration is over dimension 2 and both arrays have size 4 in dimension 2.
 %
-%for instance:
-%iterate(@(x,y)disp({x y}), 1:10) 
-
-% iterate(@(x,y)disp({x y}), reshape(10:10:90,3,3))
+%If no list of dims is given, a linear index is used, like Python
+%iterate().
+%
+%Wackiness: if the dims argument is given as a cell rather than simple
+%array, then cell arrays are "stripped" if you index into singletons before
+%passing to your loop function. (i.e. like cellfun rather than like
+%arrayfun.) Since this will "strip" the first argument in the case of
+%iterate({2}, fn, cell(1,4), cell(2,4)),
+%but not in iterate({2}, fn, cell(2,4), cell(2,4)) this makes   
+%it a little more dangerous, hence is NOT the default
+%
+%Example:
+% >> iterate(@(x,y)disp({x y}), reshape(10:10:90,3,3))
 %     [1]    [10]
 %     [2]    [20]
 %     [3]    [30]
@@ -20,6 +36,12 @@ function varargout = iterate(dims, fn, varargin)
 %     [7]    [70]
 %     [8]    [80]
 %     [9]    [90]
+%
+% >> iterate([1], @(x,y)disp({x, y}), reshape(10:10:90,3,3))
+%     [1]    [3x1 double]
+%     [2]    [3x1 double]
+%     [3]    [3x1 double]
+
 
     if isa(dims, 'function_handle')
         %one dimensional iteration. fill in the dims and use a linear
@@ -66,8 +88,6 @@ function varargout = iterate(dims, fn, varargin)
             out = cellfun(@(each)each{:}, out, 'UniformOutput', 0);
         end
     end
-    
-
 
     %what makes ITERATE ITERATE is the index argument. Note it is a
     %collapsed index that includes only the slices taken from each dim. And
@@ -82,12 +102,19 @@ function varargout = iterate(dims, fn, varargin)
     [varargout{1:nargout}] = cellfun(fn, indices, varargin{:});
 end
 
-function out = n2c(in, dims, stripcell)
-    %yay matlab. there is no reason why num2cell(x) ought to behave
-    %differently from num2cell(x, []). The second argument is a
-    %list of dimensions to be taken together, and the default behavior in
-    %absence of the second argument is not to take any dimensions together.
-    %Yet giving the empty list as second argument crashes. WTF.
+function out = n2c(in, dims)
+    %There is no reason why num2cell(x) ought to behave
+    %differently from num2cell(x, []). The second argument to num2cell is a
+    %list of dimensions to be concatenated together; the default behavior
+    %of num2cell in absence of the second argument is not to concatenate
+    %any dimensions together. Therefore you would think that num2cell(x) is
+    %the same as num2cell(x, []), no?
+    %
+    %Instead, num2cell(x, []) produces an error. That means if you have a
+    %function like the above iterate() that dynamically decides, based on
+    %its input, which dimensions to concatenate together, than you must
+    %have a special check for whether the answer is "concatenate no
+    %dimensions together.
     if isempty(dims)
         %in a logical world this would not be necessary
         out = num2cell(in);
@@ -97,9 +124,9 @@ function out = n2c(in, dims, stripcell)
 end
 
 function varargout = ndg(varargin)
-    %doubleyou tee f. You'd think that ndgrid, being named with ND like it
-    %would work with problems of any dimensionality, would work in cases
-    %with one or zero dimensions. matlab strikes again.
+    %Doubleyou Tee F. You'd think that ndgrid, being named with ND like it
+    %is, would work with problems of any dimensionality, that is to say in
+    %cases with one or zero dimensions. MATLAB strikes again.
     switch nargin
         case 0
             varargout = {};
