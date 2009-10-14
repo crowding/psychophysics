@@ -318,7 +318,7 @@ function this = AudioOutput(varargin)
         %add up all the sounds that are running.
         for s = size(running_, 1):-1:1;
             %how many samples for this...
-            i = firstSample - running_{s,3} - 1; %index within sample of beginning of chunk
+            i = firstSample - running_{s,3} + 1; %index within sample of beginning of chunk
             ns = min(nSamples, running_{s,2} - i + 1); %number of points to extract from sample
             sampleData = sampleData_.(running_{s,1});
             out(:, 1:ns) = out(:, 1:ns) + sampleData(:,i:i+ns-1); %extracting into the right place.

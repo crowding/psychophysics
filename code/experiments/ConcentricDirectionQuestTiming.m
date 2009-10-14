@@ -19,7 +19,8 @@ function e = ConcentricDirectionMixQuest(varargin)
         ( 'extra', struct...
             ( 'r', 10 ...
             , 'responseWindowLatency', 0.5 ...
-            , 'audioCueLatency', [-0.7 -0.3 0.1] ...
+            , 'responseWindowTolerance', 0.15 ...
+            , 'audioCueLatency', [-1 -0.5 0.0] ...
             , 'globalVScalar', 0.5 ...
             , 'tf', 10 ...
             , 'wavelengthScalar', .05 ...
@@ -64,7 +65,8 @@ function e = ConcentricDirectionMixQuest(varargin)
     %In this section, we build up the array of parameters we will quest with.
     vars = {};
     
-    vars(end+1,:) = {{'extra.r'}, {80/27 10 20/3 40/9}};
+    %%vars(end+1,:) = {{'extra.r'}, {80/27 10 20/3 40/9}};
+    vars(end+1,:) = {{'extra.r'}, {20/3 40/9}};
     %%vars(end+1,:) = {{'extra.r'}, {80/27}};
     
     %these are multiplied by radius to get global velocity, centereed
@@ -80,7 +82,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {.05 .075 .1125}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1125}};
     
     %dt changes independently of it all, but it is linked to the stimulus
     %duration.
@@ -88,7 +90,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     vars(end+1,:) = {{'extra.dt', 'motion.process.n'}, {{0.10 4}}};
     
     %Finally, vary the cue time
-    vars(end+1, :) = {{'extra.responseWindowLatency'}, {0.3 0.4 0.5 0.6 0.7}};
+    vars(end+1, :) = {{'extra.responseWindowLatency'}, {0.3 0.5 0.7 0.9}};
     
     %expand all the values to be used here.
     parameters = cat(2, vars{:,1});
@@ -111,7 +113,7 @@ function e = ConcentricDirectionMixQuest(varargin)
     e.trials.add(parameters, product);
 %%
     %variable onset
-    e.trials.add('motion.process.t', ExponentialDistribution('offset', 0.5, 'max', 1.5, 'tau', 1));        
+    e.trials.add('motion.process.t', ExponentialDistribution('offset', 0.7, 'max', 1.5, 'tau', 1));        
 
     %randomize global and local direction....
     e.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
@@ -120,8 +122,9 @@ function e = ConcentricDirectionMixQuest(varargin)
     e.trials.add('extra.globalDirection', [1 -1]);
     e.trials.add('extra.localDirection', [1 0 -1]);
     
-    e.trials.add('awaitInput', @(b)b.motion.process.t(1) + b.extra.responseWindowLatency);
-    e.trials.add('audioCueTimes', @(b)b.awaitInput + b.extra.audioCueLatency);
+    e.trials.add('awaitInput', @(b)b.motion.process.t(1) + b.extra.responseWindowLatency - b.extra.responseWindowTolerance);
+    e.trials.add('audioCueTimes', @(b)b.motion.process.t(1) + b.extra.responseWindowLatency + b.extra.audioCueLatency);
+    e.trials.add('maxResponseLatency', @(b)b.extra.responseWindowTolerance*2);
     
     %we only adjust the QUEST for opposing local and global motion We are
     %trying to find the intensity (nTargets) at whcih the stimulus becomes
@@ -176,24 +179,21 @@ function e = ConcentricDirectionMixQuest(varargin)
             mot.setColor(extra.color / sqrt(2));
         end
     end
-
-    %await the input after the stimulus has finished playing.
-    e.trials.add('audioCueTimes', @(b) b.awaitInput + [-0.7 -0.3 0.1]);
     
     %say, run 30 trials for each quest, with an estimated threshold value measured in number of
     %targets, somewhere between 5 and 20. This arrives at a threshold
     %estimate very quickly.
     %note that of the global and local combinations, 2 will inform the
     %quest. So 15 reps of the factorial means 30 trials in the quest.
-    e.trials.reps = 10; %26 trials per quest...
-    e.trials.blockSize = 200;    
+    e.trials.reps = 15; %26 trials per quest...
+    e.trials.blockSize = 144;    
     e.trials.fullFactorial = 1;
-    e.trials.requireSuccess = 1;
+    e.trials.requireSuccess = 0;
     e.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', e.trials.blocksLeft()));
     e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continue.\n%d blocks remain', e.trials.blocksLeft()));
 
     e.trials.blockTrial = EyeCalibrationMessageTrial...
-        ( 'minCalibrationInterval', 900 ...
+        ( 'minCalibrationInterval', 300 ...
         , 'base.absoluteWindow', Inf ...
         , 'base.minLatency', 0.075 ...
         , 'base.maxLatency', 0.300 ...
