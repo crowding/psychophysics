@@ -1,0 +1,11 @@
+Package: manipulations
+Version: 0.1
+Date: 2009-07-29
+Title: Various Data Manipulations
+Author: Peter Meilstrup <peterm@shadlen.org>
+Maintainer: Peter Meilstrup <peterm@shadlen.org>
+Depends: R (>= 2.9), RUnit
+Description: A collection of data manupulation functions that are useful to the authors.
+License: GPL (>= 2)
+URL: http://www.r-project.org/
+

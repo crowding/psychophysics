@@ -8,6 +8,8 @@ function o = orderlike(template, struct)
 % the order of fields in a struct matters when initializing an object,
 % where it should not matter ANYWHERE!
 
+o = struct();
+
 for i = makerow(fieldnames(template))
     o.(i{1}) = struct.(i{1});
 end
