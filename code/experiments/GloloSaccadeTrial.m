@@ -70,7 +70,7 @@ function this = GloloSaccadeTrial(varargin)
         
         interval = params.cal.interval;
 
-        trigger.panic(keyIsDown('q'), @abort);
+        trigger.panic(keyIsDown({'LeftControl', 'ESCAPE'}), @abort);
         trigger.singleshot(atLeast('next', startTime), @begin);
         
         fixation.setVisible(0);

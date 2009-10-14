@@ -103,6 +103,7 @@ function this = autoobject(varargin)
     end
 
     function varargout = property__(name, value, varargin)
+        doAssignments = 0;
         switch(nargin)
             case 0
                 varargout{1} = prop_names;
@@ -118,43 +119,64 @@ function this = autoobject(varargin)
                         subs = subsrefize_(name);
                         [varargout{1:nargout}] = subsref_(this, subs);
                     end
-                else
+                elseif isstruct(name) && isequal(fieldnames(name), {'type';'subs'})
                     %Try a substruct.
                     [varargout{1:nargout}] = subsref_(this, name);
+                elseif isstruct(name)
+                    %actually we are doing assignments
+                    doAssignments = 1;
+                    varargin = {name};
                 end
             otherwise
-                cont = 1;
-                while cont
-                    if ischar(name)
-                        if any(strcmp(name, prop_names))
-                            this.(setterName(name))(value);
+                varargin = {name, value, varargin{:}};
+                doAssignments = 1;
+        end
+        
+        if doAssignments
+            while numel(varargin) >= 1
+                if ischar(varargin{1})
+                    if numel(varargin) <= 1
+                        error('autoobject:badArgument', 'Must use name/value pairs with property__');
+                    end
+
+                    if any(strcmp(varargin{1}, prop_names))
+                        this.(setterName(varargin{1}))(varargin{2});
+                        varargin([1 2]) = [];
+                    else
+                        
+                        subs = subsrefize_(varargin{1});
+                        if ischar(subs(1).subs) && any(strcmp(subs(1).subs, prop_names))
+                            subsasgn_(this, subs, varargin{2});
+                            varargin([1 2]) = [];
                         else
-                            subs = subsrefize_(name);
-                            if ischar(subs(1).subs) && any(strcmp(subs(1).subs, prop_names))
-                                subsasgn_(this, subs, value);
-                            else
-                                if ischar(subs(1).subs)
-                                    error('autoobject:noSuchProperty', 'No such property %s', subs(1).subs);
+                            if ischar(subs(1).subs)
+                                if (subs(1).subs(end)) == '_'
+                                    %ignore
+                                    varargin([1 2]) = [];
                                 else
-                                    error('autoobject:badSubscript', 'bad property__ argument', subs);
+                                    error('autoobject:noSuchProperty', 'No such property %s', subs(1).subs);
                                 end
+                            else
+                                error('autoobject:badSubscript', 'bad property__ argument', subs);
                             end
                         end
-                    else
-                        subsasgn_(this, name, value);
                     end
-                    
-                    switch(numel(varargin))
-                        case 0
-                            cont = 0;
-                        case 1
-                            error('object:badSetting', 'Must use even number of arguments to property__');
-                        otherwise
-                            name = varargin{1};
-                            value = varargin{2};
-                            varargin([1 2]) = [];
+                elseif isstruct(varargin{1}) && isequal(fieldnames(varargin{1}), {'type';'subs'})
+                    if numel(varargin) <= 1
+                        error('autoobject:badArgument', 'Must use name/value pairs with property__');
                     end
+                    %assigning via a substruct...
+                    subsasgn_(this, varargin{1}, varargin{2});
+                    varargin([1 2]) = [];
+                elseif isstruct(varargin{1})
+                    %special case for synthesizing an object from struct
+                    %fields...
+                    sargs = cat(1, fieldnames(varargin{1})', struct2cell(varargin{1})');
+                    varargin = {sargs{:}, varargin{2:end}};
+                else
+                    error('autoobject:badArgument','bad arguments to property__');
                 end
+            end
         end
     end
 

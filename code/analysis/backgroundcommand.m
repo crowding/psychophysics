@@ -134,9 +134,9 @@ findnetcat_();
     con_ = [];
     function [release, params] = connect_(params)
         pnet(params.insockd, 'setreadtimeout', timeout);
-        con_ = pnet(params.insockd, 'tcplisten', 'noblock');
+        con_ = pnet(params.insockd, 'tcplisten');
         if con_ == -1
-            error('backgroundcommand:noConnection', 'could not establish connection');
+status            error('backgroundcommand:noConnection', 'could not establish connection');
         end
         release = @r;
         function r()

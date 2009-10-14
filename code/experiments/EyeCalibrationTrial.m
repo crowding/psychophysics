@@ -44,7 +44,7 @@ function this = EyeCalibrationTrial(varargin)
             );
         
         trigger.singleshot(atLeast('next', startTime), @begin);
-        trigger.panic(keyIsDown('q'), @abort);
+        trigger.panic(keyIsDown({'LeftControl', 'ESCAPE'}), @abort);
 
         params = main.go(params);
         

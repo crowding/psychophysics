@@ -147,6 +147,8 @@ function this = ConcentricDemo(varargin)
         status_string = '';
         status_fns = {};
         
+        trigger.singleshot(keyIsDown({'LeftControl', 'ESCAPE'}, {'RightGUI', 'ESCAPE'}, 'End'), main.stop);
+        
         keyboard.set(@(h)more(this, 'n', h), '=+');
         keyboard.set(@(h)less(this, 'n', h), '-_');
         status_string = [status_string '-/= n = %d\n'];
@@ -219,7 +221,7 @@ function this = ConcentricDemo(varargin)
         keyboard.set(@(h)this.property__(presets{2}{:}), '2@');
         keyboard.set(@displaytoggle, 'space');
         keyboard.set(@pause, '`~');
-        keyboard.set(main.stop, 'ESCAPE');
+%        keyboard.set(main.stop, 'ESCAPE');
         
         release_trigger = [];
         

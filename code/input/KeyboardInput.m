@@ -80,7 +80,7 @@ function this = KeyboardInput(varargin)
             %as listed above:
             last = r(end).report;
 
-            keycodes = sort([modifierCodes_(logical(dec2bin(last(1)) - '0')) last(find(last(2:6))+1)]);
+            keycodes = sort([modifierCodes_(logical(dec2bin(last(1),8) - '0')) last(find(last(2:6))+1)]);
 
             lastState_ = keycodes;
             %Bytes 2-6 get all the keys that are pressed (if more than 5

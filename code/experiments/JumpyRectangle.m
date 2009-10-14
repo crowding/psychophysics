@@ -17,7 +17,7 @@ params = namedargs(localExperimentParams(), defaults, varargin{:});
 %setupEyelinkExperiment does everything up to preparing the trial;
 %mainLoop.go does everything after.
 
-inputs = interface(struct('init', {}), struct2cell(params.input));
+inputs = interface(struct('init', {}), {params.input.mouse, params.input.eyes, params.input.keyboard, EyeVelocityFilter()});
 
 require(getScreen(params), inputs.init, @runDemo);
     function runDemo(details)
@@ -36,7 +36,6 @@ require(getScreen(params), inputs.init, @runDemo);
         followTrigger = UpdateTrigger(@followDisk);
         startTrigger = UpdateTrigger(@start);
         playTrigger = TimeTrigger();
-        stopTrigger = TimeTrigger();
         abortTrigger = KeyDown();
         flashTrigger = MouseDown();
         unflashTrigger = MouseUp();
@@ -60,7 +59,7 @@ require(getScreen(params), inputs.init, @runDemo);
         main = mainLoop ...
             ( 'input', {params.input.eyes, params.input.mouse, params.input.keyboard, params.input.velocity}...
             , 'graphics', {disk1, disk2, disk3, disk4, text, patch} ...
-            , 'triggers', {startTrigger, playTrigger, stopTrigger, followTrigger, abortTrigger, flashTrigger, unflashTrigger} ...
+            , 'triggers', {startTrigger, playTrigger, followTrigger, abortTrigger, flashTrigger, unflashTrigger} ...
             );
             
         abortTrigger.set(main.stop, 'q');
@@ -73,7 +72,6 @@ require(getScreen(params), inputs.init, @runDemo);
 
         function start(s)
             playTrigger.set(s.next + 5, @play);
-            stopTrigger.set(s.next + 1000, main.stop);
             startTrigger.unset();
             flashTrigger.set(@flash, 1);
             unflashTrigger.set(@unflash, 1);

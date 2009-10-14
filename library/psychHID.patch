@@ -1,0 +1,34 @@
+Index: PsychSourceGL/Source/Common/PsychHID/PsychHIDReceiveReports.c
+===================================================================
+--- PsychSourceGL/Source/Common/PsychHID/PsychHIDReceiveReports.c	(revision 1268)
++++ PsychSourceGL/Source/Common/PsychHID/PsychHIDReceiveReports.c	(working copy)
+@@ -173,7 +173,7 @@
+                     ready[i]=0;
+                 }
+ 	}
+-	
++	/*
+ 	n=0;
+ 	for(i=0;i<MAXDEVICEINDEXS;i++){
+ 		if(i==0)r=freeReportsPtr;
+@@ -191,6 +191,7 @@
+ 		for(i=1;i<MAXDEVICEINDEXS;i++)if(listLength[i]>0)printf(", %2d:%3d",i,listLength[i]);
+ 		printf("\n");
+ 	}
++	*/
+ }
+ 
+ void ReportCallback(void *target,IOReturn result,void *refcon,void *sender,UInt32 bufferSize)
+Index: PsychSourceGL/Projects/MacOSX/PsychToolbox/PsychToolbox.xcodeproj/project.pbxproj
+===================================================================
+--- PsychSourceGL/Projects/MacOSX/PsychToolbox/PsychToolbox.xcodeproj/project.pbxproj	(revision 1268)
++++ PsychSourceGL/Projects/MacOSX/PsychToolbox/PsychToolbox.xcodeproj/project.pbxproj	(working copy)
+@@ -3530,7 +3530,7 @@
+ 		2FD6151107306666008DA6B4 /* Info-GetBusTicks.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-GetBusTicks.plist"; sourceTree = "<group>"; };
+ 		2FD6151307306666008DA6B4 /* GetBusTicks.mexmac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GetBusTicks.mexmac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+ 		2FD6154B07306666008DA6B4 /* Info-GetChar.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-GetChar.plist"; sourceTree = "<group>"; };
+-		2FD6154D07306666008DA6B4 /* CocoaEventBridge.mexmac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CocoaEventBridge.mexmac.app; sourceTree = BUILT_PRODUCTS_DIR; };
++		2FD6154D07306666008DA6B4 /* CocoaEventBridge.mexmac.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CocoaEventBridge.mexmac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+ 		2FD6158307306666008DA6B4 /* Info-GetPID.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-GetPID.plist"; sourceTree = "<group>"; };
+ 		2FD6158507306666008DA6B4 /* GetPID.mexmac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GetPID.mexmac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+ 		2FD615BB07306666008DA6B4 /* Info-GetSecs.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-GetSecs.plist"; sourceTree = "<group>"; };

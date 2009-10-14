@@ -14,6 +14,7 @@ condition = @(x)true;
 initializer = @noinit; %this is an extra initializer to run after you've set up the server but before you've run the command...
 pollinterval = 0.1;
 readtimeout = 5;
+writetimeout = 5;
 
 persistent init__;
 this = autoobject(varargin{:});
@@ -60,6 +61,7 @@ this = autoobject(varargin{:});
     function params = serve_(params)
         if params.con ~= -1
             pnet(params.con, 'setreadtimeout', readtimeout);
+            pnet(params.con, 'setwritetimeout', writetimeout);
             %service the handler
             %The protocol is to give a set of matlab commands, and
             %then two newlines finishes a command. I evaluate and

@@ -55,6 +55,12 @@ calibration.ADCUnipolarHighRes.offset = -2.3283064365387e-10;
 calibration.ADCBipolarHighRes.slope = -2.3283064365387e-10;
 calibration.ADCBipolarHighRes.offset = -2.3283064365387e-10;
 
+persistent specialChannels_;
+specialChannels_ = [];
+
+persistent specialCalibrations_;
+specialCalibrations_ = struct('slope', {}, 'offset', {});
+
 a_ = []; %TCP connection port handle
 b_ = [];
 
@@ -877,11 +883,6 @@ persistent CONTROLCONFIG_COMMAND_;
 
     %findSlopeOffset looks in this lookup table for the 'special'
     %calibration values.
-    persistent specialChannels_;
-    specialChannels_ = [];
-    
-    persistent specialCalibrations_;
-    specialCalibrations_ = struct('slope', {}, 'offset', {});
     function updateSpecialCalibrations_()
         sc = [132 133 140 141 193 194 200 201 202 203 204 205 210 224];
         

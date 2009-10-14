@@ -12,7 +12,7 @@ function out__ = loaddata(filename__, runConstructors__)
     %double underscores on local variables.
     %
     %check for a compressed file...
-    
+    context_ = '';
     [s__, type__] = system(sprintf('file -ib "%s"', filename__));
     if strfind(type__, 'gzip')
         %it's a compressed file, pipe it through gzip

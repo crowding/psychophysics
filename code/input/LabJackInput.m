@@ -33,11 +33,12 @@ if isempty(slope)
     offset = [0;0]; % the eye position offset
 end
 
+persistent fluidToday;
+
 persistent init__; %#ok
 this = autoobject(varargin{:});
 
 %keep track of how much fluid was given this session
-persistent fluidToday;
 fluidInSession = 0;
 fluidSchedule = [0 0;1000 0.6]; %/ms reward....
 %measured 10/18/08 on charlie's chair/modified lixit:
