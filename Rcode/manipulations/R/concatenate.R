@@ -55,39 +55,60 @@ concatenate <- function
                      SIMPLIFY=FALSE)
 
   #useful to have a 2d array of the dimnames.
-  dimarray <- do.call(rbind,lapply(dim, arg.list));
+  dimarray <- do.call(rbind,lapply(arg.list, dim));
   #how to get a 2d array of the dimnames?
-  
-  if (match.names) {
-    #we need to permute the contents of the array into its ultimate
-    #order. There is a permutation for each dimension of each
-    #argument.
-    permutations = array(list(), c(length(arg.list), N));
+  dimnames.out <- vector("list", N);
 
+  if (match.names) {
     #determine the unique set of dimnames for each dimension; listed
     #in order of appearance.
-    for (i in (1:N)[-along]) {
-      dimnames.out[[i]] <- unique(do.call(c, dno[,i]))
+    dno[is.na(dno)] <- list(character())
+    dimnames.out[-along] <- lapply(apply(dno[,-along,drop=FALSE], MARGIN=1, unlist), unique)
+    dimnames.out[along] <- list(NULL)
+    
+    ##Maximum number of unnamed elements in each dimension?
+    nUnnamed <- array(
+      mapply(function(dn, d) d - sum(dn != ""), dno, dimarray),
+      dim(dno))
+    maxUnnamed <- apply(nUnnamed, MARGIN=1, max)
+
+    for (i in(1:N)[-along]) {
+      length(dimnames.out[[i]]) <- length(dimnames.out[[i]]) + maxUnnamed[i]
+      dimnames.out[[i]][is.na(dimnames.out[[i]])] <- list("")
     }
     
-    #determine how many unnamed indices there are for each dimension in each argument...
-    unused = 
-
-                                        #apply the known dimnames to our input
-
-                                        #build the output array.
-
-                                        #now determine the size of the output array.
+    ##Determine the permutation that brings each array into
+    ##matched-names order, with the unnamed slices pushed after all
+    ##the named slices.
+    permutation <- array(list(NA), c(length(arg.list), N))
+    for(argn in 1:length(arg.list)) for (dimn in 1:N) {
+      if (dimn == along) {
+        permutation[[argn, dimn]] <- (1:dimarray[[argn, dimn]])
+        next
+      }
+      if (is.na(dno[argn, dimn])) {
+        iUnnnamed <- 1:dimarray[[argn, dimn]]
+        iNamed <- numeric(0)
+        names <- character(0)
+      } else {
+        iNamed <- which(dno[[argn, dimn]] != "")
+        iUnnamed <- which(dno[[argn, dimn]] == "")
+        names <- dno[[argn, dimn]][iNamed]
+      }
+      perm <- array(NA, length(dimnames.out[[dimn]]) + maxUnnamed[[dimn]], dimnames=dimnames.out[dimn])
+      perm[names] <- iNamed
+      perm[seq(dimarray[[argn, dimn]]+1, len=length(iUnnamed))] <- iUnnamed
+      permutation[[argn, dimn]] <- perm
+    }
     
-    sz <- lapply(length, dimnames.out)
-    arg.list <- lappaly(simplify=FALSE, function(l) {
-      #reorder each argument in the non-bound dimensions
-      sout <- sapply(length, dimnames.out)
-    })
-    
+    ##permute the arrays
+    browser()
+    for (i in 1:length(arg.list)) {
+      arg.list[[i]] = do.call("[", c(arg.list[i], permutation[i,]))
+    }
   } else {
-    dimnames.out <- vector("list", N);
-    #the dimnames that wins is the first non-NA in every row.
+    ##if not attempting to match names, take the first names that win (in each row)
+    ##the dimnames that wins is the first non-NA in every row.
     for (i in length(arg.list):1) {
       dimnames.out[!is.na(dno[,i])] <- dno[!is.na(dno[,i]),i]
     }
@@ -114,8 +135,6 @@ concatenate <- function
   if (any(sapply(arg.list, function(x) any(dim(x)[-along] != dimout[-along])))) {
     stop("arguments should have consistent dimensions")
   }
-
-
     
   #bring bound dimension to END
   permutation <-  c((1:N)[-along], along)
