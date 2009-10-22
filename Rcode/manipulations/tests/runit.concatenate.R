@@ -101,7 +101,7 @@ test.concatenate.match.names <- function() {
   checkEquals(concatenate(a, b, along=2, match.names=TRUE),
               array(c(1, 2, 3, 4, 2, 1, 4, 3),
                     c(2, 4),
-                    list(c("foo", "bar"), NULL)))
+                    list(c("foo", "bar"), c("","","",""))))
 }
 
 test.concatenate.match.names.fill <- function() {
@@ -112,8 +112,8 @@ test.concatenate.match.names.fill <- function() {
 
   checkEquals(concatenate(a, b, along=1, match.names=TRUE, fill=TRUE),
               array(c(1, 2, 30, 40, 3, 4, NA, NA, NA, NA, 10, 20),
-                    c(4, 2),
-                    list(NULL, c("foo", "bar", "baz"))));
+                    c(4, 3),
+                    list(c("","","",""), c("foo", "bar", "baz"))))
 }
 
 test.concatenate.fill <- function() {

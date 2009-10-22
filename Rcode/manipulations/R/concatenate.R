@@ -11,14 +11,16 @@ concatenate <- function
  along=N, ###the dimension along which arrays are to be
           ###bound. Defaults to the greatest number of dimensions
           ###among the arguments.
- fill=FALSE, ###if set to TRUE, binding unequally
-             ###sized or mismatched arrays is permitted. NA will be
-             ###used to fill out the parts of the array not covered.
- match.names=FALSE ###Attempt to arrange the data in
-                   ###a way that matches dimnames between arguments
-                   ###(ala smartbind.) When this is enabled, no slice
-                   ###without a name will be bound to a slice with a
-                   ###name.
+ match.names=FALSE, ###Attempt to arrange the data in a way that
+                    ###matches dimnames between arguments (ala
+                    ###smartbind.) When this is enabled, no slice
+                    ###without a name will be bound to a slice with a
+                    ###name. NB: this probably fails in new and
+                    ###interesting ways if confronted with arrays that
+                    ###have non=unique names.
+ fill=match.names ###if set to TRUE, binding unequally sized or
+                  ###mismatched arrays is permitted. NA will be used
+                  ###to fill out the parts of the array not covered.
  ) {
 
   arg.list = list(...)
@@ -41,6 +43,8 @@ concatenate <- function
       dno[1:length(dn), i] <- dn;
     }
   }
+
+  no.names.provided <- is.na(dno)
  
   #any unstated dimensions are assumed to be 1; one-pad the dimensions
   #here is the bug?
@@ -60,17 +64,22 @@ concatenate <- function
   dimnames.out <- vector("list", N);
 
   if (match.names) {
-    #determine the unique set of dimnames for each dimension; listed
-    #in order of appearance.
-    dno[is.na(dno)] <- list(character())
-    dimnames.out[-along] <- lapply(apply(dno[,-along,drop=FALSE], MARGIN=1, unlist), unique)
-    dimnames.out[along] <- list(NULL)
-    
+    ##determine the unique set of dimnames for each dimension; listed
+    ##in order of appearance.
+    dno[no.names.provided] <- list(character())
+
+    ## i tried to do this with apply but ran into a trouble-with-small-numbers problem...
+    # lapply(apply(dno[-along,,drop=FALSE], MARGIN=1, unlist), unique)
+    for (i in (1:N)[-along]) {
+      dimnames.out[[i]] <- unique(do.call(c, dno[i,]))
+      dimnames.out[[i]] <- dimnames.out[[i]][dimnames.out[[i]] != ""]
+    }
+
     ##Maximum number of unnamed elements in each dimension?
     nUnnamed <- array(
-      mapply(function(dn, d) d - sum(dn != ""), dno, dimarray),
+      mapply(function(dn, d) d - sum(dn != ""), t(dno), dimarray),
       dim(dno))
-    maxUnnamed <- apply(nUnnamed, MARGIN=1, max)
+    maxUnnamed <- apply(nUnnamed, MARGIN=2, max)
 
     for (i in(1:N)[-along]) {
       length(dimnames.out[[i]]) <- length(dimnames.out[[i]]) + maxUnnamed[i]
@@ -81,28 +90,32 @@ concatenate <- function
     ##matched-names order, with the unnamed slices pushed after all
     ##the named slices.
     permutation <- array(list(NA), c(length(arg.list), N))
-    for(argn in 1:length(arg.list)) for (dimn in 1:N) {
-      if (dimn == along) {
-        permutation[[argn, dimn]] <- (1:dimarray[[argn, dimn]])
-        next
+    for(argn in 1:length(arg.list)) {
+      for (dimn in 1:N) {
+        if (dimn == along) {
+          permutation[[argn, dimn]] <- (1:dimarray[[argn, dimn]])
+          next
+        }
+        if (is.na(dno[dimn, argn])) {
+          iUnnnamed <- 1:dimarray[[argn, dimn]]
+          iNamed <- numeric(0)
+          names <- character(0)
+        } else {
+          iNamed <- which(dno[[dimn, argn]] != "")
+          iUnnamed <- which(dno[[dimn, argn]] == "")
+          names <- dno[[dimn, argn]][iNamed]
+        }
+        perm <- array(NA, length(dimnames.out[[dimn]]), dimnames=dimnames.out[dimn])
+        perm[names] <- iNamed
+        perm[seq(length(dimnames.out[[dimn]]) + 1 - maxUnnamed[dimn], len=length(iUnnamed))] <- iUnnamed
+        if ((!fill) & any(is.na(perm))) {
+          stop("there are unmatched names and fill set to FALSE")
+        }
+        permutation[[argn, dimn]] <- perm
       }
-      if (is.na(dno[argn, dimn])) {
-        iUnnnamed <- 1:dimarray[[argn, dimn]]
-        iNamed <- numeric(0)
-        names <- character(0)
-      } else {
-        iNamed <- which(dno[[argn, dimn]] != "")
-        iUnnamed <- which(dno[[argn, dimn]] == "")
-        names <- dno[[argn, dimn]][iNamed]
-      }
-      perm <- array(NA, length(dimnames.out[[dimn]]) + maxUnnamed[[dimn]], dimnames=dimnames.out[dimn])
-      perm[names] <- iNamed
-      perm[seq(dimarray[[argn, dimn]]+1, len=length(iUnnamed))] <- iUnnamed
-      permutation[[argn, dimn]] <- perm
     }
     
     ##permute the arrays
-    browser()
     for (i in 1:length(arg.list)) {
       arg.list[[i]] = do.call("[", c(arg.list[i], permutation[i,]))
     }
@@ -113,10 +126,11 @@ concatenate <- function
       dimnames.out[!is.na(dno[,i])] <- dno[!is.na(dno[,i]),i]
     }
   }
-  
+
   #Now deal with the dimnames in the concatenated dimension....
-  if (!is.null(dimnames.out[along])) {
-    nonames.args <- is.na(dno[along,])
+  if (apply.dimnames) {
+    dno[no.names.provided] <- list(NA)
+    nonames.args <- no.names.provided[along,]
     dno[along,nonames.args] <-
       lapply(arg.list[nonames.args],
              function(x)vector("character", dim(x)[along]))
@@ -127,15 +141,18 @@ concatenate <- function
   #the output dimension equals the max of the input dimensions and the concatenation...
   dimout <- do.call(pmax, c(lapply(arg.list, dim), list(rep(0,N))))
 
-  if(fill) {
-    stop("fill option not yet implemented")
+  #everything ought to have the same dimension otherwise, else we pad with NA
+  if (!fill) {
+    if (any(sapply(arg.list, function(x) any(dim(x)[-along] != dimout[-along])))) {
+      stop("arguments should have consistent dimensions")
+    }
+  } else {
+    arg.list <- lapply(arg.list, function(arg) {
+      d <- dimout
+      d[along] <- dim(arg)[along]
+      extend(arg, d)
+    })
   }
-
-  #everything ought to have the same dimension otherwise
-  if (any(sapply(arg.list, function(x) any(dim(x)[-along] != dimout[-along])))) {
-    stop("arguments should have consistent dimensions")
-  }
-    
   #bring bound dimension to END
   permutation <-  c((1:N)[-along], along)
   arg.list <- lapply(arg.list, aperm, permutation)
