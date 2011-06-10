@@ -6,6 +6,8 @@ function this = Text(varargin)
     color = [0 0 0];
     visible = 0;
     centered = 0;
+    points = 12;
+    style = 0;
     
     varargin = assignments(varargin, 'loc', 'text', 'color');
 
@@ -16,6 +18,8 @@ function this = Text(varargin)
     background_ = [];
 
     function draw(window, next)
+        oldStyle = Screen('TextStyle', window, style);
+        oldSize = Screen('TextSize', window, points);
         if ~visible
             return;
         end
@@ -36,6 +40,7 @@ function this = Text(varargin)
         if centered
             pix = pix - (bounds(end,[3 4]) - bounds(1,[1 2])) ./ 2;
         end
+        pix = round(pix);
         
         for i = 1:numel(lines)
             Screen('DrawText', window, lines{i}, pix(1), pix(2) + height(i), color, background_);

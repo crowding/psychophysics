@@ -11,4 +11,4 @@ sigma(1) = this.order*this.size(1)/2/pi;
 %"omega" in terms of wavelength and wavefront velocity.
 omega = -this.velocity * this.order / sigma(1);
 
-z = real(cauchy3(x, y, t, get(this, 'center'), sigma, this.order, omega));
+z = real(cauchy3(x, y, t, get(this, 'center'), sigma, this.order, omega, this.phase));

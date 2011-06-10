@@ -1,5 +1,9 @@
 %does this slow shit down? a lot? doe to recursive invocations during set()?
 function this = subsasgn(this, S, val);
+if ~isa(this, 'PropertyObject') 
+    this = builtin('subsasgn', this, S, val);
+    return
+end
 % function this = subsasgn(this, S, val);
 %
 % Implements subscripted assignment on objects with some resemblance to how

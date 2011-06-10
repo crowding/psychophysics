@@ -31,13 +31,14 @@ degreePerPixel_ = [];
         try
             if visible
                 l = e(loc, next - onsetTime_);
+                r = e(radius, next - onsetTime_);
                 
                 center = toPixels_(l);
-                shifted = l; shifted(1,:)  = shifted(1,:) + radius;
+                shifted = l; shifted(1,:)  = shifted(1,:) + r;
 
                 %hmmm. note this assumes isotropic pixel spacing.
                 sz = sqrt(sum((center - toPixels_(shifted)).^2));
-                if any(sz > 32)
+                %if any(sz > 32)
                     %Technique 1 was FillOval.
                     
                     %technique 2 is gluDisk.
@@ -48,21 +49,25 @@ degreePerPixel_ = [];
                     
                     %the maximum pixel deviation and the radius determine
                     %the maximum sector angle
-                    nSectors = ceil(2*pi/acos(1/(1+pixelAccuracy*degreePerPixel_/radius)));
+                    nSectors = ceil(2*pi/acos(1/(1+pixelAccuracy*degreePerPixel_/r)));
                     
                     %correct the radius to have constant area
                     %area of circle sector: sector*radius^2
                     %area of regular polygon sector: cos(sector/2)*sin(sector/2)*r^2
                     sector = 2*pi/nSectors;
-                    r = sqrt(radius.^2 * sector/cos(sector/2)/sin(sector/2)/2);
-                    pts = [loc(1)+r*sin(2*pi*(0:nSectors-1)/nSectors);loc(2)+r*cos(2*pi*(0:nSectors-1)/nSectors)];
-                    Screen('FillPoly', window, color, toPixels_(pts)', 1);
-                else
+                    r = sqrt(r.^2 * sector/cos(sector/2)/sin(sector/2)/2);
+                    pts = permute(cat(3, bsxfun(@plus, l(1,:), r*sin(2*pi*(0:nSectors-1)'/nSectors)), ...
+                           bsxfun(@plus, l(2,:), r*cos(2*pi*(0:nSectors-1)'/nSectors))), [1 3 2]);
+                    
+                    for i = 1:size(pts, 3)
+                        Screen('FillPoly', window, color, toPixels_(pts(:,:,i)')',1);
+                    end
+                %else
                     %GL points will work for us and are antialiased.
-                    %On a slow computer they seem to slow down for some
+                    %On a slow computer they seem to slow down as the size changes for some
                     %reason.
-                    Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
-                end
+                %    Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+                %end
             end
         catch
             rethrow(lasterror);

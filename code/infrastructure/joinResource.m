@@ -13,6 +13,11 @@ global resources__
 %components. The output of the final initializer is passed to the body
 %function.
 
+    if numel(varargin) == 0
+        f = @noresource;
+        return;
+    end
+    
     if isstruct(varargin{1})
         defaults = varargin{1};
         varargin(1) = [];
@@ -22,10 +27,8 @@ global resources__
 
     if numel(varargin) > 1 || ~isempty(defaults)
         f = @joinedResource;    
-    elseif numel(varargin) == 1
+    else % numel(varargin) == 1
         f = varargin{1};
-    else
-        f = @noresource;
     end
     
 

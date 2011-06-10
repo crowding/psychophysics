@@ -9,7 +9,7 @@ function f = transformToPixels(this)
     center = this.rect;
     center = ( center([1 2]) + center([3 4]) ) / 2;
     
-    %multiplier gives degrees per pixel AT SCREEN CENTER
+    %multiplier gives pixels per degree AT SCREEN CENTER
     multiplier = 1./spacing(this); %centimeters per pixel
     multiplier = multiplier * (this.distance) / 180*pi; %centimeters per degree
     f = @transform;

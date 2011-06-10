@@ -43,7 +43,7 @@ function this = ShadlenDots(varargin)
     global GL_; %filled out by getScreen
     
     %written in caps because the sequence and number of times you call rand
-    %is critical
+    %is critical for backwards compatibility
     RAND_ = generator.e; %having a function handle is faster than having to access a struct in a nested function.
 
     %defensive measure against programmer error

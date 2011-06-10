@@ -115,8 +115,8 @@ initializer = @doGetScreen;
             %the Resolution function takes an arglist but returns a struct. For the same data. Sigh....
             oldResolution = {oldResolution.width oldResolution.height oldResolution.hz oldResolution.pixelSize};
 
-            if isfield(details, 'aviout') && ~isempty(details.aviout)
-                %if rendering to a file, force use of 60 Hz
+            if isfield(details, 'aviout') && ~isempty(details.aviout) && (~isfield(details, 'cal') || isempty(details.cal))
+                %if rendering to a file, force use of 60 Hz? ... nah, nope.
                 details.resolution = oldResolution;
                 details.resolution{3} = 60;
                 Screen('Resolution', details.screenNumber, details.resolution{:});
@@ -138,17 +138,15 @@ initializer = @doGetScreen;
         function [release, details] = setGamma(details)
             
             if ~isfield(details, 'cal') || isempty(details.cal)
+                if isfield(details, 'aviout') && ~isempty(details.aviout)
+                    cal.distance = 180/pi; %one "centimeter" per "degree"
+                    cal.spacing = [20/512 20/512]; %thus, 20 degrees in 512 pixels
+                end
                 cal = Calibration('screenNumber', details.screenNumber);
             else
                 cal = details.cal;
             end
             
-            if isfield(details, 'aviout') && ~isempty(details.aviout)
-%                cal.rect = [0 0 1024 1024];
-                cal.distance = 180/pi; %one "centimeter" per "degree"
-                cal.spacing = [20/512 20/512]; %thus, 20 degrees in 512 pixels
-            end
-
             if (details.requireCalibration && ~cal.calibrated)
                 error('getScreen:noCalibration'...
                     , 'No calibration was found for this system setup.' );

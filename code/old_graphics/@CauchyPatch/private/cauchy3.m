@@ -1,4 +1,4 @@
-% [z]  = cauchy3(x, y, t, mu, sigma, order, omega)
+% [z]  = cauchy3(x, y, t, mu, sigma, order, omega, phase)
 % 
 % evaluate a horizontal, 3-d spatiotemporal filter at the coordinates given.
 % 
@@ -10,6 +10,7 @@
 % order -- the order of the filter.
 % omega -- the angular velocity used to rotate the filter in quadrature 
 %          around t=0.
+% phase -- the relative phase.
 %
 % outputs:
 % z -- the evaluated filter. Array of size [length(x) length(y) length(t)].
@@ -32,7 +33,7 @@
 % The output is normalized with the peak of magnitude 1
 % (the real component is even, imaginary component is odd.)
 
-function z = cauchy3(x, y, t, mu, sigma, order, omega);
+function z = cauchy3(x, y, t, mu, sigma, order, omega, phase)
 
 %input checks
 if ( (~isvector(x)) || (~isvector(y)) || (~isvector(t)) ) 
@@ -49,7 +50,7 @@ end
 
 %separable components of the filter
 theta = atan((x - mu(1))/sigma(1));
-zx = cos(theta).^order .* exp(i * order * theta);
+zx = cos(theta).^order .* exp(i * order * theta + i*phase);
 zy = exp(-((y - mu(2))/sigma(2)).^2);
 zt = exp(-((t - mu(3))/sigma(3)).^2) .* exp(i*omega*(t - mu(3)));
 

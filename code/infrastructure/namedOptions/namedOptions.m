@@ -99,6 +99,10 @@ function opts = namedOptions(varargin)
                 end
 
                 try
+                    %oops, here MATLAB is stupid and we have run into a
+                    %problem with FUCKED DISPATCH (in which we assign to a
+                    %struct a value that has a subsasgn method, invoking
+                    %the wrong method entirely...) 
                     opts = subsasgn(opts, varargin{argix}, varargin{argix+1});
                     argix = argix + 2;
                 catch

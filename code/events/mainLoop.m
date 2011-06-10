@@ -133,6 +133,7 @@ toDegrees_ = @noop;
             if isempty(params.avirect)
                 params.avirect = (params.rect([3 4 3 4]) - params.rect([1 2 1 2]))/2 + [-256 -256 256 256];
             end
+            flipInterval = params.cal.interval;
         end
 
         VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
@@ -163,7 +164,13 @@ toDegrees_ = @noop;
             %which the change occurred.
             prevVBL = VBL;
             
-            if (hasBeampos)
+            if aviout_
+                %no funny pipeline business, fake timestamp
+                [tmp, tmp, FlipTimestamp] = Screen('Flip', window);
+                VBL = FlipTimestamp/slowdown;
+                skipped = 0;
+                doAviFrame();
+            elseif(hasBeampos)
                 [tmp, tmp, FlipTimestamp]...
                     = Screen('Flip', window, [], [], 1);
                 beampos = Screen('GetWindowInfo', params.window, 1);
@@ -198,17 +205,7 @@ toDegrees_ = @noop;
                 end
             end
                 
-            
-            if (aviout_)
-                if ~isempty(params.avirect)
-                    frame = Screen('GetImage', window, params.avirect);
-                else
-                    frame = Screen('GetImage', window);
-                end
-                [refresh size(frame)]
-                %class(frame)
-                aviobj = addframe(aviobj, frame);
-            end
+
             
             %-----Update phase: 
             %reacts to the difference in VBL times, and updates
@@ -220,9 +217,6 @@ toDegrees_ = @noop;
                     %frame before skip, VBL of delayed frame just shown,
                     %refresh index of the same frame
                     log('FRAME_SKIP %d %f %f %d', skipped, prevVBL, VBL, refresh);
-                    if skipped > 5
-                        noop();
-                    end
                 end
                 
                 skipcount = skipcount + skipped;
@@ -252,13 +246,18 @@ toDegrees_ = @noop;
             %perhaps wait up here?
 
             if (~go_)
-                %the loop test is here, so that the final frame gets
-                %flipped to the screen.
+                %the loop exit test is here, so that the final frame gets
+                %flipped to the screen and the final frame skips are
+                %caught.
                 break;
             end
             %-----Draw phase: Draw all the objects for the next refresh.            
             for i = 1:ng
-                graphics(i).draw(window, VBL + flipInterval);
+                if nargin(graphics(i).draw) > 2
+                    graphics(i).draw(window, VBL + flipInterval, params);
+                else
+                    graphics(i).draw(window, VBL + flipInterval);
+                end
             end
 
             Screen('DrawingFinished', window);
@@ -266,13 +265,9 @@ toDegrees_ = @noop;
             %necessarily draw them. So you may be working up to 3 frames
             %ahead by this point.
 
-            %If we're running ahead of schedule, wait before gatherign
+            %If we're running ahead of schedule, wait before gathering
             %input.
             WaitSecs(VBL+2*flipInterval - GetSecs() - maxLatency);
-
-            %We currently take events from eye movements, keyboard and the
-            %mouse; each event type calls up its own list of event checkers.
-            %This may be generalised to a variety of event sources.
 
             %Now start in on event checking.
             
@@ -288,7 +283,6 @@ toDegrees_ = @noop;
             for i = 1:numel(triggers)
                 s = triggers(i).check(s);
             end
-            %profile off;
         end
 
         log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
@@ -296,15 +290,21 @@ toDegrees_ = @noop;
         if (aviout_)
             chk = close(aviobj); %TODO make this into a REQUIRE
         end
-        
-        %{
-        profile off;
-        if counter == 5
-            error('stop experiment');
+
+        function doAviFrame()
+            if (~isfield(params, 'avistart') || refresh >= params.avistart)
+                if ~isempty(params.avirect)
+                    frame = Screen('GetImage', window, params.avirect);
+                else
+                    frame = Screen('GetImage', window);
+                end
+                %class(frame)
+                aviobj = addframe(aviobj, frame);
+            end
         end
-        counter = counter + 1;
-        %}
+        
     end
+
 
     function stop(s)
         %Stops the main loop. Takes arguments compatible with being called

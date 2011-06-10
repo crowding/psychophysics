@@ -45,7 +45,7 @@ function this = AudioOutput(varargin)
     initted_ = 0;
     function [release, params, next] = init(params)
         if initted_
-            error('AudioOutput:alreadyOpeneed', 'Device already opened!');
+            error('AudioOutput:alreadyOpened', 'Device already opened!');
         end
         if isfield(params, 'log')
             log_ = params.log;

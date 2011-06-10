@@ -195,6 +195,11 @@ function this = CauchySpritePlayer(varargin)
 
     function setDrawn(d)
         drawn = d;
-        cd_.setVisible(v && drawn);
+        cd_.setVisible(d && drawn);
+    end
+
+    function setProcess(p)
+        process = p;
+        process.reset();
     end
 end
