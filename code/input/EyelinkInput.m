@@ -13,6 +13,19 @@ function this = EyelinkInput(varargin)
     recordLinkEvents = 0;
     
     persistent init__; %#ok
+    
+    persistent slope;
+    persistent offset;
+    persistent calibrationDate;
+    persistent calibrationSubject;
+    
+    if isempty(slope)
+        slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
+        offset = [0;0]; % the eye position offset
+        calibrationDate = [];
+        calibrationSubject = [];
+    end
+    
     this = autoobject(varargin{:});
     
     slowdown_ = [];
@@ -27,16 +40,6 @@ function this = EyelinkInput(varargin)
         );
     
     data = zeros(0,3);
-
-    persistent slope;
-    persistent offset;
-    persistent calibrationDate;
-    persistent calibrationSubject;
-    
-    if isempty(slope)
-        slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
-        offset = [0;0]; % the eye position offset
-    end
 
     persistent sampleCache_;
     sampleCacheLength = 1000;
