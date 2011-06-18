@@ -29,10 +29,19 @@ function varargout = subsref(this, subs)
     property = subs(end).subs;
     if strcmp(subs(end).type, '.') && isobject(whatsleft) && ~isfield(whatsleft, property)
         try
+            unique = @()0;
             try
-                [varargout{1:no}] = whatsleft.(getterName(property))();
+                [varargout{1:max(no,1)}] = whatsleft.(getterName(property))();
             catch
-                [varargout{1:no}] = whatsleft.property__(property);
+                if (no == 0)
+                    ans = unique;
+                    whatsleft.property__(property);
+                    if ~isequalwithequalnans(ans, unique)
+                        varargout{1} = ans;
+                    end
+                else
+                    [varargout{1:max(no,1)}] = whatsleft.property__(property);
+                end
             end
         catch
             %faster to ask forgiveness than permission...
@@ -43,18 +52,20 @@ function varargout = subsref(this, subs)
             end
         end
     else
-        %MATALB stupidity... bare calls to any function from the command
+        %MATLAB stupidity... bare calls to any function from the command
         %window invoke with 0 outputs. But if an output is returned the
         %command window can display it.
-        %if isa(whatsleft, 'function_handle')
-        %    if nargout(whatsleft) == 0
-        %        subsref(whatsleft, subs(end));
-        %    else
-        %    [varargout{1:no}] = whatsleft(subs(end).subs);
-        %    end
-        %else
+        ans = [];
+        if (no == 0)
+            subsref(whatsleft, subs(end));
+            if ~isempty(ans)
+                varargout{1} = ans;
+                varargout{1} = unwrap(varargout{1});
+            end
+        else
             [varargout{1:no}] = subsref(whatsleft, subs(end));
             [varargout{1:no}] = unwrap(varargout{1:no});
+        end
         %end
     end
 end

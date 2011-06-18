@@ -13,6 +13,8 @@ function this = ConcentricTrial(varargin)
     
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
     
+    textFeedback = Text('centered', 1, 'loc', [0 0]);
+    
     audioCueTimes = []; %when to play an audio cue, relative to motion onset.
    
     requireFixation = 1;
@@ -22,7 +24,7 @@ function this = ConcentricTrial(varargin)
     fixationSettle = 0.3; %allow this long for settling fixation.
     fixationWindow = 1.5; %subject must fixate this closely...
     reshowStimulus = 0; %whether to reshow the stimulus after the response (for training purposes)
-    beepFeedback = 0; %whether to give a tone for feedback...
+    beepFeedback = 0; %whether to give a tone for correct/incorrect feedback...
     desiredResponse = 0; %which response (1 = cw) is correct, if feedback is desired.
     feedbackFailedFixation = 0;
     
@@ -69,25 +71,25 @@ function this = ConcentricTrial(varargin)
         if requireFixation && (beepFeedback || ~isempty(audioCueTimes))
             main = mainLoop ...
                 ( 'input', {params.input.eyes, params.input.audioout, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
-                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         elseif requireFixation
             main = mainLoop ...
                 ( 'input', {params.input.eyes, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
-                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         elseif (beepFeedback || ~isempty(audioCueTimes))
             main = mainLoop ...
                 ( 'input', {params.input.audioout, params.input.keyboard, params.input.knob} ...
-                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         else
             main = mainLoop ...
                 ( 'input', {params.input.keyboard, params.input.knob} ...
-                , 'graphics', {fixation, motion, occluders{:}} ...
+                , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
         end
@@ -198,37 +200,46 @@ function this = ConcentricTrial(varargin)
         function responseCollected(h)
             result.success = 1;
             %start something else, based on the response
+            if beepFeedback
+                if desiredResponse == 0
+                    params.input.audioout.play('click');
+                elseif result.response == desiredResponse
+                    %make a beep
+                    params.input.audioout.play('ding');
+                else
+                    params.input.audioout.play('buzz');
+                end
+            end
+            
             if h.knobTime - awaitInput < motionStarted_;
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @tooShort);
             elseif h.knobTime - motionStarted_ - awaitInput > maxResponseLatency
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @tooLong);
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
-            elseif beepFeedback
-                if result.response == desiredResponse
-                    %make a beep
-                    params.input.audio.play('ding');
-                    trigger.singleshot(atLeast('next',h.next+0.2), @stop);
-                else
-                    trigger.singleshot(atLeast('next',h.next + maxResponseLatency), @stop);
-                end
             else
                 trigger.singleshot(atLeast('next',(h.next + maxResponseLatency)), @stop);
             end
         end
         
         function tooLong(h)
-            %turn the fixation point red as feedback.
+            %audio feedback.
             result.success = 0;
-            fixation.setColor([255 0 0]);
+            %fixation.setColor([255 0 0]);
+            textFeedback.setText('Too slow');
+            textFeedback.setVisible(1);
+            fixation.setVisible(0)
             trigger.singleshot(atLeast('next', h.next + lateTimeout), @stop);
             fprintf(2, '>>>> too slow\n');
         end
         
         function tooShort(h)
-            %turn the fixation point blue as feedback.
+            %visual feedback.
             result.success = 0;
-            fixation.setColor([0 0 255]);
+            %fixation.setColor([0 0 255]);
+            textFeedback.setText('Too fast');
+            textFeedback.setVisible(1);
+            fixation.setVisible(0);
             trigger.singleshot(atLeast('next', h.next + earlyTimeout), @stop);
             fprintf(2, '>>>> too fast\n');
         end
@@ -253,6 +264,7 @@ function this = ConcentricTrial(varargin)
            motion.setVisible(0);
            fixation.setVisible(0);
            fixation.setColor([0 0 0]);
+           textFeedback.setVisible(0);
            if useOccluders
                for i = occluders(:)'
                    i{1}.setVisible(0, h.next);

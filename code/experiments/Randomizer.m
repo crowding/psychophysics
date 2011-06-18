@@ -66,19 +66,86 @@ this = autoobject(varargin{:});
         end
     end
 
-    function add(subs, values)
-        %adds a randomizer.
-        if ~isempty(results)
-            error('won''t invalidate results!');
+    function [ix, subs] = findix_(subs, require_present)
+        if ~exist('require_present', 'var')
+            require_present = 1;
         end
-
+        
         if iscell(subs)
             subs = cellfun(@subsrefize_, subs, 'UniformOutput', 0);
         else
             subs = subsrefize_(subs);
         end
         
-        randomizers(end + 1) = struct('subs', {subs}, 'values', {values});
+        found=false;
+        for ix=1:numel(randomizers)
+            if isequalwithequalnans(randomizers(ix).subs, subs)
+                found = true;
+                break
+            end
+        end
+        
+        if ~found
+            if require_present
+                error(['didn''t find the factor ' substruct2str(subs)]);
+            else 
+                ix = [];
+            end
+        end
+    end
+
+    function out = get(subs)
+        out = randomizers(findix_(subs)).values;
+    end
+
+    function add(subs, values)
+        %adds a randomizer, replacing if possible.
+        replace(subs, values, 0);
+    end
+
+    function addBefore(before, subs, values)
+        ix = findix_(before);
+        randomizers((ix+1):(end+1)) = randomizers(ix:end);
+        replaceWith(before, subs, values)
+    end
+
+    function remove(subs)
+        replace(subs, []);
+    end
+
+    function replace(subs, values, require_present)
+        % replace an already set randomizer
+        if ~exist('require_present', 'var')
+            require_present = 1;
+        end
+        replaceWith(subs, subs, values, require_present)
+    end
+
+    function replaceWith(subs, newsubs, values, require_present)
+        if ~exist('require_present', 'var')
+            require_present = 1;
+        end
+        
+        if ~isempty(results)
+            error('won''t invalidate results!');
+        end
+        
+        [ix, subs] = findix_(subs,require_present);
+        if iscell(newsubs)
+            newsubs = cellfun(@subsrefize_, newsubs, 'UniformOutput', 0);
+        else
+            newsubs = subsrefize_(newsubs);
+        end
+
+        if isempty(ix)
+            ix = numel(randomizers) + 1;
+        end
+        
+        if isempty(values)
+            randomizers(ix) = [];
+        else
+            randomizers(ix)= struct('subs', {newsubs}, 'values', {values});
+        end
         reset();
     end
 

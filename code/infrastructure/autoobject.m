@@ -157,7 +157,7 @@ function this = autoobject(varargin)
                                     error('autoobject:noSuchProperty', 'No such property %s', subs(1).subs);
                                 end
                             else
-                                error('autoobject:badSubscript', 'bad property__ argument', subs);
+                                error('autoobject:badSubscript', 'bad property__ argument ');
                             end
                         end
                     end

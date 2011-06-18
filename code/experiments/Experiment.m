@@ -32,6 +32,10 @@ params = namedargs...
 persistent init__;
 this = Obj(inherit(Identifiable(), autoobject(varargin{:})));
 
+if ~isempty(subject)
+    lookupSubject_()
+end
+
 %{
 %if there is a previous unfinished experiment, load it.
 pattern = [this.subject '*' this.caller.function '.mat'];
@@ -151,10 +155,8 @@ end
             subject = input('Enter subject initials: ', 's');
         end
         
-        if ~isvarname(subject)
-            error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
-        end
-
+        lookupSubject_()
+        
         params = namedargs(params, varargin{:});
         if ~isempty(handles)
             params.uihandles = handles;
@@ -248,6 +250,22 @@ end
                 warning(err.identifier, 'the run stopped with an error: %s', err.identifier);
                 stacktrace(err);
             end
+        end
+    end
+
+    function setSubject(s)
+        subject = s;
+        lookupSubject_()
+    end
+
+    function lookupSubject_
+        if ~isvarname(subject)
+            error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
+        end
+        
+        if exist([caller.function '_' subject '.m'], 'file')
+            fn = eval(['@' caller.function '_' subject]);
+            this = fn(this);
         end
     end
 

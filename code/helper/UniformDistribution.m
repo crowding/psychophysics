@@ -23,8 +23,10 @@ function this = UniformDistribution(varargin)
         rand('twister', seed);
         if nargin < 1
             r = l + rand(size(l)) .* (u - l);
+        elseif isnumeric(varargin{1})
+            r = l + rand(varargin{:}) .* (u - l);
         else
-             r = l + rand(varargin{:}) .* (u - l);
+            r = l + rand(size(l)) .* (u-1);
         end
         seed = rand('twister');
     end

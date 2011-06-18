@@ -103,7 +103,7 @@ propertymethods = struct(args{:});
     end
 
     %The combined property__ should set the property in the appropriate parent.
-    function [value, st] = property__(name, value)
+    function [value, st] = property__(name, value, varargin)
         %which parent is correct?
         
         switch nargin
@@ -132,6 +132,10 @@ propertymethods = struct(args{:});
                 value = propertymethods.(name)(name);
             case 2
                 propertymethods.(name)(name, value);
+        end
+        
+        if numel(varargin) > 0
+            property__(varargin{:})
         end
     end
 

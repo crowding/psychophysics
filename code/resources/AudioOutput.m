@@ -284,8 +284,12 @@ function this = AudioOutput(varargin)
         %we need as many new samples as will carry us though the next
         %refreshes, chunked into hardware buffers.
         nSamples = hardwareBufferSize_*ceil( (state.next + interval_*framesAhead - onset)*sampleRate_/hardwareBufferSize_);
-               
-        %Now compute the next chunk of audio (depending editon the experiment)
+        %^number of samples
+        %                                  ( number of buffers to compute                                                )                                 
+        %Now compute the next chunk of audio (depending on the experiment)
+        if (nSamples < 0)
+            return
+        end
         data = gatherSamples_(firstSample, nSamples, sampleRate_, onset, channels);
         if ~isempty(filter)
             data = filter(firstSample, data, sampleRate_, onset, channels);
