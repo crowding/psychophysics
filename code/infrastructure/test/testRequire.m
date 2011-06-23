@@ -194,39 +194,41 @@ this = inherit(TestCase(), autoobject(varargin{:}));
     end
 
     function testFailedReleaseLogsAdditionalError
-        %when the release fails after the body fails, the ORIGINAL
+        %when the release fails after the body fails, the appropriate
         %exception is rethrown.
         
         try
             require(@init, @body)
             fail('expected an error');
-        catch
-            assertLastError('testRequire:expectedError');
-            %at the appropriate stack frame, the additional error should be
-            %logged (since in MATALB's errors we can apparently plug in
-            %fields to the stack trace but not to the error structure)
-            e = lasterror();
-            found = 0;
-            for i = e.stack(:)'
-                if ~isempty(i.additional) 
-                    if strcmp(i.additional.identifier, 'testRequire:additionalError');
-                        found = 1;
-                    end
-                end
-            end
-            assert(found == 1, 'didn''t find attached exception');
+        catch err
+            assertEquals(err.identifier, 'testRequire:releaseError')
+            assertEquals(err.cause{1}.identifier, 'testRequire:bodyError')
+%             assertLastError('testRequire:expectedError');
+%             %at the appropriate stack frame, the additional error should be
+%             %logged (since in MATALB's errors we can apparently plug in
+%             %fields to the stack trace but not to the error structure)
+%             e = lasterror();
+%             found = 0;
+%             for i = e.stack(:)'
+%                 if ~isempty(i.cause) 
+%                     if strcmp(i.cause.identifier, 'testRequire:additionalError');
+%                         found = 1;
+%                     end
+%                 end
+%             end
+%             assert(found == 1, 'didn''t find attached exception');
         end
         
         function [r, o] = init(o)
             r = @release;
             
             function release
-                error('testRequire:expectedError', 'test');
+                error('testRequire:releaseError', 'test');
             end
         end
 
         function body
-            error('testRequire:additionalError', 'test');
+            error('testRequire:bodyError', 'test');
         end
     end
 

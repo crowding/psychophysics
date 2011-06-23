@@ -1,5 +1,4 @@
 function varargout = require(varargin)
-
 %function varargout = require(params, resource, ..., protected)
 %
 %REQUIRE acquires access to a limited resource before running a protected
@@ -49,94 +48,88 @@ function varargout = require(varargin)
 % management is tricky even if you have good exception handling at your
 % disposal; I want to encapsulate most of the tricky exception handling.
 
-if isstruct(varargin{1})
-    params = varargin{1};
-    varargin(1) = [];
-else
-    params = struct();
-end
+i = 1; %tracks how far we got into requires
+releaser_list = varargin;
+theError = [];
+[varargout{1:nargout}] = inner_require();
 
-if (numel(varargin) < 1)
-    error('require:illegalArgument', 'require needs at least 1 function handle');
-end
-
-%run the initializer, collecting from it a release function handle and an
-%optional output.
-if ~isa(varargin{1}, 'function_handle')
-    error('require:badInitializer', 'initializer must be a function handle');
-end
-if numel(varargin) > 1
-    %call the initializer here
-    s = resourcecheck();
-    if nargin(varargin{1}) == 0
-        varargin{1}(); %probably it's a rogue releaser, call it anyway.
-        error('require:notEnoughInputs', 'Initializers must take a struct input. Did you call the initializer by leaving off an @-sign?');
-    else
-        if nargout(varargin{1}) > 2
-            %a initializer can also give a 'next initializer' as output.
-            %This switches on nargout, whcih is fail, but better than
-            %nothing.
-            [releaser, params, next] = varargin{1}(params);
-            varargin{1} = next;
+    function varargout = inner_require()
+        %why is there an inner? because there needs to be some data passed
+        %into the onCleanup handler in case it needs to fire.
+        if isstruct(releaser_list{1})
+            params = releaser_list{1};
+            releaser_list(1) = [];
         else
-            [releaser, params] = varargin{1}(params);
-            varargin(1) = [];
+            params = struct();
         end
-    end
 
-    if ~isa(releaser, 'function_handle')
-        error('require:missingReleaser', 'initializer did not produce a releaser');
-    end
+        if (numel(releaser_list) < 1)
+            error('require:illegalArgument', 'require needs at least 1 function handle');
+        end
+        cu = onCleanup(@cleaner);
 
-    %CHECK IN
-    resourcecheck(s, releaser); %check in with this releaser
-
-    %now run the body
-    try
-        if (numel(varargin) > 0)
-            %recurse
-            [varargout{1:nargout}] = require(params, varargin{:});
-        else
-            body = varargin{2};
+        try
+            while i < numel(releaser_list)
+                if ~isa(releaser_list{i}, 'function_handle')
+                    error('require:badInitializer', 'initializer must be a function handle');
+                end
+                
+                if nargin(releaser_list{i}) == 0
+                    releaser_list{i}(); %probably it's a rogue releaser, call it anyway.
+                    error('require:notEnoughInputs', 'Initializers must take a struct input. Did you call the initializer by leaving off an @-sign?');
+                else
+                    if nargout(releaser_list{i}) > 2
+                        %a initializer can also give a 'next initializer' as output.
+                        %This switches on nargout, whcih is fail, but better than
+                        %nothing.
+                        [releaser_list{i}, params, next] = releaser_list{i}(params);
+                        releaser_list = cat(1, releaser_list(1:i), {next}, releaser_list(i+1:end));
+                    else
+                        [releaser_list{i}, params] = releaser_list{i}(params);
+                    end
+                    
+                    if ~isa(releaser_list{i}, 'function_handle')
+                        error('require:missingReleaser', 'initializer did not produce a releaser');
+                    end
+                    
+                end
+                i = i + 1;
+            end
+            
+            %then run the body, catching exceptions.
+            body = releaser_list{i};
             if nargin(body) ~= 0
                 [varargout{1:nargout}] = body(params);
             else
                 [varargout{1:nargout}] = body();
             end
+            
+        catch gotError
+            theError = gotError;
         end
-    catch
-        %if there is a problem, run the releaser and then rethrow the last error.
-        err = lasterror;
-        %log the error if a logger is among the parameters
-        try
-            if isfield(params, 'log')
-                params.log('ERROR %s', err.identifier);
+        
+        cleaner();
+    end
+
+    function cleaner
+        %now, whether or not there was en error, go back and release everything in
+        %reverse order.
+        while (i > 1)
+            i = i - 1;
+            try
+                releaser_list{i}(); %release
+            catch releasingError
+                if ~isempty(theError)
+                    releasingError = releasingError.addCause(theError);
+                end
+                theError = releasingError;
             end
-        catch
-            err = adderror(lasterror, err);
         end
-        try
-            resourcecheck(s);
-            releaser();
-        catch
-            err = adderror(lasterror, err);
+        
+        if ~isempty(theError)
+            toThrow = theError;
+            theError = []; %so that it doesn't get also thrown in cleanup unless it needs to.
+            rethrow(toThrow);
         end
-        %SUPER DUMB MATLAB FEATURE! Rethrow() cuts off the display of
-        %the stack trace. Use error() instead and it will not, but instead
-        %replicates the error message.
-        rethrow(err);
     end
-    
-    resourcecheck(s);
-    releaser();
-else
-    body = varargin{1};
-    if nargin(body) ~= 0
-        [varargout{1:nargout}] = body(params);
-    else
-        [varargout{1:nargout}] = body();
-    end
-end
-
-
 end
