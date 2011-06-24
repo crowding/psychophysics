@@ -11,6 +11,12 @@ function this = Experiment(varargin)
 % Any other named arguments are stuffed into the 'params' property and will
 % be passed down into the Eyelink and Screen setup routines.
 
+%speed bodges. With these we have to assume this object is a singleton. Oh god.
+persistent trials;
+persistent runs;
+persistent description;
+persistent caller;
+
 trials = Randomizer();
 subject = '';
 filename = '__auto__';

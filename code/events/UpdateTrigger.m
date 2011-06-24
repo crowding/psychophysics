@@ -3,7 +3,7 @@ function this = UpdateTrigger(varargin)
 %
 %See also Trigger.
 
-log = [];
+logf = [];
 fn = [];
 
 varargin = assignments(varargin, 'fn');
@@ -22,7 +22,7 @@ end
     
     function s = check(s)
         if set_
-            log('TRIGGER %s %s', func2str(fn), struct2str(srmfield(s,notlogged_)));
+            fprintf(logf,'TRIGGER %s %s\n', func2str(fn), struct2str(srmfield(s,notlogged_)));
             fn(s); %call function always
         end
     end
@@ -41,8 +41,8 @@ end
         set_ = 1;
     end
 
-    function setLog(l)
-        log = l;
+    function setLogf(l)
+        logf = l;
     end
 
     function draw(window, toPixels)

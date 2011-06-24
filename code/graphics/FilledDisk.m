@@ -38,7 +38,7 @@ degreePerPixel_ = [];
 
                 %hmmm. note this assumes isotropic pixel spacing.
                 sz = sqrt(sum((center - toPixels_(shifted)).^2));
-                %if any(sz > 32)
+                if any(sz > 32)
                     %Technique 1 was FillOval.
                     
                     %technique 2 is gluDisk.
@@ -62,12 +62,12 @@ degreePerPixel_ = [];
                     for i = 1:size(pts, 3)
                         Screen('FillPoly', window, color, toPixels_(pts(:,:,i)')',1);
                     end
-                %else
+                else
                     %GL points will work for us and are antialiased.
                     %On a slow computer they seem to slow down as the size changes for some
                     %reason.
-                %    Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
-                %end
+                    Screen('DrawDots', window, center, sz*2, color, [0 0], dotType);
+                end
             end
         catch
             rethrow(lasterror);

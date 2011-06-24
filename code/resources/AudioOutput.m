@@ -40,15 +40,15 @@ function this = AudioOutput(varargin)
 %% init
     %init is called at the beginning of the experiment.
     pahandle_ = NaN;
-    log_ = @noop;
+    logf_ = [];
     interval_ = 0;
     initted_ = 0;
     function [release, params, next] = init(params)
         if initted_
             error('AudioOutput:alreadyOpened', 'Device already opened!');
         end
-        if isfield(params, 'log')
-            log_ = params.log;
+        if isfield(params, 'logf')
+            logf_ = params.logf;
         end
         
         %munge the arguments for PsychPortAudio...
@@ -62,7 +62,7 @@ function this = AudioOutput(varargin)
         release = @close;
         function close()
             PsychPortAudio('Close', pahandle_);
-            log_ = @noop;
+            logf_ = [];
         end
 
         next = @setRunMode_;
@@ -233,11 +233,11 @@ function this = AudioOutput(varargin)
             
             if record
                 data = readout_();
-                log_('AUDIO_OUT %s', smallmat2str(data));
+                fprintf(logf_,'AUDIO_OUT %s\n', smallmat2str(data));
             end
             
             if underflowed_
-                warning('AudioOutput:overflow', 'Audio output buffer underflow detected!');
+                %warning('AudioOutput:overflow', 'Audio output buffer underflow detected!');
             end
         end
     end
@@ -274,7 +274,7 @@ function this = AudioOutput(varargin)
             if lastsampleix_ > 0
                 underflowed_ = 1;
                 %the log entry says:
-                log_('AUDIO_UNDERFLOW %d %d %f', lastsampleix_, status.ElapsedOutSamples, status.CurrentStreamTime);
+                fprintf(logf_,'AUDIO_UNDERFLOW %d %d %f\n', lastsampleix_, status.ElapsedOutSamples, status.CurrentStreamTime);
             end                
             lastsampleix_ = status.ElapsedOutSamples;
         end
@@ -368,7 +368,7 @@ function this = AudioOutput(varargin)
             end
             
             %log that the sample played.
-            log_('AUDIO_SAMPLE %s %g %d', starting_{i,2}, sampleOnset, firstSample + startIndex - 1);
+            fprintf(logf_,'AUDIO_SAMPLE %s %.15g %d\n', starting_{i,2}, sampleOnset, firstSample + startIndex - 1);
         end
         starting_(ix,:) = [];
     end

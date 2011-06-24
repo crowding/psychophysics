@@ -4,12 +4,11 @@ function initializer = LogEnclosed(varargin)
     function [release, params] = logInitializer(params)
         str = sprintf(varargin{:});
         
-        params.log('BEGIN %s', str);
-
+        fprintf(params.logf, 'BEGIN %s\n', str');
+        
         release = @logExit;
         function logExit
-            params.log(['END %s', str]);
+            fprintf(params.logf, 'END %s\n', str);
         end
     end
-
 end

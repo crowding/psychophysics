@@ -4,7 +4,7 @@ function this = EyeCalibrationTrial(varargin)
     startTime = 0;
     onset = .0; %the onset of the saccade target.
     
-    velocityThreshold = 40; %the velocity threshold for detecting a saccade.
+    velocityThreshold = 20; %the velocity threshold for detecting a saccade.
     
     minLatency = .100; %the minimum saccade latency (defined by velocity threshold crossing)
     maxLatency = .300; %the maximum latency for the saccade.
@@ -76,14 +76,13 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function beginSaccade(s)
-            t = GetSecs();
-            et = Eyelink('TrackerTime');
-            [el, raw] = Eyelink('NewestFloatSampleRaw');
-            etm = et - getclockoffset(params, 100)/1000;
-            fprintf(2, 'lat = %g next-t = %g next-eyeT=%g t-eyeT=%g\n', s.triggerTime - onset_, s.next-t, s.next-s.eyeT(end), t-s.eyeT(end));
+            %t = GetSecs();
+            %et = Eyelink('TrackerTime');
+            %[el, raw] = Eyelink('NewestFloatSampleRaw');
+            %etm = et - getclockoffset(params, 100)/1000;
+            %fprintf(2, 'lat = %g next-t = %g next-eyeT=%g t-eyeT=%g\n', s.triggerTime - onset_, s.next-t, s.next-s.eyeT(end), t-s.eyeT(end));
             if (s.triggerTime - onset_ < minLatency)
                 %saccade was too early. Fail out on next refresh.
-
                 trigger.singleshot(atLeast('refresh', s.refresh + 1), @failedEarly);
             else
                 %wait for the end of the saccade...
@@ -122,22 +121,27 @@ function this = EyeCalibrationTrial(varargin)
         end
         
         function failedEarly(s)
+            disp failedEarly;
             failed(s);
         end
 
         function failedSaccade(s)
+            disp failedSaccade;
             failed(s);
         end
 
         function failedRelative(s)
+            disp failedRelative;
             failed(s);
         end
         
         function failedAbsolute(s)
+            disp failedAbsolute;
             failed(s);
         end
 
         function failedSettle(s)
+            disp failedSettle;
             failed(s);
         end
 

@@ -4,6 +4,25 @@ if isempty(subs__)
     subs__ = Sref();
 end
 
+%speed bodges. With these we have to assume this object is a singleton. Oh
+%god.
+persistent base;
+persistent startTrial;
+persistent startTrialResult;
+persistent blockTrial;
+persistent blockTrialResults;
+persistent endblockTrial;
+persistent endblockTrialResults;
+persistent endTrial;
+persistent endTrialResults;
+persistent randomizers;
+persistent parameterColumns;
+persistent parameters;
+persistent results;
+persistent design;
+persistent displayFunc;
+persistent seed;
+
 base = MessageTrial('message', 'need a base trial!');
 
 %usually we rely on the randomizer to place trials, but sometimes we also

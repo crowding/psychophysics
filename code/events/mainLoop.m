@@ -27,8 +27,18 @@ end
 
 %% Object properties
 
+%speed bodges. With these we have to assume this object is a singleton. Oh god.
+persistent defaults_;
+persistent graphics;
+persistent triggers;
+persistent keyboard;
+persistent mouse;
+persistent input;
+%persistent this;
+
 defaults_ = struct...
     ( 'log', @noop ...
+    , 'logf', [] ...
     , 'skipFrames', 1 ...
     , 'dontsync', 0 ...
     , 'slowdown', 1 ...
@@ -68,6 +78,8 @@ toDegrees_ = @noop;
 %% methods
 
     function params = go(varargin)
+        %shitprof mainloop_go_begin
+
         params = namedargs(defaults_, varargin{:});
         
         % constructor support for older constructor conventions --
@@ -103,9 +115,9 @@ toDegrees_ = @noop;
             , triggerInitializer()... %comes after startInput because of notlogged fields.
             , @doGo_...
             );
+        %shitprof mainloop_go_end
         %%% PERF NOTE between the end of doGo and here is a major
         %%% bottleneck...
-
     end
 
     function params = doGo_(params)
@@ -125,6 +137,7 @@ toDegrees_ = @noop;
         
         %for better speed in the loop, eschew struct access?
         log = params.log;
+        logf = params.logf;
         window = params.window;
         aviout_ = params.aviout;
         if (aviout_)
@@ -147,7 +160,7 @@ toDegrees_ = @noop;
         
         refresh = 0;    %the first flip in the loop is refresh 0
                         %(the first that draws anything is flip 1)
-
+        %shitprof mainloop_dogo_begin
         while(1)
             %The loop is: Flip, Update, Draw, run Events.
             %Draw happens right after Flip, to keep its pipeline as full
@@ -216,7 +229,7 @@ toDegrees_ = @noop;
                     %Logged fields: Number of skipped frames, VBL of last
                     %frame before skip, VBL of delayed frame just shown,
                     %refresh index of the same frame
-                    log('FRAME_SKIP %d %f %f %d', skipped, prevVBL, VBL, refresh);
+                    fprintf(logf,'FRAME_SKIP %d %f %f %d\n', skipped, prevVBL, VBL, refresh);
                 end
                 
                 skipcount = skipcount + skipped;
@@ -284,8 +297,8 @@ toDegrees_ = @noop;
                 s = triggers(i).check(s);
             end
         end
-
-        log('FRAME_COUNT %d SKIPPED %d', refresh, skipcount);
+        %shitprof mainloop_dogo_end
+        fprintf(logf,'FRAME_COUNT %d SKIPPED %d\n', refresh, skipcount);
         disp(sprintf('ran for %d frames, skipped %d', refresh, skipcount));
         if (aviout_)
             chk = close(aviobj); %TODO make this into a REQUIRE
@@ -302,7 +315,6 @@ toDegrees_ = @noop;
                 aviobj = addframe(aviobj, frame);
             end
         end
-        
     end
 
 
@@ -320,7 +332,7 @@ toDegrees_ = @noop;
         %where the log file is.
         %
         %See also require.
-        triggers = interface(struct('check', {}, 'setLog', {}, 'init', {}), triggers);
+        triggers = interface(struct('check', {}, 'setLogf', {}, 'init', {}), triggers);
         
         i = joinResource ...
             ( namedargs(varargin{:}) ...
@@ -335,7 +347,7 @@ toDegrees_ = @noop;
         %log to.
         
         for i = triggers(:)'
-            i.setLog(params.log);
+            i.setLogf(params.logf);
         end
         
         release = @stop;

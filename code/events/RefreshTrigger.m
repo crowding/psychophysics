@@ -9,7 +9,7 @@ refresh = 0;
 last = 0;
 valid = 0;
 fn = @noop;
-log = @noop;
+logf = [];
 
 %----- public interface -----
 persistent init__;
@@ -30,7 +30,7 @@ this = autoobject(varargin{:});
             %if it must be a valid sample, check then forward
             if ~valid || all(~isnan([s.x s.y]))
                 s.triggerRefresh = refresh;
-                log('TRIGGER %s %s', func2str(fn), struct2str(s));
+                fprintf(logf,'TRIGGER %s %s\n', func2str(fn), struct2str(s));
                 fn(s);
             end
         end

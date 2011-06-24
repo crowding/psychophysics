@@ -49,46 +49,55 @@ function varargout = require(varargin)
 % disposal; I want to encapsulate most of the tricky exception handling.
 
 i = 1; %tracks how far we got into requires
-releaser_list = varargin;
+resource_list = varargin;
+%resource_names = {};
 theError = [];
 [varargout{1:nargout}] = inner_require();
 
     function varargout = inner_require()
         %why is there an inner? because there needs to be some data passed
         %into the onCleanup handler in case it needs to fire.
-        if isstruct(releaser_list{1})
-            params = releaser_list{1};
-            releaser_list(1) = [];
+        if isstruct(resource_list{1})
+            params = resource_list{1};
+            resource_list(1) = [];
         else
             params = struct();
         end
 
-        if (numel(releaser_list) < 1)
+        if (numel(resource_list) < 1)
             error('require:illegalArgument', 'require needs at least 1 function handle');
         end
         cu = onCleanup(@cleaner);
 
         try
-            while i < numel(releaser_list)
-                if ~isa(releaser_list{i}, 'function_handle')
+            while i < numel(resource_list)
+                if ~isa(resource_list{i}, 'function_handle')
                     error('require:badInitializer', 'initializer must be a function handle');
                 end
                 
-                if nargin(releaser_list{i}) == 0
-                    releaser_list{i}(); %probably it's a rogue releaser, call it anyway.
+                %resource_names{i} = func2str(resource_list{i});
+                
+                if nargin(resource_list{i}) == 0
+                    %shitprof(['initting_' resource_names{i}]);
+                    resource_list{i}(); %probably it's a rogue releaser, call it anyway.
+                    %shitprof(['initted_' resource_names{i}]);
                     error('require:notEnoughInputs', 'Initializers must take a struct input. Did you call the initializer by leaving off an @-sign?');
                 else
-                    if nargout(releaser_list{i}) > 2
+                    if nargout(resource_list{i}) > 2
                         %a initializer can also give a 'next initializer' as output.
                         %This switches on nargout, whcih is fail, but better than
                         %nothing.
-                        [releaser_list{i}, params, next] = releaser_list{i}(params);
-                        releaser_list = cat(1, releaser_list(1:i), {next}, releaser_list(i+1:end));
+                        %shitprof(['initting_' resource_names{i}]);
+                        [resource_list{i}, params, next] = resource_list{i}(params);
+                        %shitprof(['initted_' resource_names{i}]);
+                        resource_list = cat(2, resource_list(1:i), {next}, resource_list(i+1:end));
                     else
-                        [releaser_list{i}, params] = releaser_list{i}(params);
+                        %shitprof(['initting_' resource_names{i}]);
+                        [resource_list{i}, params] = resource_list{i}(params);
+                        %shitprof(['initted_' resource_names{i}]);
                     end
                     
-                    if ~isa(releaser_list{i}, 'function_handle')
+                    if ~isa(resource_list{i}, 'function_handle')
                         error('require:missingReleaser', 'initializer did not produce a releaser');
                     end
                     
@@ -97,7 +106,7 @@ theError = [];
             end
             
             %then run the body, catching exceptions.
-            body = releaser_list{i};
+            body = resource_list{i};
             if nargin(body) ~= 0
                 [varargout{1:nargout}] = body(params);
             else
@@ -117,7 +126,9 @@ theError = [];
         while (i > 1)
             i = i - 1;
             try
-                releaser_list{i}(); %release
+%                shitprof(['releasing_' resource_names{i}]);
+                resource_list{i}(); %release
+%                shitprof(['released_' resource_names{i}]);
             catch releasingError
                 if ~isempty(theError)
                     releasingError = releasingError.addCause(theError);

@@ -3,7 +3,14 @@
 %simple...
 
 function this = ConcentricTrial(varargin)
-
+    %speed bodges. With these we have to assume this object is a singleton. Oh god.
+    persistent fixation;
+    persistent textFeedback;
+    persistent motion;
+    persistent occluders;
+    %persistent this; %can't do that, but as long as 'this' isn't
+    %referenced?
+    
     startTime = 0;
     knobTurnThreshold = 3;
     awaitInput = 0.5; %how early to accept a response from the subject. Fixation is also enforced up until this time.
@@ -28,14 +35,7 @@ function this = ConcentricTrial(varargin)
     desiredResponse = 0; %which response (1 = cw) is correct, if feedback is desired.
     feedbackFailedFixation = 0;
     
-    motion = CauchySpritePlayer...
-        ( 'process', CircularCauchyMotion ...
-            ( 'x', 0 ...
-            , 'y', 0 ...
-            , 'radius', 15 ...
-            , 'dphase', 1/15 ...
-        ) ...
-    );
+    motion = [];
     
     occluders={};
     useOccluders = 0;

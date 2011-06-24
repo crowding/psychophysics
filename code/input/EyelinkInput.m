@@ -6,6 +6,7 @@ function this = EyelinkInput(varargin)
     goodSampleCount = 0;
     
     streamData = 1; %data streaming would be good...
+    recordStreamedData = 1;
     
     recordFileSamples = 0;
     recordFileEvents = 0;
@@ -18,6 +19,12 @@ function this = EyelinkInput(varargin)
     persistent offset;
     persistent calibrationDate;
     persistent calibrationSubject;
+    
+    %speed bodges. With these we have to assume this object is a singleton. Oh god.
+    persistent defaults;
+    %persistent this; %can't do that, but as long as 'this' isn't
+    %referenced?
+    persistent sampleCache_; %has to be persistent because of speed nonsense.
     
     if isempty(slope)
         slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
@@ -41,8 +48,7 @@ function this = EyelinkInput(varargin)
     
     data = zeros(0,3);
 
-    persistent sampleCache_;
-    sampleCacheLength = 1000;
+    sampleCacheLength = 3000;
     sampleCache_ = struct('time',cell(sampleCacheLength, 1),'type',0,'flags',0,'px',0,'py',0,'hx',0,'hy',0,'pa',0,'gx',0,'gy',0,'rx',0,'ry',0,'status',0,'input',0,'buttons',0,'htype',0,'hdata',0);
     [sampleCache_.time] = deal(1); %maybe a speed improvement if everything is preallocated.
     
@@ -53,12 +59,12 @@ function this = EyelinkInput(varargin)
     freq_ = [];
     pahandle_ = [];
     interval_ = [];
-    log_ = @noop;
+    logf_ = [];
     function [release, params, next] = init(params)
         a = joinResource(defaults, @connect_, @initDefaults_, @doSetup_, getSound(), @openEDF_);
         
         interval_ = params.screenInterval;
-        log_ = params.log;
+        logf_ = params.logf;
         
         data = zeros(0,3);
         
@@ -253,7 +259,7 @@ function this = EyelinkInput(varargin)
         
         if ~details.dummy && flagged(details,'doTrackerSetup')
             message(details, 'Do tracker setup now');
-            status = EyelinkDoTrackerSetup(details.el, details.el.ENTER_KEY);
+            status = EyelinkDoTrackerSetup(details.el) %, details.el.ENTER_KEY);
             if status < 0
                 error('getEyelink:TrackerSetupFailed', 'Eyelink setup failed.');
             end
@@ -272,7 +278,6 @@ function this = EyelinkInput(varargin)
     readout_ = @noop; %the function to store data...
     
     function [release, details] = begin(details)
-        
         freq_ = details.freq;
         pahandle_ = details.pahandle;
         
@@ -305,7 +310,9 @@ function this = EyelinkInput(varargin)
             %do nothing
             release = @noop;
         else
-            [push_, readout_] = linkedlist(2);
+            if recordStreamedData
+                [push_, readout_] = linkedlist(2);
+            end
             
             %status = 
             %t2 = GetSecs();
@@ -321,7 +328,7 @@ function this = EyelinkInput(varargin)
             %the samples and events are recorded anew each trial.
             release = @doRelease;
         end
-
+        
         function doRelease
             %clean up our data
             
@@ -334,10 +341,10 @@ function this = EyelinkInput(varargin)
             while (Eyelink('GetNextDataType'))
             end
 
-            if streamData
+            if streamData && recordStreamedData
                 %read out data...
                 data = readout_();
-                log_('EYE_DATA %s', smallmat2str(data));
+                fprintf(logf_,'EYE_DATA %s\n', smallmat2str(data));
                 %figure(1);
                 %plot(data(3,:) - startTime_, data(1,:), 'b-', data(3,:) - startTime_, data(2,:), 'r-');
                 %drawnow;
@@ -445,7 +452,9 @@ function this = EyelinkInput(varargin)
                     
                     k.eyeT = ([sampleCache_(1:nSamples).time] - clockoffset_) / 1000 / slowdown_;
 
-                    push_([k.eyeX;k.eyeY;k.eyeT]);
+                    if recordStreamedData
+                        push_([k.eyeX;k.eyeY;k.eyeT]);
+                    end
 
                     %backwards compat -- already written experiments expect
                     %x, y, t to be the latest samples.
@@ -505,11 +514,11 @@ function this = EyelinkInput(varargin)
         PsychPortAudio('FillBuffer', pahandle_, samples_(1:floor(duration/1000*freq_)), 0);
         startTime = PsychPortAudio('Start', pahandle_, 1, 0); %next_ + (rewardAt - refresh_) * interval_);
         refresh = refresh_ + round(startTime - next_)/interval_;
-        log_('REWARD %d %d %d %f', rewardAt, duration, refresh, startTime);
+        fprintf(logf_,'REWARD %d %d %d %f\n', rewardAt, duration, refresh, startTime);
     end
 
     function predictedclock = eventCode(clockAt, code)
         predictedclock = clockAt;
-        log_('EVENT_CODE %d %d %d', clockAt, code, clockAt);
+        fprintf(logf_,'EVENT_CODE %d %d %d\n', clockAt, code, clockAt);
     end
 end

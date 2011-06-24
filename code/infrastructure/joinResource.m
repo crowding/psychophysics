@@ -34,15 +34,18 @@ global resources__
 
         
     function [release, params, next] = joinedResource(params)
+        %shitprof(['init_' func2str(varargin{1})]);
         if ~isempty(defaults)
             params = namedargs(defaults, params);
         end
         
         if nargout(varargin{1}) > 2
             [release, params, next] = varargin{1}(params);
+            %shitprof(['initted_' func2str(varargin{1})]);
             varargin{1} = next;
         else
             [release, params] = varargin{1}(params);
+            %shitprof(['initted_' func2str(varargin{1})]);
             varargin(1) = [];
         end
         

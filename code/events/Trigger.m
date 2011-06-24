@@ -15,7 +15,8 @@ function this = Trigger(varargin)
     triggers_.(name) = cell(0,4);
     counter_ = counter_ + 1;
     
-    log = @noop;
+    %log = @noop;
+    logf = [];
     notlogged = {};
     events = cell(0,2);
     
@@ -24,10 +25,6 @@ function this = Trigger(varargin)
     persistent init__;
     this = autoobject(varargin{:});
     
-    function setLog(s)
-        log = s;
-    end
-
     function reset()
         %cleanup to be recycled for the next trial...
         
@@ -45,7 +42,7 @@ function this = Trigger(varargin)
     function [t, k] = checkSingle_(k, checker, fn)
         [t,k] = checker(k);
         if any(t)
-            log('TRIGGER %s %s', func2str(fn), struct2str(srmfield(k,notlogged)));
+            fprintf(logf,'TRIGGER %s %s\n', func2str(fn), struct2str(srmfield(k,notlogged)));
             fn(k);
             events(end+1,:) = {k.next, func2str(fn)};
         end
@@ -85,7 +82,7 @@ function this = Trigger(varargin)
             [t, k] = checkers{i}(k);
             if any(t)
                 fns{i}(k);
-                log('TRIGGER %s %s', func2str(fns{i}), struct2str(srmfield(k,notlogged)));
+                fprintf(logf,'TRIGGER %s %s\n', func2str(fns{i}), struct2str(srmfield(k,notlogged)));
                 events(end+1,:) = {k.next, func2str(fns{i})};
                 break;
             end
@@ -128,7 +125,7 @@ function this = Trigger(varargin)
             k.triggerTime = tt;
             k.triggerIndex = ii;
             ffn(k);
-            log('TRIGGER %s %s', func2str(ffn), struct2str(srmfield(k,notlogged)));
+            fprintf(logf,'TRIGGER %s %s\n', func2str(ffn), struct2str(srmfield(k,notlogged)));
             events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end
     end

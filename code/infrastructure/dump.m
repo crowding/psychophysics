@@ -22,7 +22,6 @@ function dump(obj, printer, prefix)
     % when reading a file back in data analysis (e.g. substitute an analysis
     % function for the constructor in the right context, and analysis is as
     % simple as reading and evaluating all lines.)
-    
     if ~exist('prefix', 'var')
         prefix = inputname(1);
         if isempty(prefix)
@@ -30,6 +29,13 @@ function dump(obj, printer, prefix)
         end
     end
 
+    if exist('printer', 'var') && isnumeric(printer)
+        %an optimization: don't invoke nested functions 'less you have to.
+        %Special case dumping to a filehandle.
+        dumptofile(prefix,obj,printer)
+        return
+    end
+    
     if ~exist('printer', 'var') || isempty(printer)
         printer = @printf;
     end

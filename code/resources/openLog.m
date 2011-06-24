@@ -14,13 +14,18 @@ init = currynamedargs(@initLog, defaults, varargin{:});
                 error('openLog:problemOpeningFile', 'status %d opening log file "%s"', file_, fname);
             end
         else
-            file_ = -1;
+            fname = '/dev/null';
+            file_ = fopen(fname, 'a');
+            if (file_ <= 0)
+                error('openLog:problemOpeningFile', 'status %d opening log file "%s"', file_, fname);
+            end
+            %file_ = -1;
         end
         
         if isempty(params.log)
             params.log = @logMessage;
+            params.logf = file_;
         end
-        
         
         %test line breaking (FIXME: should be a unit test)
         %logMessage([repmat('1234567890', 1, 22) '12']);
@@ -44,6 +49,8 @@ init = currynamedargs(@initLog, defaults, varargin{:});
         function logMessage(varargin)
             %log a message with args like sprintf. If the eyelink is connected,
             %logs the message to the eyelink.
+            
+            %this should not be called. it should all be fprintf's.
             str = sprintf(varargin{:});
                 
             if file_ > 0

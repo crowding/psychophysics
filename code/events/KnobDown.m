@@ -1,6 +1,6 @@
 function this = KnobDown(varargin)
     fn = [];
-    log = @noop;
+    logf = [];
     
     set_ = [];
 
@@ -21,7 +21,7 @@ function this = KnobDown(varargin)
     
     function s = check(s)
         if set_ && s.knobDown > 0
-            log('TRIGGER %s %s', func2str(fn), struct2str(s));
+            fprintf(logf,'TRIGGER %s %s\n', func2str(fn), struct2str(s));
             fn(s);
         end
     end

@@ -12,7 +12,7 @@ function this = KeyDown(fn, char, varargin)
 last_ = false(size(getOutput(3, @KbCheck)));
 evtable = cell(size(last_));
 
-log = @noop;
+logf = [];
 
 persistent init__;
 this = autoobject(varargin{:});
@@ -56,7 +56,7 @@ end
             k.keysPressed = new;
             for i = evtable(new(:))
                 if ~isempty(i{1})
-                    log('TRIGGER %s %s', func2str(i{1}), struct2str(k));
+                    fprintf(logf,'TRIGGER %s %s\n', func2str(i{1}), struct2str(k));
                     i{1}(k);
                 end
             end

@@ -11,7 +11,7 @@ function this = EyeVelocityFilter(varargin)
     vcutoff = 25; %cutoff of the velocity filter
     vorder = 5; %order of the velocity filter
 
-    log = @noop; %log not used...
+    logf = []; %log not used...
     
     persistent init__;
     this = autoobject(varargin{:});
