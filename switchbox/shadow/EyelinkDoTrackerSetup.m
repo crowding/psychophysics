@@ -16,7 +16,7 @@ function result = EyelinkDoTrackerSetup(el, varargin)
            , @doit);
        
     function doit(params)
-        global switchbox___;
+        global switchbox___; 
         switchbox___ = params;
         result = EyelinkDoTrackerSetup(el, varargin{:});
         params.switchin();
