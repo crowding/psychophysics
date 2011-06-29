@@ -122,7 +122,7 @@ function this = ConcentricDirectionConstant(varargin)
     this.trials.blockSize = 160;
 
     this.trials.startTrial = MessageTrial('message', @()sprintf('Use knob to indicate direction of rotation.\nPress knob to begin.\n%d blocks in experiment', this.trials.blocksLeft()));
-    this.trials.endBlockTrial = MessageTrial('message', @()sprintf('Press knob to continuthis.\n%d blocks remain', this.trials.blocksLeft()));
+    this.trials.endBlockTrial = MessageTrial('message', @()sprintf('Take a break, stretch, adjust your chair, etc.\nPress knob to continue.\n%d blocks remain', this.trials.blocksLeft()));
 
     this.trials.blockTrial = EyeCalibrationMessageTrial...
         ( 'minCalibrationInterval', 0 ...
