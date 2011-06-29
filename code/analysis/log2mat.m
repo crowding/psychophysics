@@ -1,7 +1,7 @@
 function log2mat(infile, outfile)
 
 %if it is a gzip file...
-[s__, type__] = system(sprintf('file -ib "%s"', infile));
+[s__, type__] = system(sprintf('file -b "%s"', infile));
 if strfind(type__, 'gzip')
     params = struct('gzipfile', {infile});
     reader = @gunziplines;
