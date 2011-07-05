@@ -8,13 +8,14 @@ function params = PlayDemo(trial, varargin)
         , 'hideCursor', 0 ...
         , 'aviout', '' ...
         , 'priority', 0 ...
+        , 'logfile', '' ...
         );
     
     if isfield(trial, 'getParams')
         defaults = namedOptions(struct(), trial.getParams(), defaults)
     end
     
-    require(namedOptions(struct(), localExperimentParams(), defaults, varargin{:}), getScreen(), @initInput, trial.run)
+    require(namedOptions(struct(), localExperimentParams(), defaults, varargin{:}), getScreen(), @initInput, openLog(), trial.run)
 end
 
 function [release, par, next] = initInput(par)
