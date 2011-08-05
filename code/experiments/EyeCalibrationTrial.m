@@ -4,9 +4,9 @@ function this = EyeCalibrationTrial(varargin)
     startTime = 0;
     onset = .0; %the onset of the saccade target.
     
-    velocityThreshold = 20; %the velocity threshold for detecting a saccade.
+    velocityThreshold = 50; %the velocity threshold for detecting a saccade.
     
-    minLatency = .100; %the minimum saccade latency (defined by velocity threshold crossing)
+    minLatency = .070; %the minimum saccade latency (defined by velocity threshold crossing)
     maxLatency = .300; %the maximum latency for the saccade.
     saccadeMaxDuration = .100; %the max duration for the saccade.
     
@@ -21,6 +21,10 @@ function this = EyeCalibrationTrial(varargin)
     targetY = 0; %where the target appears
     targetRadius = 0.2; %the outer dark ring
     targetInnerRadius = 0.10; %the inner white spot
+    oldTargetX = 0;
+    oldTargetY = 0;
+    useOldTarget = 0;
+    useDetailedFeedback = 1;
 
     rewardDuration = 100; %duration of the reward.
     plotOutcome = 1;
@@ -33,14 +37,16 @@ function this = EyeCalibrationTrial(varargin)
         result = struct('target', [targetX targetY]);
         
         target = FilledDisk('loc', [targetX targetY], 'radius', targetRadius, 'color', [0 0 0], 'visible', 0);
-        targetCenter = FilledDisk('loc', [targetX targetY], 'radius', targetInnerRadius, 'color', [0 0 0] + params.whiteIndex, 'visible', 0);
+        targetCenter = FilledDisk('loc', [targetX targetY], 'radius', targetInnerRadius, 'color', ([1 1 1] - [1 0 0] * useOldTarget) * params.whiteIndex, 'visible', 0);
+        oldTarget = FilledDisk('loc', [oldTargetX, oldTargetY], 'radius', targetRadius, 'color', [0 0 0], 'visible', useOldTarget);
+        oldTargetCenter = FilledDisk('loc', [oldTargetX, oldTargetY], 'radius', targetInnerRadius, 'color', [0 0 0] + params.whiteIndex, 'visible', useOldTarget);
         
         trigger = Trigger();
         
         main = mainLoop...
             ( 'input', {params.input.keyboard, params.input.eyes}...
             , 'triggers', {EyeVelocityFilter(), trigger} ...
-            , 'graphics', {target, targetCenter} ...
+            , 'graphics', {oldTarget, oldTargetCenter, target, targetCenter} ...
             );
         
         trigger.singleshot(atLeast('next', startTime), @begin);
@@ -67,7 +73,7 @@ function this = EyeCalibrationTrial(varargin)
             targetCenter.setVisible(1);
             onset_ = s.next;
             params.input.eyes.eventCode(s.refresh, 0);
-            %use 'first' to calture the time coordinate of the threshold
+            %use 'first' to capture the time coordinate of the threshold
             %crossing.
             trigger.first...
                 ( magnitudeAtLeast('eyeVx', 'eyeVy', velocityThreshold), @beginSaccade,  'eyeVt' ...
@@ -114,7 +120,11 @@ function this = EyeCalibrationTrial(varargin)
         function success(s)
             params.input.eyes.reward(s.refresh+1, rewardDuration);
             target.setVisible(0);
-            targetCenter.setVisible(0);
+            targetCenter.setVisible(0);            
+            oldTarget.setLoc([targetX; targetY])
+            oldTargetCenter.setLoc([targetX; targetY])
+            oldTargetX = targetX;
+            oldTargetY = targetY;
             result.success = 1;
             result.endTime = s.next;
             trigger.singleshot(atLeast('next', s.next+rewardDuration/1000 + .200), main.stop);
@@ -148,6 +158,10 @@ function this = EyeCalibrationTrial(varargin)
         function failed(s)
             target.setVisible(0);
             targetCenter.setVisible(0);
+            oldTarget.setLoc([targetX; targetY])
+            oldTargetCenter.setLoc([targetX; targetY])
+            oldTargetX = targetX;
+            oldTargetY = targetY;
             result.success = 0;
             result.endTime = s.next;
             trigger.singleshot(atLeast('refresh', s.refresh+1), main.stop);

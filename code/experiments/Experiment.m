@@ -159,9 +159,8 @@ end
     function run(varargin)
         if isempty(subject)
             subject = input('Enter subject initials: ', 's');
+            lookupSubject_()
         end
-        
-        lookupSubject_()
         
         params = namedargs(params, varargin{:});
         if ~isempty(handles)

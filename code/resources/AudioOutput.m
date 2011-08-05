@@ -80,7 +80,7 @@ function this = AudioOutput(varargin)
     
         release = @undo;
         function undo
-            psychPortAudio('RunMode', pahandle_, previous);
+            PsychPortAudio('RunMode', pahandle_, previous);
         end
         
         next = @setLatency_;

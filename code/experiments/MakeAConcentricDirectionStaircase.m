@@ -9,7 +9,7 @@ function this = MakeAConcentricDirectionStaircase(param, varargin)
     % add in the temporal frequencies to test.
     try
         lv = this.trials.get(param);
-        this.trials.replave(param, [lv*2/3 lv lv*3/2]);
+        this.trials.replace(param, [lv*2/3 lv lv*3/2]);
     catch
         its_ = Genitive();
         substr = cat(2, its_.trials.base, tosubstruct(param));
@@ -50,6 +50,8 @@ function this = MakeAConcentricDirectionStaircase(param, varargin)
     cellfun(this.trials.remove, parameters);
     grid = num2cell(grid, 2);
     this.trials.addBefore('motion.process.t', parameters, grid);
+    this.trials.reps = 14;
+    this.trials.blockSize = 168;
     
     this.property__(varargin{:});
 end

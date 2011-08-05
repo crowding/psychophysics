@@ -16,7 +16,7 @@ targetX = [-10 -5 0 5 10];
 targetY = [-10 -5 0 5 10];
     
 beginMessage = [];
-base = EyeCalibrationTrial();
+base = EyeCalibrationTrial('useOldTarget', 1);
 endMessage = [];
 
 seed = randseed(); %keep our own rand seed.
@@ -54,8 +54,10 @@ this = autoobject(varargin{:});
 
                 %pick an X and a Y
                 rand('twister', seed);
-                base.setTargetX(targetX(ceil(rand*numel(targetX))));
-                base.setTargetY(targetY(ceil(rand*numel(targetY))));
+                while (base.getTargetX() == base.getOldTargetX() && base.getTargetY() == base.getOldTargetY());
+                    base.setTargetX(targetX(ceil(rand*numel(targetX))));
+                    base.setTargetY(targetY(ceil(rand*numel(targetY))));
+                end
                 seed = rand('twister');
 
                 %collect an eye movement...

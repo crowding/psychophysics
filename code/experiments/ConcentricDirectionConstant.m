@@ -42,7 +42,7 @@ function this = ConcentricDirectionConstant(varargin)
                 , 'order', 4 ...
                 ) ...
             ) ...
-        , 'maxResponseLatency', 0.350 ...
+        , 'maxResponseLatency', 0.5 ...
         , 'beepFeedback', 1 ...
         );
     
@@ -64,8 +64,8 @@ function this = ConcentricDirectionConstant(varargin)
     this.trials.add('extra.nTargets', [6 9 12 15 18 21 23 25]);
 %%
         
-    %variable onset
-    this.trials.add('motion.process.t', ExponentialDistribution('offset', 0.15, 'max', 1.15, 'tau', 1));
+    %no longer %variable onset
+    this.trials.add('motion.process.t', 0.25); %ExponentialDistribution('offset', 0.15, 'max', 1.15, 'tau', 1));
 
     %randomize global and local direction....
     this.trials.add('extra.phase', UniformDistribution('lower', 0, 'upper', 2*pi));
@@ -75,7 +75,7 @@ function this = ConcentricDirectionConstant(varargin)
     this.trials.add('extra.localDirection', [1 0 -1]);
     
     %await the input after the stimulus has finished playing.
-    this.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
+    this.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)) + 0.15);
     
     %this procedure translates the extra parmeters into lower level values.
     this.trials.add([], @appearance);

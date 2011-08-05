@@ -15,7 +15,7 @@ function params = PlayDemo(trial, varargin)
         defaults = namedOptions(struct(), trial.getParams(), defaults)
     end
     
-    require(namedOptions(struct(), localExperimentParams(), defaults, varargin{:}), getScreen(), @initInput, openLog(), trial.run)
+    require(namedOptions(struct(), localExperimentParams(), defaults, varargin{:}), getScreen(), openLog(), @initInput, trial.run)
 end
 
 function [release, par, next] = initInput(par)
