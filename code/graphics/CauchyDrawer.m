@@ -104,7 +104,22 @@ function this = CauchyDrawer(varargin)
             return;
         end
         
-        [xy, angle, wavelength, order, width, color, phase] = source.get(next - onsetTime_);
+        if ~iscell(source)
+            [xy, angle, wavelength, order, width, color, phase] = source.get(next - onsetTime_);
+        else
+            out1 = cell(7,numel(source), 7);
+            for i = 1:numel(source)
+                [out1{i,:}] = source{i}.get(next - onsetTime_);
+            end
+
+            out2 = cell(1,7);
+            for i = 1:7
+                % is there seriously not a way to do this?
+                out2{i} = cat(1, out{:,i});
+            end
+                
+            [xy, angle, wavelength, order, width, color, phase] = out2{:};
+        end
         %draw some GL points in the place for now...
         
         nQuads = size(xy, 2);

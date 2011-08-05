@@ -35,6 +35,8 @@ function this = CauchySpritePlayer(varargin)
     %and we simply expose its draw and update methods.
     this.method__('draw', cd_.draw);
     this.method__('update', cd_.update);
+    this.method__('getSource', cd_.getSource);
+    this.method__('setSource', cd_.getSource);
 
     %to fully specify a cauchy blob we need these fields, and only these
     %fields. this is the queue.

@@ -4,6 +4,6 @@ function this = ConcentricDemo(varargin)
 %button presses adjust the position...
 
     x = AdjustableDemo();
-    playDemo(x, varargin{:}, 'skipFrames', 0)
+    playDemo(x, varargin{:}, 'skipFrames', 1);
 end
 

@@ -1,4 +1,4 @@
-function this = KeyDown(fn, char, varargin)
+function this = KeyDown(fn_, char_, varargin)
 %function this = KeyDown(fn, char);
 %Reacts to keys being pressed down.
 %fn = a function to call;
@@ -18,9 +18,9 @@ persistent init__;
 this = autoobject(varargin{:});
 
 if nargin >= 2
-    set(fn, char);
+    set(fn_, char_);
 elseif nargin >= 1
-    set(fn);
+    set(fn_);
 end
 
 %------methods------

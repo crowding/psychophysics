@@ -227,7 +227,7 @@ function this = autoobject(varargin)
             end
         else
             [varargout{1:nargout}] = subsref(whatsleft, subs(end));
-            [varargout{1:nargout}] = unwrap(varargout{1:nargout});
+            %[varargout{1:nargout}] = unwrap(varargout{1:nargout});
         end
     end
 

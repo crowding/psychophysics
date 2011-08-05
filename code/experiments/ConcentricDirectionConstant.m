@@ -91,6 +91,10 @@ function this = ConcentricDirectionConstant(varargin)
         mot.setDuration(extra.durationScalar .* extra.dt);
         
         ph = mod(extra.phase + (0:extra.nTargets-1)/extra.nTargets*2*pi, 2*pi);
+        if isfield(extra, 'nVisibleTargets')
+            ph = ph(1:extra.nVisibleTargets);
+        end
+        
         %For balance we need to have three kinds of motion: supporting, opposing, and ambiguous.
 
         if extra.localDirection ~= 0

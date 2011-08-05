@@ -23,9 +23,28 @@ function this = AdjustableDemo(varargin)
                 , 'outerRadius', 12 ...
                 , 'visible', 1 ...
                 );
+            
+    %hack in the crowder...
+    crowderNumber = 20;
+    flankerFactor = 1.1;
+    theColor = repmat([0.5;0.5;0.5] / 4, 1, 4*crowderNumber);
+    crowder = CircularSmoothCauchyMotion ...
+        ( 'omega', 0 ...
+...%        , 'radius', repmat([repmat(9, 1, crowderNumber) repmat(11, 1, crowderNumber)], 1,2) ...
+        , 'angle', repmat([1:crowderNumber 1:crowderNumber] * 360/crowderNumber + 90, 1, 2)  ...
+        , 'color', @(t)theColor * (sin(t)+1)/2 ...
+        , 'phase', repmat([1:crowderNumber 1:crowderNumber] * 2*pi/crowderNumber, 1, 2) ...
+        , 'localPhase', zeros(1, 4*crowderNumber) ...
+        ... , 'width', (0.5) ...
+        , 'wavelength', 0.75 ...
+        , 'order', repmat(4, 1, 4*crowderNumber) ...
+        , 'localOmega', [repmat(20*pi, 1, 2*crowderNumber), repmat(-20*pi, 1, 2*crowderNumber)] ...
+        );
 
+    crowder_ = CauchyDrawer('source',crowder, 'visible', 1);
+    
     displayon_ = 0;
-%    color_ = 0;
+    %color_ = 0;
     
     angleShift = 0;
 
@@ -138,6 +157,16 @@ function this = AdjustableDemo(varargin)
 %         else
 %             motion.setColor([0.5;0.5;0.5]/(sqrt(2)^(ambiguous_+1)));
 %         end
+        crowderstribute()
+    end
+
+    function crowderstribute()
+        crowder.setRadius...
+            (  this.property__(my_.motion.radius(1)) ...
+            .* repmat([repmat(flankerFactor, 1, crowderNumber), repmat(1/flankerFactor, 1, crowderNumber)], 1,2)...
+            );
+        crowder.setWidth(crowder.getRadius() * 0.05);
+        crowder.setWavelength(crowder.getRadius() * 0.075);
     end
             
     function params = run(params)        
@@ -150,7 +179,7 @@ function this = AdjustableDemo(varargin)
         keyboard = KeyDown();
        
         main = mainLoop ...
-            ( 'graphics', {sprites, occluder, fixation, text} ...
+            ( 'graphics', {sprites, crowder_, occluder, fixation, text} ...
             , 'triggers', {trigger, keyboard} ...
             , 'input', {params.input.keyboard} ...
             );
@@ -179,8 +208,8 @@ function this = AdjustableDemo(varargin)
         status_string = [status_string 'S/W l = %0.2g (deg)\n'];
         status_fns{end+1} = motion.getWavelength;
 
-        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [sqrt(sqrt(2)) 1/sqrt(sqrt(2))], h), 'e');
-        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [1/sqrt(sqrt(2)) sqrt(sqrt(2))], h), 'd');
+        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [sqrt(sqrt(2)) 1/sqrt(sqrt(2))], h, @crowderstribute), 'e');
+        keyboard.set(@(h) multiply(motion, {'radius', 'dphase'}, [1/sqrt(sqrt(2)) sqrt(sqrt(2))], h, @crowderstribute), 'd');
         status_string = [status_string 'D/E r = %0.2g (deg)\n'];
         status_fns{end+1} = motion.getRadius;
 
@@ -224,26 +253,31 @@ function this = AdjustableDemo(varargin)
         status_string = [status_string '[/'' dp = %0.2g*pi\n'];
         status_fns{end+1} = @()motion.getDLocalPhase()/pi;
 
-        keyboard.set(@(h) add(this, 'angleShift',  12, h),                 ']}');
-        keyboard.set(@(h) add(this, 'angleShift',  12, h),                 'Return');
+        keyboard.set(@(h) add(this, 'angleShift',  12, h, @distribute),              ']}');
+        keyboard.set(@(h) add(this, 'angleShift',  -12, h, @distribute),             'Return');
         status_string = [status_string ']/RET angle = %0.2g deg\n'];
         status_fns{end+1} = this.getAngleShift;
                 
         keyboard.set(@reverse,                                             'z');
         keyboard.set(@incongruent,                                         'x');
-        keyboard.set(@(h)add(this,'relativeContrast', -0.10, h, 1),        'c');
+        keyboard.set(@(h)add(this,'relativeContrast', -0.10, h, @distribute),        'c');
         keyboard.set(@counterphase,                                        'v');
-        keyboard.set(@(h)add(this,'relativeContrast',  0.10, h, 1),        'b');
+        keyboard.set(@(h)add(this,'relativeContrast',  0.10, h, @distribute),        'b');
         keyboard.set(@congruent,                                           'n');        
         status_string = [status_string 'c/b local content = %0.2g\n'];
         status_fns{end+1} = this.getRelativeContrast;
         
         
-        keyboard.set(@occludertoggle,                                      '/?');
-        keyboard.set(@(h) add(occluder, 'startAngle',  pi/4,  h),          '.>');
-        keyboard.set(@(h) add(occluder, 'startAngle',  -pi/4, h),          ',<');
-        status_string = [status_string '>/< occluder angle = %0.2g\n'];
-        status_fns{end+1} = occluder.getStartAngle;
+        %keyboard.set(@occludertoggle,                                      '/?');
+        %keyboard.set(@(h) add(occluder, 'startAngle',  pi/4,  h),          '.>');
+        %keyboard.set(@(h) add(occluder, 'startAngle',  -pi/4, h),          ',<');
+        %status_string = [status_string '>/< occluder angle = %0.2g\n'];
+        %status_fns{end+1} = occluder.getStartAngle;
+        
+        keyboard.set(@crowdertoggle,                                       '/?');
+        keyboard.set(@(h) multiply(this, 'flankerFactor',  {1.05},   h, @crowderstribute),'.>');
+        keyboard.set(@(h) multiply(this, 'flankerFactor',  {1/1.05}, h, @crowderstribute),',<');
+                               
         
         keyboard.set(@pause,                                               'DELETE');
         status_string = [status_string '[delete] pause\n'];
@@ -274,29 +308,35 @@ function this = AdjustableDemo(varargin)
             display(h);
         end
         
-        function multiply(object, property, factor, h, disto)
+        function multiply(object, property, factor, h, cleanup)
             if ~iscell(property)
                 property = {property};
             end
+            if ~iscell(factor)
+                factor = num2cell(factor);
+            end
             for i = 1:numel(property)
-                object.property__(property{i}, object.property__(property{i}) .* factor(i));
+                object.property__(property{i}, object.property__(property{i}) .* factor{i});
             end
             display(h);
-            if exist('disto', 'var') && disto
-                distribute()
+            if exist('cleanup', 'var')
+                cleanup()
             end
         end
         
-        function add(object, property, factor, h, disto)
+        function add(object, property, factor, h, cleanup)
             if ~iscell(property)
                 property = {property};
             end
+            if ~iscell(factor)
+                factor = num2cell(factor);
+            end
             for i = 1:numel(property)'
-                object.property__(property{i}, object.property__(property{i}) + factor(i));
+                object.property__(property{i}, object.property__(property{i}) + factor{i});
             end
             display(h);
-            if exist('disto', 'var') && disto
-                distribute()
+            if exist('cleanup', 'var')
+                cleanup()
             end
         end
         
@@ -345,6 +385,10 @@ function this = AdjustableDemo(varargin)
 
         function occludertoggle(h)
             occluder.setVisible(~occluder.getVisible());
+        end
+        
+        function crowdertoggle(h)
+            crowder_.setVisible(~crowder_.getVisible());
         end
         
 %         function colortoggle(h)

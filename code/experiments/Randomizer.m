@@ -39,7 +39,7 @@ endTrialResults = [];
 
 requireSuccess = 0; %do you require a 'success' to count as a trial in the block?
 
-randomizers = struct('subs', {}, 'values', {});
+randomizers = struct('subs', {}, 'values', {}, 'blocked', {});
 
 parameterColumns = {}; %the substructs corresponding to the parameter columns.
 parameters = {}; %a history of the trial parameters that were assigned.
@@ -55,6 +55,8 @@ fullFactorial = 0;
 reps = 1;
 design = {};
 designDone = [];
+organizedBlocks = [];
+currentOrganizedBlock = 1;
 designOrder = [];
 displayFunc = @noop; %called after every successful trial....
 seed = randseed();
@@ -117,34 +119,45 @@ this = autoobject(varargin{:});
         out = randomizers(findix_(subs)).values;
     end
 
-    function add(subs, values)
+    function add(subs, values, blocked)
         %adds a randomizer, replacing if possible.
-        replace(subs, values, 0);
+        if ~exist('blocked', 'var')
+            blocked = 0;
+        end
+        replace(subs, values, 0, blocked);
     end
 
-    function addBefore(before, subs, values)
+    function addBefore(before, subs, values, blocked)
+        if ~exist('blocked', 'var')
+            blocked = 0;
+        end
         ix = findix_(before);
         randomizers((ix+1):(end+1)) = randomizers(ix:end);
-        replaceWith(before, subs, values)
+        replaceWith(before, subs, values, 1, blocked);
     end
 
     function remove(subs)
         replace(subs, []);
     end
 
-    function replace(subs, values, require_present)
+    function replace(subs, values, require_present, blocked)
         % replace an already set randomizer
         if ~exist('require_present', 'var')
             require_present = 1;
         end
-        replaceWith(subs, subs, values, require_present)
+        if ~exist('blocked', 'var')
+            blocked = 0;
+        end
+        replaceWith(subs, subs, values, require_present, blocked)
     end
 
-    function replaceWith(subs, newsubs, values, require_present)
+    function replaceWith(subs, newsubs, values, require_present, blocked)
         if ~exist('require_present', 'var')
             require_present = 1;
         end
-        
+        if ~exist('blocked', 'var')
+            blocked = 0;
+        end
         if ~isempty(results)
             error('won''t invalidate results!');
         end
@@ -163,7 +176,7 @@ this = autoobject(varargin{:});
         if isempty(values)
             randomizers(ix) = [];
         else
-            randomizers(ix)= struct('subs', {newsubs}, 'values', {values});
+            randomizers(ix)= struct('subs', {newsubs}, 'values', {values}, 'blocked', blocked);
         end
         reset();
     end
@@ -489,7 +502,10 @@ this = autoobject(varargin{:});
 
     lastPicked_ = NaN; %the last item we picked...
     function params = pickWithoutReplacing_()
-        which = find(~designDone);
+        %organize into blocks
+        thisBlock = min(organizedBlocks(~designDone));
+        
+        which = find(~designDone & organizedBlocks == thisBlock);
         rand('twister', seed);
         ix = ceil(rand*numel(which));
         seed = rand('twister');
@@ -506,6 +522,11 @@ this = autoobject(varargin{:});
         design = fullfact(cellfun('prodofsize', r));
         design = repmat(design, reps, 1);
         designDone = false(size(design, 1), 1);
+        
+        %fun MATLAB fact! If you are in the debugger and try issuing the
+        %following command, it will fail because "Attempt to add "%U35" to
+        %a static workspace!
+        [~,~,organizedBlocks] = unique(design(:,logical([randomizers.blocked])), 'rows');
     end
     
     function out = select_(list, indices)
