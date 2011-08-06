@@ -15,25 +15,29 @@ function [configurations, counts] = occlusiongen()
     % the extent of the stimulus is in some range
 
     %        ( 'spacing', 2*pi ./([8 9 11 12 14 16 18 20 22 24]) ...
-
+    %9 11 13 16 19 23
     
-    min_extent_allowed = pi/2;
-    max_extent_allowed = 3*pi/4;
-    min_distance = 0.075 * 2;
+    min_extent_allowed = 105/180 * pi;
+    max_extent_allowed = 165/180 * pi;
     configurations = expandGrid...
-        ( 'spacing', 2*pi ./([8 12 16 20 24]) ...
-        , 'nTargets', 2:6 ...
+        ( 'spacing', 2*pi ./([9 12 15 18 21 24]) ...
+        , 'nTargets', 3:8 ...
         , 'stepsize', 0.075 ...
-        , 'nsteps', 4 ...
+        , 'nsteps', 4 ... %fencepost! this means FIVE appearances, FOUR displacements
         );
 
     %work it out and determine a minimum and maximum 
     configurations.min_distance = 2 * configurations.stepsize;
-    configurations.max_distance = configurations.spacing;
-    configurations.traversed = (configurations.nsteps - 1).*configurations.stepsize;
+    configurations.max_distance = configurations.spacing + 3*configurations.stepsize;
+    configurations.traversed = (configurations.nsteps).*configurations.stepsize;
     configurations.min_extent = configurations.spacing .* (configurations.nTargets - 1) + configurations.traversed + 2*configurations.min_distance;
-    configurations.max_extent = configurations.spacing .* (configurations.nTargets - 1) + 2*configurations.max_distance - configurations.traversed + 2*configurations.min_distance;
-    configurations.compatible = (configurations.min_extent <= max_extent_allowed) & (configurations.max_extent >= min_extent_allowed);
+    configurations.max_extent = configurations.spacing .* (configurations.nTargets - 1) + 2*configurations.max_distance - configurations.traversed;
+    
+    configurations.compatible = (configurations.min_extent <= max_extent_allowed) & (configurations.max_extent >= min_extent_allowed) & (configurations.min_extent <= configurations.max_extent);
+    %configurations.compatible = (configurations.min_extent <= max_extent_allowed) & (configurations.max_extent >= min_extent_allowed);
+    
+    configurations.min_extent = max(configurations.min_extent, min_extent_allowed);
+    configurations.max_extent = min(configurations.max_extent, max_extent_allowed);
     
     %now, how many element counts are compatible with each spacing?
     spacingCases = struct...
@@ -56,7 +60,8 @@ function [configurations, counts] = occlusiongen()
     configurations = soaSubset(configurations, configurations.compatible);
     
     subplot(2,2,1);
-    plot(configurations.nTargets, log(180/pi * configurations.spacing), 'k.');
+    plot(configurations.nTargets, 180/pi * configurations.spacing, 'k.');
+    
     xlabel('number of targets');
     ylabel('spacing (degrees)');
     

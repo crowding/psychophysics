@@ -72,6 +72,8 @@ function this = CircularCauchyMotion(varargin)
 %       [tt, i] = min(t + c .* dt);
         
         if ~isnan(tt)
+            %phase + dphase.*c
+            
             xxx = x + radius .* cos(phase + dphase.*c);
             yyy = y - radius .* sin(phase + dphase.*c);
             aaa = angle + 180/pi .* dphase.*c;

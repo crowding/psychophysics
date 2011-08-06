@@ -1,15 +1,18 @@
 function x = substruct2str(subs)
-
-    for i = numel(subs):-1:1
-        if numel(subs(i).type) == 1
-            x{i} = ['.' subs(i).subs];
-        else
-            x{i} = [subs(i).type(1) join(',', cellfun(@sub, subs(i).subs(:)', 'UniformOutput', 0)) subs(i).type(2)];
+    if iscell(subs)
+        x = cellfun(@substruct2str, subs, 'UniformOutput', 0);
+    else
+        x = {};
+        for i = numel(subs):-1:1
+            if numel(subs(i).type) == 1
+                x{i} = ['.' subs(i).subs];
+            else
+                x{i} = [subs(i).type(1) join(',', cellfun(@sub, subs(i).subs(:)', 'UniformOutput', 0)) subs(i).type(2)];
+            end
         end
+        
+        x = [x{:}];
     end
-    
-    x = [x{:}];
-
 end
 
 function x = sub(s)

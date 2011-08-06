@@ -4,7 +4,7 @@
 
 function this = CauchySpritePlayer(varargin)
     %speed bodges. With these we have to assume this object is a singleton. Oh god.
-    persistent process;
+    %persistent process;
     %persistent this; %can't do that, but as long as 'this' isn't
     %referenced?
     
