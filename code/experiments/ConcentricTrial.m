@@ -104,7 +104,7 @@ function this = ConcentricTrial(varargin)
             fixation.setVisible(1);
             if useOccluders
                 for i = occluders(:)'
-                    i{1}.setVisible(1);
+                    i{1}.setVisible(1, h.next()); % do we want it available here, or in sync with the rest of the stimulus?
                 end
             end
             trigger.first ...

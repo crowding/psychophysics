@@ -6,6 +6,7 @@ function this = ConcentricDirectionSegment(varargin)
     %densities, we want to select them from a grid of values that work
     
     this.trials.reps = 1;
+    this.trials.base.extra.flankerCarriesLocal = 0;
     
     %we have another script for generating some configurations...
     configurations = occlusiongen();
@@ -16,50 +17,24 @@ function this = ConcentricDirectionSegment(varargin)
         , num2cell(num2cell([round(2*pi./configurations.spacing), configurations.nTargets, configurations.nsteps, configurations.min_extent, configurations.max_extent, configurations.min_distance]'), 1));
     this.trials.addBefore('extra.nTargets', 'extra.side', {'left', 'right', 'right', 'left', 'left', 'right', 'right', 'left'}, 1); %side is blocked
     
-    %the occluder consists of two cauchy patches
-    this.trials.base.occluders = {...
-        CauchyDrawer('source', CircularSmoothCauchyMotion( ...
-              'omega', 0 ...
-            , 'radius', [20/3 20/3] ...
-            , 'angle', [0 0]...
-            , 'color', [0 0;0 0;0 0] + 0.5/sqrt(2) ...
-            , 'phase', [0 0] ...
-            , 'localPhase', [0 0] ...
-            , 'width', [.05 .05] * 20/3 * 3 ...
-            , 'wavelength', [0.075 0.075] * 20/3 ...
-            , 'order', [4 4] ...
-            , 'localOmega', [0 0] ...
-            ));
-        };
+    this.trials.base.useOccluders = 0;
     
-        this.trials.base.occluders = {...
-        CauchyDrawer('source', CircularSmoothCauchyMotion( ...
-              'omega', 0 ...
-            , 'radius', [20/3 20/3 20/3 20/3] ...
-            , 'angle', [0 0 0 0]...
-            , 'color', [0 0 0 0;0 0 0 0;0 0 0 0] + 0.25/sqrt(2) ...
-            , 'phase', [0 0 0 0] ...
-            , 'localPhase', [0 0 0 0] ...
-            , 'width', [.075 .075 .075 .075] * 20/3 ...
-            , 'wavelength', [0.075 0.075 .075 .075] * 20/3 ...
-            , 'order', [4 4 4 4] ...
-            , 'localOmega', [10 10 -10 -10]*2*pi ...
-            ));
-        };
-    this.trials.base.useOccluders = 1;
-    
-    this.trials.addBefore('extra.localDirection', {'occluders{1}.source.phase', 'occluders{1}.source.angle', 'extra.phase'}, @occluder);
+    this.trials.addBefore('extra.localDirection', {'extra.flankerPhase', 'extra.flankerAngle', 'extra.phase'}, @occluder);
     function out = occluder(b)
         extra = b.extra;
         %pick a random extent between the min and max extent
-        extent = extra.min_extent; %rand() * (extra.max_extent - extra.min_extent) + extra.min_extent;
+        extent = rand() * (extra.max_extent - extra.min_extent) + extra.min_extent;
         movingExtent = 2*pi/extra.nTargets * (extra.nVisibleTargets-1);
-        traversed = extra.globalVScalar * b.motion.process.dt * b.motion.process.n
+        traversed = extra.globalVScalar * b.motion.process.dt * b.motion.process.n;
         switch(extra.side)
             case 'left'
-                flankPhase = pi + [-0.5 0.5 -0.5 0.5]*extent;
+                flankPhase = pi + [-0.5 0.5]*extent;
             case 'right'
-                flankPhase = [-0.5 0.5 -0.5 0.5]*extent;
+                flankPhase = [-0.5 0.5]*extent;
+            case 'top'
+                flankPhase = 3*pi/2 + [-0.5 0.5]*extent;
+            case 'bottom'
+                flankPhase = pi/2 + [-0.5 0.5]*extent;
         end
         
         switch(extra.globalDirection)
@@ -69,33 +44,53 @@ function this = ConcentricDirectionSegment(varargin)
                 phase = flankPhase(1) + extra.min_distance + rand() * (extent - movingExtent - traversed - 2*extra.min_distance);
         end
         
-        %phase + movingExtent + .075 * 4
-        %extra.min_extent - movingExtent - .075*5
-        %extra.max_extent - movingExtent*(extra.nVisibleTargets+1)/(extra.nVisibleTargets-1) - .075*3
-        
         out = {flankPhase, flankPhase * 180/pi + 90, phase};
+    end
+
+    this.trials.add('extra.useFlankers', @configureFlankers)
+    function out = configureFlankers(b)
+        m = b.getMotion();
+        p = m.getProcess();
+        ex = b.getExtra();
+        
+        out = 1;
+        
+        n = numel(p.getPhase());
+        v = p.getVelocity();
+        c = p.getColor();
+        
+        if (ex.localDirection == 0)
+            p.setPhase([ex.flankerPhase ex.flankerPhase p.getPhase()]);
+            p.setAngle([ex.flankerAngle ex.flankerAngle p.getAngle()]);
+            p.setDphase([0 0 0 0 repmat(p.getDphase(), 1, n)]);
+            p.setVelocity([v(1) .* [1 1 -1 -1] v]);
+        elseif ex.flankerCarriesLocal
+            p.setPhase([ex.flankerPhase p.getPhase()]);
+            p.setAngle([ex.flankerAngle p.getAngle()]);
+            p.setDphase([0 0 repmat(p.getDphase(), 1, n)]);
+        else
+            p.setPhase([ex.flankerPhase ex.flankerPhase p.getPhase()]);
+            p.setAngle([ex.flankerAngle ex.flankerAngle p.getAngle()]);
+            p.setColor([c(:,[1 1 1 1]) / sqrt(2) repmat(c, 1, n)]);
+            p.setVelocity([v(1) * [1 1 -1 -1] repmat(v, 1, n)]);
+            p.setDphase([0 0 0 0 repmat(p.getDphase(), 1, n)]);
+            noop();
+        end
     end
 
     this.trials.remove('extra.r');
     this.trials.remove('extra.nTargets');
     this.trials.remove('extra.phase');
     
-%    this.trials.add('extra.foo', @diag);
-%    function out = diag(b)
-%        b.occluders{1}.source.phase
-%        b.motion.process.phase
-%        b.motion.process.phase + b.motion.process.dphase * (b.motion.process.n-1)
-%        out = 1;
-%    end
-
     this.trials.blockSize = this.trials.numLeft() / 4;
     
-    this.trials.base.requireFixation = 0;
-
-    this.trials.startTrial = [];
-    this.trials.endTrial = [];
-    this.trials.blockTrial = [];
-    this.trials.endBlockTrial = [];
+%     %for testing
+%      this.trials.base.requireFixation = 0;
+%      this.trials.startTrial = [];
+%      this.trials.endTrial = [];
+%      this.trials.blockTrial = [];
+%      this.trials.endBlockTrial = [];
+%      this.params.inputUsed = {'keyboard', 'knob', 'audioout'};
     
     this.property__(varargin{:});
 end

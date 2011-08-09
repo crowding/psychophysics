@@ -109,7 +109,7 @@ function this = ConcentricDirectionConstant(varargin)
             ph = reshape(repmat(ph, 2, 1), 1, []);
             mot.setPhase(ph);
             mot.setAngle(mod(ph*180/pi + 90, 360));
-            mot.setVelocity(wl .* extra.tf * repmat([-1 1], 1, extra.nTargets));
+            mot.setVelocity(wl .* extra.tf * repmat([-1 1], 1, numel(ph)/2));
             mot.setColor(extra.color / sqrt(2));
         end
         
