@@ -15,7 +15,7 @@ function this = ConcentricDirectionSegment(varargin)
         ( 'extra.nTargets' ...
         , {'extra.nTargets',                                      'extra.nVisibleTargets', 'motion.process.n',    'extra.min_extent',        'extra.max_extent',        'extra.min_distance'} ...
         , num2cell(num2cell([round(2*pi./configurations.spacing), configurations.nTargets, configurations.nsteps, configurations.min_extent, configurations.max_extent, configurations.min_distance]'), 1));
-    this.trials.addBefore('extra.nTargets', 'extra.side', {'left', 'right', 'right', 'left', 'left', 'right', 'right', 'left'}, 1); %side is blocked
+    this.trials.addBefore('extra.nTargets', 'extra.side', {'left', 'right', 'left', 'right', 'left', 'right'}, 1); %side is blocked
     
     this.trials.base.useOccluders = 0;
     
@@ -23,6 +23,8 @@ function this = ConcentricDirectionSegment(varargin)
     function out = occluder(b)
         extra = b.extra;
         %pick a random extent between the min and max extent
+        extra.max_extent
+        extra.min_extent
         extent = rand() * (extra.max_extent - extra.min_extent) + extra.min_extent;
         movingExtent = 2*pi/extra.nTargets * (extra.nVisibleTargets-1);
         traversed = extra.globalVScalar * b.motion.process.dt * b.motion.process.n;
@@ -82,7 +84,7 @@ function this = ConcentricDirectionSegment(varargin)
     this.trials.remove('extra.nTargets');
     this.trials.remove('extra.phase');
     
-    this.trials.blockSize = this.trials.numLeft() / 4;
+    this.trials.blockSize = this.trials.numLeft() / 6;
     
 %     %for testing
 %      this.trials.base.requireFixation = 0;

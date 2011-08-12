@@ -10,12 +10,19 @@ function this = PowermateInput(varargin)
 %
 %The state of the controller on each loop is expressed in these fields:
 %
-%       s.knobPosition = an 'integrated' position
-%       s.knobRotation = the number of steps rotated this loop
-%       s.knobButton = whether the button is pressed
-%       s.knobDown = whether the knob was pressed (how many times)
-%       s.knobUp = how many times the knob was released
+%       s.knobPosition = an 'integrated' position, starting at zero.
+%       s.knobRotation = the number of steps rotated since last time you called 'input'
+%       s.knobButton = whether the button is currently pressed
+%       s.knobDown = How many times the knob was pressed down since last
+%       time you called input
+%       s.knobUp = how many times the knob was released since last time you called input
 %       s.knobTime = when the last report was gotten from the knob
+%
+%   knob = PowermateInput();
+%   require(knob.init, @loop)
+%   function loop(params)
+%       s = knob.input(struct());
+%   end
 
 device = [];
 

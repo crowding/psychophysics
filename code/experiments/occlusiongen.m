@@ -17,7 +17,7 @@ function [configurations, counts] = occlusiongen()
     %        ( 'spacing', 2*pi ./([8 9 11 12 14 16 18 20 22 24]) ...
     %9 11 13 16 19 23
     
-    min_extent_allowed = 95/180 * pi;
+    min_extent_allowed = 85/180 * pi;
     max_extent_allowed = 165/180 * pi;
     configurations = expandGrid...
         ( 'spacing', 2*pi ./([9 12 15 18 21 25]) ...
@@ -28,17 +28,14 @@ function [configurations, counts] = occlusiongen()
 
     %work it out and determine a minimum and maximum 
     configurations.min_distance = configurations.stepsize;
-    configurations.max_distance = configurations.spacing + 2*configurations.stepsize;
     configurations.traversed = (configurations.nsteps).*configurations.stepsize;
-    configurations.min_extent = configurations.spacing .* (configurations.nTargets - 1) + configurations.traversed + 2*configurations.min_distance;
-    configurations.max_extent = configurations.spacing .* (configurations.nTargets - 1) + 2*configurations.max_distance - configurations.traversed;
+    configurations.extent = configurations.spacing .* (configurations.nTargets - 1) + configurations.traversed + 2*configurations.min_distance;
+    configurations.compatible = ((configurations.extent <= max_extent_allowed) & (configurations.extent >= min_extent_allowed))...
+        | ((configurations.nTargets == 3) & (configurations.spacing > .35));
     
-    configurations.compatible = (configurations.min_extent <= max_extent_allowed) & (configurations.max_extent >= min_extent_allowed) & (configurations.min_extent <= configurations.max_extent);
-    %configurations.compatible = (configurations.min_extent <= max_extent_allowed) & (configurations.max_extent >= min_extent_allowed);
-    
-    %configurations.min_extent = max(configurations.min_extent, min_extent_allowed);
-    configurations.max_extent = min(configurations.max_extent, max_extent_allowed);
-    
+    configurations.min_extent = configurations.extent;
+    configurations.max_extent = configurations.extent;
+        
     %now, how many element counts are compatible with each spacing?
     spacingCases = struct...
         ( 'spacing', unique(configurations.spacing)...
