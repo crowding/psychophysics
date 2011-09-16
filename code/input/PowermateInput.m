@@ -98,10 +98,11 @@ function s = input(s)
         
         %{
         %The powermate is not a 1-1 device. It drops a count when the knob
-        %reverses direction. The commented code below is an attempt to compensate
+        %reverses direction. The commented code in this section was an attempt 
+        %to compensate
         %for reversal effect, which I've adandoned. The Powermate also
         %drops counts when the knob is turning quickly, so there is no
-        %hope.
+        %hope of getting an absolute angular position out of it.
         
         %if any(abs(shifts) > 1)
         %    x = x + sum(shifts(abs(shifts) > 1));

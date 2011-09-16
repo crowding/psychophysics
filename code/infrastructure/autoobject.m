@@ -354,9 +354,9 @@ function this = autoobject(varargin)
 
             
     function prop_names = propNames(prop_names)
-        S = Subscripter;
         %use only variables in the top level of nesting
-        prop_names = prop_names(capture([S{[prop_names.nesting]}.level]) == max(capture));
+        tmp = [prop_names.nesting];
+        prop_names = prop_names([tmp.level] == max([tmp.level]));
 
         %Used to not make properties of undifined variables. But now I do.
         %prop_names = {prop_names(cat(2, S{prop_names.class}(1)) ~= '(').name}; 

@@ -115,6 +115,10 @@ this = autoobject(varargin{:});
         end
     end
 
+    function out = randomizerStrings()
+        out = cellfun(@substruct2str, {randomizers.subs}, 'UniformOutput', 0);
+    end
+
     function out = get(subs)
         out = randomizers(findix_(subs)).values;
     end

@@ -1,5 +1,6 @@
-function environment = env(key);
-%Returns a structure containing path variables of use to the experiments
+function environment = env(key)
+%Returns a structure containing path variables of use to the experiments.
+%This si where I define my code's working directories.
 
 persistent e;
 

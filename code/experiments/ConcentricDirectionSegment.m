@@ -37,6 +37,8 @@ function this = ConcentricDirectionSegment(varargin)
                 flankPhase = 3*pi/2 + [-0.5 0.5]*extent;
             case 'bottom'
                 flankPhase = pi/2 + [-0.5 0.5]*extent;
+            otherwise
+                error()                
         end
         
         switch(extra.globalDirection)
