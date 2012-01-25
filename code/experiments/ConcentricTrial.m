@@ -8,6 +8,7 @@ function this = ConcentricTrial(varargin)
     persistent textFeedback;
     persistent motion;
     persistent occluders;
+    %persistent eyePosition;
     %persistent this; %can't do that, but as long as 'this' isn't
     %referenced?
     
@@ -19,6 +20,7 @@ function this = ConcentricTrial(varargin)
     earlyTimeout = 1;
     
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
+    %eyePosition = FilledDisk(function(h) [h.eyeX(end) h.eyeY(end)], 0.1, [255 0 0]);
     
     textFeedback = Text('centered', 1, 'loc', [0 0]);
     

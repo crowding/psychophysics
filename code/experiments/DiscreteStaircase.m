@@ -6,6 +6,8 @@ function this = DiscreteStaircase(varargin)
     
     Nup = 1;
     Ndown = 1;
+    useMomentum = 0;
+    lastMove = 0;
 
     upCounter = 0;
     downCounter = 0;
@@ -23,6 +25,23 @@ function this = DiscreteStaircase(varargin)
         
         %evaluate the criterion.
         value = ev(criterion, trial, result);
+        
+        if useMomentum
+            if value ~= 0 && sign(value) == -sign(lastMove)
+                upCounter = 0;
+                downCounter = 0;
+                disp ('CONTINUED STEP');
+                if value < 0 && currentIndex < numel(valueSet)
+                    currentIndex = currentIndex + 1;
+                elseif value > 0 && currentIndex > 1
+                    currentIndex = currentIndex - 1;
+                end
+                return
+            else
+                lastMove = 0;
+            end
+        end
+        
         if value > 0                
                 upCounter = 0;
                 downCounter = downCounter + 1;
@@ -31,6 +50,7 @@ function this = DiscreteStaircase(varargin)
                     currentIndex = currentIndex - 1;
                     downCounter = 0;
                     disp ('step down');
+                    lastMove = -1;
                     if (direction > 0)
                         reversals = reversals + 1;
                     end
@@ -45,6 +65,7 @@ function this = DiscreteStaircase(varargin)
             if upCounter >= Nup && currentIndex < numel(valueSet)
                 currentIndex = currentIndex + 1;
                 disp ('step up');
+                lastMove = 1;
                 upCounter = 0;
                 if (direction > 0)
                     reversals = reversals + 1;

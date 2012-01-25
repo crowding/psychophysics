@@ -26,6 +26,7 @@ function this = ConcentricDirectionConstant(varargin)
             , 'globalDirection', 1 ...
             , 'localDirection', 1 ...
             , 'color', [0.5;0.5;0.5] / sqrt(2)...
+            , 'directionContrast', 1 ...
             ) ...
         , 'requireFixation', 1 ...
         , 'fixationStartWindow', 3 ...
@@ -75,7 +76,7 @@ function this = ConcentricDirectionConstant(varargin)
     this.trials.add('extra.localDirection', [1 0 -1]);
     
     %await the input after the stimulus has finished playing.
-    this.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)) + 0.15);
+    this.trials.add('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)));
     
     %this procedure translates the extra parmeters into lower level values.
     this.trials.add([], @appearance);
@@ -96,27 +97,36 @@ function this = ConcentricDirectionConstant(varargin)
         end
         
         %For balance we need to have three kinds of motion: supporting, opposing, and ambiguous.
-
-        if extra.localDirection ~= 0
-            mot.setPhase(ph);
-            mot.setAngle(mod(ph*180/pi + 90, 360));
-            mot.setVelocity(wl .* extra.tf .* extra.localDirection);
-            mot.setColor(extra.color);
-        else
+        if extra.localDirection == 0 || extra.directionContrast ~= 1
+        
             %The ambiguous motion is made up of two opposing motions superimposed,
             %so we have to double and elements (and reduce the contrast)
             %for that onthis.
             ph = reshape(repmat(ph, 2, 1), 1, []);
             mot.setPhase(ph);
             mot.setAngle(mod(ph*180/pi + 90, 360));
-            mot.setVelocity(wl .* extra.tf * repmat([-1 1], 1, numel(ph)/2));
-            mot.setColor(extra.color / sqrt(2));
+            mot.setVelocity(wl .* extra.tf * repmat([1 -1], 1, numel(ph)/2));
+            if extra.directionContrast ~= 1
+                mot.setVelocity(mot.getVelocity() * extra.localDirection);
+                ccc = repmat(extra.color / sqrt(2) * [1 + extra.directionContrast, 1-extra.directionContrast], 1, numel(ph)/2);
+                mot.setColor(ccc);
+            else
+                mot.setColor(extra.color / sqrt(2));            
+            end
+        else
+            mot.setPhase(ph);
+            mot.setAngle(mod(ph*180/pi + 90, 360));
+            mot.setVelocity(wl .* extra.tf .* extra.localDirection);
+            mot.setColor(extra.color);
         end
         
-        if sign(extra.localDirection) ~= -sign(extra.globalDirection)
-            b.desiredResponse = -extra.globalDirection;
+        %which direction is "correct?"
+        if sign(extra.localDirection) == -sign(extra.globalDirection)
+            b.desiredResponse = 0;            
+        elseif (extra.globalDirection == 0)
+            b.desiredResponse = -extra.localDirection;
         else
-            b.desiredResponse = 0;
+            b.desiredResponse = -extra.globalDirection;
         end
     end
     

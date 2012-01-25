@@ -1,0 +1,33 @@
+function exp = ConcentricDirectionConstant_as(exp)
+%6   8    10    13    15 16    18    23    30
+%    8    10    13    15 16    18    23    30 35
+%    8    10    13    15 16    18    23 26 30
+%    8    10    13    15 16    18 20 23 26
+    
+    exp.trials.replace('extra.nTargets', [7 8 10 12 14 17 20 25 30]);
+    
+    %reduce non-informative trials to 1/3 rather than 2/3
+    exp.trials.addBefore ...
+        ( 'extra.globalDirection' ...
+        , {'extra.globalDirection', 'extra.localDirection'} ...
+        , {   {1 1},  {-1 -1}...
+            , {1 0},  {-1 0} ...
+            , {1 -1}, {-1 1}...
+            , {1 -1}, {-1 1}...
+            , {1 -1}, {-1 1}...
+            , {1 -1}, {-1 1}...
+          }...
+        );
+
+    exp.trials.base.extra.globalVScalar = 0.50;
+    
+    exp.trials.remove('extra.globalDirection');
+    exp.trials.remove('extra.localDirection');
+    
+    exp.trials.reps = 2;
+    exp.trials.blockSize = 116;
+    
+    exp.trials.replace('motion.process.t', 0.25);
+    exp.trials.replace('awaitInput', @(b) max(b.motion.process.t + b.motion.process.dt .* (b.motion.process.n)) + 0.15);
+    exp.trials.base.maxResponseLatency = 0.50;
+end
