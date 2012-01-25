@@ -13,6 +13,9 @@ function this = EyelinkInput(varargin)
     recordLinkSamples = 1;
     recordLinkEvents = 0;
     
+    keepRecordingBetweenTrials = 1;
+    keepingRunning_ = 0;
+    
     persistent init__; %#ok
     
     persistent slope;
@@ -235,6 +238,15 @@ function this = EyelinkInput(varargin)
         release = @downloadFile;
 
         function downloadFile
+            if keepingRunning_
+                %flush it all.
+                Eyelink('StopRecording');
+                %discard the rest...
+                while (Eyelink('GetNextDataType'))
+                end
+                keepingRunning_ = 0;
+            end
+            
             %if we were recording to a file, download it
             if ~isempty(details.edfname) && ~isempty(details.localname)
                 %try both in any case
@@ -307,18 +319,18 @@ function this = EyelinkInput(varargin)
         samples_ = 0.9 * sin(linspace(0, 750*2*pi, freq_));
         
         if dummy_
-            %do nothing
             release = @noop;
         else
             if recordStreamedData
                 [push_, readout_] = linkedlist(2);
             end
             
-            %status = 
-            %t2 = GetSecs();
             %this can take a half second if run with high priority?
-            Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
-            %t2 = GetSecs() - t2
+            if keepingRunning_
+                %do nothing, input will flush during sync
+            else
+                Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
+            end
             
             %It retuns -1 but still records! WTF!@!!
             %if status ~= 0
@@ -330,24 +342,21 @@ function this = EyelinkInput(varargin)
         end
         
         function doRelease
-            %clean up our data
-            
-            %stop recording
-            %t3 = GetSecs();
             %this can take a half second if run with high priority?
-            Eyelink('StopRecording');
-            %t3 = GetSecs() - t3
-            %discard the rest...
-            while (Eyelink('GetNextDataType'))
+            if keepRecordingBetweenTrials
+                keepingRunning_ = 1;
+            else
+                Eyelink('StopRecording');
+                %discard the rest...
+                while (Eyelink('GetNextDataType'))
+                end
+                keepingrunning_ = 0;
             end
-
+            
             if streamData && recordStreamedData
                 %read out data...
                 data = readout_();
                 fprintf(logf_,'EYE_DATA %s\n', smallmat2str(data));
-                %figure(1);
-                %plot(data(3,:) - startTime_, data(1,:), 'b-', data(3,:) - startTime_, data(2,:), 'r-');
-                %drawnow;
             end
         end
     end
