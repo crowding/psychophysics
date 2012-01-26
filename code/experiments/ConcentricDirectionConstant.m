@@ -47,7 +47,7 @@ function this = ConcentricDirectionConstant(varargin)
         , 'beepFeedback', 1 ...
         );
     
-    this.trials.interTrialInterval = 0.8;
+    this.trials.interTrialInterval = 0;
     
     %what worked well in the wheels demo is 0.75 dx, 0.75 wavelength, 0.15
     %dt, 5 velocity at 14 radius! The crowding was 3.1 degrees! Use the

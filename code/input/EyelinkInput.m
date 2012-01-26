@@ -32,7 +32,7 @@ function this = EyelinkInput(varargin)
     if isempty(slope)
         slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
         offset = [0;0]; % the eye position offset
-        calibrationDate = [];
+        caolibrationDate = [];
         calibrationSubject = [];
     end
     
@@ -381,12 +381,6 @@ function this = EyelinkInput(varargin)
         %   x, y, t (the latest sample each call).
         %Translates the x and y values to degrees of visual angle.        
         %Coordinates will be NaN if the eye position is not available.
-
-        nSamples = 0;
-        
-        refresh_ = k.refresh;
-        next_ = k.next;
-        
         if dummy_
             [x, y, buttons] = GetMouse(window_);
             
@@ -404,52 +398,28 @@ function this = EyelinkInput(varargin)
             k.x = x;
             k.y = y;
             k.t = t;
-        else
-            %obtain new samples from the eye.
-            if streamData
-                
-                %calling this pulls in data in high priority mode?
-%                Eyelink('NewFloatSampleAvailable');
-                
-                %really need a do-while loop here...
-                datatype = Eyelink('GetNextDataType');
-                if (datatype)
-                    if datatype == 200 %el_.SAMPLE_TYPE
-                        %this grows an array, to be sure...
-                        sampleCache_(nSamples+1) = Eyelink('GetFloatData', datatype);
-                        nSamples = nSamples+1;
-                    else
-                        % an event. As of now we don't record events.
-                        % data = Eyelink('GetFloatData', datatype);
-                    end
-                    datatype = Eyelink('GetNextDataType');
-                end                    
-                while(datatype)
-                    if datatype == 200 %el_.SAMPLE_TYPE
-                        %this grows an array, to be sure...
-                        sampleCache_(nSamples+1) = Eyelink('GetFloatData', datatype);
-                        nSamples = nSamples+1;
-                    else
-                        % an event. As of now we don't record events.
-                        % data = Eyelink('GetFloatData', datatype);
-                    end
-                    datatype = Eyelink('GetNextDataType');
+        else            
+             if streamData
+                [samples, ~, drained] = Eyelink('GetQueuedData');
+                while ~drained
+                    [newsamples, ~, drained] = Eyelink('GetQueuedData');
+                    samples = cat(1, samples, newsamples);
                 end
-
-                if nSamples == 0
+                
+                if (size(samples,2)) == 0
                     [k.eyeX, k.eyeY, k.eyeT] = deal(zeros(0,1));
                     k.x = NaN;
                     k.y = NaN;
                     k.t = GetSecs() / slowdown_;
                 else
-                    x = cat(1, sampleCache_(1:nSamples).gx);
-                    x = x(:,1)';
-                    y = cat(1, sampleCache_(1:nSamples).gy);
-                    y = y(:,1)';
-
+                    %drop all lost data samples
+                    samples(:,samples(2,:) == el_.LOSTDATAEVENT) = [];
+                    
+                    x = samples(14,:);
+                    y = samples(16,:);
+                    
                     x(x == -32768) = NaN;
                     y(isnan(x)) = NaN;
-
                     
                     [x, y] = toDegrees_(x, y);
                     
@@ -459,13 +429,13 @@ function this = EyelinkInput(varargin)
                     k.eyeX = l(1,:);
                     k.eyeY = l(2,:);
                     
-                    k.eyeT = ([sampleCache_(1:nSamples).time] - clockoffset_) / 1000 / slowdown_;
+                    k.eyeT = (samples(1,:) - clockoffset_) / 1000 / slowdown_;
 
                     if recordStreamedData
                         push_([k.eyeX;k.eyeY;k.eyeT]);
                     end
 
-                    %backwards compat -- already written experiments expect
+                    %already written experiments expect
                     %x, y, t to be the latest samples.
                     k.x = k.eyeX(end);
                     k.y = k.eyeY(end);

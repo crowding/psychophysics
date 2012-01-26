@@ -16,8 +16,8 @@ function this = ConcentricTrial(varargin)
     knobTurnThreshold = 3;
     awaitInput = 0.5; %how early to accept a response from the subject. Fixation is also enforced up until this time.
     maxResponseLatency = Inf; %how long to wait for the response (measured after awaitInput)
-    lateTimeout = 1;
-    earlyTimeout = 1;
+    lateTimeout = 0.5;
+    earlyTimeout = 0.5;
     
     fixation = FilledDisk([0, 0], 0.1, [0 0 0]);
     %eyePosition = FilledDisk(function(h) [h.eyeX(end) h.eyeY(end)], 0.1, [255 0 0]);
@@ -220,7 +220,7 @@ function this = ConcentricTrial(varargin)
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
             else
-                trigger.singleshot(atLeast('next',(h.next + maxResponseLatency)), @stop);
+                trigger.singleshot(atLeast('next',(motionStarted_ + maxResponseLatency)), @stop);
             end
         end
         
