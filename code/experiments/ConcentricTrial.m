@@ -46,6 +46,8 @@ function this = ConcentricTrial(varargin)
 
     persistent init__;
     this = autoobject(varargin{:});
+    
+    persistent audio_;
 
     function [params, result] = run(params)
         interval = params.screenInterval;
@@ -63,6 +65,7 @@ function this = ConcentricTrial(varargin)
         %in any case, log all the knob rotations
         trigger.multishot(nonZero('knobRotation'), @knobRotated);
 
+        
         motionStarted_ = Inf;
         motion.setVisible(0);
         fixation.setVisible(0);
@@ -71,8 +74,9 @@ function this = ConcentricTrial(varargin)
         end
         
         if requireFixation && (beepFeedback || ~isempty(audioCueTimes))
+            audio_ = params.input.audioout;
             main = mainLoop ...
-                ( 'input', {params.input.eyes, params.input.audioout, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
+                ( 'input', {params.input.eyes, audio_, params.input.keyboard, params.input.knob, EyeVelocityFilter()} ...
                 , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
@@ -83,8 +87,9 @@ function this = ConcentricTrial(varargin)
                 , 'triggers', {trigger} ...
                 );
         elseif (beepFeedback || ~isempty(audioCueTimes))
+            audio_ = params.input.audioout;
             main = mainLoop ...
-                ( 'input', {params.input.audioout, params.input.keyboard, params.input.knob} ...
+                ( 'input', {audio_, params.input.keyboard, params.input.knob} ...
                 , 'graphics', {fixation, textFeedback, motion, occluders{:}} ...
                 , 'triggers', {trigger} ...
                 );
@@ -143,7 +148,7 @@ function this = ConcentricTrial(varargin)
             for i = audioCueTimes(:)'
                 %set the cues to play at the presice times relative to
                 %simulus onset.
-                params.input.audioout.play('cue', h.next + i);
+                audio_.play('cue', h.next + i);
             end
 
             motionStarted_ = h.next;
@@ -202,14 +207,15 @@ function this = ConcentricTrial(varargin)
         function responseCollected(h)
             result.success = 1;
             %start something else, based on the response
+            endplay = 0;
             if beepFeedback
                 if desiredResponse == 0
-                    params.input.audioout.play('click');
+                    [~, endplay] = audio_.play('click');
                 elseif result.response == desiredResponse
                     %make a beep
-                    params.input.audioout.play('ding');
+                    [~, endplay] = audio_.play('ding');
                 else
-                    params.input.audioout.play('buzz');
+                    [~, endplay] = audio_.play('buzz');
                 end
             end
             
@@ -220,7 +226,7 @@ function this = ConcentricTrial(varargin)
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
             else
-                trigger.singleshot(atLeast('next',(motionStarted_ + maxResponseLatency)), @stop);
+                trigger.singleshot(atLeast('next',max(motionStarted_ + awaitInput + maxResponseLatency, endplay)), @stop);
             end
         end
         

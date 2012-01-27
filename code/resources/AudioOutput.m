@@ -5,10 +5,11 @@ function this = AudioOutput(varargin)
     %playing the named sample.
     %
     %This provides an interface to the PsychPortAudio routines with a
-    %different flavor -- it lets you set establish a group of named
+    %different flavor -- it lets you establish a group of named
     %samples, and play the samples by name, by specifying onset times.
-    %The flexibility for specifying onset time is what differentiates this
-    %approach from the 'scheduling' facility built into PsychPortAudio.
+    %The flexibility for specifying accurate onset times is what 
+    %differentiates this approach from the 'scheduling' (really, sequencing) 
+    %facility built into PsychPortAudio.
     %
     %Samples played at the same time will sum together (possibly clipping,
     %and not clipping elegantly.)
@@ -17,9 +18,6 @@ function this = AudioOutput(varargin)
     %output before going to the speaker, or even as an easy way to compute
     %your own live streaming audio. The arguments of a filter function are:
     
-    %Why not use the "schedule" features of psychport audio? Because they
-    %don't schedule -- they just make a sequence, and you have to manually
-    %monitor whether starting or stopping, on top of that sequence.
     freq = 44100;
     channels = [0 1]; %which channels to use for output, in which order.
     latbias = 30/44100; %set a default for this?
@@ -27,11 +25,11 @@ function this = AudioOutput(varargin)
     deviceid = []; %leave empty to use default, or specify a device.
     buffersize = [];
     bufferSecs = 5; %this actually probably doesn't matter for online audio computation, as long as it's large enough to get you to the next frame.
-    framesAhead = 1; %normally we compute through the next refresh. Up this if you want audio to be mroe robust to frame skips.
+    framesAhead = 1; %normally we compute through the next refresh. Up this if you want audio to be more robust to frame skips. THe tradeoff is that there is more latency between deciding to play a sound and the sound actually playing.
     samples = struct... %A structure of audio samples to use. Use a structure, so that you can invoke samples by name. I provide some useful defaults here.
-        ( 'ding', Ding('freq', 880, 'decay', 0.1, 'damping', 0.04) ...
+        ( 'ding',  Ding('freq', 880, 'decay', 0.1, 'damping', 0.04) ...
         , 'click', Chirp('beginfreq', 1000, 'endfreq', 1e-6, 'length', 0.05, 'decay', 0.01, 'release', 0.005, 'sweep', 'exponential') ...
-        , 'buzz', Ding('attack', 0, 'freq', 72, 'length', 0.2, 'decay', Inf, 'damping', 0.1, 'release', 0.05) ...
+        , 'buzz',  Ding('attack', 0, 'freq', 72, 'length', 0.2, 'decay', Inf, 'damping', 0.1, 'release', 0.05) ...
         ); 
     filter = []; %the filter function (optional).
     record = 0; %whether to record the generated output for posterity.
@@ -145,13 +143,6 @@ function this = AudioOutput(varargin)
 
         [samplecount, ninchannels] = size(audiodata);
         audiodata = repmat(transpose(audiodata), nrchannels / ninchannels, 1);
-
-        %as I don't use the scheduler function, no more mucking with
-        %buffers.
-        
-        %buffer(end+1) = PsychPortAudio('CreateBuffer', [], audiodata); %#ok<AGROW>
-        %[fpath, fname] = fileparts(char(wavfilenames(j)));
-        %fprintf('Filling audiobuffer handle %i with soundfile %s ...\n', buffer(j), fname);
     end
 
     function unloadSample_(name)
@@ -287,7 +278,7 @@ function this = AudioOutput(varargin)
         %^number of samples
         %                                  ( number of buffers to compute                                                )                                 
         %Now compute the next chunk of audio (depending on the experiment)
-        if (nSamples < 0)
+        if (nSamples <= 0)
             return
         end
         data = gatherSamples_(firstSample, nSamples, sampleRate_, onset, channels);
@@ -308,6 +299,7 @@ function this = AudioOutput(varargin)
         else
             PsychPortAudio('RefillBuffer', pahandle_, 0, data, bufferIndex);
         end
+
 
         lastsampleix_ = lastsampleix_ + nDataSamples;
         nextStreamTime_ = onset + nSamples/sampleRate_;
@@ -348,7 +340,8 @@ function this = AudioOutput(varargin)
             if startIndex <= 0
                 sampleStartIndex = 2 - startIndex;
                 startIndex = 1;
-                %should probably log this condition as it indicates a sample
+                %should probably log this condition as it indicates a
+                %sample
                 %started midway through.
                 if sampleStartIndex > size(sampleContents, 2)
                     break;
@@ -396,7 +389,7 @@ function this = AudioOutput(varargin)
             startTime = time;
         end
         
-        endTime = startTime + size(sampleData_.(sampleName), 3);
+        endTime = startTime + size(sampleData_.(sampleName), 2) / sampleRate_;
     end
 
     persistent init__; %#ok

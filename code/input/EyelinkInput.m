@@ -13,6 +13,8 @@ function this = EyelinkInput(varargin)
     recordLinkSamples = 1;
     recordLinkEvents = 0;
     
+    queueData = 1;
+    
     keepRecordingBetweenTrials = 1;
     keepingRunning_ = 0;
     
@@ -32,7 +34,7 @@ function this = EyelinkInput(varargin)
     if isempty(slope)
         slope = 1 * eye(2); % a 2*2 matrix relating voltage to eye position
         offset = [0;0]; % the eye position offset
-        caolibrationDate = [];
+        calibrationDate = [];
         calibrationSubject = [];
     end
     
@@ -321,13 +323,14 @@ function this = EyelinkInput(varargin)
         if dummy_
             release = @noop;
         else
-            if recordStreamedData
+            if recordStreamedData && queueData
                 [push_, readout_] = linkedlist(2);
             end
             
             %this can take a half second if run with high priority?
             if keepingRunning_
-                %do nothing, input will flush during sync
+                %pull in some data
+                input(struct());
             else
                 Eyelink('StartRecording', recordFileSamples, recordFileEvents, recordLinkSamples, recordLinkEvents);
             end
@@ -350,12 +353,14 @@ function this = EyelinkInput(varargin)
                 %discard the rest...
                 while (Eyelink('GetNextDataType'))
                 end
-                keepingrunning_ = 0;
+                keepingRunning_ = 0;
             end
             
             if streamData && recordStreamedData
                 %read out data...
-                data = readout_();
+                if queueData
+                    data = readout_();
+                end
                 fprintf(logf_,'EYE_DATA %s\n', smallmat2str(data));
             end
         end
@@ -364,9 +369,6 @@ function this = EyelinkInput(varargin)
 %% sync
     startTime_ = 0;
     function sync(n, t) %#ok
-        %discard data...
-        while (Eyelink('GetNextDataType'))
-        end
         startTime_ = t + n * interval_;
     end
 
@@ -406,14 +408,21 @@ function this = EyelinkInput(varargin)
                     samples = cat(1, samples, newsamples);
                 end
                 
+                %drop all lost data samples
+                if (size(samples, 2)) ~= 0
+                    try
+                        samples(:,samples(2,:) == el_.LOSTDATAEVENT) = [];
+                    catch e
+                        rethrow(e)
+                    end
+                end
+                
                 if (size(samples,2)) == 0
                     [k.eyeX, k.eyeY, k.eyeT] = deal(zeros(0,1));
                     k.x = NaN;
                     k.y = NaN;
                     k.t = GetSecs() / slowdown_;
                 else
-                    %drop all lost data samples
-                    samples(:,samples(2,:) == el_.LOSTDATAEVENT) = [];
                     
                     x = samples(14,:);
                     y = samples(16,:);
@@ -432,7 +441,11 @@ function this = EyelinkInput(varargin)
                     k.eyeT = (samples(1,:) - clockoffset_) / 1000 / slowdown_;
 
                     if recordStreamedData
-                        push_([k.eyeX;k.eyeY;k.eyeT]);
+                        if queueData
+                            push_([k.eyeX;k.eyeY;k.eyeT]);
+                        else
+                            fprintf(logf_,'EYE_DATA %s\n', smallmat2str([k.eyeX;k.eyeY;k.eyeT]));
+                        end
                     end
 
                     %already written experiments expect
