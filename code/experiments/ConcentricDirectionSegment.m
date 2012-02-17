@@ -10,6 +10,7 @@ function this = ConcentricDirectionSegment(varargin)
     
     %we have another script for generating some configurations...
     configurations = occlusiongen();
+    
     this.trials.base.extra.r = 20/3;
     this.trials.addBefore...
         ( 'extra.nTargets' ...
@@ -23,11 +24,13 @@ function this = ConcentricDirectionSegment(varargin)
     function out = occluder(b)
         extra = b.extra;
         %pick a random extent between the min and max extent
-        extra.max_extent
-        extra.min_extent
-        extent = rand() * (extra.max_extent - extra.min_extent) + extra.min_extent;
         movingExtent = 2*pi/extra.nTargets * (extra.nVisibleTargets-1);
+        %extent = rand() * (extra.max_extent - extra.min_extent) + extra.min_extent;
+        %whoops, if I use different values of dx, then the "extent" goes out the
+        %window, and I really want to guarantee min spacing, is what.
+        extent = movingExtent + 2*extra.min_distance;
         traversed = extra.globalVScalar * b.motion.process.dt * b.motion.process.n;
+                
         switch(extra.side)
             case 'left'
                 flankPhase = pi + [-0.5 0.5]*extent;
@@ -38,9 +41,9 @@ function this = ConcentricDirectionSegment(varargin)
             case 'bottom'
                 flankPhase = pi/2 + [-0.5 0.5]*extent;
             otherwise
-                error()                
+                error();                
         end
-        
+        (extent - movingExtent - traversed - 2*extra.min_distance)
         switch(extra.globalDirection)
             case -1
                 phase = flankPhase(2) - extra.min_distance - movingExtent - rand() * (extent - movingExtent - traversed - 2*extra.min_distance);
@@ -51,7 +54,7 @@ function this = ConcentricDirectionSegment(varargin)
         out = {flankPhase, flankPhase * 180/pi + 90, phase};
     end
 
-    this.trials.add('extra.useFlankers', @configureFlankers)
+    this.trials.add('extra.useFlankers', @configureFlankers);
     function out = configureFlankers(b)
         m = b.getMotion();
         p = m.getProcess();

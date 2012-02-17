@@ -226,7 +226,7 @@ function this = ConcentricTrial(varargin)
             elseif reshowStimulus
                 trigger.singleshot(atLeast('refresh',h.refresh+1), @reshow);
             else
-                trigger.singleshot(atLeast('next',max(motionStarted_ + awaitInput + maxResponseLatency, endplay)), @stop);
+                trigger.singleshot(atLeast('next',max(motionStarted_ + awaitInput + maxResponseLatency, endplay+interval)), @stop);
             end
         end
         

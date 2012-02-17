@@ -405,7 +405,13 @@ function this = EyelinkInput(varargin)
                 [samples, ~, drained] = Eyelink('GetQueuedData');
                 while ~drained
                     [newsamples, ~, drained] = Eyelink('GetQueuedData');
-                    samples = cat(1, samples, newsamples);
+                    try
+                        samples = cat(2, samples, newsamples);
+                    catch e
+                        vars = who();
+                        save('catdump.mat', vars{:})
+                        rethrow(e)
+                    end
                 end
                 
                 %drop all lost data samples
