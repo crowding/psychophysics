@@ -4,6 +4,6 @@ function this = ConcentricDemo(varargin)
 %button presses adjust the position...
 
     x = AdjustableDemo();
-    playDemo(x, varargin{:}, 'skipFrames', 1);
+    playDemo(x, varargin{:}, 'input.keyboard', KeyboardInput('device', 7), 'skipFrames', 1);
 end
 

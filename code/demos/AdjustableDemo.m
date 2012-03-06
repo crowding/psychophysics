@@ -41,7 +41,7 @@ function this = AdjustableDemo(varargin)
         , 'localOmega', [repmat(20*pi, 1, 2*crowderNumber), repmat(-20*pi, 1, 2*crowderNumber)] ...
         );
 
-    crowder_ = CauchyDrawer('source',crowder, 'visible', 1);
+    crowder_ = CauchyDrawer('source',crowder, 'visible', 0);
     
     displayon_ = 0;
     %color_ = 0;

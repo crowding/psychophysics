@@ -4,7 +4,6 @@ function this = KeyboardInput(varargin)
     %a = KeyboardInput; r = a.init(struct()); r2 = a.begin(struct()); for i = 1:10000; k = a.input(struct()), end; r2(); r();
 
     persistent init__;
-    this = autoobject(varargin{:});
     
     device = [];
     options = struct...
@@ -16,6 +15,9 @@ function this = KeyboardInput(varargin)
     [lastState_, lastState_, lastState_] = KbCheck(device);
     lastState_ = find(lastState_);
     modifierCodes_ = [];
+    
+    
+    this = autoobject(varargin{:});
     
     %the initializer will be called once per experiment and does global
     %setup of everything.
