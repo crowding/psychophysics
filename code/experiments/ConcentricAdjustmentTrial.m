@@ -50,7 +50,7 @@ function this = ConcentricAdjustmentTrial(varargin)
     adjustmentLimitSound = 'Morse'; %and a sound when bumping into the adjustment limit.
     acceptSound = 'Purr';
     rejectSound = 'Basso';
-    abortSound = 'Buzz';
+    abortSound = 'buzz';
     
     useEyes = 1; %whether to use eye tracking.
     fixationStartWindow = 3; %this much radius for starting fixation
@@ -114,9 +114,10 @@ function this = ConcentricAdjustmentTrial(varargin)
             %fixation.setColor([255;0;0]);
             motion.setVisible(0);
             if (useEyes)
-                trigger.singleshot( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation);
+                trigger.first( circularWindowEnter('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @settleFixation, 'eyeFt');
             else
-                trigger.singleshot( keyIsDown('space'), @settleFixation);
+%                trigger.singleshot( keyIsDown('space'), @settleFixation);
+                trigger.singleshot( always(), @settleFixation );
             end
         end
         
@@ -124,8 +125,8 @@ function this = ConcentricAdjustmentTrial(varargin)
             fixation.setRadius(0.11);
             if useEyes
                 trigger.first ...
-                    ( atLeast('eyeFt', k.triggerTime + fixationSettle), @startMotion, 'eyeFt' ...
-                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @fixated, 'eyeFt' ...
+                    ( atLeast('eyeFt', k.triggerTime + fixationSettle), @fixated, 'eyeFt' ...
+                    , circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationStartWindow), @notFixated, 'eyeFt' ...
                     );
             else
                 trigger.first ...
@@ -139,7 +140,7 @@ function this = ConcentricAdjustmentTrial(varargin)
             isFixated = 1;
             fixation.setRadius(0.10);
             if useEyes
-                trigger.singleshot(circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow, @notFixated));
+                trigger.singleshot(circularWindowExit('eyeFx', 'eyeFy', 'eyeFt', fixation.getLoc, fixationWindow), @notFixated);
             else
                 trigger.singleshot(keyIsDown('tab'), @notFixated);
             end
@@ -214,7 +215,7 @@ function this = ConcentricAdjustmentTrial(varargin)
             motion.setVisible(0);
             isMotionReady = 0;
             newIndex = parameterIndex + howMuch;
-            fixation.setColor([255;0;0]);
+            %fixation.setColor([255;0;0]);
             
             if newIndex < 1;
                 newIndex = 1;

@@ -30,4 +30,6 @@ end
 
 defaults('set', 'Experiment', 'inputUsed', {{'keyboard'}});
 
+defaults('set', 'highPriority', 1);
+
 end

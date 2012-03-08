@@ -18,6 +18,7 @@ function this = EyelinkInput(varargin)
     keepRecordingBetweenTrials = 1;
     keepingRunning_ = 0;
 
+    doTheTrackerSetup = 1;
     edfname = '';
     localname = '';
     dummy = 0;
@@ -275,7 +276,7 @@ function this = EyelinkInput(varargin)
     function details = doTrackerSetup(details)
         details = setupEyelink(details);
         
-        if ~dummy && flagged(details,'doTrackerSetup')
+        if ~dummy && doTheTrackerSetup
             message(details, 'Do tracker setup now');
             status = EyelinkDoTrackerSetup(details.el) %, details.el.ENTER_KEY);
             if status < 0

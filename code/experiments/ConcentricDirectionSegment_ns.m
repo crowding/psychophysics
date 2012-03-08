@@ -6,7 +6,7 @@ function exp = ConcentricDirectionSegment_ns(exp)
     %we're just looking at one combination of contrast and two values of
     %global V...
     %We want -0.1 and -0.2 degree displacement to be most informative
-    globalV = [-.1] / (20/3) / 0.1 ;
+    globalV = [0 .1] / (20/3) / 0.1 ;
     
     exp.trials.addBefore('extra.globalDirection', 'extra.globalVScalar', {globalV(1)});
     exp.trials.addBefore('extra.globalDirection', {'extra.globalDirection', 'extra.localDirection'}, {{1 1},{-1 -1}});
@@ -16,7 +16,7 @@ function exp = ConcentricDirectionSegment_ns(exp)
     exp.trials.replace('extra.side', ...
         { 'left', 'right', 'right', 'left' ...
         , 'left', 'right', 'right', 'left' ...
-        , 'left', 'right',}, 1, 1); %side is blocked
+        , 'left', 'right', 'right', 'left'}, 1, 1); %side is blocked
 
     exp.trials.add('desiredResponse', 0);
     
@@ -26,7 +26,7 @@ function exp = ConcentricDirectionSegment_ns(exp)
     exp.trials.base.maxResponseLatency = 0.65;
 
     exp.trials.reps = 1;
-    exp.trials.reps = floor(900 / exp.trials.numLeft());
-    exp.trials.blockSize = floor(exp.trials.numLeft() / 5);
+    exp.trials.reps = floor(1000 / exp.trials.numLeft());
+    exp.trials.blockSize = floor(exp.trials.numLeft() / 6);
     
 end
