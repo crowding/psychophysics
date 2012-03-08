@@ -42,8 +42,11 @@ function this = CauchySpritePlayer(varargin)
     %fields. this is the queue.
 
     s_ = struct('x', [], 'y', [], 't', [], 'angle', [], 'color', [], 'width', [], 'duration', [], 'wavelength', [], 'velocity', [], 'order', [], 'phase', []);
-    queue_ = struct('x', {}, 'y', {}, 't', {}, 'angle', {}, 'color', {}, 'width', {}, 'duration', {}, 'wavelength', {}, 'velocity', {}, 'order', {}, 'phase', {});
+    queue_ = initialQueue_();
     
+    function r = initialQueue_()
+        r = zeros(13, 0);
+    end
     
     visible = 0; % a misnomer: setting visible means "start playing"
     drawn = 1; %by default, is drawn.
@@ -172,9 +175,6 @@ function this = CauchySpritePlayer(varargin)
                     nAdvanced = nAdvanced + 1;
                 end
             end
-            if nAdvanced >= 10
-                noop();
-            end
         end
     end
 
@@ -193,6 +193,7 @@ function this = CauchySpritePlayer(varargin)
             advanceQueue_(next);
         else
             %reset to show at the next appearance.
+            queue_ = initialQueue_();
             process.reset();
         end
         visible = v;

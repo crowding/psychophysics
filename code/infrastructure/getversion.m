@@ -17,11 +17,15 @@ frame = st(frameix);
 persistent cache;
 persistent svnloc;
 if isempty(svnloc)
+    %oh for fuck's sake, MATLAB boots itself up in its own little world
+    %where there are no search paths fo environment vars.
     [a, s] = system('which svn');
     if exist(s, 'file');
         svnloc = a;
     elseif exist('/sw/bin/svn', 'file');
         svnloc = '/sw/bin/svn';
+    elseif exist('/opt/subversion/bin/svn', 'file');
+        svnloc = '/opt/subversion/bin/svn';
     elseif exist('/usr/local/bin/svn', 'file');
         svnloc = '/usr/local/bin/svn';
     elseif exist('/usr/bin/svn', 'file');

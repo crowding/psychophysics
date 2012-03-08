@@ -3,14 +3,17 @@ function this = KeyboardInput(varargin)
     %single liner test/profile:
     %a = KeyboardInput; r = a.init(struct()); r2 = a.begin(struct()); for i = 1:10000; k = a.input(struct()), end; r2(); r();
 
-    persistent init__;
-    
+    stopMatlabInput = 1;
     device = [];
     options = struct...
         ( 'secs', 0 ...
         , 'print', 0 ...
         );
-
+    
+    persistent init__;
+    this = autoobject(varargin{:});
+    
+    
     slowdown_ = [];
     [lastState_, lastState_, lastState_] = KbCheck(device);
     lastState_ = find(lastState_);
@@ -52,11 +55,15 @@ function this = KeyboardInput(varargin)
         %catch up on state...
         [lastState_, lastState_, lastState_] = KbCheck(device);
         lastState_ = find(lastState_);
-        ListenChar(2); %disable keyboard input to matlab...
+        if stopMatlabInput
+            ListenChar(2); %disable keyboard input to matlab...
+        end
 
         release = @stop;
         function stop()
-            ListenChar(0);
+            if stopMatlabInput
+                ListenChar(0);
+            end
         end
     end
 
@@ -96,7 +103,7 @@ function this = KeyboardInput(varargin)
         end
     end
 
-    function sync(n, t)
+    function sync(~, ~)
         %nothing needed
     end
 end

@@ -124,7 +124,11 @@ function this = Trigger(varargin)
         if ~isempty(ffn)
             k.triggerTime = tt;
             k.triggerIndex = ii;
+            ans = [];
             ffn(k);
+            if exist('ans', 'var') && isstruct(ans)
+                k = ans;
+            end
             fprintf(logf,'TRIGGER %s %s\n', func2str(ffn), struct2str(srmfield(k,notlogged)));
             events(end+1,:) = {k.triggerTime, func2str(ffn)};
         end

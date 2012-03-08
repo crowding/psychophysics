@@ -220,6 +220,11 @@ function this = LogfileLoader(varargin)
     slope_ = [];
     offset_ = [];
     function beginExperiment(line)
+        %Sometiems an "end experiment" was not called.
+        if isstruct(experiment_)
+            endExperiment(line);
+        end
+        
         fprintf(2, '%s\n',line);
         experiment_ = struct('trials', {{}});
         oldContext = context_;
@@ -235,6 +240,7 @@ function this = LogfileLoader(varargin)
 
     function endExperiment(line)
         data = cat(1, data, {experiment_});
+        experiment_ = [];
         removeMessageHandler('END');
     end
 
@@ -276,6 +282,7 @@ function this = LogfileLoader(varargin)
         end
         
         if isfield(trial_, 'eyeData')
+            trial_.eyeData = eyeReadout_();
             %apply eye calibration ONLY FOR LABJACK DATA!!!!! (whoops) (since
             %the raw data is stored)
             if strcmp(experiment_.beforeRun.params.input.eyes.version__.function, 'LabJackInput')
@@ -325,13 +332,21 @@ function this = LogfileLoader(varargin)
         trial_.frame_skips{end+1} = struct(sargs{:});
     end
 
+    eyePush_ = @noop;
+    eyeReadout_ = @noop;
+
     function handleEyeData(message)
         eyeData = textscan(message, '%s %[^\n]', 'BufSize', 2^24);
         eyeData = eval(eyeData{2}{1}); %just a bunch of numbers....
         
-        %they are stored raw, so apply calibration\
-        
-        trial_.eyeData = eyeData;
+        %Sometimes, I log eye data every frame, some other times, i've logged it in a block at the end of the trial.         
+        if ~isfield(trial_, 'eyeData')
+            [eyePush_, eyeReadout_] = linkedlist(2);
+            trial_.eyeData = [];
+        end
+        if numel(eyeData) > 0
+            eyePush_(eyeData);
+        end
     end
 
     function addMessageHandler(prefix, handler)
@@ -359,6 +374,22 @@ function this = LogfileLoader(varargin)
             %remove the 'END TRIAL' handler
             removeMessageHandler('END');
             %we then do not call 'endTrial,' so the trial is discarded
+        end
+    end
+
+    function out = getData(closeDangling)
+        if (nargin == 1 || closeDangling == 1)
+            closeDanglingHandlers();
+        end
+        out = data();
+    end
+
+    function closeDanglingHandlers()
+        %pretend we hve received the "end" for any dangling handlers. This
+        %handles experiment files where MATLAB crashed etc.
+        danglingEnds = 1;
+        while any(strcmp(messageHandlers(:,1), 'END'))
+            handleLine(sprintf('END\n'), NaN, NaN);
         end
     end
 

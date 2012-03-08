@@ -6,7 +6,7 @@ function i = highPriority(varargin)
 %maximum.
 %
 %Outputs fields 'priority and 'oldpriority'.
-i = joinResource(namedargs(varargin{:}), @initializer);
+i = joinResource(namedargs(defaults('get', 'highPriority'), varargin{:}), @initializer);
 
     function [r, o] = initializer(o)
         

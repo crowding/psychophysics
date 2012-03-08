@@ -1,6 +1,10 @@
 function this = CircularCauchyMotion(varargin)
 %Generates the motion of one or many objects appearing circularly in
 %apparent motion.
+%Each parameter my have a number of columns (corresponding to a number of
+%objects) or a number of rows (corresponding to a sequence of appearances,
+%that may be repeated. In the case of "color" we have the third dimension
+%giving sequencing (as the second is taken.)
 
     x = 0; %the center around which the sprite rotates
     y = 0;
@@ -46,7 +50,6 @@ function this = CircularCauchyMotion(varargin)
     end
 
     function out = next()
-        
         c = counter_;
         
         %correct the counter, in case n/t/phase changed.

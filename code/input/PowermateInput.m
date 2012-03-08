@@ -77,7 +77,7 @@ end
 
 function s = input(s)
     if ~initted_
-        error('PowermateInput:notInitialized', 'PowermateInput was not initialized. Check your experiment.params.inputUsed');
+        error('PowermateInput:notInitialized', 'PowermateInput was not initialized. Check your Experiment.inputUsed');
     end
     PsychHID('ReceiveReports', device, options);
     r = PsychHID('GiveMeReports', device);

@@ -44,7 +44,7 @@ function this = autoobject(varargin)
     %Objects are ultimately created by passing a long string to evalin.
     %Building hte string is time consuming; so the strings should be cached.
     
-    %THIS _WAS_ A SNEAKY TRICK! MATLAB's restriction on adding variables to
+    %THIS _WAS_ A SNEAKY TRICK: MATLAB's restriction on adding variables to
     %a static workspace apparently did not extend to persistent variables.
     %Therefore if we want to cache a value with a calling function and have
     %it associated with the function (and cleared whenever the function is
@@ -62,12 +62,12 @@ function this = autoobject(varargin)
         its = Genitive();
     end
 
-    tmp = evalin('caller', 'whos(''init__'')');
-    if isempty(tmp)
+    hasInit = ~isempty(evalin('caller', 'whos(''init__'')'));
+    if hasInit
+        this = evalin('caller', 'init__;');
+    else
         warning('autoobject:needsCache','For better speed, add the declaration ''persistent init__;'' before the call to autoobject');
         this = [];
-    else
-        this = evalin('caller', 'init__;');
     end
     
     if isempty(this)
@@ -76,9 +76,12 @@ function this = autoobject(varargin)
             , dbstack('-completenames') );
         version = getversion(2);
         if ~isempty(tmp)
-            tmp = evalin('caller', '@(varargin) eval(''init__ = varargin;'');');
-            tmp(this, prop_names, method_names, version);
+            if hasInit
+                backchannel('store',{this, prop_names, method_names, version});
+                evalin('caller', 'init__ = backchannel(''recall'');');
+            end
             clear tmp;
+            clear hasInit
         end
     else
         [this, prop_names, method_names, version] = this{:};
@@ -97,6 +100,11 @@ function this = autoobject(varargin)
     this.property__ = @property__;
     this.method__ = @method__;
     this.version__ = version;
+    
+    
+    if defaults('exists', version.function);
+        property__(defaults('get', version.function));
+    end
     
     if ~isempty(varargin)
         property__(varargin{:});

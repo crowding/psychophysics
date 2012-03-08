@@ -11,6 +11,8 @@ startDate = [];
 description = '';
 caller = [];
 params = struct();
+inputConstructors = struct();
+inputUsed = {};
 
 %the edf-file logs each trial individually, so we don't need to log
 %them all. So this is a private variable and not a property.
@@ -19,10 +21,6 @@ stopSignaled_ = 0;
 
 persistent init__;
 this = inherit( Identifiable(), autoobject(varargin{:}));
-
-if ~isfield(params, 'input')
-    params.input = struct('keyboard', KeyboardInput(), 'mouse', MouseInput(), 'eyes', EyelinkInput());
-end
 
     function done = getTrialsDone
         done = trialsDone_;
@@ -142,7 +140,11 @@ end
     function [release, par, next] = initInput(par)
         %initialize the input structure in the trial params.
         %which initializers...
-        s = cellfun(@(name)par.input.(name).init, par.inputUsed, 'UniformOutput', 0);
+        for i = inputUsed(:)'
+            par.input.(i{1}) = inputConstructors.(i{1})();
+        end
+        par.input = structfun(@(x)x(), par.inputConstructors, 'UniformOutput', 0);
+        s = cellfun(@(name)par.input.(name).init, inputUsed, 'UniformOutput', 0);
         release = @noop;
         next = joinResource(s{:});
     end

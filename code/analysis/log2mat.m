@@ -14,7 +14,7 @@ parser = LogfileLoader();
 
 require(params, reader, parser.fromreadline);
 
-data = parser.getData();
+data = parser.getData(1);
 save(outfile,'data');
 
 end

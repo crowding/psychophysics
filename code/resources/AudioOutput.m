@@ -26,11 +26,7 @@ function this = AudioOutput(varargin)
     buffersize = [];
     bufferSecs = 5; %this actually probably doesn't matter for online audio computation, as long as it's large enough to get you to the next frame.
     framesAhead = 1; %normally we compute through the next refresh. Up this if you want audio to be more robust to frame skips. THe tradeoff is that there is more latency between deciding to play a sound and the sound actually playing.
-    samples = struct... %A structure of audio samples to use. Use a structure, so that you can invoke samples by name. I provide some useful defaults here.
-        ( 'ding',  Ding('freq', 880, 'decay', 0.1, 'damping', 0.04) ...
-        , 'click', Chirp('beginfreq', 1000, 'endfreq', 1e-6, 'length', 0.05, 'decay', 0.01, 'release', 0.005, 'sweep', 'exponential') ...
-        , 'buzz',  Ding('attack', 0, 'freq', 72, 'length', 0.2, 'decay', Inf, 'damping', 0.1, 'release', 0.05) ...
-        ); 
+    samples = struct();
     filter = []; %the filter function (optional).
     record = 0; %whether to record the generated output for posterity.
     
@@ -41,7 +37,7 @@ function this = AudioOutput(varargin)
     logf_ = [];
     interval_ = 0;
     initted_ = 0;
-    function [release, params, next] = init(params)
+    function [release, params, next] = init(params) %#ok
         if initted_
             error('AudioOutput:alreadyOpened', 'Device already opened!');
         end
@@ -100,7 +96,7 @@ function this = AudioOutput(varargin)
     function [release, params, next] = initOutput_(params)
         %allocate output buffers
         outputBufferSize_ = 1024 * ceil(bufferSecs * sampleRate_ / 1024);
-        overflow = PsychPortAudio('FillBuffer', pahandle_, dummy_(0, outputBufferSize_, sampleRate_, 0, channels));
+        overflow = PsychPortAudio('FillBuffer', pahandle_, dummy_(0, outputBufferSize_, sampleRate_, 0, channels)); %#ok
         PsychPortAudio('SetLoop', pahandle_); %a circular buffer; loop everything
         
         release = @close;
@@ -121,7 +117,7 @@ function this = AudioOutput(varargin)
     function loadSample_(sample, name)
         %load or otherwise compute the sample.
         if ischar(samples.(name))
-            sampleData_.(name) = LoadAudioFile(sample);
+            sampleData_.(name) = loadAudioFile_(sample);
         else
             d = e(sample, channels, sampleRate_);
             if size(d, 1) ~= numel(channels)
@@ -131,18 +127,32 @@ function this = AudioOutput(varargin)
         end
     end
        
-    function audiodata = loadAudioFile_(filename)
-        [audiodata, infreq] = wavread(filename);
-
+    function audiodata = loadAudioFile_(filename) %#ok
+        [~,~,ext] = fileparts(filename);
+        switch ext
+            case '.wav'
+                [audiodata, infreq] = wavread(filename);
+            case '.aiff'
+                [audiodata, infreq] = aiffread(filename);
+            otherwise
+                [audiodata, infreq] = wavread(filename);
+        end
+        
+        if isinteger(audiodata)
+            mn = double(intmin(class(audiodata)));
+            mx = double(intmax(class(audiodata)));
+            audiodata = double(audiodata) ./ ((mx-mn)/2) - ((mn / (mx-mn) + 0.5)/2);
+        end
+        
         % Resampling supported. Check if needed.
         if infreq ~= freq
             % Need to resample this to target frequency 'freq':
-            fprintf('Resampling file %s from %i Hz to %i Hz... ', filename, infreq, freq);
+            % fprintf('Resampling file %s from %i Hz to %i Hz... ', filename, infreq, freq);
             audiodata = resample(audiodata, freq, infreq);
         end
 
-        [samplecount, ninchannels] = size(audiodata);
-        audiodata = repmat(transpose(audiodata), nrchannels / ninchannels, 1);
+        [~, ninchannels] = size(audiodata);
+        audiodata = repmat(transpose(audiodata), numel(channels) / ninchannels, 1);
     end
 
     function unloadSample_(name)
@@ -155,7 +165,7 @@ function this = AudioOutput(varargin)
         cellfun(@unloadSample_, fieldnames(samples));
     end
     
-    function setSamples(newSamples)
+    function setSamples(newSamples) %#ok
         if initted_
             %whoops. must go through and see what has changed.
             oldSamples = s;
@@ -289,7 +299,7 @@ function this = AudioOutput(varargin)
  
         bufferIndex = mod(firstSample, outputBufferSize_);
         if (bufferIndex + nDataSamples > outputBufferSize_)
-            if bufferIndex+nDataSamples == outputBufferSize_ + 1
+            if bufferIndex+nDataSamples == outputBufferSize_
                 PsychPortAudio('RefillBuffer', pahandle_, 0, data, bufferIndex);
             else
                 endn = outputBufferSize_ - bufferIndex;
@@ -350,14 +360,14 @@ function this = AudioOutput(varargin)
                 sampleStartIndex = 1;
             end
 
-            if size(sampleContents, 2) - sampleStartIndex + 1 < nSamples + startIndex - 1
-                %sample starts and completes in this chunk
-                out(:, startIndex:(startIndex + size(sampleContents, 2)-1)) = ...
-                    out(:, startIndex:(startIndex + size(sampleContents, 2)-1)) + sampleContents(sampleStartIndex:end);
+            %does the sample actually complete in this chunk?
+            if size(sampleContents, 2) - sampleStartIndex + 1 + startIndex - 1 - nSamples <= 0
+                out(:, startIndex:(startIndex + size(sampleContents, 2)-sampleStartIndex)) = ...
+                    out(:, startIndex:(startIndex + size(sampleContents, 2)-sampleStartIndex)) + sampleContents(:,sampleStartIndex:end);
             else
                 %sample starts and continues into the next chunk
                 out(:, startIndex:end) = out(:, startIndex:end) + sampleContents(:, sampleStartIndex:(sampleStartIndex + nSamples - startIndex));
-                running_(end+1, :) = {starting_{ix,2}, size(sampleContents, 2), firstSample + startIndex + sampleStartIndex - 2};
+                running_(end+1, :) = {starting_{i,2}, size(sampleContents, 2), firstSample + startIndex + sampleStartIndex - 2};
             end
             
             %log that the sample played.
@@ -366,12 +376,12 @@ function this = AudioOutput(varargin)
         starting_(ix,:) = [];
     end
 
-    function out = dummy_(from,howmany,rate,onset,channels)
+    function out = dummy_(from,howmany,rate,onset,channels) %#ok
         %fill buffer with zeros
         out = zeros(numel(channels), howmany); 
     end
 
-    function [startTime, endTime] = play(sampleName, time)
+    function [startTime, endTime] = play(sampleName, time) %#ok
         %function play(sampleName, time)
         %'time' is the scheduled onset time of the sample. Note audio is
         %computed slightlt in advance of graphics (typically.) If you

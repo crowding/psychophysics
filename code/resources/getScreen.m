@@ -33,28 +33,14 @@ function initializer = getScreen(varargin)
 %   grayIndex - indexes into the colortable
 %   foregroundIndex
 %   backgroundIndex
-
-
-%some defaults
-defaults = namedargs ...
-    ( 'backgroundColor', 0.5 ...
-    , 'foregroundColor', 0 ...
-    , 'preferences.SkipSyncTests', 0 ...
-    , 'preferences.TextAntiAliasing', 0 ...
-    , 'requireCalibration', 1 ...
-    , 'resolution', [] ...
-    , 'imagingMode', kPsychNeed16BPCFloat ... % good graphics cards on this rig, get good imaging
-    , 'rect', [] ...
-    );
     
-
 %curry arguments given now onto the initializer function
 initializer = @doGetScreen;
     
     function [release, details, next] = doGetScreen(details)
         
         %The initializer is composed of sub-initializers.
-        initializer = joinResource(namedargs(defaults, varargin{:}), @checkOpenGL, @setPreferences, @setResolution, @setGamma, @openScreen, @blankScreen);
+        initializer = joinResource(namedargs(defaults('get','Screen'), varargin{:}), @checkOpenGL, @setPreferences, @setResolution, @setGamma, @openScreen, @blankScreen);
         [release, details, next] = initializer(details);
 
         %Now we define the sub-initializers. Each one is set up and torn down

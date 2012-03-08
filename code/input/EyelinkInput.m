@@ -17,6 +17,10 @@ function this = EyelinkInput(varargin)
     
     keepRecordingBetweenTrials = 1;
     keepingRunning_ = 0;
+
+    edfname = '';
+    localname = '';
+    dummy = 0;
     
     persistent init__; %#ok
     
@@ -91,7 +95,7 @@ function this = EyelinkInput(varargin)
             %auto-choose real or dummy mode
             try
                 status = Eyelink('Initialize');
-                details.dummy = 0;
+                dummy = 0;
             catch
                 %There is no rhyme or reason as to why eyelink throws
                 %an error and not a status code here
@@ -100,10 +104,10 @@ function this = EyelinkInput(varargin)
             if (status < 0)
                 warning('GetEyelink:dummyMode', 'Using eyelink in dummy mode');
                 status = Eyelink('InitializeDummy');
-                details.dummy = 1;
+                dummy = 1;
             end
         else
-            if details.dummy
+            if dummy
                 status = Eyelink('InitializeDummy');
             else
                 status = Eyelink('Initialize');
@@ -175,27 +179,27 @@ function this = EyelinkInput(varargin)
     function [release, details] = openEDF_(details)
         e = env;
 
-        if ~isfield(details, 'edfname')
-            %default behavior is to rocord to EDF, if NOT streaming data
-            %(if streaming data goes into the log which is easier.)
+        %default behavior is to rocord to EDF, if NOT streaming data
+        %(if streaming data goes into the log which is easier.)
+        if isempty(edfname)
             if (recordFileSamples || recordFileEvents) && ~streamData
                 %pick some kind of unique filename by combining a prefix with
                 %a 7-letter encoding of the date and time
-
+            
                 pause(1); % to make it likely that we get a unique filename, hah!
                 % oh, why is the eyelink so dumb?
-                details.edfname = ['z' clock2filename(clock) '.edf'];
+                edfname = ['z' clock2filename(clock) '.edf'];
             else
-                details.edfname = '';
+                edfname = '';
             end
         end
         
-        if ~isfield(details, 'localname') || (~isempty(details.edfname) && isempty(details.localname))
+        if ~isempty(edfname) && isempty(localname)
             %choose a place to download the EDF file to
             
             %if we're in an experiment, use those values...
             if all(isfield(details, {'subject', 'caller'}))
-                details.localname = fullfile...
+                localname = fullfile...
                     ( e.eyedir...
                     , sprintf ...
                     ( '%s-%04d-%02d-%02d__%02d-%02d-%02d-%s.edf'...
@@ -203,17 +207,17 @@ function this = EyelinkInput(varargin)
                     ) ...
                     );
             else
-                details.localname = fullfile(e.eyedir, details.edfname);
+                localname = fullfile(e.eyedir, edfname);
             end
         end
 
-        if ~isempty(details.edfname)
+        if ~isempty(edfname)
             %the eyelink has no way directly to check that the filename is
             %valid or non-existing... so we must assert that we can't open the
             %file yet.
             tmp = tempname();
-            status = Eyelink('ReceiveFile',details.edfname,tmp);
-            if (~details.dummy) && (status ~= -1)
+            status = Eyelink('ReceiveFile',edfname,tmp);
+            if (~dummy) && (status ~= -1)
                 error('Problem generating filename (expected status %d, got %d)',...
                     -1, status);
             end
@@ -221,10 +225,10 @@ function this = EyelinkInput(varargin)
             %destructive step: open the file
             %FIXME - adjust this according to what data we save...
             Eyelink('command', 'link_sample_data = GAZE');
-            status = Eyelink('OpenFile', details.edfname);
+            status = Eyelink('OpenFile', edfname);
             if (status < 0)
                 error('getEyelink:fileOpenError', ...
-                    'status %d opening eyelink file %s', status, details.edfname);
+                    'status %d opening eyelink file %s', status, edfname);
             end
         else
             %not recording -- don't leave some random previous file open on
@@ -233,7 +237,7 @@ function this = EyelinkInput(varargin)
             if status ~= 0
                 error('GetEyelink:couldNotClose', 'status %d closing EDF file', status);
             end
-            details.localname = '';
+            localname = '';
         end
         
         %when we are done with the file, download it
@@ -250,16 +254,16 @@ function this = EyelinkInput(varargin)
             end
             
             %if we were recording to a file, download it
-            if ~isempty(details.edfname) && ~isempty(details.localname)
+            if ~isempty(edfname) && ~isempty(localname)
                 %try both in any case
                 status = Eyelink('CloseFile');
                 if Eyelink('IsConnected') ~= details.el.dummyconnected
-                    fsize = Eyelink('ReceiveFile', details.edfname, details.localname);
+                    fsize = Eyelink('ReceiveFile', edfname, localname);
 
                     if (fsize < 0 || status < 0)
                         error('getEyeink:fileTransferError', ...
                             'File %s empty or not transferred (close status: %d, receive: %d)',...
-                            details.edfname, status, fsize);
+                            edfname, status, fsize);
                     end
                 end
             end
@@ -271,7 +275,7 @@ function this = EyelinkInput(varargin)
     function details = doTrackerSetup(details)
         details = setupEyelink(details);
         
-        if ~details.dummy && flagged(details,'doTrackerSetup')
+        if ~dummy && flagged(details,'doTrackerSetup')
             message(details, 'Do tracker setup now');
             status = EyelinkDoTrackerSetup(details.el) %, details.el.ENTER_KEY);
             if status < 0
@@ -305,7 +309,7 @@ function this = EyelinkInput(varargin)
         
         toDegrees_ = transformToDegrees(details.cal);
         
-        dummy_ = details.dummy;
+        dummy_ = dummy;
         window_ = details.window;
 
         %t1 = GetSecs();
