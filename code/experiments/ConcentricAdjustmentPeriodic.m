@@ -1,8 +1,8 @@
-function this = ConcentricAdjustment(varargin)
+function this = ConcentricAdjustmentPeriodic(varargin)
     
     this = Experiment('inputUsed', {'keyboard', 'knob', 'audioout'});
 
-    this.trials.base = ConcentricAdjustmentTrial('useEyes', 0);
+    this.trials.base = ConcentricAdjustmentPeriodicTrial('useEyes', 0);
     this.trials.interTrialInterval = 0;
     
     % use 0.4 for NS. 
@@ -18,22 +18,24 @@ function this = ConcentricAdjustment(varargin)
     %Add on this whole gridness of parameters.
     
     %this variant: different contrasts at a single eccentricity
-%{
+
     this.trials.add({'extra.nTargets', 'extra.globalVScalar'}...
                     , arrayfun(@(x,y){x,y} ...
                         , [4    8   12   16   20] ...
                         , [-0.1 0.0 0.1 0.2  0.3] ...
                         , 'UniformOutput', 0));
-    this.trials.add('extra.directionContrast', [0.2 0.4 0.6]);
+    this.trials.add('extra.directionContrast', [0.1 0.2 0.4 0.6]);
     this.trials.add...
         ( {'parameter', 'parameterValues', 'parameterIndex'}...
         , { {'extra.globalVScalar', fliplr(valueSet), []} ...
         , {'extra.nTargets', densitySet, []} ...
         } ...
         )
+    this.trials.reps = 4;
 %}
  
 % this variant: just eccentricity, adjusting both axes
+%{
 this.trials.add('extra.r', [10 20/3 40/9 80/27]);
 
 this.trials.add({'extra.nTargets', 'extra.globalVScalar'}...

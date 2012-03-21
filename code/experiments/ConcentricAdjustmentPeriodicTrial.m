@@ -1,4 +1,4 @@
-function this = ConcentricAdjustmentTrial(varargin)
+function this = ConcentricAdjustmentPeriodicTrial(varargin)
     % Wait for fixation (or keypresses to indicate fixation.)
     % Show a motion stimulus on the screen. Wait for knob turns or
     % keypresses that adjust some parameter of the motion. 
@@ -32,7 +32,7 @@ function this = ConcentricAdjustmentTrial(varargin)
             , 'localDirection', -1 ...
             , 'color', [0.5;0.5;0.5] ...
             , 'directionContrast', 1 ...
-            , 'nStrokes', Inf ... 
+            , 'nStrokes', 5 ... 
             );
             
     %a function that reaches in and rearranges the
@@ -61,8 +61,10 @@ function this = ConcentricAdjustmentTrial(varargin)
     useKnob = 1; %use the knob for input...
     knobDivider = 5; %How many notches of knob turn makes an adjustment of stimulus.
     
-    motionOnsetDelay = 0.3; %How long to wait to start (after fixation is settled, or adjustment is done)
-    
+    stimulusPeriod = 1; %How often the triger to start motion fires.
+    motionOnset = 0.1;  %the motion inset.
+    motionReconfigure = 0.9; %How often the trigger to reconfigure fires.
+
     persistent init__; %#ok
     this = autoobject(varargin{:});
     
@@ -141,7 +143,7 @@ function this = ConcentricAdjustmentTrial(varargin)
             end
         end
         
-        function fixated(~)
+        function fixated(k)
             isFixated = 1;
             fixation.setRadius(0.10);
             if useEyes
@@ -151,17 +153,51 @@ function this = ConcentricAdjustmentTrial(varargin)
             end
 
             if (isMotionReady)
-                trigger.singleshot(always(), @startMotion);
+                trigger.singleshot(atLeast('next', k.next), @startMotion);
             end
         end
         
-%%      How to start motion
+%%      How to start motion and show it periodically.
+        lastShown = -Inf;
         
         function startMotion(k)
             %fixation.setColor([0;0;0]);
-            motion.setVisible(1, k.next + motionOnsetDelay);
+            if(done)
+                return;
+            end
+            lastShown = k.triggerValue;
+            motion.setVisible(1, k.triggerValue + motionOnset);
             hasShown = 1;
+            trigger.singleshot(atLeast('next', k.triggerValue + motionReconfigure), @reconfigure)
         end
+        
+        function reconfigure(k)
+            motion.setVisible(0);
+            isMotionReady = 0;
+            trigger.singleshot(atLeast('refresh', k.refresh+1), @doReconfigure);
+        end
+        
+        function doReconfigure(k)
+            reconfigureFn(parameterValues(parameterIndex - adjustmentDistance), parameterValues(parameterIndex));
+            adjustmentDistance = 0;
+            
+            fprintf(logf, 'BEGIN STIMULUS\n');
+            dump(motion, logf, 'stimulus');
+            trigger.singleshot(atLeast('refresh', k.refresh+1), @motionReady);
+        end
+        
+        function motionReady(k)
+            if (isMotionReady)
+                noop;
+                return;
+            end
+                
+            isMotionReady = 1;
+            if (isFixated)
+                trigger.singleshot(atLeast('next', max(lastShown + stimulusPeriod, k.next + eps(k.next))), @startMotion);
+            end
+        end
+
                     
 %%      Keyboard adjustment
 
@@ -174,11 +210,17 @@ function this = ConcentricAdjustmentTrial(varargin)
         key.set(@transparent, 'LeftGUI');
         
         function adjustUp(k)
+            if done 
+                return;
+            end
             changeParameter(k, 1);
             hasAdjusted = 1;
         end
         
         function adjustDown(k)
+            if done 
+                return;
+            end
             changeParameter(k, -1);
             hasAdjusted = 1;
         end
@@ -193,6 +235,9 @@ function this = ConcentricAdjustmentTrial(varargin)
         knobCounter = 0;
         
         function knobTurned(k)
+            if done 
+                return;
+            end
             %this is tricky.
             %what we do is count _consecutive_ steps in the same direction.
             
@@ -219,8 +264,6 @@ function this = ConcentricAdjustmentTrial(varargin)
         adjustmentDistance = 0;
         
         function k = changeParameter(k,howMuch)
-            motion.setVisible(0);
-            isMotionReady = 0;
             newIndex = parameterIndex + howMuch;
             %fixation.setColor([255;0;0]);
             
@@ -245,42 +288,21 @@ function this = ConcentricAdjustmentTrial(varargin)
             k.parameterIndex = newIndex;
             k.parameter = parameter;
             k.parameterValue = parameterValues(parameterIndex);
-           
-            %do reconfiguring after screen are blanked
-            trigger.singleshot(atLeast('refresh', k.refresh+1), @reconfigure);
         end
         
         logf = params.logf;
-        
-        function reconfigure(k)
-            reconfigureFn(parameterValues(parameterIndex - adjustmentDistance), parameterValues(parameterIndex));
-            adjustmentDistance = 0;
-            fprintf(logf, 'BEGIN STIMULUS\n');
-            dump(motion, logf, 'stimulus');
-            trigger.singleshot(atLeast('refresh', k.refresh+1), @motionReady);
-        end
-        
-        function motionReady(~)
-            if (isMotionReady)
-                noop;
-                return;
-            end
                 
-            isMotionReady = 1;
-            if (isFixated)
-                trigger.singleshot(always(), @startMotion);
-            end
-        end
         
 %%      how to stop, and return results.
-        
+        done = 0;
         function abort(k)
-            results = struct('parameter', parameter, 'parameterValue', parameterValues(parameterIndex), 'motion', motion, 'accepted', 0, 'success', 0, 'abort', 1, 'answer', 'abort'); %#ok
+            results = struct('parameter', parameter, 'parameterValue', parameterValues(parameterIndex), 'motion', motion, 'accepted', 0, 'success', 0, 'abort', 1, 'answer', 'abort');
             stop(k, abortSound);
         end
         
-        function acceptIfShownAndAdjusted(k)
+        function acceptIfShownAndAdjusted(~)
             if hasShown && hasAdjusted
+                done = 1;
                 trigger.singleshot(always(), @accept);
             end
         end
@@ -291,11 +313,13 @@ function this = ConcentricAdjustmentTrial(varargin)
         end
         
         function reject(k)
+            done = 1;
             results = struct('parameter', parameter, 'parameterValue', parameterValues(parameterIndex), 'motion', motion, 'accepted', 0, 'success', 1, 'answer', 'reject');
             stop(k, rejectSound);
         end
         
         function transparent(k)
+            done = 1;
             results = struct('parameter', parameter, 'parameterValue', parameterValues(parameterIndex), 'motion', motion, 'accepted', 0, 'success', 1, 'answer', 'transparent');
             stop(k, transparentSound);
         end
