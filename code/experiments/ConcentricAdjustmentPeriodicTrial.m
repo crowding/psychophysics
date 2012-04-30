@@ -168,7 +168,7 @@ function this = ConcentricAdjustmentPeriodicTrial(varargin)
             lastShown = k.triggerValue;
             motion.setVisible(1, k.triggerValue + motionOnset);
             hasShown = 1;
-            trigger.singleshot(atLeast('next', k.triggerValue + motionReconfigure), @reconfigure)
+            trigger.singleshot(atLeast('next', k.triggerValue + motionReconfigure), @reconfigure);
         end
         
         function reconfigure(k)

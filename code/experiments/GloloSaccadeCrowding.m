@@ -1,4 +1,4 @@
-function e = GloloSaccadePrecue(varargin)
+function e = GloloSaccadeCorwding(varargin)
     e = Experiment(varargin{:});
     
     its = Genitive();

@@ -6,7 +6,7 @@ function this = ConcentricAdjustment(varargin)
     this.trials.interTrialInterval = 0;
     
     % use 0.4 for NS. 
-    this.trials.base.extra.directionContrast = 0.4;
+    this.trials.base.extra.directionContrast = 1.0;
     this.trials.base.extra.r = 20/3;
 %%
     this.trials.add({'extra.localDirection', 'extra.globalDirection', 'knobDirection'}, {{1 -1 -1} {-1 1 1}});
