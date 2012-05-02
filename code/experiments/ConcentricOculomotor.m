@@ -1,31 +1,37 @@
-function e = GloloSaccadeCrowdingLadder(varargin)
-    e = Experiment('params.inputUsed', {'eyes', 'keyboard'}, varargin{:});
+function e = ConcentricOculomotor(varargin)
+    e = Experiment('params.inputUsed', {'eyes', 'keyboard', 'audioout'}, varargin{:});
     
     its = Genitive();
     
-
-    e.trials.base = GloloSaccadeTrial...
+    densitySet = unique(round(1./logspace(log10(1/4), log10(1/30), 16)));
+    
+    e.trials.base = ConcentricOculomotorTrial...
         ( 'extra', struct...
-            ( 'minSpace', 12 ...
-            , 'distractorRelativeContrast', 1 ...
-            , 'r', 12 ...
-            , 'dt', .15 ...
-            , 'l', 1.125 ...
+            ( 'r', 20/3 ...
+            , 'globalVScalar', 0.75 ...
+            , 'tf', 10 ...
+            , 'wavelengthScalar', .075 ...
+            , 'dt', 0.1 ...
+            , 'widthScalar', 0.075 ...
+            , 'durationScalar', 2/3 ...
+            , 'phase', 0 ...
+            , 'globalDirection', 1 ...
+            , 'localDirection', 1 ...
             , 'color', [0.5;0.5;0.5] / sqrt(2) ...
-            , 'tf', 20/3 ...
-            , 'globalVScalar', 1 ...
-            , 'wavelengthScalar', 0.15 ...
-            , 'widthScalar', 0.1 ...
-            , 'nTargets', 5 ...
-            ) ... 
+            , 'directionContrast', 1 ...
+            , 'minSpace', 12 ...
+            , 'distractorRelativeContrast', 1 ...
+            , 'nTargets', 2 ...
+            , 'nStrokes', Inf ...
+            ) ...
         , 'fixation', FilledDisk ...
-            ( 'radius', 0.2 ...
+            ( 'radius', 0.1 ...
             , 'loc', [0 0] ...
             ) ...
         , 'fixationTime', Inf ...
         , 'fixationLatency', 1.0 ...
-        , 'fixationStartWindow', 2 ...
-        , 'fixationSettle', 0.4 ...
+        , 'fixationStartWindow', 3 ...
+        , 'fixationSettle', 0.2 ...
         , 'fixationWindow', 2 ...
         , 'targetOnset', 0 ...
         , 'usePrecue', 1 ...
@@ -80,7 +86,7 @@ function e = GloloSaccadeCrowdingLadder(varargin)
         , 'minLatency', 0.075 ... %too short a latency counts as jumping the gun
         , 'maxLatency', 0.6 ...
         , 'maxTransitTime', 0.15 ...
-        , 'targetWindow', 8 ...
+        , 'targetWindow', 4 ...
         , 'rewardSize', 0 ...
         , 'rewardTargetBonus', 0.15 ...
         , 'rewardLengthBonus', 0.15 ...
@@ -89,17 +95,20 @@ function e = GloloSaccadeCrowdingLadder(varargin)
         );
     
 %%
-    %In this section, we build up the array of parameters we will quest with.
+    %In this section, we build up the array of parameters we will staircase with.
     vars = {};
     
-    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{15 10} {10 20/3} {20/3 40/9} {40/9 80/27}}};
+    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3}}};
+    %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     
     %these are multiplied by radius to get global velocity, centereed
     %around 10 deg/dec at 10 radius... that is to say this is merely
     %radians/sec around the circle.
     %%vars(end+1,:) = {{'extra.globalVScalar'}, {2/1 1 1.5}};
-    vars(end+1,:) = {{'extra.globalVScalar'}, {1}};
+    vars(end+1,:) = {{'extra.globalVScalar'}, {1.125 0.75 0.5 -0.5 -0.75 -1.125}};
+    
+    vars(end+1,:) = {{'extra.directionContrast'}, {0.2 0.4 1.0}};
     
     %temporal frequency is chosen here...
     %%vars(end+1,:) = {{'extra.tf'}, {15 10 20/3}};
@@ -108,17 +117,13 @@ function e = GloloSaccadeCrowdingLadder(varargin)
     %and wavelength is set to the RADIUS multiplied by this (note
     %this is independent of dt or dx)
     %%vars(end+1,:) = {{'extra.wavelengthScalar'}, {2/30 .1 .15}};
-    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.1}};
+    vars(end+1,:) = {{'extra.wavelengthScalar'}, {.075}};
     
     %dt changes independently of it all. but it is linked to the stimulus
     %duration.
     %%vars(end+1,:) = {{'extra.dt'}, {2/30 0.10 0.15}};
-    vars(end+1,:) = {'extra.dt', {0.10}};
+    vars(end+1,:) = {{'extra.dt'}, {0.10}};
 
-    %here's where local and global are randomized
-    vars(end+1,:) = {{'extra.globalDirection'}, {1 -1}};
-    vars(end+1,:) = {{'extra.localDirection'}, {1 0 -1}};
-    
     %expand all the values to be used here.
     parameters = cat(2, vars{:,1});
     indices = fullfact(cellfun('prodofsize', vars(:,2)));
@@ -130,7 +135,7 @@ function e = GloloSaccadeCrowdingLadder(varargin)
     parameters{end+1} = 'extra.nTargets';
     for i = 1:numel(product)
         product{i}{end+1} = DiscreteStaircase ...
-            ( 'valueSet', [2:15], 'currentIndex', 4 ...
+            ( 'valueSet', densitySet, 'currentIndex', 12 ...
             , 'Nup', 1, 'Ndown', 1 ...
             , 'criterion', @criterion ...
             );
@@ -155,6 +160,11 @@ function e = GloloSaccadeCrowdingLadder(varargin)
     %now add'em all
     e.trials.add(parameters, product);
 %%
+
+%I'm going to juast plug local and global in the opposite direction
+    e.trials.add({'extra.globalDirection', 'extra.localDirection'}...
+                 , { { 1, 1 }, { -1, -1 } });
+    
     %The durations are 2/3 of the dt, at the same global speed
     e.trials.add('trackingTarget.process.duration', @(b)b.extra.dt * 2/3);
 
@@ -163,63 +173,85 @@ function e = GloloSaccadeCrowdingLadder(varargin)
     e.trials.add('target.source.phase(1)', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %the target onset comes at a somewhat unpredictable time.
-    e.trials.add('targetOnset', ExponentialDistribution('offset', 0.3, 'tau', 0.5));
+    e.trials.add('targetOnset', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
     
     %the cue time comes on unpredictably after the target onset.
-    e.trials.add('cueTime', ExponentialDistribution('offset', 0.4, 'tau', 0.5));
+    e.trials.add('cueTime', ExponentialDistribution('offset', 0.4, 'tau', 0.4));
 
     %But on some of trials the monkey is rewarded for just fixating.
-    e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.8));
+    %e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.8));
+    
+    %Not humans though.
+    e.trials.add('fixationTime', Inf);
 
     %The precue, if there is one, comes 300 ms before the target onset.
     e.trials.add('precueOnset', @(b)b.targetOnset - 0.3);
     
     %The target tracking time is also variable.
-    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.3, 'tau', 0.4));
+    e.trials.add('targetFixationTime', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
     
     %procedurally set up the global appearance of the stimulus
     e.trials.add([], @appearance);
+    
     function b = appearance(b)
         %This function procedurally sets up the global appearance.
         extra = b.extra;
 
-        trackingProcess = b.trackingTarget.process;
-        trackingProcess.setRadius(extra.r);
-        trackingProcess.setDt(extra.dt);
-        trackingProcess.setT(extra.dt);
-        trackingProcess.setDphase(extra.dt .* extra.globalVScalar .* sign(extra.globalDirection));
+        mot = b.trackingTarget.process;
+        mot.setRadius(extra.r);
+        mot.setDt(extra.dt);
+        mot.setT(extra.dt);
+        mot.setDphase(extra.dt .* extra.globalVScalar .* sign(extra.globalDirection));
+        wl = extra.r * extra.wavelengthScalar;
+        mot.setWavelength(wl);
+        mot.setWidth(extra.r .* extra.widthScalar);
+        mot.setDuration(extra.durationScalar .* extra.dt);
+        mot.setN(extra.nStrokes - 1);
         
-        %the target moves the same as the first stimulus.
+        %the target moves the same as the motion stimulus.
         targetSource = b.target.source;
         ph = targetSource.property__(its.phase(1));
         targetSource.setRadius(extra.r(1));
         targetSource.setOmega(extra.globalVScalar(1) .* sign(extra.globalDirection));
         targetSource.setAngle(ph * 180/pi + 90);
         
-        %local appearance
+        %local appearance. Note phase is synchronized to the target
+        %position.
         wl = extra.r .* extra.wavelengthScalar;
         v = wl .* extra.tf;
-        ph = ph + trackingProcess.getT() .* targetSource.getOmega() + 2*pi*(0:extra.nTargets-1)/extra.nTargets;
+        ph = ph + mot.getT() .* targetSource.getOmega() + 2*pi*(0:extra.nTargets-1)/extra.nTargets;
         
-        if extra.localDirection ~= 0
-            %the wheel phase is aligned to the target phase, when the wheel
-            %appears. The wheel has spokes.
-            trackingProcess.setVelocity(v .* sign(extra.localDirection));
-            col = repmat(extra.color, 1, extra.nTargets);
-            col(:, 2:end) = col(:, 2:end) .* extra.distractorRelativeContrast;
-        else
+        if isfield(extra, 'nVisibleTargets')
+            ph = ph(1:extra.nVisibleTargets);
+        end
+        
+        %We don't really use "congruent" any more, jsut specify direction
+        %contrast.
+        if extra.localDirection == 0 || extra.directionContrast ~= 1
+        
+            %The ambiguous motion is made up of two opposing motions superimposed,
+            %so we have to double and elements (and reduce the contrast)
+            %for that onthis.
             ph = reshape(repmat(ph, 2, 1), 1, []);
-            trackingProcess.setVelocity(wl .* extra.tf * repmat([-1 1], 1, extra.nTargets));
-            col = repmat(extra.color, 1, 2*extra.nTargets) / sqrt(2);
-            col(:, 3:end) = col(:, 3:end) .* extra.distractorRelativeContrast;
+            mot.setPhase(ph);
+            mot.setAngle(mod(ph*180/pi + 90, 360));
+            mot.setVelocity(wl .* extra.tf * repmat([1 -1], 1, numel(ph)/2));
+            if extra.directionContrast ~= 1
+                mot.setVelocity(mot.getVelocity() * extra.localDirection);
+                ccc = repmat(extra.color * [1 + extra.directionContrast, 1-extra.directionContrast], 1, numel(ph)/2);
+                mot.setColor(ccc);
+            else
+                mot.setColor(extra.color);            
+            end
+        else
+            mot.setPhase(ph);
+            mot.setAngle(mod(ph*180/pi + 90, 360));
+            mot.setVelocity(wl .* extra.tf .* extra.localDirection);
+            mot.setColor(extra.color);
         end
 
-        trackingProcess.setPhase(ph);
-        trackingProcess.setAngle(mod(ph*180/pi + 90, 360));
-
-        trackingProcess.setWavelength(wl);
-        trackingProcess.setWidth(extra.r .* extra.widthScalar);
-        trackingProcess.setColor(col);
+        mot.setWavelength(wl);
+        mot.setWidth(extra.r .* extra.widthScalar);
 
         %the precue is appears unmoving in the location of the original
         %target.
@@ -231,9 +263,9 @@ function e = GloloSaccadeCrowdingLadder(varargin)
         %Make sure that after the changeover to the smooth target, the target
         %stll has the same (mean) contrast and wavelength.
         targetSource = b.target.source;
-        targetSource.setColor(extra.color .* trackingProcess.property__(its.duration(1)) ./ trackingProcess.property__(its.dt(1)));
-        targetSource.setWavelength(trackingProcess.property__(its.wavelength(:,1)));
-        targetSource.setWidth(trackingProcess.property__(its.width(1)));
+        targetSource.setColor(extra.color .* mot.property__(its.duration(1)) ./ mot.property__(its.dt(1)));
+        targetSource.setWavelength(mot.property__(its.wavelength(:,1)));
+        targetSource.setWidth(mot.property__(its.width(1)));
         
         precueSource = b.precue.source;
         precueSource.setColor(extra.color);
@@ -244,27 +276,27 @@ function e = GloloSaccadeCrowdingLadder(varargin)
     %minimize time between trials.
     e.trials.interTrialInterval = 0;
     
-%    e.trials.fullFactorial = 1;
-%    e.trials.reps = 30;
+%   e.trials.fullFactorial = 1;
+%   e.trials.reps = 30;
     e.trials.blockSize = 300;
     e.trials.requireSuccess = 0;
     
     %begin with an eye calibration and again every three hundred trials...
     %
     e.trials.blockTrial = EyeCalibrationMessageTrial...
-        ( its.base.absoluteWindow, 10 ...
-        , its.base.maxLatency, 0.5 ...
-        , its.base.fixDuration, 0.75 ...
-        , its.base.fixWindow, 4 ...
-        , its.base.rewardDuration, 75 ...
-        , its.base.settleTime, 0.5 ...
-        , its.base.targetRadius, 0.25 ...
-        , its.base.targetInnerRadius, 0.1 ...
-        , its.minCalibrationInterval, 900 ...
-        , its.base.onset, 0 ...
-        , its.maxStderr, 0.3 ...
-        , its.minN, 20 ...
-        , its.maxN, 50 ...
-        , its.interTrialInterval, 0.5 ...
+        ( 'minCalibrationInterval', 0 ...
+        , 'base.absoluteWindow', 100 ...
+        , 'base.maxLatency', 0.5 ...
+        , 'base.fixDuration', 0.5 ...
+        , 'base.fixWindow', 4 ...
+        , 'base.rewardDuration', 10 ...
+        , 'base.settleTime', 0.3 ...
+        , 'base.targetRadius', 0.2 ...
+        , 'base.plotOutcome', 0 ...
+        , 'base.onset', 0 ...
+        , 'maxStderr', 0.5 ...
+        , 'minN', 10 ...
+        , 'maxN', 50 ...
+        , 'interTrialInterval', 0.4 ...
         );
 end

@@ -1,4 +1,4 @@
-function this = GloloSaccadeTrial(varargin)
+function this = ConcentricOculomotorTrial(varargin)
     %A trial for circular pursuit. The obzerver begins the trial by
     %fixating at a central fixation point. Another point comes up in a
     %circular trajectory; at some point it may change its color. 
@@ -70,7 +70,7 @@ function this = GloloSaccadeTrial(varargin)
         
         interval = params.cal.interval;
 
-        trigger.panic(keyIsDown({'LeftControl', 'ESCAPE'}), @abort);
+        trigger.panic(keyIsDown({'ESCAPE'}), @abort);
         trigger.singleshot(atLeast('next', startTime), @begin);
         
         fixation.setVisible(0);
@@ -79,8 +79,10 @@ function this = GloloSaccadeTrial(varargin)
         
         fixcolor = fixation.getColor();
         
+        audio = params.input.audioout;
+        
         main = mainLoop ...
-            ( 'input', {params.input.eyes, params.input.keyboard, EyeVelocityFilter()} ...
+            ( 'input', {params.input.eyes, params.input.keyboard, audio, EyeVelocityFilter()} ...
             , 'graphics', {fixation, target, trackingTarget, precue} ...
             , 'triggers', {trigger} ...
             );
@@ -282,8 +284,11 @@ function this = GloloSaccadeTrial(varargin)
             end
             
             rs = floor(rewardSize + 1000 * bonus) %#ok
-            [rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
-            trigger.singleshot(atLeast('next', when + rs/1000 + 0.1), @endTrial);
+            %[rewardAt, when] = params.input.eyes.reward(k.refresh, rs);
+            
+            [~, endplay] = audio.play('click');
+            
+            trigger.singleshot(atLeast('next', endplay+2*interval), @endTrial);
         end
         
         function failed(k)
