@@ -98,16 +98,10 @@ function e = ConcentricOculomotor(varargin)
     %In this section, we build up the array of parameters we will staircase with.
     vars = {};
     
-    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3}}};
+    %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3}}};
+    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
-    %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
-    
-    %these are multiplied by radius to get global velocity, centereed
-    %around 10 deg/dec at 10 radius... that is to say this is merely
-    %radians/sec around the circle.
-    %%vars(end+1,:) = {{'extra.globalVScalar'}, {2/1 1 1.5}};
-    vars(end+1,:) = {{'extra.globalVScalar'}, {1.125 0.75 0.5 -0.5 -0.75 -1.125}};
-    
+        
     vars(end+1,:) = {{'extra.directionContrast'}, {0.2 0.4 1.0}};
     
     %temporal frequency is chosen here...
@@ -131,12 +125,13 @@ function e = ConcentricOculomotor(varargin)
     product = cellfun(@(row)cellfun(@(x,y)x(y), vars(:,2)', num2cell(row)), num2cell(indices, 2), 'UniformOutput', 0);
     product = cellfun(@(row)cat(2, row{:}), product, 'UniformOutput', 0);
 
-    %now create staircases for each...
+    %now create staircases for each... use 2-down, one up for this
     parameters{end+1} = 'extra.nTargets';
     for i = 1:numel(product)
         product{i}{end+1} = DiscreteStaircase ...
             ( 'valueSet', densitySet, 'currentIndex', 12 ...
-            , 'Nup', 1, 'Ndown', 1 ...
+            , 'Nup', 3, 'Ndown', 1 ...
+            , 'useMomentum', 1 ...
             , 'criterion', @criterion ...
             );
     end
@@ -161,9 +156,13 @@ function e = ConcentricOculomotor(varargin)
     e.trials.add(parameters, product);
 %%
 
-%I'm going to juast plug local and global in the opposite direction
-    e.trials.add({'extra.globalDirection', 'extra.localDirection'}...
-                 , { { 1, 1 }, { -1, -1 } });
+    %equal distribution of concruent and incongruent, to avoid cuing.
+    e.trials.add('extra.globalDirection', [1 -1]);
+        e.trials.add('extra.localDirection', [1 -1])
+                 
+    %I'm also going to put global speed outside the staircase.
+    %That way density is not aq cue for local vs. global.
+    e.trials.add('extra.globalVScalar', [1.125 0.75 0.5 0.3]);
     
     %The durations are 2/3 of the dt, at the same global speed
     e.trials.add('trackingTarget.process.duration', @(b)b.extra.dt * 2/3);
@@ -176,7 +175,7 @@ function e = ConcentricOculomotor(varargin)
     e.trials.add('targetOnset', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
     
     %the cue time comes on unpredictably after the target onset.
-    e.trials.add('cueTime', ExponentialDistribution('offset', 0.4, 'tau', 0.4));
+    e.trials.add('cueTime', ExponentialDistribution('offset', 0.2, 'tau', 0.3));
 
     %But on some of trials the monkey is rewarded for just fixating.
     %e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.8));
@@ -278,7 +277,7 @@ function e = ConcentricOculomotor(varargin)
     
 %   e.trials.fullFactorial = 1;
 %   e.trials.reps = 30;
-    e.trials.blockSize = 300;
+    e.trials.blockSize = 100;
     e.trials.requireSuccess = 0;
     
     %begin with an eye calibration and again every three hundred trials...
