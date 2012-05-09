@@ -3,7 +3,7 @@ function e = ConcentricOculomotor(varargin)
     
     its = Genitive();
     
-    densitySet = unique(round(1./logspace(log10(1/4), log10(1/30), 16)));
+    densitySet = unique(round(1./logspace(log10(1/4), log10(1/30), 30)));
     
     e.trials.base = ConcentricOculomotorTrial...
         ( 'extra', struct...
@@ -32,7 +32,7 @@ function e = ConcentricOculomotor(varargin)
         , 'fixationLatency', 1.0 ...
         , 'fixationStartWindow', 3 ...
         , 'fixationSettle', 0.2 ...
-        , 'fixationWindow', 2 ...
+        , 'fixationWindow', 2.5 ...
         , 'targetOnset', 0 ...
         , 'usePrecue', 1 ...
         , 'precueOnset', 0 ...
@@ -91,7 +91,7 @@ function e = ConcentricOculomotor(varargin)
         , 'rewardTargetBonus', 0.15 ...
         , 'rewardLengthBonus', 0.15 ...
         , 'errorTimeout', 0 ...
-        , 'earlySaccadeTimeout', 3.0 ...
+        , 'earlySaccadeTimeout', 1.0 ...
         );
     
 %%
@@ -99,10 +99,11 @@ function e = ConcentricOculomotor(varargin)
     vars = {};
     
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3}}};
+    %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{20/3 40/9}}};
     vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
         
-    vars(end+1,:) = {{'extra.directionContrast'}, {0.2 0.4 1.0}};
+    vars(end+1,:) = {{'extra.directionContrast'}, {0.4 0.6 1.0}};
     
     %temporal frequency is chosen here...
     %%vars(end+1,:) = {{'extra.tf'}, {15 10 20/3}};
@@ -129,7 +130,7 @@ function e = ConcentricOculomotor(varargin)
     parameters{end+1} = 'extra.nTargets';
     for i = 1:numel(product)
         product{i}{end+1} = DiscreteStaircase ...
-            ( 'valueSet', densitySet, 'currentIndex', 12 ...
+            ( 'valueSet', densitySet, 'currentIndex', 2 ...
             , 'Nup', 3, 'Ndown', 1 ...
             , 'useMomentum', 1 ...
             , 'criterion', @criterion ...
@@ -158,11 +159,11 @@ function e = ConcentricOculomotor(varargin)
 
     %equal distribution of concruent and incongruent, to avoid cuing.
     e.trials.add('extra.globalDirection', [1 -1]);
-        e.trials.add('extra.localDirection', [1 -1])
+    e.trials.add('extra.localDirection', [1 -1])
                  
     %I'm also going to put global speed outside the staircase.
     %That way density is not aq cue for local vs. global.
-    e.trials.add('extra.globalVScalar', [1.125 0.75 0.5 0.3]);
+    e.trials.add('extra.globalVScalar', [1.125 0.75 0.5]);
     
     %The durations are 2/3 of the dt, at the same global speed
     e.trials.add('trackingTarget.process.duration', @(b)b.extra.dt * 2/3);
@@ -172,10 +173,10 @@ function e = ConcentricOculomotor(varargin)
     e.trials.add('target.source.phase(1)', UniformDistribution('lower', 0, 'upper', 2*pi));
     
     %the target onset comes at a somewhat unpredictable time.
-    e.trials.add('targetOnset', ExponentialDistribution('offset', 0.3, 'tau', 0.2));
+    e.trials.add('targetOnset', ExponentialDistribution('offset', 0.5, 'tau', 0.2));
     
     %the cue time comes on unpredictably after the target onset.
-    e.trials.add('cueTime', ExponentialDistribution('offset', 0.2, 'tau', 0.3));
+    e.trials.add('cueTime', ExponentialDistribution('offset', 0.2, 'tau', 0.4));
 
     %But on some of trials the monkey is rewarded for just fixating.
     %e.trials.add('fixationTime', GammaDistribution('offset', 0.7, 'shape', 2, 'scale', 0.8));
@@ -298,4 +299,8 @@ function e = ConcentricOculomotor(varargin)
         , 'maxN', 50 ...
         , 'interTrialInterval', 0.4 ...
         );
+    
+    e.trials.startTrial = MessageTrial('message', @()sprintf('When fixation point disappears, follow cued target.\n Press space to begin.'));
+    e.trials.endBlockTrial = MessageTrial('message', @()sprintf('Take a break, stretch, adjust your chair, etc.\nPress space to continue.'));
+
 end
