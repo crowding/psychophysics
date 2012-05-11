@@ -354,12 +354,11 @@ function this = autoobject(varargin)
                     method = this.(name);
                 end
             case 2
+                method_names = union(method_names, name);
                 this.(name) = value;
                 setmethod(name, value);
         end
     end
-
-
             
     function prop_names = propNames(prop_names)
         %use only variables in the top level of nesting
@@ -391,13 +390,13 @@ function this = autoobject(varargin)
         %while the other half return en empty input of the same dimensions
         %as the regular input.
         %
-        %But here, setdiff() returns a
+        %But here, setdiff()'s first output returns a
         %0-by-0 sized cell array, while its second output is 1-by-0! So not
-        %only is the handlign of zero-sized arrays different between matlab
+        %only is the handling of zero-sized arrays different between matlab
         %functions, it is also incoherent within the same function!!
         
-        %Oh, for fuck's sake. Indexing does not respect the orientation of
-        %an indexing argument.
+        %Oh, and: for fuck's sake. Indexing does not respect the
+        %orientation of an indexing argument.
         %
         %Watch this. You can index a square array with an argument, and the
         %result will respect the orientation of the indexing array.
@@ -414,8 +413,9 @@ function this = autoobject(varargin)
         %
         %Argh. So, if you have a vector you don't know the orientation of,
         %and a vector of indices, there is no way to tell the orientation
-        %of the result of the indexing operation (without modifying the
-        %damn thing like here.)
+        %of the result of the indexing operation, hence no way to use it in
+        %an expression without saving it to a damn temp variable and wiping
+        %it with (:).
         
         %here, cache the file...
         
@@ -440,7 +440,7 @@ function this = autoobject(varargin)
         [setter_names, setteri] = setdiff(setter_names, method_names);
         
         
-        %assignments to the new obejct can be made directly, or by the
+        %assignments to the new object can be made directly, or by the
         %setters we are using.
  
         %to create the object, we evaluate in the caller a string built like so: 

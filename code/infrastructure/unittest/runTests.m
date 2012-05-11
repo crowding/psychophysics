@@ -8,7 +8,7 @@ function results = runTests(varargin)
     testsuite = struct();
     tests = {};
 
-    results = struct('testobj', {}, 'test', {}, 'result', {}, 'details', {});
+    results = struct('testobj', {}, 'test', {}, 'result', {}, 'output', {}, 'details', {});
 
     for i = {varargin{:} struct()}
         if isstruct(i{1})
@@ -30,7 +30,7 @@ function results = runTests(varargin)
     end
 
     if (nargout == 0)
-        showSummary(results)
+        showSummary(results);
     end
 end
 
@@ -85,7 +85,9 @@ function result = showtest(result, trace)
 
     if ~strcmp(result.result, 'PASS') && trace
         stacktrace(result.details);
+        fprintf('\n%s\n', result.output);
     end
+    
 end
 
 function result = runTest(obj, testname)
@@ -99,7 +101,9 @@ function result = runTest(obj, testname)
         i = obj.init();
         [release, params] = i(struct());
         try
-            testfn();
+            result.output = '';
+            %result.output = evalc('testfn()');
+            testfn()
         catch
             release();
             rethrow(lasterror);

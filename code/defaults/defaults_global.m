@@ -13,7 +13,6 @@ defaults('set', 'Experiment', 'inputConstructors', 'keyboard', @KeyboardInput);
 defaults('set', 'Experiment', 'inputConstructors', 'mouse',    @MouseInput);
 defaults('set', 'Experiment', 'inputConstructors', 'eyes',     @EyelinkInput);
 defaults('set', 'Experiment', 'inputConstructors', 'knob',     @PowermateInput);
-defaults('set', 'Experiment', 'inputConstructors', 'keyboard', @KeyboardInput);
 defaults('set', 'Experiment', 'inputConstructors', 'audioin',  @AudioInput);
 defaults('set', 'Experiment', 'inputConstructors', 'audioout', @AudioOutput);
 

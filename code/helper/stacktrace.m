@@ -39,8 +39,8 @@ disp(cat(2,output{:}));
 
     function printStackTrace(theErr, indent)
         %forward compatible support for the new MException object in 7.5
-        if isa(theErr, 'mException')
-            theErr = mException2errstruct(theErr);
+        if isa(theErr, 'MException')
+            theErr = mexception2errstruct(theErr);
         end
 
         if ~exist('indent', 'var')
