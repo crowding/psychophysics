@@ -1,11 +1,11 @@
-function exp = ConcentricDirectionSegment_mc(exp)
-    disp('configuring for mc');
+function exp = ConcentricDirectionSegment_ml(exp)
+    disp('configuring for jb');
     
     %set the global speed.
-    exp.trials.base.extra.directionContrast = 1.0;
+    exp.trials.base.extra.directionContrast = .4;
     %we're just looking at one combination of contrast and two values of
     %global V...
-    globalV = [0.3 -0.3] / (20/3) / 0.1 ;
+    globalV = [-.1 -.4] / (20/3) / 0.1 ;
     
     exp.trials.addBefore('extra.globalDirection', 'extra.globalVScalar', {globalV(1)});
     exp.trials.addBefore('extra.globalDirection', {'extra.globalDirection', 'extra.localDirection'}, {{1 1},{-1 -1}});
@@ -22,10 +22,10 @@ function exp = ConcentricDirectionSegment_mc(exp)
     %exp.trials.base.extra.instruction = 'spots';
     %exp.trials.startTrial.message = @()sprintf('Look for the movement of the individual spots.\nPress knob to begin.\n%d blocks in experiment', exp.trials.blocksLeft());
     %exp.trials.endBlockTrial.message = @()sprintf('Take a break, stretch, adjust your chair, etc.\nPress knob to continue.\n%d blocks remain\nLook for the movement of individual spots.', exp.trials.blocksLeft());
-    exp.trials.base.maxResponseLatency = 0.60;
+    exp.trials.base.maxResponseLatency = 0.70;
 
     exp.trials.reps = 1;
-    exp.trials.reps = floor(1100 / exp.trials.numLeft());
+    exp.trials.reps = floor(900 / exp.trials.numLeft());
     exp.trials.blockSize = floor(exp.trials.numLeft() / 6);
     
 end

@@ -103,7 +103,9 @@ function e = ConcentricOculomotor(varargin)
     vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
         
-    vars(end+1,:) = {{'extra.directionContrast'}, {0.4 0.6 1.0}};
+    %vars(end+1,:) = {{'extra.directionContrast'}, {0.4 0.6 1.0}};
+    %vars(end+1,:) = {{'extra.directionContrast'}, {0.4 1.0}};
+    vars(end+1,:) = {{'extra.directionContrast'}, {0.2 0.4}};
     
     %temporal frequency is chosen here...
     %%vars(end+1,:) = {{'extra.tf'}, {15 10 20/3}};

@@ -358,7 +358,7 @@ function this = ConcentricAdjustmentTrial(varargin)
             mot.setAngle(mod(ph*180/pi + 90, 360));
             mot.setVelocity(wl .* extra.tf * repmat([1 -1], 1, numel(ph)/2));
             mot.setVelocity(mot.getVelocity() * localDirection);
-            ccc = repmat(extra.color / sqrt(2) * [1 + directionContrast, 1-directionContrast], 1, numel(ph)/2);
+            ccc = repmat(extra.color / 2 * [1 + directionContrast, 1-directionContrast], 1, numel(ph)/2);
             mot.setColor(ccc);
         else
             mot.setPhase(ph);

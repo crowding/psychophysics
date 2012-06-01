@@ -268,7 +268,7 @@ end
     end
 
     function lookupSubject_
-        if ~isvarname(subject)
+        if (~(isvarname(subject) || iskeyword(subject)))
             error('Experiment:invalidInput','Please use only letters and numbers in subject identifiers.');
         end
         
