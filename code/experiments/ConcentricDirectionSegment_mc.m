@@ -25,7 +25,7 @@ function exp = ConcentricDirectionSegment_mc(exp)
     exp.trials.base.maxResponseLatency = 0.60;
 
     exp.trials.reps = 1;
-    exp.trials.reps = floor(1100 / exp.trials.numLeft());
+    exp.trials.reps = floor(1050 / exp.trials.numLeft());
     exp.trials.blockSize = floor(exp.trials.numLeft() / 6);
     
 end

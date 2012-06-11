@@ -1,5 +1,5 @@
-function exp = ConcentricDirectionSegment_jb(exp)
-    disp('configuring for jb');
+function exp = ConcentricDirectionSegment_je(exp)
+    disp('configuring for je');
     
     %set the global speed.
     exp.trials.base.extra.directionContrast = .4;
@@ -13,9 +13,9 @@ function exp = ConcentricDirectionSegment_jb(exp)
     exp.trials.remove('extra.localDirection');
     
     exp.trials.replace('extra.side', ...
-        { 'left', 'right' ... , 'right', 'left' ...
-        , 'left', 'right' ... , 'right', 'left' ...
-        , 'left', 'right'}, 1, 1); %side is blocked
+        { 'right', 'left' ... , 'right', 'left' ...
+        , 'right', 'left' ... , 'right', 'left' ...
+        , 'right', 'left'}, 1, 1); %side is blocked
 
     exp.trials.add('desiredResponse', 0);
     
