@@ -23,4 +23,3 @@ function origStr = strrep_at_beginning(origStr, oldSubstr, newSubstr)
     origStr(matches) = regexprep(origStr(matches), sprintf('^.{%d}', numel(oldSubstr)), '');
     origStr(matches) = strcat(newSubstr, origStr(matches));
 end
-
