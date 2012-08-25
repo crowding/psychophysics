@@ -100,13 +100,14 @@ function e = ConcentricOculomotor(varargin)
     
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3}}};
     
-    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{20/3 40/9}}};
+    %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{20/3 40/9}}};
     
-    %%vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
+    vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
     
     %vars(end+1,:) = {{'extra.r', 'targetWindow'}, {{10 20/3} {20/3 40/9} {40/9 80/27}}};
         
     %vars(end+1,:) = {{'extra.directionContrast'}, {0.4 0.6 1.0}};
+    %%vars(end+1,:) = {{'extra.directionContrast'}, {0.2 0.4 0.6}};
     
     vars(end+1,:) = {{'extra.directionContrast'}, {0.4}};
     

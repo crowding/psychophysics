@@ -2,7 +2,7 @@ function exp = ConcentricDirectionSegment_tl(exp)
     disp('configuring for tl');
     
     %set the global speed.
-    exp.trials.base.extra.directionContrast = 0.2;
+    exp.trials.base.extra.directionContrast = 0.4;
     %we're just looking at one combination of contrast and two values of
     %global V...
     globalV = [0.4 -0.4] / (20/3) / 0.1 ;

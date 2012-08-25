@@ -169,6 +169,6 @@ function this = ConcentricDirectionDiscriminabilityCritDistance_ml(this)
     end
     
     this.trials.reps = 1;
-    this.trials.reps = floor(1000/this.trials.numLeft());
+    this.trials.reps = floor(1050/this.trials.numLeft());
     this.trials.blockSize = this.trials.numLeft() / 5;    
 end
