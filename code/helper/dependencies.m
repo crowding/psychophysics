@@ -8,13 +8,15 @@ else
     p.fun = {};
 end
 
-%we want to generate relative paths for dependencies 
+%we don't include itself in the dependency list.
 p.fun = strrep_at_beginning(p.fun,[fullfile(pwd()), filesep], '');
 
+x = p.fun;
+
+x(strcmp(x, mfile)) = [];
+
 if (nargin >= 2)
-    require(openFile(outfile, 'w'), @(x)fprintf(x.fid,'%s\n',p.fun{:}));
-else
-    x = p.fun
+    require(openFile(outfile, 'w'), @(x)fprintf(x.fid,'%s\n',x));
 end
 end
 
