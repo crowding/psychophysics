@@ -14,7 +14,7 @@ this = inherit(...
     ));
 
     function testPropertyGetting
-        p = properties('a', 1, 'b', 'foo', 'c', {3});
+        p = objProperties('a', 1, 'b', 'foo', 'c', {3});
         
         assertEquals(1,     p.getA());
         assertEquals('foo', p.getB());
@@ -23,7 +23,7 @@ this = inherit(...
 
 
     function testPropertySetting
-        p = properties('a', 1, 'b', 'foo', 'c', {3});
+        p = objProperties('a', 1, 'b', 'foo', 'c', {3});
         p.setA('bar');
         p.setB({'baz' 'qux'});
         p.setC([12 32]);
@@ -35,7 +35,7 @@ this = inherit(...
 
     function testPropertyInheritance
         function this = TestObject
-            this = inherit(properties('value', 1), public(@increment));
+            this = inherit(objProperties('value', 1), public(@increment));
             
             function increment
                 this.setValue(this.getValue() + 1);
@@ -54,7 +54,7 @@ this = inherit(...
     function testPropertyOverrideInChild
         function this = Parent
             %inherit is not getting the method__ right...
-            this = inherit(properties('a', 1), public(@doubleA));
+            this = inherit(objProperties('a', 1), public(@doubleA));
             
             function aa = doubleA
                 aa = 2 * this.getA();
@@ -78,12 +78,12 @@ this = inherit(...
 
     function testPropertyOverride
         %Shows how to override the property accessors made by
-        %properties().
+        %objProperties().
         function this = TestObject
             %p_ will contain a reference to the properties methods before 
             %overriding
             [this, p_] = inherit(...
-                properties('a', 1, 'b', 2),...
+                objProperties('a', 1, 'b', 2),...
                 public(@getB, @setB, @sum)...
             );
         
@@ -118,7 +118,7 @@ this = inherit(...
 
 
     function testReferenceBehavior
-        p = properties('a', 1, 'b', 2);
+        p = objProperties('a', 1, 'b', 2);
         
         assertEquals(1, p.getA());
         assertEquals(2, p.getB());
@@ -131,7 +131,7 @@ this = inherit(...
     end
 
     function testMethodMethod
-        p = properties('a', 1, 'b', 2);
+        p = objProperties('a', 1, 'b', 2);
         assertEquals({'getA', 'getB', 'setA', 'setB'}', sort(p.method__()));
         getter = functions(p.method__('getA'));
         assertEquals('accessor/getter', getter.function);
@@ -142,7 +142,7 @@ this = inherit(...
     end
 
     function testPropertyMethod
-        p = properties('a', 1, 'b', 2);
+        p = objProperties('a', 1, 'b', 2);
         assertEquals({'a', 'b'}', sort(p.property__()));
         assertEquals(1, p.property__('a'));
         p.property__('a', 3);

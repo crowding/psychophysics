@@ -18,4 +18,4 @@ args = namedargs(args);
 assignin('caller', extraname, extras);
 
 arglist = struct2arglist(args);
-props = properties(arglist{:});
+props = objProperties(arglist{:});

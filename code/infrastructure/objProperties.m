@@ -1,4 +1,4 @@
-function this = properties(varargin)
+function this = objProperties(varargin)
 %Creates a properties object, which can be inherited into any larger
 %object. Aruments are as in <a href="matlab:help struct">struct</a> (without its support for creating cell
 %arrays.) The properties object has getter and setter methods with names
@@ -22,8 +22,8 @@ if mod(nargin, 2)
     error('properties:illegalArgument', 'expected an even number of arguments');
 end
 
-[this, names, methodnames] = makeproperties(varargin{:});
-    function [this, names, methodnames] = makeproperties(varargin)
+[this, names, methodnames] = makeobjProperties(varargin{:});
+    function [this, names, methodnames] = makeobjProperties(varargin)
         names = varargin(1:2:end);
         values = varargin(2:2:end);
 

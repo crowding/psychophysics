@@ -57,7 +57,7 @@ function dumptofile(prefix, obj, fhandle)
                     dumpstruct([prefix '.version__'], obj.version__, fhandle);
                     fprintf(fhandle, '%s = %s(%s);\n', prefix, obj.version__.function, prefix);
                 else
-                    fprintf(fhandle, '%s = properties(%s);\n', prefix, prefix);
+                    fprintf(fhandle, '%s = objProperties(%s);\n', prefix, prefix);
                 end
             else
                 dumpstruct(prefix, obj, fhandle);

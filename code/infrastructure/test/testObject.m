@@ -57,7 +57,7 @@ function this = testObject()
     function testPropertyGetting
         %you should be able to get the value of a property as though it
         %were a field.
-        testobj = Object(properties('test', 1));
+        testobj = Object(objProperties('test', 1));
         
         assertEquals(1, testobj.test);
     end
@@ -65,7 +65,7 @@ function this = testObject()
     function testPropertySetting
         %you should be able to assign properties, while maintaining
         %reference semantics.
-        testobj = Object(properties('test', 1));
+        testobj = Object(objProperties('test', 1));
         testobk = testobj;
         
         testobj.test = 2;
@@ -78,7 +78,7 @@ function this = testObject()
         %you should be able to override your accessors that are
         %invoked using reference semantics.
         [testobj, props, methods] = ...
-            Object(properties('test', 1), public(@getTest, @setTest));
+            Object(objProperties('test', 1), public(@getTest, @setTest));
         function t = getTest
             t = props.getTest() + 1;
         end
@@ -92,16 +92,16 @@ function this = testObject()
 
     function testPropertyChainGetting
         testobj = Object(...
-            properties(...
-                'foo', Object(properties(...
+            objProperties(...
+                'foo', Object(objProperties(...
                     'bar', 2))));
         
         assertEquals(2, testobj.foo.bar);
     end
 
     function testPropertyChainSetting
-        testobj = Object(properties( ...
-            'foo', Object(properties('bar', 2))));
+        testobj = Object(objProperties( ...
+            'foo', Object(objProperties('bar', 2))));
         
         prop = testobj.foo;
         
@@ -114,7 +114,7 @@ function this = testObject()
         %the real reason to use object wrappers is that you can invoke save
         %and load filters, which is necessary for maintaining your data
         %under changes in code.
-        testobj = Object(properties('foo', 2), public(@loadobj, @saveobj));
+        testobj = Object(objProperties('foo', 2), public(@loadobj, @saveobj));
         function this = saveobj(this)
             this.foo = this.foo + 1;
         end
@@ -134,7 +134,7 @@ function this = testObject()
         %for future help with load filters, capture and keep around a
         %handle to the constructor.
         
-        testobj = Object(properties('foo', 2));
+        testobj = Object(objProperties('foo', 2));
         
         c = functions(constructor__(testobj));
         
@@ -150,7 +150,7 @@ function this = testObject()
     function testPropertyMethods
         %you can always use method__ to get at the underlying method for an
         %object's properties -- even an inherited Object
-        testobj = Object(properties('bar', 3));
+        testobj = Object(objProperties('bar', 3));
         
         b = testobj.method__('getBar');
         testobj.bar = 1;
@@ -163,13 +163,13 @@ function this = testObject()
 
 
     function testChainedGettingFromPrimitive
-        testobj = Object(properties('foo', {}));
+        testobj = Object(objProperties('foo', {}));
         
         assertEquals(cell(0, 1), testobj.foo(:));
     end
 
     function testChainedSettingOnPrimitive
-        testobj = Object(properties('foo', {}));
+        testobj = Object(objProperties('foo', {}));
         
         %this works...
         testobj.foo{end+1} = 4;
@@ -180,7 +180,7 @@ function this = testObject()
 
     function testRepmat
         %you should be able to repmat() an array of Object
-        a = Object(properties('a', 1, 'b', 2));
+        a = Object(objProperties('a', 1, 'b', 2));
         b = repmat(a, 1, 1);
     end
 

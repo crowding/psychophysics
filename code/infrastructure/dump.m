@@ -108,7 +108,7 @@ function dumpit(prefix, obj, printer)
                     dumpstruct([prefix '.version__'], obj.version__, printer);
                     printer('%s = %s(%s);', prefix, obj.version__.function, prefix);
                 else
-                    printer('%s = properties(%s);', prefix, prefix);
+                    printer('%s = objProperties(%s);', prefix, prefix);
                 end
             else
                 dumpstruct(prefix, obj, printer);

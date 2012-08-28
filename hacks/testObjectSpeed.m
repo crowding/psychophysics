@@ -98,7 +98,7 @@ profile viewer
 
     function this = superfancytestobj(val_)
         this = inherit(...
-            properties('prop', 0, 'val', val_),...
+            objProperties('prop', 0, 'val', val_),...
             public(@fun)...
             );
 
@@ -110,7 +110,7 @@ profile viewer
 
     function this = fancytestobj(val_)
         this = inherit(...
-            properties('prop', 0),...
+            objProperties('prop', 0),...
             public(@fun)...
             );
 
@@ -137,7 +137,7 @@ profile viewer
         end
         %/boilerplate
         
-        this = inherit(this, properties('prop',0));
+        this = inherit(this, objProperties('prop',0));
 
         function val = fun()
             val = val_;

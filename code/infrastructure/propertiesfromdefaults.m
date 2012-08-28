@@ -13,4 +13,4 @@ defaults = namedargs(struct(extraname, struct()), defaults);
 args = namedargs(args, struct(extraname, extras));
 
 arglist = struct2arglist(args);
-props = properties(arglist{:});
+props = objProperties(arglist{:});

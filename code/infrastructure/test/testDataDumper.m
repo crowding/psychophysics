@@ -49,16 +49,16 @@ function this = testDataDumper
     end
 
     function testProperties
-        a = properties('x', 1, 'y', 2);
+        a = objProperties('x', 1, 'y', 2);
         dump(a, @printer);
         
         %ignore the version attributes for now
-        assertEquals({'a.x = 1 ;', 'a.y = 2 ;', 'a = testDataDumper/testProperties(a);'}, output([1 2 end]));
+        assertEquals({'a.x = 1 ;', 'a.y = 2 ;', 'a = testDataDumper/testObjProperties(a);'}, output([1 2 end]));
     end
 
     function testBasicObject
         %the 'constructor' is captured and called
-        a = inherit(properties('x', 1, 'y', 2)); %it gets a version__ attribute
+        a = inherit(objProperties('x', 1, 'y', 2)); %it gets a version__ attribute
 
         dump(a, @printer);
         
@@ -72,7 +72,7 @@ function this = testDataDumper
 
     function testFancyObject
         %the 'constructor' is captured and called
-        a = Object(inherit(properties('x', 1, 'y', 2)));
+        a = Object(inherit(objProperties('x', 1, 'y', 2)));
         
         dump(a, @printer);
         
