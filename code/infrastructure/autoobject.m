@@ -37,26 +37,6 @@ function this = autoobject(varargin)
     %Note, persistent and global variables are treated the same way as
     %local variables! There's no way for me to tell the difference!
     
-    %You will note that I reuse variable names like 'this' for multiple
-    %purposes here. This is becuase more variables in a workspace seem to
-    %slow down calls to function handles created in the workspace.
-    
-    %Objects are ultimately created by passing a long string to evalin.
-    %Building hte string is time consuming; so the strings should be cached.
-    
-    %THIS _WAS_ A SNEAKY TRICK: MATLAB's restriction on adding variables to
-    %a static workspace apparently did not extend to persistent variables.
-    %Therefore if we want to cache a value with a calling function and have
-    %it associated with the function (and cleared whenever the function is
-    %recompiled) we can just stuff it in a persistent variable using
-    %evalin! But it does not work as of 7.4...
-
-    %evalin('caller', 'persistent init__;'); %allowed caching of
-    %function-specific data
-
-    %BUT: So much for that. Matlab 7.4 kills this behavior so we have to
-    %require the new boilerplate line:
-    
     persistent its;
     if isempty(its)
         its = Genitive();
@@ -90,7 +70,6 @@ function this = autoobject(varargin)
     
     this = evalin('caller', this);
     this{2} = this{2}();
-    %this{1}(namedargs(varargin{:}), this{2});
         
     tostruct = this{3};
     setmethod = this{4};
@@ -100,7 +79,6 @@ function this = autoobject(varargin)
     this.property__ = @property__;
     this.method__ = @method__;
     this.version__ = version;
-    
     
     if defaults('exists', version.function);
         property__(defaults('get', version.function));
@@ -252,7 +230,7 @@ function this = autoobject(varargin)
 
         for step = 1:numel(subs) -1
             property = subs(step).subs;
-            if strcmp(subs(step).type, '.') && isfield(whatsleft, 'property__') %&& any(strcmp(property, whatsleft.property__()))
+            if strcmp(subs(step).type, '.') && isfield(whatsleft, 'property__')
                 try
                     lowestrefobj = whatsleft;
                     try
@@ -277,7 +255,7 @@ function this = autoobject(varargin)
 
         %now we are up to all but the last assignment; what is it?
 
-        if strcmp(subs(end).type, '.') && isfield(whatsleft, 'property__') %&& any(strcmp(whatsleft.property__(), property))
+        if strcmp(subs(end).type, '.') && isfield(whatsleft, 'property__')
             %the last assignment is ultimately a reference object assignment.
             %Whew. Just make the assignment!
             try
@@ -365,12 +343,7 @@ function this = autoobject(varargin)
         tmp = [prop_names.nesting];
         prop_names = prop_names([tmp.level] == max([tmp.level]));
 
-        %Used to not make properties of undifined variables. But now I do.
-        %prop_names = {prop_names(cat(2, S{prop_names.class}(1)) ~= '(').name}; 
         prop_names = {prop_names.name}';
-        
-        %TOOD: only variables that occur on lines before the call whether
-        %or not they are defined.
         
         %and not varargin or ans or this or anything ending with an underscore
         prop_names = prop_names(~cellfun('prodofsize', regexp(prop_names, '(^varargin|^ans|^this|_)$', 'once', 'start')));
@@ -408,13 +381,13 @@ function this = autoobject(varargin)
         %But try the same when a has one row:
         %
         %a = [1 2 3 4]
-        %a([1 4]) = [10 40]
-        %a([1;4]) = [10 40]
+        %a([1 4]) %== [10 40]
+        %a([1;4]) %== [10 40]
         %
         %Argh. So, if you have a vector you don't know the orientation of,
         %and a vector of indices, there is no way to tell the orientation
         %of the result of the indexing operation, hence no way to use it in
-        %an expression without saving it to a damn temp variable and wiping
+        %an expression without saving it to a damn temp variable and salting
         %it with (:).
         
         %here, cache the file...
@@ -438,8 +411,7 @@ function this = autoobject(varargin)
         setter_names = cellfun(@setterName, prop_names, 'UniformOutput', 0);
         [setmethod_names, setmethodi] = intersect(setter_names, method_names);
         [setter_names, setteri] = setdiff(setter_names, method_names);
-        
-        
+            
         %assignments to the new object can be made directly, or by the
         %setters we are using.
  
@@ -507,48 +479,3 @@ function this = autoobject(varargin)
     end
 
 end
-
-    
-    %WTF matlab: there's no easy way to extract more than one field of a
-    %struct at a time. The best way I can come up with is
-    %cellfun-dependent:
-
-    %{
-    setters = cat(1, prop_names(:)', cellfun(@(x)this.(x), setters(:)', 'UniformOutput', 0));
-    setters = struct(setters{:});
-	getters = cat(1, prop_names(:)', cellfun(@(x)this.(x), getters(:)', 'UniformOutput', 0));
-    getters = struct(getters{:});
-    function value = property__(name, value)
-        switch(nargin)
-            case 0
-                value = prop_names;
-            case 1
-                if isfield(getters, name)
-                    value = getters.(name)();
-                else
-                    error('object:noSuchProperty', 'no such property %s', name);
-                end
-            case 2
-                if isfield(setters, name)
-                    setters.(name)(value);
-                else
-                    error('object:noSuchProperty', 'no such property %s', name);
-                end
-        end
-    end
-
-    function method = method__(name, value)
-        switch(nargin)
-            case 0
-                method = method_names;
-            case 1
-                method = this.(name);
-            case 2
-                %reverse translate method names, argh?
-                %y'know, it's getting to be a drag, this getter-setter
-                %distinction.
-                this.(name) = value;
-        end
-    end
-    %}
-  
