@@ -1,7 +1,8 @@
-%A defaults system, allowing you to override defaults that were set in the 
-%class files themselves. The defaults are set on object instantiation, before initializer arguments
-%are set. You may "push" and "pop" the current defaults onto a stack, to
-%transiently modify defaults.
+%A defaults system, allowing you to override defaults that were set in
+%the class files themselves. The defaults are set on object
+%instantiation, before initializer arguments are set. You may "push"
+%and "pop" the current defaults onto a stack, to transiently modify
+%defaults.
 %
 %Think of it as dynamically scoped variables.
 %
@@ -13,21 +14,21 @@
 function out = defaults(command, varargin)
     % it's a struct of structs.
     persistent defaults;
-    
+
     % a stack on which to save and restore previous defaults...
     persistent defaults_stack;
     persistent defaults_stack_depth; % for robustness...
-    
+
     if isempty(defaults_stack)
         defaults_stack = {};
         defaults_stack_depth = 0;
     end
-    
+
     persistent commands;
     if isempty(commands)
         commands = struct('set', @set, 'get', @get, 'exists', @exists, 'remove', @remove);
     end
-    
+
     if isempty(defaults)
         defaults = struct();
         defaults_global();
@@ -39,7 +40,7 @@ function out = defaults(command, varargin)
             f();
         end
     end
-
+ 
     %dispatch commands
     commands.(command)(varargin{:});
 
@@ -48,11 +49,11 @@ function out = defaults(command, varargin)
     if exist('ans', 'var')
         out=ans;
     end
-    
+
     function set(varargin)
         defaults = doSet(defaults, varargin{:});
     end
-    
+
     function def = doSet(def, varargin)
         switch(nargin)
             case {0 1 2}
@@ -83,7 +84,7 @@ function out = defaults(command, varargin)
                 got = doGet(def.(varargin{1}), varargin{2:end});
         end
     end
-        
+
     function e = exists(varargin)
         e = doExists(defaults, varargin{:});
     end
@@ -97,7 +98,7 @@ function out = defaults(command, varargin)
             otherwise
                 e = doExists(def.(varargin{1}), varargin{2:end});
         end
-    end        
+    end
 
     function remove(varargin)
         defaults = doRemove(defaults, varargin{:});
@@ -120,7 +121,7 @@ function out = defaults(command, varargin)
         defaults_stack = {defaults defaults_stack};
         defaults_stack_depth = defaults_stack_depth + 1;
     end
-        
+
     function pop_()
         defaults = defaults_stack{1};
         defaults_stack = defaults_stack{2};
