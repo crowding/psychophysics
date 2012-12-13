@@ -1,4 +1,4 @@
-function params = PlayDemo(trial, varargin)
+function params = playDemo(trial, varargin)
     %set up enough to play a trial object in demo mode.
     def = namedOptions...
         ( 'edfname',    '' ...
@@ -11,11 +11,11 @@ function params = PlayDemo(trial, varargin)
         , 'inputConstructors', defaults('get', 'Experiment', 'inputConstructors') ...
         );
     %, 'priority', 0 ...
-        
+
     if isfield(trial, 'getParams')
-        def = namedOptions(struct(), trial.getParams(), defaults);
+        def = namedOptions(struct(), trial.getParams(), def);
     end
-    
+
     require(namedOptions(def, varargin{:}), getScreen(), openLog(), @initInput, trial.run)
 end
 

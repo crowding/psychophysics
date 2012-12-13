@@ -40,7 +40,11 @@ function out = defaults(command, varargin)
             f();
         end
     end
- 
+
+    if ~exist('command', 'var')
+        command = 'get';
+    end
+
     %dispatch commands
     commands.(command)(varargin{:});
 

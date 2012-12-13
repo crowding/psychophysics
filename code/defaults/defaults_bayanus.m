@@ -2,7 +2,7 @@ function defaults_bayanus()
 
 defaults('set', 'Experiment',   'subject',     'zzz');
 defaults('set', 'Experiment',   'filename', '');
-defaults('set', 'Experiment',   'inputUsed',     {'keyboard', 'audioout', 'knob'});
+defaults('set', 'Experiment',   'inputUsed',     {'keyboard', 'audioout'});
 
 defaults('set', 'EyelinkInput', 'edfname',     '');
 defaults('set', 'EyelinkInput', 'localname',    '');
