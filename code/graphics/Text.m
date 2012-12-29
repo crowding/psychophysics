@@ -8,7 +8,8 @@ function this = Text(varargin)
     centered = 0;
     points = 12;
     style = 0;
-    
+    font = 'Geneva';
+
     varargin = assignments(varargin, 'loc', 'text', 'color');
 
     persistent init__;
@@ -20,6 +21,7 @@ function this = Text(varargin)
     function draw(window, next)
         oldStyle = Screen('TextStyle', window, style);
         oldSize = Screen('TextSize', window, points);
+        oldFont = Screen('TextFont', window, font);
         if ~visible
             return;
         end
@@ -27,7 +29,7 @@ function this = Text(varargin)
         %split on newlines. Note MATLAB has no excapes and no newlines
         %allowed in strings, so must represent in sprintf(wtf)
         lines = splitstr(sprintf('\n'),text);
-        
+
         bounds = zeros(numel(lines),4);
         for i = 1:numel(lines)
             bounds(i,:) = Screen('TextBounds', window, lines{i});
@@ -36,12 +38,12 @@ function this = Text(varargin)
         height = height - height(1);
         bounds(:,2) = bounds(:,2) + height;
         bounds(:,4) = bounds(:,4) + height;
-        
+
         if centered
             pix = pix - (bounds(end,[3 4]) - bounds(1,[1 2])) ./ 2;
         end
         pix = round(pix);
-        
+
         for i = 1:numel(lines)
             Screen('DrawText', window, lines{i}, pix(1), pix(2) + height(i), color, background_);
         end

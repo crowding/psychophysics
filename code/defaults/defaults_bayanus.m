@@ -17,8 +17,7 @@ defaults('set', 'Screen',       'imagingMode', kPsychNeed16BPCFloat);
 defaults('set', 'Screen', 'preferences', 'skipSyncTests', 1);
 defaults('set', 'Screen', 'requireCalibration', 0);
 defaults('set', 'Screen', 'hideCursor', 0 );
-
-if length(screen('Screens')) < 2
+if length(Screen('Screens')) < 2
     defaults('set', 'Screen', 'rect', [100 100 512 512] )
     defaults('set', 'Screen', 'cal' ...
             , Calibration( 'interval', 1/60, 'distance', 180/pi ...

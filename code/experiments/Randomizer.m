@@ -108,7 +108,8 @@ this = autoobject(varargin{:});
         
         if ~found
             if require_present
-                error(['didn''t find the factor ' substruct2str(subs)]);
+                ssss = evalc('disp(substruct2str(subs))')
+                error(['didn''t find the factor %s'], ssss);
             else 
                 ix = [];
             end
