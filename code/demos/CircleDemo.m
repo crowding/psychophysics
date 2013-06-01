@@ -11,29 +11,24 @@ function this = CircleDemo(varargin)
         , 'wavelength', 0.75 ...
         , 'order', repmat(4, 1, n) ...
         );
-    
-    static = StaticCauchy...
-        ('x', [1 0 -1 0]...
-        ,'y', [0 1  0 -1]...
-        ,'color', repmat([0.5;0.5;0.5]
-    
-            
+
     fixation = FilledDisk([0;0], 0.1, 'visible', 1);
-    
+
     kb_ = KeyDown();
-    drawer_ = CauchyDrawer('source', {motion, static}, 'visible', 1);
-    
+    drawer_ = CauchyDrawer('source', {motion}, 'visible', 1);
+
+    persistent init__;
     this = autoobject(varargin{:});
-    
+
     function params = run(params)
         main = mainLoop...
             ( 'input', {params.input.keyboard} ...
             , 'graphics', {fixation, drawer_} ...
             , 'triggers', {kb_} ...
             );
-        
+
         kb_.set(main.stop, 'ESCAPE');
-        
+
         params = main.go(params);
     end
 

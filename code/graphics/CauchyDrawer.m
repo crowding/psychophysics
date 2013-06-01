@@ -9,20 +9,20 @@ function this = CauchyDrawer(varargin)
     %return arguments are:
     %[x, y, angle, wavelength, order, width, color, phase]
     source = DummyCauchySource();
-    
+
     %hte handle for the cauchy shader program.
     persistent program_;
     if (isempty(program_))
         program_ = -1;
     end
-    
+
     %how accurately to render. Any bits of the cauchy patch that are less
     %than this amplitude are not remdered.
     accuracy = 0.001;
-    
+
     persistent init__;
     this = autoobject(varargin{:});
-    
+
     splitTextures_ = 0;
 
     function [release, params] = init(params)
@@ -80,17 +80,19 @@ function this = CauchyDrawer(varargin)
                     glUseProgram(program_);
                 end
             else
-                glUseProgram(program_);            
+                glUseProgram(program_);
             end
+            %will actually enable/disable per draw
+            glUseProgram(0);
         end
 
         release = @r;
         function r()
             %when done with the cauchy shader...
             glUseProgram(0);
-            
+
             %not supported? wtf?
-%            try 
+%            try
 %                glDeleteProgram(program_);
 %            end
 %            program_ = -1;
@@ -98,12 +100,12 @@ function this = CauchyDrawer(varargin)
     end
 
     onsetTime_ = 0;
-    
+
     function draw(window, next)
         if ~visible || next < onsetTime_
             return;
         end
-        
+
         if ~iscell(source)
             [xy, angle, wavelength, order, width, color, phase] = source.get(next - onsetTime_);
         else
@@ -115,43 +117,42 @@ function this = CauchyDrawer(varargin)
             out2 = cell(1,7);
             for i = 1:7
                 % is there seriously not a way to do this?
-                out2{i} = cat(1, out{:,i});
+                out2{i} = cat(1, out1{:,i});
             end
-                
+
             [xy, angle, wavelength, order, width, color, phase] = out2{:};
         end
-        %draw some GL points in the place for now...
-        
+
         nQuads = size(xy, 2);
-        
+
         if nQuads == 0
             return;
         end
-        
+
         %how many "sigma" to draw in width, so that all pixels with >
         %"accuracy" amplitude are plotted.
         c = max(abs(color), [], 1);
         sigma = single(real(sqrt(log(c ./ accuracy))));
-        
+
         %how far to extend along the 'envelope' of the cauchy function, a
         %similar calculation.
         extent = tan(acos((accuracy./c).^(1./order)));
-        
-        %the wavelength of the peak spatial frequency is 
-        
+
+        %the wavelength of the peak spatial frequency is
+
         phase = single(phase);
         order = single(order);
-        
+
         %Now we're going to draw QUADS....
         %we need a vertex array, 4 xy-vertices each, making rectangles around
         %each point.
-        
+
         %the "width" is 2-sigma; the wavelength of the peak spatial
         %frequency is adjusted for.
-        
+
         %'extent/'sigma' determins how big the texture coordinate box is;
         %'boxlength'/'boxheight' is how bog the drawn coordinate box is.
-        
+
         boxlength = wavelength.*order.*extent/pi/2;
         boxheight = width.*sigma/2;
         x0 = -cos(angle).*boxlength - sin(angle).*boxheight; % a row vector
@@ -160,7 +161,7 @@ function this = CauchyDrawer(varargin)
         y1 =  sin(angle).*boxlength + cos(angle).*boxheight; % a column vector
         %      x0;  y0;   x1;   y1;    x2;    y2;   x3;    y3
         vertices = repmat(single(xy), 4, 1) + [x0; y0; x1; y1; -x0; -y0; -x1; -y1];
-        
+
         %we need a texture coordinate array, also. But texture coordinates
         %have 4 components! (x, y, phase, order)
         %note that repmat is slow, and there are faster ways...
@@ -177,26 +178,27 @@ function this = CauchyDrawer(varargin)
         Screen('BeginOpenGL', window);
 
         glPolygonMode(GL_.FRONT_AND_BACK, GL_.FILL)
-        %glUseProgram(program_);
+        glUseProgram(program_);
         glVertexPointer(2, GL_.FLOAT, 0, vertices);
         glTexCoordPointer(4, GL_.FLOAT, 0, textureCoords);
         glColorPointer(3, GL_.FLOAT, 0, colors);
-        glDrawArrays(GL_.QUADS, 0, nQuads*4);
-        
-        
+
         if splitTextures_ %we have drawn the positive-going half, now need the negative
+            glBlendEquation(GL_.FUNC_ADD);
+            glDrawArrays(GL_.QUADS, 0, nQuads*4);
             textureCoords([3 7 11 15],:) = phase([1 1 1 1],:) + pi; %#ok, it is used by DrawArrays
             glBlendEquation(GL_.FUNC_REVERSE_SUBTRACT);
             glDrawArrays(GL_.QUADS, 0, nQuads*4);
-            glBlendEquation(GL_.FUNC_ADD);
+        else
+            glDrawArrays(GL_.QUADS, 0, nQuads*4);
         end
-        
-        %glUseProgram(0);
-        
+
+        glUseProgram(0);
+
         %temp: draw some lines, to show how our accuracy- clipping works
         %glPolygonMode(GL.FRONT_AND_BACK, GL.LINE);
         %glDrawArrays(GL.QUADS, 0, nQuads*4);
-        
+
         Screen('EndOpenGL', window);
     end
 
