@@ -81,7 +81,7 @@ toDegrees_ = @noop;
         %shitprof mainloop_go_begin
 
         params = namedargs(defaults_, varargin{:});
-        
+
         % constructor support for older constructor conventions --
         if ~isempty(triggers) && isempty(input)
             %old-style put all eye movement triggers in 'triggers', new style puts
@@ -100,7 +100,7 @@ toDegrees_ = @noop;
             triggers = {triggers{:} mouse{:}};
             mouse = {};
         end
-        
+
 
         %run the main loop, collecting events, calling triggers, and
         %redrawing the screen until stop() is called.
@@ -132,9 +132,9 @@ toDegrees_ = @noop;
         skipcount = 0;
         slowdown = max(params.slowdown, 1);
         maxLatency = params.maxLatency();
-        
+
 %        profile on -timer real -history -historysize 20000;
-        
+
         %for better speed in the loop, eschew struct access?
         log = params.log;
         logf = params.logf;
@@ -152,12 +152,12 @@ toDegrees_ = @noop;
         VBL = Screen('Flip', params.window) / slowdown; %hit refresh -1
         %if this is correct the next VBL should mark refresh 0
         %Synchronize what needs synchronizing...
-        
+
         %this needs to happen within a refresh or we're in trouble?
         for i = 1:numel(input)
             input(i).sync(-1, VBL + flipInterval);
         end
-        
+
         refresh = 0;    %the first flip in the loop is refresh 0
                         %(the first that draws anything is flip 1)
         %shitprof mainloop_dogo_begin
@@ -169,14 +169,14 @@ toDegrees_ = @noop;
             %Event handlers are preparing things for frame X+2 while frame
             %X is at the display. It also takes one extra frame to recover
             %from a drop.
-            
+
             %Note this is like loops 2/4 in the flip timing test...what of
             %loop 3?
-            
+
             %-----Flip phase: Flip the screen buffers and note the time at
             %which the change occurred.
             prevVBL = VBL;
-            
+
             if aviout_
                 %no funny pipeline business, fake timestamp
                 [tmp, tmp, FlipTimestamp] = Screen('Flip', window);
@@ -192,35 +192,35 @@ toDegrees_ = @noop;
                 skipped = round((VBL/slowdown - prevVBL) / flipInterval) - 1;
 
                 %FIXME this is prob. wrong in slowdown
-                
+
                 %if we hit ahead of schedule adjust the VBL estimate.
                 if skipped < 0
                     VBL = VBL - flipInterval * skipped;
                     skipped = 0;
                 end
-                
+
                 %fprintf('%f %f\n', FlipTimestamp, VBL);
             else
                 %alternate routine for lack of beampos, not quite as high
                 %throughput due to the scheduled flip.
                 Screen('Flip', params.window, prevVBL*slowdown + (slowdown-0.9)*interval, [], 1);
                 info = Screen('getWindowInfo', params.window);
-                
+
                 VBL = info.LastVBLTime/slowdown; %FIXME this is def wrong in slowdown...
-                
+
                 skipped = round((VBL - prevVBL) / flipInterval);
-                
+
                 if skipped <= 0
-                    VBL = VBL - flipInterval*skipped + flipInterval; 
+                    VBL = VBL - flipInterval*skipped + flipInterval;
                     skipped = 0;
                 else
                     VBL = VBL + interval;
                 end
             end
-                
 
-            
-            %-----Update phase: 
+
+
+            %-----Update phase:
             %reacts to the difference in VBL times, and updates
             %the number of refreshes.
             if (params.skipFrames)
@@ -231,7 +231,7 @@ toDegrees_ = @noop;
                     %refresh index of the same frame
                     fprintf(logf,'FRAME_SKIP %d %f %f %d\n', skipped, prevVBL, VBL, refresh);
                 end
-                
+
                 skipcount = skipcount + skipped;
 
                 if skipped >= 60
@@ -243,7 +243,7 @@ toDegrees_ = @noop;
                 skipped = 0;
                 VBL = prevVBL + flipInterval;
             end
-            
+
             %tell each graphic object how far to step.
             for i = 1:ng
                 graphics(i).update(skipped + 1);
@@ -255,7 +255,7 @@ toDegrees_ = @noop;
             %Event handlers we are now working on the next
             %refresh.
             refresh = refresh + skipped + 1;
-            
+
             %perhaps wait up here?
 
             if (~go_)
@@ -264,7 +264,7 @@ toDegrees_ = @noop;
                 %caught.
                 break;
             end
-            %-----Draw phase: Draw all the objects for the next refresh.            
+            %-----Draw phase: Draw all the objects for the next refresh.
             for i = 1:ng
                 if nargin(graphics(i).draw) > 2
                     graphics(i).draw(window, VBL + flipInterval, params);
@@ -283,7 +283,7 @@ toDegrees_ = @noop;
             WaitSecs(VBL+2*flipInterval - GetSecs() - maxLatency);
 
             %Now start in on event checking.
-            
+
             %start with an estimate of when your frame will hit the screen,
             %and what refresh...
             s = struct('next', VBL + 2*flipInterval, 'refresh', refresh);
@@ -292,7 +292,7 @@ toDegrees_ = @noop;
             for i = 1:numel(input)
                 s = input(i).input(s);
             end
-            
+
             for i = 1:numel(triggers)
                 s = triggers(i).check(s);
             end
@@ -333,7 +333,7 @@ toDegrees_ = @noop;
         %
         %See also require.
         triggers = interface(struct('check', {}, 'setLogf', {}, 'init', {}), triggers);
-        
+
         i = joinResource ...
             ( namedargs(varargin{:}) ...
             , @initLog...
@@ -345,11 +345,11 @@ toDegrees_ = @noop;
     function [release, params] = initLog(params)
         %now that we are starting an experiment, tell each trigger where to
         %log to.
-        
+
         for i = triggers(:)'
             i.setLogf(params.logf);
         end
-        
+
         release = @stop;
 
         function stop
@@ -373,17 +373,17 @@ toDegrees_ = @noop;
         %
         %See also require.
         graphics = interface(struct('draw',  {}, 'update', {}, 'init', {}), graphics);
-        
+
         init = joinResource(namedargs(varargin), graphics.init);
     end
 
     function init = startInput()
         input = interface(struct('input', {}, 'begin', {}, 'sync', {}, 'init', {}), input);
-        
+
         init = joinResource(struct('notlogged', {{}}), @checkInit, input.begin);
-        
+
         function [release, params, next] = checkInit(params)
-            %used for demos, when not running in the context of an Experiment.        
+            %used for demos, when not running in the context of an Experiment.
             if params.initInput
                 next = joinResource(input.init);
             else
@@ -392,7 +392,7 @@ toDegrees_ = @noop;
             release = @noop;
         end
     end
-        
+
     function drawTriggers(window, toPixels)
         % draw the trigger areas on the screen for debugging purposes.
         %

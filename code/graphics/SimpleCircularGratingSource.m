@@ -1,4 +1,4 @@
-function this = DummyCircularGratingSource(varargin)
+function this = SimpleCircularGratingSource(varargin)
 %and phase for each patch to be drawn on the screen.
 %
 %angles are in radians.

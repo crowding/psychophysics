@@ -7,7 +7,7 @@ function this = CauchySpritePlayer(varargin)
     %persistent process;
     %persistent this; %can't do that, but as long as 'this' isn't
     %referenced?
-    
+
     %to spread the load, only grab this many in a frame, unless you want
     %more...
     queueSize = 128;
@@ -16,46 +16,49 @@ function this = CauchySpritePlayer(varargin)
     %velocities, etc. If using a cauchy-sprite process, patch is
     %unnecessary.
     patch = CauchyPatch();
-    
+
     %the 'process' can either be an old-style sprite process (x, y, t, angle, color), or a
     %cauchy-sprite process that describes all the parameters...
     process = [];
-    
+
     log = [];
-    
+
     accuracy = 0.001;
-    
+
+    visible = 0; % a misnomer: setting visible means "start playing"
+    drawn = 1; %by default, is drawn.
+
     varargin = assignments(varargin, 'patch', 'process', 'log');
+
+    cd_ = CauchyDrawer('accuracy', accuracy, 'visible', 0);
+
     persistent init__;
     this = autoobject(varargin{:});
-    
+
     %here's a nifty way to do selective delegation I just thought of.
     %We have a private CauchyDrawer to provide our draw method...
-    cd_ = CauchyDrawer('source', this, 'accuracy', accuracy, 'visible', 0);
-    %and we simply expose its draw and update methods.
+    %and we simply expose cauchyDrawer's draw and update methods.
     this.method__('draw', cd_.draw);
     this.method__('update', cd_.update);
     this.method__('getSource', cd_.getSource);
     this.method__('setSource', cd_.getSource);
+    cd_.setSource(this);
 
     %to fully specify a cauchy blob we need these fields, and only these
     %fields. this is the queue.
 
     s_ = struct('x', [], 'y', [], 't', [], 'angle', [], 'color', [], 'width', [], 'duration', [], 'wavelength', [], 'velocity', [], 'order', [], 'phase', []);
     queue_ = initialQueue_();
-    
+
     function r = initialQueue_()
         r = zeros(13, 0);
     end
-    
-    visible = 0; % a misnomer: setting visible means "start playing"
-    drawn = 1; %by default, is drawn.
-    
+
     onset_ = 0; %the onset of the current motion process (private)
-    
+
     function [release, params, next] = init(params)
         s_ = struct('x', [], 'y', [], 't', [], 'angle', [], 'color', [], 'width', [], 'duration', [], 'wavelength', [], 'velocity', [], 'order', [], 'phase', []);
-        
+
         %capture the patch parameters (as a spritePlayer would render, for
         %backwards compatibiilty)
         s_.wavelength = patch.size(1);
@@ -64,9 +67,9 @@ function this = CauchySpritePlayer(varargin)
         s_.velocity = patch.velocity;
         s_.order = patch.order;
         s_.phase = 0;
-        
+
         process.reset();
-        
+
         %initialize the delegate drawer.
         next = cd_.init;
         release = @noop;
@@ -87,31 +90,31 @@ function this = CauchySpritePlayer(varargin)
         if ~visible
             return;
         end
-        
+
         %ask for the next item...
         advanceQueue_(next);
-        
+
         %draw the queue...
         color = queue_([5 6 7],:) .* ([1;1;1] * reshape(exp(-((queue_(3,:)+onset_-next)./queue_(9,:)*2).^2), 1, []));
-        
+
         %pick the blobs we will actually bother to draw...
         isDrawn = max(color, [], 1) > accuracy;
         color = color(:,isDrawn);
-        
+
         xy = queue_([1 2],isDrawn);
         angle = queue_(4, isDrawn) / 180 * pi;
-        wavelength = queue_(10,isDrawn); 
+        wavelength = queue_(10,isDrawn);
         width = queue_(8,isDrawn);
         phase = queue_(13,isDrawn) - 2*pi*queue_(11,isDrawn)./wavelength .* (next-onset_-queue_(3,isDrawn));
         order = queue_(12,isDrawn);
-        
+
         %prune the queue
         queue_(:,~isDrawn & queue_(3,:)+onset_ < next) = [];
     end
 
     function advanceQueue_(next)
         nAdvanced = 0;
-        
+
         while 1
             if ~isempty(queue_)
                 %stop filling the queue if any objects presently in the
@@ -123,7 +126,7 @@ function this = CauchySpritePlayer(varargin)
                     ampl = exp(-(((queue_(3,ahead)+onset_-next)./queue_(9,ahead)*2).^2));
                     if min(ampl) < accuracy
                         break;
-                    end                    
+                    end
                 end
                 %sort of spread out the work....
                 %{
@@ -186,7 +189,7 @@ function this = CauchySpritePlayer(varargin)
         % ---
         % onset: the stimulus onset time.
         visible = v;
-        
+
         if v
             onset_ = next;
             stimOnset = onset_;
@@ -197,7 +200,7 @@ function this = CauchySpritePlayer(varargin)
             process.reset();
         end
         visible = v;
-        cd_.setVisible(v && drawn);
+        cd_.setVisible(v && drawn, 0);
     end
 
     function setDrawn(d)

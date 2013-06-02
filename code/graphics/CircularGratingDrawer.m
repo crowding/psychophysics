@@ -9,7 +9,7 @@ function this = CircularGratingDrawer(varargin)
     %return arguments are:
     %[x, y, radius, width, color, lobes, phase]
 
-    source = DummyCircularGratingSource();
+    source = SimpleCircularGratingSource();
 
     %the handle for the shader program
     persistent program_;
@@ -155,7 +155,7 @@ function this = CircularGratingDrawer(varargin)
         x0 = sqrt(2) * extent .* cos(pi/4+mod(phase,2*pi)./lobes);
         x1 = sqrt(2) * extent .* sin(pi/4+mod(phase,2*pi)./lobes);
 
-        texSigma = sigma./radius./2;
+        texSigma = width./radius./2;
         textureCoords = ...
             [ x0; x1;texSigma;lobes ...
             ; x1;-x0;texSigma;lobes ...

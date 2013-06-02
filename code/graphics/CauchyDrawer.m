@@ -10,11 +10,8 @@ function this = CauchyDrawer(varargin)
     %[x, y, angle, wavelength, order, width, color, phase]
     source = DummyCauchySource();
 
-    %hte handle for the cauchy shader program.
-    persistent program_;
-    if (isempty(program_))
-        program_ = -1;
-    end
+    %the handle for the cauchy shader program.
+    program_ = -1;
 
     %how accurately to render. Any bits of the cauchy patch that are less
     %than this amplitude are not remdered.
@@ -99,9 +96,12 @@ function this = CauchyDrawer(varargin)
         end
     end
 
-    onsetTime_ = 0;
+    onsetTime_ = NaN;
 
     function draw(window, next)
+        if visible && isnan(onsetTime_)
+            onsetTime_ = next;
+        end
         if ~visible || next < onsetTime_
             return;
         end
@@ -210,6 +210,10 @@ function this = CauchyDrawer(varargin)
         if nargin >= 2
             %track the onset time..
             onsetTime_ = t;
+        else
+            if visible == 0
+                onsetTime_ = NaN;
+            end
         end
     end
 

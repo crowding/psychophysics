@@ -12,14 +12,14 @@ function this = CircularCauchyMotion(varargin)
     phase = 0; %the initial phase
     angle = 0;
     color = [0.5;0.5;0.5];
-    
+
     wavelength = 1;
     width = 1;
     duration = 0.1;
     velocity = 10;
     localPhase = 0;
     order = 4;
-    
+
     dphase = 0; %the phase angle change per appearance
     dLocalPhase = 0; %does the local phase angle change?
     dt = 0.1; %the number of seconds per appearance
@@ -28,14 +28,14 @@ function this = CircularCauchyMotion(varargin)
     t = 0; %time of the first appearance
 
     counter_ = [0]; %counts how many of each target have been shown...
-    
+
     lastT_ = -Inf; %time of the last thing to be shown...
 
     persistent init__;
     this = autoobject(varargin{:});
 
 %-----
-    
+
     function r = getRadius()
         r = radius;
     end
@@ -44,53 +44,53 @@ function this = CircularCauchyMotion(varargin)
         phase = p;
         counter_ = zeros(size(phase));
     end
-    
+
     function out = nextStruct()
-        
+
     end
 
     function out = next()
         c = counter_;
-        
+
         %correct the counter, in case n/t/phase changed.
         ct = counter_;
         ct(:) = floor((lastT_ - t) ./ dt + 1);
-            
+
         c = min(c, ct+1);
         c = max(c, ct-1);
         c = max(c, 0);
-        
+
         c(c > n) = NaN;
-                
+
         %For better efficiency we want to return more than one blob at a
         %time (to cut down on funtion calling overhead.) That way the whole queue can be populated in a couple of calls.
-        %Take each and advance by one step, but strip the ones that 
-        
+        %Take each and advance by one step, but strip the ones that
+
         tt = t + c .* dt;
         i = find(tt <= min(tt + dt));
         tt = tt(i);
 %        [tt, ix] = sort(tt);
 %        i = i(ix);
-        
+
 %       [tt, i] = min(t + c .* dt);
-        
+
         if ~isnan(tt)
             %phase + dphase.*c
-            
+
             xxx = x + radius .* cos(phase + dphase.*c);
             yyy = y - radius .* sin(phase + dphase.*c);
             aaa = angle + 180/pi .* dphase.*c;
-            
+
             xx = xxx(i);
             yy = yyy(i);
             aa = aaa(i);
-            
+
             if size(color, 2) > 1
                 cc = color(:,i);
             else
                 cc = color(:,ones(1,numel(i)));
             end
-            
+
             if numel(wavelength) > 1
                 ll = wavelength(i);
             else
@@ -108,7 +108,7 @@ function this = CircularCauchyMotion(varargin)
             else
                 dd = duration(ones(1,numel(i)));
             end
-            
+
             if numel(velocity) > 1
                 vv = velocity(i);
             else
@@ -126,7 +126,7 @@ function this = CircularCauchyMotion(varargin)
             else
                 or = order(ones(1,numel(i)));
             end
-            
+
             counter_(i) = c(i) + 1;
             lastT_ = max(tt);
 

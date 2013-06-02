@@ -51,7 +51,7 @@ function opts = namedOptions(varargin)
 %present in that template. You can override this behavior by giving the
 %first argument as a structure with no fields . This will disable strict
 %checking so that you can set any part of the options structure that can
-%be indexed. 
+%be indexed.
 %
 %For example:
 %
@@ -65,7 +65,7 @@ function opts = namedOptions(varargin)
 %Peter Meilstrup
 
     strict = 0;
-    
+
     opts = struct();
     persistent its;
     if isempty(its)
@@ -89,7 +89,7 @@ function opts = namedOptions(varargin)
                             , substruct2str(varargin{argix}) );
                     end
                 end
-                
+
                 %now try to assign the value
                 if numel(varargin) == argix
                     error...
@@ -102,7 +102,7 @@ function opts = namedOptions(varargin)
                     %oops, here MATLAB is stupid and we have run into a
                     %problem with FUCKED DISPATCH (in which we assign to a
                     %struct a value that has a subsasgn method, invoking
-                    %the wrong method entirely...) 
+                    %the wrong method entirely...)
                     opts = subsasgn(opts, varargin{argix}, varargin{argix+1});
                     argix = argix + 2;
                 catch
@@ -115,7 +115,7 @@ function opts = namedOptions(varargin)
             else
                 %Not a substruct, so treat it as a regular struct (i.e.
                 %expand it)
-                
+
                 %special case, for the first argument: it gets transferred
                 %directly, and we then go into strict mode.
                 if argix == 1

@@ -74,9 +74,9 @@ theError = [];
                 if ~isa(resource_list{i}, 'function_handle')
                     error('require:badInitializer', 'initializer must be a function handle');
                 end
-                
+
                 %resource_names{i} = func2str(resource_list{i});
-                
+
                 if nargin(resource_list{i}) == 0
                     %shitprof(['initting_' resource_names{i}]);
                     resource_list{i}(); %probably it's a rogue releaser, call it anyway.
@@ -96,15 +96,15 @@ theError = [];
                         [resource_list{i}, params] = resource_list{i}(params);
                         %shitprof(['initted_' resource_names{i}]);
                     end
-                    
+
                     if ~isa(resource_list{i}, 'function_handle')
                         error('require:missingReleaser', 'initializer did not produce a releaser');
                     end
-                    
+
                 end
                 i = i + 1;
             end
-            
+
             %then run the body, catching exceptions.
             body = resource_list{i};
             if nargin(body) ~= 0
@@ -112,11 +112,11 @@ theError = [];
             else
                 [varargout{1:nargout}] = body();
             end
-            
+
         catch gotError
             theError = gotError;
         end
-        
+
         cleaner();
     end
 
@@ -136,7 +136,7 @@ theError = [];
                 theError = releasingError;
             end
         end
-        
+
         if ~isempty(theError)
             toThrow = theError;
             theError = []; %so that it doesn't get also thrown in cleanup unless it needs to.
