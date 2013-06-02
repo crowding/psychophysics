@@ -1,0 +1,21 @@
+/* A fragment shader that draws a circular grating windowed by a Gaussian.
+ */
+#define PI 3.14159265358979
+
+void main(void)
+{
+  /* s-coordinate = in X
+   * t-coordinate = in Y
+   * p-coordinate = width
+   * q-coordinate = number of lobes
+   */
+  float circle, rad;
+  theta = atan2(t, s);
+  rad = sqrt(s^2+ t^2);
+
+  gl_FragColor = gl_Color
+    * exp(-((rad-1)/width)^2);
+    * cos(theta * lobes);
+
+    gl_FragColor[3] = gl_Color[3];
+}

@@ -160,7 +160,7 @@ function info = gitinfo(file, dir, relative)
 
     gitstatus = gitstatus(1:min(2, numel(gitstatus)));
     repo_rev = repo_rev(min(8, numel(repo_rev)):max(end-1,0));
-    file_last_rev = file_last_rev(min(8, numel(file_last_rev)):max(end-1,0));
+    file_last_rev = file_last_rev(max(min(8, numel(file_last_rev)), 1):max(end-1,0));
 
     info = struct('function', frame.name, 'git_repo', dir, 'path', relative, ...
                   'head_rev', repo_rev, 'last_modified_rev', file_last_rev, ...

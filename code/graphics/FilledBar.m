@@ -20,11 +20,11 @@ function this = FilledBar(varargin)
         toPixels_ = transformToPixels(params.cal);
         pixelsPerDegree_ = 1./params.cal.spacing;
         [src, dst] = Screen('BlendFunction', params.window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
+
         %set the blend function... this will clobber other blend function
         %settings in other objects
         release = @resetBlend;
-        
+
         function resetBlend
             Screen('BlendFunction', params.window, src, dst);
         end

@@ -25,7 +25,8 @@ void main(void)
     }
 
     gl_FragColor = gl_Color
-        * pow(cos(theta), gl_TexCoord[0].q) * cos(theta * gl_TexCoord[0].q + gl_TexCoord[0].p ) /* cauchy function */
+        * pow(cos(theta), gl_TexCoord[0].q) 
+        * cos(theta * gl_TexCoord[0].q + gl_TexCoord[0].p ) /* cauchy function */
         * exp(- gl_TexCoord[0].t * gl_TexCoord[0].t); /* gaussian envelope */
     gl_FragColor[3] = gl_Color[3];
 }

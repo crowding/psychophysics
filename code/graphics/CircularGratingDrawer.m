@@ -1,41 +1,45 @@
-function this = CauchyDrawer(varargin)
-
+function this = CircularGratingDrawer(varargin)
     global GL_;
 
     visible = 0;
+
     %the "source" is an object that determines where and how to draw each
-    %cauchy blob for each frame. It has one method, get(next, refresh),
+    %grating for each frame. It has one method, get(next, refresh),
     %next being the timestamp and refresh being the refresh count. Its
     %return arguments are:
-    %[x, y, angle, wavelength, order, width, color, phase]
-    source = DummyCauchySource();
+    %[x, y, radius, width, color, lobes, phase]
 
-    %hte handle for the cauchy shader program.
+    source = DummyCircularGratingSource();
+
+    %the handle for the shader program
     persistent program_;
     if (isempty(program_))
         program_ = -1;
     end
 
-    %how accurately to render. Any bits of the cauchy patch that are less
-    %than this amplitude are not remdered.
-    accuracy = 0.001;
+    %this determines how large a shader patch to draw
+    accuracy = 0.005;
+    drawBox = 0;
+
+    splitTextures_ = 0;
+    toPixels_ = @noop;
 
     persistent init__;
     this = autoobject(varargin{:});
 
-    splitTextures_ = 0;
-
     function [release, params] = init(params)
-        %initialize the openGL environment, shader, and texture.
-        %we initialize the environment to measure in the same degrees as we
-        %are calibrated to...
-
+    %initialize the openGL environment, shader, and texture.
+    %we initialize the environment to measure in the same degrees as we
+    %are calibrated to...
         AssertGLSL;
-
         params = require(params, screenGL(params.window), @setupOpenGL);
+        toPixels_ = transformToPixels(params.cal);
+
         function params = setupOpenGL(params)
             %figure out whether we are in a 16-bit buffer?
-            if (params.screenInfo.BitsPerColorComponent > 8) && (params.screenInfo.GLSupportsBlendingUpToBpc >= params.screenInfo.BitsPerColorComponent)
+            if (params.screenInfo.BitsPerColorComponent > 8)...
+                    && (params.screenInfo.GLSupportsBlendingUpToBpc ...
+                        >= params.screenInfo.BitsPerColorComponent)
                 %we are running in a high-dynamic-range buffer with
                 %blending, yay
                 splitTextures_ = 0;
@@ -44,6 +48,8 @@ function this = CauchyDrawer(varargin)
                 splitTextures_ = 1;
             end
 
+            %feel like I should be pushing/popping GL contexts after
+            %setting this up
             glDisable(GL_.DEPTH_TEST);
             glMatrixMode(GL_.PROJECTION);
 
@@ -59,9 +65,8 @@ function this = CauchyDrawer(varargin)
             %set up vertex array state
             glEnableClientState(GL_.VERTEX_ARRAY);
             %since texture coordinates can have four elements, the
-            %third and fourth easily take care of order and phase.
+            %third and fourth takes care of "width" and "lobes"
             glEnableClientState(GL_.TEXTURE_COORD_ARRAY);
-
             glEnableClientState(GL_.COLOR_ARRAY);
             glEnable(GL_.POINT_SMOOTH);
             glBlendFunc(GL_.SRC_ALPHA, GL_.ONE);
@@ -72,18 +77,18 @@ function this = CauchyDrawer(varargin)
                     try
                         glUseProgram(program_);
                     catch
-                        program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                        program_ = LoadGLSLProgramFromFiles( ...
+                            which('CircularGratingShader.frag.txt'));
                         glUseProgram(program_);
                     end
                 else
-                    program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                    program_ = LoadGLSLProgramFromFiles(...
+                        which('CircularGratingShader.frag.txt'));
                     glUseProgram(program_);
                 end
             else
                 glUseProgram(program_);
             end
-            %will actually enable/disable per draw
-            glUseProgram(0);
         end
 
         release = @r;
@@ -99,28 +104,31 @@ function this = CauchyDrawer(varargin)
         end
     end
 
-    onsetTime_ = 0;
+    onsetTime_ = NaN;
 
     function draw(window, next)
+        if visible && isnan(onsetTime_)
+            onsetTime_ = next;
+        end
         if ~visible || next < onsetTime_
             return;
         end
-
         if ~iscell(source)
-            [xy, angle, wavelength, order, width, color, phase] = source.get(next - onsetTime_);
+            [xy, radius, width, color, lobes, phase] = ...
+                source.get(next - onsetTime_);
         else
-            out1 = cell(numel(source),7);
+            out1 = cell(numel(source), 6);
             for i = 1:numel(source)
                 [out1{i,:}] = source{i}.get(next - onsetTime_);
             end
 
-            out2 = cell(1,7);
-            for i = 1:7
+            out2 = cell(1,3);
+            for i = 1:6
                 % is there seriously not a way to do this?
                 out2{i} = cat(1, out1{:,i});
             end
 
-            [xy, angle, wavelength, order, width, color, phase] = out2{:};
+            [xy, radius, width, color, lobes, phase] = out2{:};
         end
 
         nQuads = size(xy, 2);
@@ -134,45 +142,26 @@ function this = CauchyDrawer(varargin)
         c = max(abs(color), [], 1);
         sigma = single(real(sqrt(log(c ./ accuracy))));
 
-        %how far to extend along the 'envelope' of the cauchy function, a
-        %similar calculation.
-        extent = tan(acos((accuracy./c).^(1./order)));
+        %how big the box in screen space
+        bs = radius + abs(width.*sigma); %box-size
+        vertices = repmat(single(xy), 4, 1) + ...
+            [bs; bs; -bs; bs; -bs; -bs; bs; -bs];
 
-        %the wavelength of the peak spatial frequency is
+        %how big the box in texture coord space
+        %texture coords are normalized to radius being always 1
+        extent = single(bs./radius);
 
-        phase = single(phase);
-        order = single(order);
+        %handle phasing by rotation in texture coords
+        x0 = sqrt(2) * extent .* cos(pi/4+mod(phase,2*pi)./lobes);
+        x1 = sqrt(2) * extent .* sin(pi/4+mod(phase,2*pi)./lobes);
 
-        %Now we're going to draw QUADS....
-        %we need a vertex array, 4 xy-vertices each, making rectangles around
-        %each point.
-
-        %the "width" is 2-sigma; the wavelength of the peak spatial
-        %frequency is adjusted for.
-
-        %'extent/'sigma' determins how big the texture coordinate box is;
-        %'boxlength'/'boxheight' is how bog the drawn coordinate box is.
-
-        boxlength = wavelength.*order.*extent/pi/2;
-        boxheight = width.*sigma/2;
-        x0 = -cos(angle).*boxlength - sin(angle).*boxheight; % a row vector
-        y0 =  sin(angle).*boxlength - cos(angle).*boxheight; % a column vector
-        x1 = -cos(angle).*boxlength + sin(angle).*boxheight; % a row vector
-        y1 =  sin(angle).*boxlength + cos(angle).*boxheight; % a column vector
-        %      x0;  y0;   x1;   y1;    x2;    y2;   x3;    y3
-        vertices = repmat(single(xy), 4, 1) + [x0; y0; x1; y1; -x0; -y0; -x1; -y1];
-
-        %we need a texture coordinate array, also. But texture coordinates
-        %have 4 components! (x, y, phase, order)
-        %note that repmat is slow, and there are faster ways...
-
+        texSigma = sigma./radius./2;
         textureCoords = ...
-            [ -extent;-sigma;phase;order ...
-            ; -extent; sigma;phase;order ...
-            ;  extent; sigma;phase;order ...
-            ;  extent;-sigma;phase;order];
+            [ x0; x1;texSigma;lobes ...
+            ; x1;-x0;texSigma;lobes ...
+            ;-x0;-x1;texSigma;lobes ...
+            ;-x1; x0;texSigma;lobes];
 
-        %colors...
         colors = repmat(single(color), 4, 1);
 
         Screen('BeginOpenGL', window);
@@ -182,24 +171,23 @@ function this = CauchyDrawer(varargin)
         glVertexPointer(2, GL_.FLOAT, 0, vertices);
         glTexCoordPointer(4, GL_.FLOAT, 0, textureCoords);
         glColorPointer(3, GL_.FLOAT, 0, colors);
+        glDrawArrays(GL_.QUADS, 0, nQuads*4);
 
         if splitTextures_ %we have drawn the positive-going half, now need the negative
-            glBlendEquation(GL_.FUNC_ADD);
-            glDrawArrays(GL_.QUADS, 0, nQuads*4);
+            error('not doing this');
             textureCoords([3 7 11 15],:) = phase([1 1 1 1],:) + pi; %#ok, it is used by DrawArrays
             glBlendEquation(GL_.FUNC_REVERSE_SUBTRACT);
             glDrawArrays(GL_.QUADS, 0, nQuads*4);
-        else
-            glDrawArrays(GL_.QUADS, 0, nQuads*4);
+            glBlendEquation(GL_.FUNC_ADD);
         end
 
-        glUseProgram(0);
-
-        %temp: draw some lines, to show how our accuracy- clipping works
-        %glPolygonMode(GL.FRONT_AND_BACK, GL.LINE);
-        %glDrawArrays(GL.QUADS, 0, nQuads*4);
-
         Screen('EndOpenGL', window);
+
+        if drawBox
+             vertices = reshape(toPixels_(...
+                 double(vertices([1 2 3 4 3 4 5 6 5 6 7 8 7 8 1 2],:))), 2, []);
+            Screen('DrawLines', window, vertices, [], 0, [], 1);
+        end
     end
 
     function update(frames)
@@ -210,6 +198,10 @@ function this = CauchyDrawer(varargin)
         if nargin >= 2
             %track the onset time..
             onsetTime_ = t;
+        else
+            if visible == 0
+                onsetTime_ = NaN;
+            end
         end
     end
 
@@ -220,4 +212,5 @@ function this = CauchyDrawer(varargin)
             l = [0;0];
         end
     end
+
 end
