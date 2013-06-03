@@ -69,11 +69,13 @@ function this = CauchyDrawer(varargin)
                     try
                         glUseProgram(program_);
                     catch
-                        program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                        program_ = LoadGLSLProgramFromFiles(...
+                            which('CauchyShader.frag.txt'));
                         glUseProgram(program_);
                     end
                 else
-                    program_ = LoadGLSLProgramFromFiles(which('CauchyShader.frag.txt'));
+                    program_ = LoadGLSLProgramFromFiles(...
+                        which('CauchyShader.frag.txt'));
                     glUseProgram(program_);
                 end
             else
