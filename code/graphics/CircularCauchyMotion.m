@@ -45,10 +45,6 @@ function this = CircularCauchyMotion(varargin)
         counter_ = zeros(size(phase));
     end
 
-    function out = nextStruct()
-
-    end
-
     function out = next()
         c = counter_;
 
@@ -62,9 +58,10 @@ function this = CircularCauchyMotion(varargin)
 
         c(c > n) = NaN;
 
-        %For better efficiency we want to return more than one blob at a
-        %time (to cut down on funtion calling overhead.) That way the whole queue can be populated in a couple of calls.
-        %Take each and advance by one step, but strip the ones that
+        %For better efficiency we want to return more than one blob at a time
+        %(to cut down on funtion calling overhead.) That way the whole
+        %queue can be populated in a couple of calls.  Take each and
+        %advance by one step, but strip the ones that
 
         tt = t + c .* dt;
         i = find(tt <= min(tt + dt));
