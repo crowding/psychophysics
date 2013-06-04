@@ -1,4 +1,4 @@
-function o = orderlike(template, struct)
+function o = orderlike(template, s)
 % function orderlike(template, struct)
 %
 % rebuild a struct so that its fields come in the same ORDER as another
@@ -11,5 +11,5 @@ function o = orderlike(template, struct)
 o = struct();
 
 for i = makerow(fieldnames(template))
-    o.(i{1}) = struct.(i{1});
+    o.(i{1}) = s.(i{1});
 end

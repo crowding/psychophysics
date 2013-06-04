@@ -154,6 +154,8 @@ function this = CircularGratingDrawer(varargin)
         %handle phasing by rotation in texture coords
         x0 = sqrt(2) * extent .* cos(pi/4+mod(phase,2*pi)./lobes);
         x1 = sqrt(2) * extent .* sin(pi/4+mod(phase,2*pi)./lobes);
+        x0(lobes == 0) = extent(lobes==0);
+        x1(lobes == 0) = extent(lobes==0);
 
         texSigma = width./radius./2;
         textureCoords = ...
