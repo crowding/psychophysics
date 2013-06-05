@@ -2,10 +2,10 @@ function this = CircleDemo(varargin)
 
     radius = 5;
     lobes = 36;
-    flanker_lobes = 3/2*lobes;
+    flanker_lobes = 54;
     tfreq = 10;
     tseparation = 10;
-    flanker_radii = [8];
+    flanker_radii = [7.5];
     n = 6; %number of flankers around a circle
     carrier_strength = .3;
     contrast = 0.3;
@@ -97,22 +97,42 @@ function this = CircleDemo(varargin)
                       );
             end
         end
-    end
 
-    function f = change(what, how, by, check)
-        f = @doChange;
-        function doChange(k)
-            x = this.property__(what);
-            newX = how(x, by);
-            if check(newX)
-                this.property__(what, newX);
-                x = newX;
-                setup();
-                drawer1_.setVisible(0);
-                t_.singleshot(always(), @start);
+        function f = change(what, how, by, check)
+            f = @doChange;
+            function doChange(k)
+                x = this.property__(what);
+                newX = how(x, by);
+                if check(newX)
+                    this.property__(what, newX);
+                    x = newX;
+                    setup();
+                    drawer1_.setVisible(0);
+                    t_.singleshot(always(), @start);
+                end
+                disp([substruct2str(what) ' = '])
+                disp(x)
             end
-            disp([substruct2str(what) ' = '])
-            disp(x)
+        end
+
+        function x = switchCarrier(k)
+            v_locations = -v_locations;
+            %shortcut...
+            motion.setColor( ...
+                reshape(flipdim(reshape(motion.getColor(), 3, 2, []), 2), 3, []));
+            motion.reset()
+            drawer1_.setVisible(0);
+            t_.singleshot(always(), @start);
+        end
+
+        function x = switchEnvelope(k)
+            e_locations = -e_locations;
+            %shortcut...
+            motion.setDphase( -motion.getDphase() );
+            motion.setPhase( -motion.getPhase() );
+            motion.setAngle( -motion.getAngle() );
+            drawer1_.setVisible(0);
+            t_.singleshot(always(), @start);
         end
     end
 
@@ -121,26 +141,6 @@ function this = CircleDemo(varargin)
         function yn = check(x)
             yn = all(x <= max & x >= min);
         end
-    end
-
-    function x = switchCarrier(k)
-        v_locations = -v_locations;
-        %shortcut...
-        motion.setColor( ...
-            reshape(flipdim(reshape(motion.getColor(), 3, 2, []), 2), 3, []));
-        motion.reset()
-        drawer1_.setVisible(0);
-        t_.singleshot(always(), @start);
-    end
-
-    function x = switchEnvelope(k)
-        e_locations = -e_locations;
-        %shortcut...
-        motion.setDphase( -motion.getDphase() );
-        motion.setPhase( -motion.getPhase() );
-        motion.setAngle( -motion.getAngle() );
-        drawer1_.setVisible(0);
-        t_.singleshot(always(), @start);
     end
 
     function demo(varargin)
@@ -152,7 +152,7 @@ function this = CircleDemo(varargin)
     function setup()
         flicker = struct ... % the flicker
                   ( 'lobes', lobes ...
-                    , 'omega', [tfreq -tfreq] * 3 * pi ...
+                    , 'omega', [tfreq -tfreq] * 2 * pi ...
                     , 'radius', radius ...
                     , 'width', 1 ...
                     , 'color', [1 1 1]'/8 ...
@@ -162,8 +162,8 @@ function this = CircleDemo(varargin)
                   ( 'lobes', 0 ...
                   , 'omega', 0 ...
                   , 'radius', radius + [1 -1]/2 .* 1.5 ...
-                  , 'width', 0.075 ...
-                  , 'color', [1 1 1]' / 16 ...
+                  , 'width', 0.1 ...
+                  , 'color', [1 1 1]' / 12 ...
                   );
 
         grating_placement = struct( 'loc', [x_locations; y_locations] );
@@ -250,5 +250,6 @@ function this = CircleDemo(varargin)
 
         motion.property__(motionParams);
         grating.property__(gratingParams);
+        fixation.setLoc([x_locations; y_locations])
     end
  end
