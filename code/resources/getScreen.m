@@ -189,7 +189,13 @@ initializer = @doGetScreen;
                 if any(windows == details.window)
                     %message(details, 'Closing screen');
                     %pause(0.5);
-                    Screen('Close', details.window);
+                    try
+                        Screen('Close', details.window);
+                    catch
+                        warning('Screen failed to close or whatever');
+                        clear Screen;
+                        %sigh.....
+                    end
                 end
             end
         end
